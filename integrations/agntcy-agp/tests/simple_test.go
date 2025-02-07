@@ -22,7 +22,7 @@ var _ = ginkgo.Describe("Phoenix gateway tests", func() {
 	)
 
 	ginkgo.BeforeEach(func() {
-		dockerImage = fmt.Sprintf("%s/phoenix/container-images/phoenix-test-langchain-agent:v0.0.0-dev", os.Getenv("IMAGE_REPO"))
+		dockerImage = fmt.Sprintf("%s/csit/test-langchain-agent:v0.0.0-dev", os.Getenv("IMAGE_REPO"))
 		azure_openapi_api_key = os.Getenv("AZURE_OPENAI_API_KEY")
 		azure_openapi_endpoint = os.Getenv("AZURE_OPENAI_ENDPOINT")
 	})

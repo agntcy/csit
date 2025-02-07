@@ -5,7 +5,7 @@
 # Documentation available at: https://docs.docker.com/build/bake/
 
 # Docker build args
-variable "IMAGE_REPO" {default = "ghcr.io/cisco-eti/phoenix/container-images"}
+variable "IMAGE_REPO" {default = "ghcr.io/agntcy/csit"}
 variable "IMAGE_TAG" {default = "v0.0.0-dev"}
 variable "POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME" {default = ""}
 variable "POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD" {default = ""}
@@ -17,8 +17,8 @@ function "get_tag" {
 
 group "default" {
   targets = [
-    "phoenix-test-autogen-agent",
-    "phoenix-test-langchain-agent",
+    "test-autogen-agent",
+    "test-langchain-agent",
   ]
 }
 
@@ -36,7 +36,7 @@ target "docker-metadata-action" {
   tags = []
 }
 
-target "phoenix-test-autogen-agent" {
+target "test-autogen-agent" {
   args = {
     POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME}"
     POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD}"
@@ -47,10 +47,10 @@ target "phoenix-test-autogen-agent" {
     "_common",
     "docker-metadata-action",
   ]
-  tags = get_tag(target.docker-metadata-action.tags, "${target.phoenix-test-autogen-agent.name}")
+  tags = get_tag(target.docker-metadata-action.tags, "${target.test-autogen-agent.name}")
 }
 
-target "phoenix-test-langchain-agent" {
+target "test-langchain-agent" {
   args = {
     POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME}"
     POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD}"
@@ -61,5 +61,5 @@ target "phoenix-test-langchain-agent" {
     "_common",
     "docker-metadata-action",
   ]
-  tags = get_tag(target.docker-metadata-action.tags, "${target.phoenix-test-langchain-agent.name}")
+  tags = get_tag(target.docker-metadata-action.tags, "${target.test-langchain-agent.name}")
 }

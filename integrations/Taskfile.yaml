@@ -10,7 +10,7 @@ vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "phoenix-test" }}'
 
   ## Image config
-  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/cisco-eti" }}'
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.0.2" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.0.1-rc0-43-g21a108b" }}'
 
@@ -42,10 +42,10 @@ tasks:
     cmds:
       # pull images
       # - docker pull {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}}
-      - docker pull {{.IMAGE_REPO}}/phoenix/container-images/phoenix-gateway-messenger:{{.GATEWAY_IMAGE_TAG}}
+      - docker pull {{.IMAGE_REPO}}/agp/agw:{{.GATEWAY_IMAGE_TAG}}
       # load images
       # - kind load docker-image {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-      - kind load docker-image {{.IMAGE_REPO}}/phoenix/container-images/phoenix-gateway-messenger:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+      - kind load docker-image {{.IMAGE_REPO}}/apg/agw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
 
   # k8s:port-forward:setup:
   #   internal: true
@@ -204,7 +204,7 @@ tasks:
         -e AZURE_OPENAI_ENDPOINT={{.AZURE_OPENAI_ENDPOINT}} \
         ${hostNetFlag} \
         --name autogen-agent \
-        {{.IMAGE_REPO}}/phoenix/container-images/phoenix-test-autogen-agent:v0.0.0-dev \
+        {{.IMAGE_REPO}}/csit/test-autogen-agent:v0.0.0-dev \
         poetry run python autogen_agent.py -g ${hostMachine}
 
   test:autogen-agent:remove:
