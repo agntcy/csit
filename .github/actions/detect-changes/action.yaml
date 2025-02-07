@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+
+name: Detect changes
+description: Detect changes in as list of directories
+inputs:
+  dirs:
+    description: 'Directories where to search for changes'
+    required: true
+    default: "./"
+outputs:
+  changed-dirs:
+    description: 'Directories with changes'
+    value: ${{ steps.detect-changes.outputs.changed-dirs }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect changes
+      id: detect-changes
+      run: |
+        # Function to get the diff in a directory in case of pr or push event
+        get_diff() {
+          dir=${1}
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_ref="${{ github.event.pull_request.base.sha }}"
+            head_ref="${{ github.event.pull_request.head.sha }}"
+          else
+            # For push to main, compare against the previous commit
+            base_ref="${{ github.event.before }}"
+            head_ref="${{ github.sha }}"
+          fi
+
+          git diff --quiet --name-only $base_ref $head_ref -- ${dir}
+        }
+
+        # Check if any of the folder have changed
+        CHANGED_DIRS=()
+        for DIR in ${{ inputs.dirs }}; do
+          if get_diff ${DIR}; then
+            echo "No changes in ${DIR}"
+          else
+            echo "Changes detected in ${DIR}"
+            CHANGED_DIRS+=($DIR)
+          fi
+        done
+
+        # Set the output variable
+        dirs_out=$(echo -n ${CHANGED_DIRS[*]} | jq -R -s -c 'split(" ") | map(select(length > 0))')
+        echo changed-dirs=${dirs_out} >> $GITHUB_OUTPUT
+      shell: bash

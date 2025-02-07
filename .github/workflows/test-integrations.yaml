@@ -21,6 +21,10 @@ on:
         description: 'Python version to install'
         required: false
         default: '3.12'
+      kind-version:
+        description: 'Kind version'
+        required: false
+        default: '0.24.0'
 
 jobs:
   run-tests-gateway:
@@ -42,8 +46,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{github.actor}}
-          password: ${{secrets.github-token}}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Taskfile
         shell: bash
@@ -51,7 +55,7 @@ jobs:
 
       - name: Setup Python
         if: ${{ inputs.python == 'true' }}
-        uses: cisco-eti/phoenix-actions/setup-python@setup-python-v1.0.1
+        uses: ./.github/actions/setup-python
         with:
           py-version: ${{ inputs.python-version }}
 
@@ -60,7 +64,7 @@ jobs:
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Setup K8S Tools
-        uses: cisco-eti/phoenix-actions/setup-k8s@setup-k8s-v0.0.2
+        uses: ./.github/actions/setup-k8s
         with:
           kind-version: "0.25.0"
 
