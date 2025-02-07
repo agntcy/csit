@@ -5,13 +5,6 @@ name: test-integrations
 on:
   workflow_dispatch:
     inputs:
-      testenv:
-        description: 'Environmet for test'
-        type: choice
-        required: false
-        options:
-          - kind
-        default: kind
       destroy-cluster:
         description: 'Destroy test cluster'
         required: false
