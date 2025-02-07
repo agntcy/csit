@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+
+name: Setup Environment
+description: setup environment to build/test/lint go applications
+inputs:
+  go-version:
+    description: 'Go version to install'
+    required: false
+    default: ~1.23
+  check-latest:
+    description: 'Check if the cached Go version is the latest one. If the locally cached version is not the most up-to-date, a relevant Go version will then be downloaded.'
+    required: false
+    default: true
+  github-token:
+    description: 'github token'
+    required: false
+    default: ''
+  go-fips:
+    description: 'Whether to install GoFIPS'
+    required: false
+    default: "false"
+outputs:
+  cache-hit:
+    description: "Whether we hit the cache"
+    value: ${{ steps.go-cache.outputs.cache-hit }}
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Go
+      if: ${{ inputs.go-fips != 'true' }}
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        check-latest: ${{ inputs.check-latest }}
+        cache: false
+
+    - name: Setup Go fips
+      if: ${{ inputs.go-fips == 'true' }}
+      run: |
+        # Install GoFIPS
+        curl -fsSL https://devhub.cisco.com/artifactory/csl-ubuntu-sto/csl-key.gpg | sudo tee /etc/apt/trusted.gpg.d/csm-toolkit.asc
+        sudo add-apt-repository -y "deb https://devhub.cisco.com/artifactory/csl-ubuntu-sto/ $(lsb_release -cs) main"
+        sudo apt-get update
+        sudo apt-get install -y csm-toolkit
+        sudo /opt/cisco/csm-toolkit/bin/csm-toolkit install gofips
+        echo 'source /opt/cisco/csm-toolkit/environment/buildtime*' >> ~/.bashrc
+        echo 'source /opt/cisco/csm-toolkit/environment/buildtime*' >> ~/.shrc
+      shell: bash
+
+    - name: Cache Go
+      id: go-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/bin
+          ~/go/pkg/mod
+          ~/gofips/pkg/mod
+          ~/gofips/bin
+        key: go-cache-${{ inputs.go-fips == 'true' && 'fips' || 'nofips' }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+
+    - id: set-cache-hit
+      run: echo "cache-hit=${{ steps.go-cache.outputs.cache-hit }}" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Update GITHUB_PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      shell: bash
+
+    - name: Setup access to private go modules
+      if: ${{ inputs.github-token != '' }}
+      run: |
+        git config --global --add url."https://${{ inputs.github-token }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+      shell: bash
