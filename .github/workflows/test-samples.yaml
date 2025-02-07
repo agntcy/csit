@@ -44,14 +44,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Taskfile
-        shell: bash
-        run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
-
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
         with:
-          py-version: "3.12"
+          python: true
+          python-version: "3.12"
+          go: false
 
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s

@@ -49,19 +49,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Taskfile
-        shell: bash
-        run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
-
-      - name: Setup Python
-        if: ${{ inputs.python == 'true' }}
-        uses: ./.github/actions/setup-python
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
         with:
-          py-version: ${{ inputs.python-version }}
-
-      - name: Update GITHUB_PATH
-        shell: bash
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+          python: true
+          python-version: "3.12"
+          go: false
 
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s

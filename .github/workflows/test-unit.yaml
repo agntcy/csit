@@ -18,14 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Taskfile
-        shell: bash
-        run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
-
-      - name: Setup Golang
-        if: ${{ inputs.go == 'true' }}
-        uses: ./.github/actions/setup-go
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
         with:
+          python: false
+          go: true
           go-version: '1.23.1'
 
       - name: Run unit tests
