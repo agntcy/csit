@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+tasks:
+  dependencies:
+    desc: Install dependencies
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - uv sync
+
+  lint:
+    desc: Run lint with black
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - uv run ruff check .
+
+  fix-lint:
+    desc: Run lint with black
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - uv run ruff check --fix .
+
+  compose:
+    description: "Run docker-compose"
+    cmds:
+      - docker compose up --build -d
+
+  kind:
+    description: "Run app in kind"
+    dir: '{{.USER_WORKING_DIR}}'
+    vars:
+      PARENT_DIR:
+        sh: basename ${PWD}
+    cmds:
+      - docker compose build
+      - kind create cluster --name {{.PARENT_DIR}} || true
+      - |
+        # For each image
+        images=($(yq '.services | keys | map("{{.PARENT_DIR}}-" + .) | join(" ")' docker-compose.yaml))
+        kind load docker-image ${images[@]} --name {{.PARENT_DIR}}
+      - kubectl --context kind-{{.PARENT_DIR}} apply -k .

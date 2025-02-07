@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+apiVersion: v1
+data:
+  SIMPLE_MESSAGE_QUEUE_HOST: "message-queue"
+  SIMPLE_MESSAGE_QUEUE_PORT: "8000"
+  SIMPLE_MESSAGE_QUEUE_INTERNAL_HOST: "0.0.0.0"
+  SIMPLE_MESSAGE_QUEUE_INTERNAL_PORT: "8000"
+  CONTROL_PLANE_HOST: "control-plane"
+  CONTROL_PLANE_PORT: "8000"
+  CONTROL_PLANE_INTERNAL_HOST: "0.0.0.0"
+  CONTROL_PLANE_INTERNAL_PORT: "8000"
+  WORKFLOW_NUM_GEN_HOST: "gen"
+  WORKFLOW_NUM_GEN_PORT: "8000"
+  WORKFLOW_NUM_GEN_INTERNAL_HOST: "0.0.0.0"
+  WORKFLOW_NUM_GEN_INTERNAL_PORT: "8000"
+  WORKFLOW_SUM_HOST: "sum"
+  WORKFLOW_SUM_PORT: "8000"
+  WORKFLOW_SUM_INTERNAL_HOST: "0.0.0.0"
+  WORKFLOW_SUM_INTERNAL_PORT: "8000"
+
+kind: ConfigMap
+metadata:
+  name: demo-config
+  namespace: llama-deploy-demo

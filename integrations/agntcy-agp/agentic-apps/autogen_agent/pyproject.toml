@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "autogen-agent"
+version = "0.1.0"
+description = "An agent that calls a function in order to prepare a question for testing agent communication"
+authors = ["Peter Balogh <p.balogh.sa@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+typing-extensions = "^4.12.2"
+autogen-agentchat = "^0.4.3"
+autogen-ext = "^0.4.3"
+tiktoken = "^0.8.0"
+openai = "^1.60.2"
+autogen-core = "^0.4.3"
+phoenix-gateway-bindings = "^0.1.4"
+
+[[tool.poetry.source]]
+name = "devhubcloud"
+url = "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi/simple"
+priority = "supplemental"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

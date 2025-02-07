@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+tasks:
+  dependencies:
+    desc: Install dependencies
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - poetry install
+
+  stack:up:
+    desc: Deploy all app components as indipendend processes
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - poetry run python -m llama_sum.deploy_msg_queue &
+      - sleep 3
+      - poetry run python -m llama_sum.deploy_control_plane &
+      - sleep 1
+      - poetry run python -m llama_sum.deploy_num_gen &
+      - sleep 1
+      - poetry run python -m llama_sum.deploy_sum &
+      - sleep 2
+
+  stack:down:
+    desc: kill all processes run with deploy-processes
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - |
+        for pid in $(ps aux | grep llama_sum | grep deploy | awk '{print $2}'); do kill -9 $pid; done
+
+  build-image:
+    desc: build app image
+    cmds:
+      - docker build -t sum --no-cache .
+
+  kind:setup:
+    desc: setup kind
+    deps:
+      - build-image
+    vars:
+      PARENT_DIR:
+        sh: basename ${PWD}
+    cmds:
+      - kind create cluster --name {{.PARENT_DIR}} || true
+      - kind load docker-image sum:latest --name {{.PARENT_DIR}}
+      - kubectl cluster-info --context kind-{{.PARENT_DIR}}
+
+  kind:deploy:
+    desc: deploy the application in kind
+    deps:
+      - kind:setup
+    cmds:
+      - kubectl create namespace llama-deploy-demo || true
+      - kubectl apply -f k8s/
+
+  kind:port-forward:
+    desc: set port forward
+    cmds:
+      - kubectl port-forward svc/control-plane -n llama-deploy-demo 8000:8000 &
+      - sleep 1
+
+  kind:delete:
+    desc: remove the application from kind
+    cmds:
+      - kubectl delete -f k8s/ || true
+      - kill -9 $(ps aux | grep port-forward | grep control-plane | awk '{print $2}') || true
+      - sleep 20
+      - kubectl delete namespace llama-deploy-demo || true
+
+  run:app:
+    desc: Run application main
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - poetry run python -m llama_sum.run
+
+  run:test:
+    desc: Run tests
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - kind:deploy
+      - dependencies
+    cmds:
+      - sleep 30
+      - task: kind:port-forward
+      - poetry run python -m tests.test

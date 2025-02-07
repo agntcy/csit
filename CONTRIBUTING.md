@@ -1,6 +1,6 @@
 # How to Contribute
 
-Thanks for your interest in contributing to `<project name>`! Here are a few
+Thanks for your interest in contributing to CSIT! Here are a few
 general guidelines on contributing and reporting bugs that we ask you to review.
 Following these guidelines helps to communicate that you respect the time of the
 contributors managing and developing this open source project. In return, they
@@ -18,7 +18,7 @@ in any real-time space e.g., Slack, Discord, etc.
 
 Before reporting a new issue, please ensure that the issue was not already
 reported or fixed by searching through our [issues
-list](https://github.com/org_name/repo_name/issues).
+list](https://github.com/agntcy/csit/issues).
 
 When creating a new issue, please be sure to include a **title and clear
 description**, as much relevant information as possible, and, if possible, a
@@ -39,7 +39,7 @@ major version release.
 
 ## Other Ways to Contribute
 
-We welcome anyone that wants to contribute to `<project name>` to triage and
+We welcome anyone that wants to contribute to CSIT to triage and
 reply to open issues to help troubleshoot and fix existing bugs. Here is what
 you can do:
 

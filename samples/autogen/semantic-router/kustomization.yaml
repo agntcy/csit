@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: semantic-router
+
+secretGenerator:
+  - name: common-env
+    namespace: semantic-router
+    envs:
+      - .env
+
+generatorOptions:
+  disableNameSuffixHash: true # use a static name
+
+resources:
+- deployments.yaml

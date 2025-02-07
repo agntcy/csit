@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "langchain-agent"
+version = "0.0.2"
+description = "Agent that retrieves weather using duckduckgo"
+authors = ["Lennart Gulikers <lguliker@cisco.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+langchain = "0.3.16"
+langchain-community = "0.3.16"
+langchain-openai = "0.2.12"
+langgraph = "^0.2.67"
+duckduckgo-search = "^7.3.0"
+phoenix-gateway-bindings = "^0.1.4"
+
+[[tool.poetry.source]]
+name = "devhubcloud"
+url = "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi/simple"
+priority = "supplemental"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

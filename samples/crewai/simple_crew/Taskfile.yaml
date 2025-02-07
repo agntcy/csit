@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+tasks:
+  dependencies:
+    internal: true
+    desc: Install dependencies
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - poetry install --no-root
+
+  run:crew:
+    desc: Run crew
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - poetry run python -m simple_crew.main
+
+  run:test:
+    desc: Run crew
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - poetry run python -m simple_crew.main test
+
+  publish:
+    desc: Publish PyPi package in Espresso-PyPi repo (https://engci-maven-master.cisco.com/artifactory/api/pypi/espresso-pypi/)
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - poetry publish --build --repository devhubcloud --verbose

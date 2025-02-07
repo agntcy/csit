@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+gateway:
+  image:
+    repository: ghcr.io/cisco-eti/phoenix/container-images/phoenix-gateway-messenger
+    # This sets the pull policy for images.
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "0.0.1-rc0-43-g21a108b"
+
+  imagePullSecrets:
+      - name: regcred

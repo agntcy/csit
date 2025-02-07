@@ -1,0 +1,165 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: semantic-router
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime
+  namespace: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runtime
+  template:
+    metadata:
+      labels:
+        app: runtime
+    spec:
+      containers:
+      - name: runtime
+        image: semantic-router-runtime:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 50051
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-rh
+  namespace: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-rh
+  template:
+    metadata:
+      labels:
+        app: agent-rh
+    spec:
+      containers:
+      - name: agent-rh
+        image: semantic-router-agent-rh:latest
+        imagePullPolicy: Never
+        env:
+        - name: RUNTIME_ADDRESS
+          value: runtime:50051
+        envFrom:
+        - secretRef:
+            name: common-env
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-finance
+  namespace: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-finance
+  template:
+    metadata:
+      labels:
+        app: agent-finance
+    spec:
+      containers:
+      - name: agent-finance
+        image: semantic-router-agent-finance:latest
+        imagePullPolicy: Never
+        env:
+        - name: RUNTIME_ADDRESS
+          value: runtime:50051
+        envFrom:
+        - secretRef:
+            name: common-env
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-router
+  namespace: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-router
+  template:
+    metadata:
+      labels:
+        app: agent-router
+    spec:
+      containers:
+      - name: agent-router
+        image: semantic-router-agent-router:latest
+        imagePullPolicy: Never
+        env:
+        - name: RUNTIME_ADDRESS
+          value: runtime:50051
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-proxy
+  namespace: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-proxy
+  template:
+    metadata:
+      labels:
+        app: agent-proxy
+    spec:
+      containers:
+      - name: agent-proxy
+        image: semantic-router-agent-proxy:latest
+        imagePullPolicy: Never
+        env:
+        - name: RUNTIME_ADDRESS
+          value: runtime:50051
+        ports:
+        - containerPort: 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime
+  namespace: semantic-router
+spec:
+  type: ClusterIP
+  selector:
+    app: runtime
+  ports:
+    - protocol: TCP
+      port: 50051
+      targetPort: 50051
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-rh
+  namespace: semantic-router
+spec:
+  type: ClusterIP
+  selector:
+    app: agent-rh
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

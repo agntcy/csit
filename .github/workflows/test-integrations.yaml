@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-integrations
+on:
+  workflow_dispatch:
+    inputs:
+      testenv:
+        description: 'Environmet for test'
+        type: choice
+        required: false
+        options:
+          - kind
+        default: kind
+      destroy-cluster:
+        description: 'Destroy test cluster'
+        required: false
+        default: true
+        type: boolean
+      python-version:
+        description: 'Python version to install'
+        required: false
+        default: '3.12'
+
+jobs:
+  run-tests-gateway:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      packages: 'read'
+      attestations: 'read'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.github-token}}
+
+      - name: Setup Taskfile
+        shell: bash
+        run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+
+      - name: Setup Python
+        if: ${{ inputs.python == 'true' }}
+        uses: cisco-eti/phoenix-actions/setup-python@setup-python-v1.0.1
+        with:
+          py-version: ${{ inputs.python-version }}
+
+      - name: Update GITHUB_PATH
+        shell: bash
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Setup K8S Tools
+        uses: cisco-eti/phoenix-actions/setup-k8s@setup-k8s-v0.0.2
+        with:
+          kind-version: "0.25.0"
+
+      - name: Create kind cluster
+        if: ${{ inputs.testenv == 'kind' }}
+        run: |
+          cd integrations
+          task kind:create
+        shell: bash
+
+      - name: Deploy Phoenix directory
+        if: ${{ inputs.testenv == 'kind' }}
+        run: |
+          cd integrations
+          task test:env:gateway:deploy
+        shell: bash
+
+      - name: Run simple gateway tests
+        run: |
+          cd integrations
+          task test:gateway
+        shell: bash

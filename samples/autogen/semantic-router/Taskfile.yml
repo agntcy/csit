@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+version: '3'
+
+includes:
+  lib:
+    taskfile: ../Taskfile.yml
+    flatten: true
+
+tasks:
+  run:test:
+    desc: Run tests
+    deps:
+      - compose
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - uv sync --only-dev
+      - uv run pytest

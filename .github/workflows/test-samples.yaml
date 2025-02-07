@@ -1,0 +1,83 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-samples
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'release/')}}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      apps-changed: ${{ steps.detect-changes.outputs.changed-dirs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        uses: cisco-eti/phoenix-actions/detect-changes@detect-changes-v0.0.3
+        id: detect-changes
+        with:
+          dirs: $(find ./samples \( -name 'pyproject.toml' -o -name 'Taskfile.yaml' \) | xargs -n1 dirname | sort -u)
+
+  test:
+    name: Test on samples
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: ${{ needs.detect-changes.outputs.apps-changed != '[]' && needs.detect-changes.outputs.apps-changed != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.detect-changes.outputs.apps-changed) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: cisco-eti/phoenix-actions/setup-env@setup-env-v0.0.8
+        with:
+          python: true
+          python-version: "3.12"
+          node: false
+          go: false
+          keeper-phoenix-role-id: ${{ secrets.VAULT_PHOENIX_APPROLE_ROLE_ID }}
+          keeper-phoenix-secret-id: ${{ secrets.VAULT_PHOENIX_APPROLE_SECRET_ID }}
+
+      - name: Import Vault Secrets
+        id: import-secrets
+        uses: cisco-eti/phoenix-actions/vault-action@vault-action-v1.0.0 # proxy
+        with:
+          method: approle
+          url: ${{ vars.KEEPER_URL }}
+          roleId: ${{ secrets.VAULT_ESPRESSO_APPROLE_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_ESPRESSO_APPROLE_SECRET_ID }}
+          namespace: eticloud/apps/espresso
+          secrets: |
+              secret/data/artifactory.devhub-cloud.cisco.com identity-token | DEVHUB_CLOUD_TOKEN ;
+              secret/data/artifactory.devhub-cloud.cisco.com username       | DEVHUB_CLOUD_USERNAME ;
+
+      - name: Setup K8S Tools
+        uses: cisco-eti/phoenix-actions/setup-k8s@setup-k8s-v0.0.2
+        with:
+          kind-version: "0.25.0"
+
+      - name: Run tests
+        env:
+          POETRY_REPOSITORIES_DEVHUBCLOUD_URL: "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi"
+          POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME: ${{ env.DEVHUB_CLOUD_USERNAME }}
+          POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD: ${{ env.DEVHUB_CLOUD_TOKEN }}
+        run: |
+          cd ${{ matrix.app }}
+          task run:test
+        shell: bash

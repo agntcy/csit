@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+tasks:
+  dependencies:
+    internal: true
+    desc: Install dependencies
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - poetry install --no-root
+
+  run:test:
+    desc: Run tests
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - dependencies
+    cmds:
+      - poetry run python -m research.main

@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+tasks:
+  setup:docker-env-cli-stdout:
+    desc: Create env file
+    dir: '{{.USER_WORKING_DIR}}/docker-env-cli-stdout'
+    status:
+      - test -f .env
+    cmds:
+      - ../utils/setup-env.sh
+
+  build:docker-env-cli-stdout:
+    desc: Build docker image
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - setup:docker-env-cli-stdout
+    cmds:
+      - docker buildx bake docker-env-cli-stdout
+
+  test:docker-env-cli-stdout:
+    desc: Run docker image
+    dir: '{{.USER_WORKING_DIR}}/docker-env-cli-stdout'
+    deps:
+      - build:docker-env-cli-stdout
+    cmds:
+      - docker run --env-file .env docker-env-cli-stdout "Hello, World"
+
+  build:
+    desc: Build images
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - docker buildx bake
+
+  run:test:
+    desc: Run test
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - build
+    cmds:
+      - task test:docker-env-cli-stdout

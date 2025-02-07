@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "research"
+version = "0.1.0"
+description = ""
+authors = ["Zsolt Kacsándi <zkacsand@cisco.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+langchain = "^0.3.12"
+langchain-ollama = "^0.2.1"
+langgraph = "^0.2.59"
+langchain-openai = "^0.2.12"
+report = {path = "../../../integrations/report/template/python"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

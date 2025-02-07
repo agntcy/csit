@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "simple_crew"
+version = "0.1.18"
+description = "simple using crewAI"
+authors = ["Your Name <you@example.com>"]
+
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+crewai = "^0.83.0"
+report_crew = {version = "0.1.1", source = "devhubcloud"}
+
+[[tool.poetry.source]]
+name = "devhubcloud"
+url = "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi/simple"
+priority = "supplemental"
+
+
+[tool.poetry.scripts]
+simple = "simple.main:run"
+run_crew = "simple.main:run"
+train = "simple.main:train"
+replay = "simple.main:replay"
+test = "simple.main:test"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

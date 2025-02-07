@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "llama-sum"
+version = "0.1.0"
+description = ""
+authors = ["Michele Papalini <micpapal@cisco.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+llama-deploy = {version = "^0.2.1"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

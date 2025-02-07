@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+services:
+  runtime:
+    build:
+      context: .
+      target: runtime
+    networks:
+      - semantic_router_network
+
+  agent-rh:
+    build:
+      context: .
+      target: agent-rh
+    environment:
+      - RUNTIME_ADDRESS=runtime:50051
+    networks:
+      - semantic_router_network
+    env_file:
+      - path: .env
+        required: false
+
+  agent-finance:
+    build:
+      context: .
+      target: agent-finance
+    environment:
+      - RUNTIME_ADDRESS=runtime:50051
+    networks:
+      - semantic_router_network
+    env_file:
+      - path: .env
+        required: false
+
+  agent-router:
+    build:
+      context: .
+      target: agent-router
+    environment:
+      - RUNTIME_ADDRESS=runtime:50051
+    networks:
+      - semantic_router_network
+
+  agent-proxy:
+    build:
+      context: .
+      target: agent-proxy
+    environment:
+      - RUNTIME_ADDRESS=runtime:50051
+    networks:
+      - semantic_router_network
+    ports:
+      - "8000:8000"
+
+
+networks:
+  semantic_router_network:
+    driver: bridge
