@@ -14,7 +14,7 @@ vars:
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.0.2" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-5-gc2c3ec9" }}'
 
-  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
+  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/amd64,linux/arm64" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -167,12 +167,6 @@ tasks:
             echo "File $FILE not found."
           fi
         done
-
-  build:gateway:agentic-apps:
-    desc: Build agentic containers and load them
-    dir: ./agntcy-agp/agentic-apps
-    cmds:
-      - docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
   relase:gateway:agentic-apps:
     desc: Build agentic containers and release them
