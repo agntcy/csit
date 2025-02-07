@@ -44,6 +44,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Taskfile
+        shell: bash
+        run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+
       - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
