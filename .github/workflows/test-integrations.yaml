@@ -25,7 +25,6 @@ on:
         description: 'Kind version'
         required: false
         default: '0.24.0'
-  pull_request:
 
 jobs:
   run-tests-gateway:
@@ -63,14 +62,12 @@ jobs:
           kind-version: "0.25.0"
 
       - name: Create kind cluster
-        if: ${{ inputs.testenv == 'kind' }}
         run: |
           cd integrations
           task kind:create
         shell: bash
 
       - name: Deploy Phoenix directory
-        if: ${{ inputs.testenv == 'kind' }}
         run: |
           cd integrations
           task test:env:gateway:deploy
