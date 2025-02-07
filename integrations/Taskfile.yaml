@@ -42,10 +42,10 @@ tasks:
     cmds:
       # pull images
       # - docker pull {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}}
-      - docker pull {{.IMAGE_REPO}}/agp/agw:{{.GATEWAY_IMAGE_TAG}}
+      - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
       # load images
       # - kind load docker-image {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-      - kind load docker-image {{.IMAGE_REPO}}/apg/agw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+      - kind load docker-image {{.IMAGE_REPO}}/apg/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
 
   # k8s:port-forward:setup:
   #   internal: true
