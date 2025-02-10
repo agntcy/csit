@@ -43,8 +43,9 @@ integrations
 
 ## Running tests
 
-We can run tests locally using task or these tasks can be used in GitHub actions.
-Running locally we ned to create test cluster and deploy the test env on it and after it we can run the tests.
+We can launch tests using taskfile locally or in GitHub actions.
+Running locally we need to create a test cluster and deploy the test env on
+it before running the tests.
 
 ```
 cd integrations
