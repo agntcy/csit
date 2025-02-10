@@ -57,10 +57,6 @@ jobs:
           kind-version: "0.25.0"
 
       - name: Run tests
-        env:
-          POETRY_REPOSITORIES_DEVHUBCLOUD_URL: "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi"
-          POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME: ${{ secrets.DEVHUB_CLOUD_USERNAME }}
-          POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD: ${{ secrets.DEVHUB_CLOUD_TOKEN }}
         run: |
           cd ${{ matrix.app }}
           task run:test

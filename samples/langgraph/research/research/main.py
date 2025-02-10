@@ -11,7 +11,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
 from langchain_openai import AzureChatOpenAI
-from report import Report
 
 report_data = {}
 
@@ -48,7 +47,7 @@ def researcher_node(state: ResearchState) -> dict:
     Goal: Uncover cutting-edge developments in {state['topic']}
     You are a seasoned researcher known for finding the most relevant information and presenting it clearly.
     """
-    
+
     research_prompt = f"""
     Conduct a thorough research about {state['topic']} in 2024.
     Provide 10 most relevant and interesting findings.
@@ -59,14 +58,14 @@ def researcher_node(state: ResearchState) -> dict:
         "system_prompt": system_prompt,
         "research_prompt": research_prompt,
     }
-    
+
     response = llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=research_prompt),
     ])
-    
+
     findings = [finding.strip() for finding in response.content.split('\n') if finding.strip()]
-    
+
     return {
         'research_findings': findings,
     }
@@ -77,14 +76,14 @@ def reporting_node(state: ResearchState) -> dict:
     Goal: Create detailed reports based on {state['topic']} data analysis and research findings
     You are known for turning complex data into clear, concise reports.
     """
-    
+
     report_prompt = f"""
     Create a detailed markdown report about {state['topic']} based on these research findings:
     {'\n'.join(state['research_findings'])}
-    
+
     Expand each finding into a full section, ensuring comprehensive coverage.
     """
-    
+
     report_data["input_reporting_node"] = {
         "topic": state['topic'],
         "system_prompt": system_prompt,
@@ -96,21 +95,21 @@ def reporting_node(state: ResearchState) -> dict:
         SystemMessage(content=system_prompt),
         HumanMessage(content=report_prompt),
     ])
-    
+
     return {
         'report': response.content,
     }
 
 def build_workflow(topic: str):
     workflow = StateGraph(ResearchState)
-    
+
     workflow.add_node("researcher", researcher_node)
     workflow.add_node("reporting_analyst", reporting_node)
-    
+
     workflow.set_entry_point("researcher")
     workflow.add_edge("researcher", "reporting_analyst")
     workflow.add_edge("reporting_analyst", END)
-    
+
     return workflow.compile()
 
 def main(topic: str):
@@ -119,12 +118,12 @@ def main(topic: str):
         'research_findings': [],
         'report': '',
     }
-    
+
     workflow = build_workflow(topic)
     result = workflow.invoke(initial_state)
 
     report_data["output"] = result
-    
+
     print("Research Report:")
     print(result['report'])
 
@@ -133,11 +132,3 @@ if __name__ == "__main__":
     topic = "Artificial Intelligence"
     main(topic)
 
-    # Fill the report
-    report = Report(
-        duration=time.time() - init_timestamp,
-        timestamp=init_timestamp,
-        extra_data=report_data,
-    )
-    report.load_metadata()
-    report.export()
