@@ -14,7 +14,7 @@ vars:
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.0.2" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-5-gc2c3ec9" }}'
 
-  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/amd64,linux/arm64" }}'
+  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -168,11 +168,11 @@ tasks:
           fi
         done
 
-  relase:gateway:agentic-apps:
-    desc: Build agentic containers and release them
+  build:gateway:agentic-apps:
+    desc: Build agentic containers
     dir: ./agntcy-agp/agentic-apps
     cmds:
-      - docker buildx bake {{ .IMAGE_BAKE_OPTS }} --push
+      - docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
   test:autogen-agent:run:
     internal: true
@@ -214,3 +214,8 @@ tasks:
       - task: test:autogen-agent:run
       - defer: { task: test:autogen-agent:remove }
       - IMAGE_REPO={{.IMAGE_REPO}} go test ./agntcy-agp/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+
+  version:
+    desc: Get version
+    cmds:
+      - git describe --tags --match "v*" | cut -c 2-
