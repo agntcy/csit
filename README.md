@@ -34,7 +34,7 @@ integrations
 │   ├── examples                    # the examples that can be used for testing
 │   ├── manifests                   # requred manifests for tests
 │   └── tests                       # tests
-├── phoenix-gateway                 # Agent Gateway related tests, components, etc...
+├── agntcy-agp                      # Agent Gateway related tests, components, etc...
 │   └── agentic-apps                # Agentic apps for gateway tests
 │       ├── autogen_agent
 │       └── langchain_agent
