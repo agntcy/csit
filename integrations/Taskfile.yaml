@@ -12,9 +12,10 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.0.2" }}'
-  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-5-gc2c3ec9" }}'
+  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-2-g421c6ce" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
+  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.0-dev" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -45,7 +46,7 @@ tasks:
       - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
       # load images
       # - kind load docker-image {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-      - kind load docker-image {{.IMAGE_REPO}}/apg/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+      - kind load docker-image {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
 
   # k8s:port-forward:setup:
   #   internal: true
@@ -198,7 +199,7 @@ tasks:
         -e AZURE_OPENAI_ENDPOINT={{.AZURE_OPENAI_ENDPOINT}} \
         ${hostNetFlag} \
         --name autogen-agent \
-        {{.IMAGE_REPO}}/csit/test-autogen-agent:v0.0.0-dev \
+        {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .TEST_APP_TAG }} \
         poetry run python autogen_agent.py -g ${hostMachine}
 
   test:autogen-agent:remove:
@@ -213,7 +214,7 @@ tasks:
       - defer: { task: k8s:port-forward:teardown:gateway }
       - task: test:autogen-agent:run
       - defer: { task: test:autogen-agent:remove }
-      - IMAGE_REPO={{.IMAGE_REPO}} go test ./agntcy-agp/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+      - IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./agntcy-agp/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
 
   version:
     desc: Get version
