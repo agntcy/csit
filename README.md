@@ -63,28 +63,19 @@ After we finish the tests we can destroy the test cluster
 task kind:destroy
 ```
 
-If we want to run tests on EKS cluster we can create it with `task eks:create` after we logged in to the aws with `duo-sso`
-
-```
-duo-sso --interactive --session-duration 3600
-task eks:create
-task test:env:directory:deploy
-task test:directory
-task eks:destroy
-```
 
 ## Running tests using GitHub actions
 
 We can run integration test using Github actions using `gh` command line tool or using the GitHub web UI
 
 ```
-gh workflow run test-integrations -f testenv=eks
+gh workflow run test-integrations -f testenv=kind
 ```
 
 If we want to run the tests on a specified branch
 
 ```
-gh workflow run test-integrations --ref feat/integration/deploy-agent-directory -f testenv=eks
+gh workflow run test-integrations --ref feat/integration/deploy-agent-directory -f testenv=kind
 ```
 
 ## Copyright Notice
