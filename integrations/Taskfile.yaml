@@ -11,7 +11,6 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.0.2" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-2-g421c6ce" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
@@ -42,22 +41,9 @@ tasks:
     internal: true
     cmds:
       # pull images
-      # - docker pull {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}}
       - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
       # load images
-      # - kind load docker-image {{.IMAGE_REPO}}/phoenix-directory-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
       - kind load docker-image {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-
-  # k8s:port-forward:setup:
-  #   internal: true
-  #   cmds:
-  #     - kubectl port-forward svc/agntcy-directory-apiserver -n default 8888 &
-  #     - sleep 1
-
-  # k8s:port-forward:teardown:
-  #   internal: true
-  #   cmds:
-  #     - kill -9 $(ps aux | grep port-forward | grep agntcy-directory-apiserver | awk '{print $2}') || true
 
   k8s:port-forward:setup:gateway:
     internal: true
@@ -69,33 +55,6 @@ tasks:
     internal: true
     cmds:
       - kill -9 $(ps aux | grep port-forward | grep agntcy-agp-gateway | awk '{print $2}') || true
-
-  # test:env:directory:deploy:
-  #   desc: Deploy Phoenix directory test env
-  #   vars:
-  #     HELM_NAMESPACE:  '{{ .HELM_NAMESPACE | default "default" }}'
-  #     REGCRED_CREATE:  '{{ .REGCRED_CREATE | default "false" }}'
-  #   cmds:
-  #     - |
-  #       helm dependency build ./agntcy-directory/components/helm
-  #       helm upgrade agntcy-directory \
-  #         ./agntcy-directory/components/helm \
-  #         --set agntcy-directory.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-  #         --set regcred.create="{{ .REGCRED_CREATE }}" \
-  #         --set agntcy-directory.apiserver.config.ipfs_api_address="http://agntcy-directory-ipfs.{{ .HELM_NAMESPACE  }}.svc.cluster.local:10125" \
-  #         --namespace {{ .HELM_NAMESPACE }} \
-  #         --create-namespace \
-  #         --install \
-  #         --wait \
-  #         --wait-for-jobs \
-  #         --timeout "15m"
-
-  # test:env:directory:cleanup:
-  #   desc: Remove Phoenix directory test env
-  #   vars:
-  #     HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
-  #   cmds:
-  #     - helm delete --namespace {{ .HELM_NAMESPACE }} phoenix-directory
 
   test:env:gateway:deploy:
     desc: Deploy Phoenix gateway test env
@@ -120,54 +79,6 @@ tasks:
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
     cmds:
       - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
-
-  # test:directory:
-  #   desc: Directory test
-  #   cmds:
-  #     - task: k8s:port-forward:setup
-  #     - defer: { task: k8s:port-forward:teardown }
-  #     - defer: { task: manifests:cleanup }
-  #     - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-directory/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
-
-  # test:directory:compiler:
-  #   desc: Phoenix compiler test
-  #   cmds:
-  #     - docker pull {{.IMAGE_REPO}}/phoenix-directory-phoenixctl:{{.DIRECTORY_IMAGE_TAG}}
-  #     - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-directory/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 10m -timeout 10m -ginkgo.v -ginkgo.focus "agent compilation"
-
-  # test:directory:push:
-  #   desc: Directory agent push test
-  #   cmds:
-  #     - task: k8s:port-forward:setup
-  #     - defer: { task: k8s:port-forward:teardown }
-  #     - defer: { task: manifests:cleanup }
-  #     - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-directory/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Phoenix agent push tests"
-
-  test:unit:
-    desc: Run unit tests
-    cmds:
-      - go -C report/confluence test ./...
-
-  test:samples:upload_report:
-    desc: Upload test report to confluence
-    env:
-      CONFLUENCE_LOCATION: '{{ .CONFLUENCE_LOCATION }}'
-      CONFLUENCE_USERNAME: '{{ .CONFLUENCE_USERNAME }}'
-      CONFLUENCE_PAT: '{{ .CONFLUENCE_PAT }}'
-      CONFLUENCE_SPACE_ID: '{{ .CONFLUENCE_SPACE_ID }}'
-      CONFLUENCE_PARENT_ID: '{{ .CONFLUENCE_PARENT_ID }}'
-    cmds:
-      - |
-        FILES=("../samples/agents/report.json" "../samples/autogen/semantic-router/report.json" "../samples/crewai/simple/report.json" "../samples/evaluation/report.json" "../samples/langgraph/research/report.json" "../samples/llama-deploy/llama-sum/report.json")
-
-        for FILE in "${FILES[@]}"; do
-          if [ -f "$FILE" ]; then
-            echo "Uploading report for $FILE"
-            go run report/main.go -filePath="$FILE" -runID="${{.RUN_ID}}"
-          else
-            echo "File $FILE not found."
-          fi
-        done
 
   build:gateway:agentic-apps:
     desc: Build agentic containers
