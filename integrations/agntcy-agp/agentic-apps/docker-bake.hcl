@@ -7,8 +7,6 @@
 # Docker build args
 variable "IMAGE_REPO" {default = "ghcr.io/agntcy"}
 variable "IMAGE_TAG" {default = "v0.0.0-dev"}
-variable "POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME" {default = ""}
-variable "POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD" {default = ""}
 
 function "get_tag" {
   params = [tags, name]
@@ -37,10 +35,6 @@ target "docker-metadata-action" {
 }
 
 target "test-autogen-agent" {
-  args = {
-    POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME}"
-    POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD}"
-  }
   context = "./autogen_agent"
   dockerfile = "./Dockerfile"
   inherits = [
@@ -51,10 +45,6 @@ target "test-autogen-agent" {
 }
 
 target "test-langchain-agent" {
-  args = {
-    POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME}"
-    POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD = "${POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD}"
-  }
   context = "./langchain_agent"
   dockerfile = "./Dockerfile"
   inherits = [

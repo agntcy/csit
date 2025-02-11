@@ -13,12 +13,7 @@ autogen-ext = "^0.4.3"
 tiktoken = "^0.8.0"
 openai = "^1.60.2"
 autogen-core = "^0.4.3"
-phoenix-gateway-bindings = "^0.1.4"
-
-[[tool.poetry.source]]
-name = "devhubcloud"
-url = "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi/simple"
-priority = "supplemental"
+agp-bindings = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core"]
