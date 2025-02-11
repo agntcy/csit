@@ -18,7 +18,6 @@ from crewai.project import (
     crew,
     task,
 )
-from report_crew import Report
 
 from .utils.evaluator import CrewEvaluator
 
@@ -36,14 +35,8 @@ class Simple:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
-    report_data = {}
-
     if environ.get("AZURE_OPENAI_API_KEY") is not None:
         print("Using Azure OpenAI")
-
-        report_data["model"] = "gpt-4o-mini"
-        report_data["model_provider"] = "Azure OpenAI"
-
         llm = LLM(
             model=environ.get("AZURE_MODEL", "gpt-4o-mini"),
             base_url=environ.get("AZURE_OPENAI_ENDPOINT"),
@@ -55,10 +48,6 @@ class Simple:
         )
     elif environ.get("CISCO_COGNIT_OPENAI_API_KEY") is not None:
         print("Using Cisco Cognit OpenAI")
-
-        report_data["model"] = "llama3.1"
-        report_data["model_provider"] = "Cisco Cognit OpenAI"
-
         llm = LLM(
             model="openai/llama3.1:8b",
             base_url=environ.get("CISCO_COGNIT_OPENAI_API_URL"),
@@ -67,10 +56,6 @@ class Simple:
 
     else:
         print("Using Ollama")
-
-        report_data["model"] = "llama3.1"
-        report_data["model_provider"] = "Ollama"
-
         llm = LLM(
             model=environ.get("LOCAL_MODEL_NAME", "ollama/llama3.1"),
             base_url=environ.get(
@@ -118,46 +103,7 @@ class Simple:
         print(f"Task scores: {self.task_score_map}")
         print("=" * 40)
 
-        self.fill_report(output)
-
         return output
-
-    def fill_report(self, output):
-
-        # Extend report data with additional data dict
-        self.report_data.update(
-            {
-                # Input data
-                "input_agents": self.agents_config,
-                "input_tasks": self.tasks_config,
-                # Output data
-                "output": output,
-                # Crew metrics and evaluation data
-                "token_usage": output.token_usage.__dict__,
-                "task_duration": self.task_duration_map,
-                "task_scores": self.task_score_map,
-                "task_scores_method": "evaluator agent",
-            }
-        )
-
-        report = Report(
-            duration=time.time() - self.timestamp,
-            timestamp=self.init_timestamp,
-            extra_data=self.report_data,
-        )
-        report.load_metadata()
-
-        def custom_serializer(obj):
-            # If obj is an instance of Agent or CrewOutput, return a string representation of the object
-            if isinstance(obj, Agent):
-                return str(obj)
-            elif isinstance(obj, CrewOutput):
-                return str(obj)
-            raise TypeError(
-                f"Object of type {type(obj).__name__} is not JSON serializable"
-            )
-
-        report.export(custom_serializer=custom_serializer)
 
     @agent
     def researcher(self) -> Agent:

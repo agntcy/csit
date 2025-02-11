@@ -8,11 +8,6 @@ import time
 
 import urllib3
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
-)
-from integrations.report.template.python.report_crew import Report
-
 
 def wait_for_service(url, retries=5, delay=2):
     """Wait for the service to be available by polling the health endpoint."""
@@ -48,8 +43,6 @@ def make_request(url, method="GET", payload=None):
 
 
 def test_api_post_request():
-    init_timestamp = time.time()
-
     # Define the health check URL of the API
     health_url = "http://localhost:8000/healthz"
 
@@ -73,7 +66,6 @@ def test_api_post_request():
         "context": "ctx",
         "intent": "asd",
     }
-    payloads = [payload]
 
     # Make a POST request to the API
     response = http.request(
@@ -92,7 +84,6 @@ def test_api_post_request():
     # Now let's make a valid request for the intent "hr"
     payload["intent"] = "hr"
     payload["message"] = "My name is Python"
-    payloads.append(payload)
 
     # Make a POST request to the API
     response = http.request(
@@ -109,7 +100,6 @@ def test_api_post_request():
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
-    response_data_array = [response_data]
 
     # Assert that the response contains the expected keys
     assert (
@@ -121,7 +111,6 @@ def test_api_post_request():
 
     # Send another request with a different context
     payload["context"] = "ctx2"
-    payloads.append(payload)
 
     # Make a POST request to the API
     response = http.request(
@@ -138,7 +127,6 @@ def test_api_post_request():
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
-    response_data_array.append(response_data)
 
     # Assert that the response contains the expected keys
     assert (
@@ -152,15 +140,3 @@ def test_api_post_request():
 
     # Optionally, release the connection back to the pool
     response.release_conn()
-
-    # Fill the report
-    report = Report(
-        duration=time.time() - init_timestamp,
-        timestamp=init_timestamp,
-        extra_data={
-            "input": {"payloads": payloads},
-            "output": {"responses": response_data_array},
-        },
-    )
-    report.load_metadata()
-    report.export()

@@ -12,12 +12,7 @@ from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
 from langchain_openai import AzureChatOpenAI
 
-report_data = {}
-
 if (os.environ.get("AZURE_OPENAI_API_KEY") is not None):
-    report_data["model"] = "gpt-4o-mini"
-    report_data["model_provider"] = "Azure OpenAI"
-
     llm = AzureChatOpenAI(
         azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini"),
         api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
@@ -27,9 +22,6 @@ if (os.environ.get("AZURE_OPENAI_API_KEY") is not None):
         max_retries=2,
     )
 else:
-    report_data["model"] = "llama3.2"
-    report_data["model_provider"] = "Ollama"
-
     llm = ChatOllama(
         base_url=os.environ.get("LOCAL_MODEL_BASE_URL", "http://localhost:11434"),
         model=os.environ.get("LOCAL_MODEL_NAME", "llama3.2"),
@@ -52,12 +44,6 @@ def researcher_node(state: ResearchState) -> dict:
     Conduct a thorough research about {state['topic']} in 2024.
     Provide 10 most relevant and interesting findings.
     """
-
-    report_data["input_research_node"] = {
-        "topic": state['topic'],
-        "system_prompt": system_prompt,
-        "research_prompt": research_prompt,
-    }
 
     response = llm.invoke([
         SystemMessage(content=system_prompt),
@@ -83,13 +69,6 @@ def reporting_node(state: ResearchState) -> dict:
 
     Expand each finding into a full section, ensuring comprehensive coverage.
     """
-
-    report_data["input_reporting_node"] = {
-        "topic": state['topic'],
-        "system_prompt": system_prompt,
-        "research_prompt": report_prompt,
-        "research_findings": state['research_findings'],
-    }
 
     response = llm.invoke([
         SystemMessage(content=system_prompt),
@@ -122,13 +101,9 @@ def main(topic: str):
     workflow = build_workflow(topic)
     result = workflow.invoke(initial_state)
 
-    report_data["output"] = result
-
     print("Research Report:")
     print(result['report'])
 
 if __name__ == "__main__":
-    init_timestamp = time.time()
     topic = "Artificial Intelligence"
     main(topic)
-

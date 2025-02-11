@@ -8,11 +8,6 @@ import time
 
 from llama_deploy import ControlPlaneConfig, LlamaDeployClient
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
-)
-from integrations.report.template.python.report_crew import Report
-
 init_timestamp = time.time()
 
 # points to deployed control plane
@@ -29,15 +24,3 @@ assert v[4] == str(
     sum
 ), f"Got a wrong results. Expected {str(sum)}, received {v[4]}"
 print("test succeded")
-
-# Fill the report
-report = Report(
-    duration=time.time() - init_timestamp,
-    timestamp=init_timestamp,
-    extra_data={
-        "input": {"operation": "sum", "max": 10},
-        "output": result,
-    },
-)
-report.load_metadata()
-report.export()
