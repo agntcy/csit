@@ -12,6 +12,7 @@ tasks:
     desc: Install dependencies
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
+      - poetry env use 3.11
       - poetry install --no-root
 
   run:crew:
