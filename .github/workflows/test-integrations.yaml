@@ -42,6 +42,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Python
+        uses:  ./.github/actions/setup-python
+        with:
+          py-version: "3.11"
+
       - name: Setup Environment
         uses: ./.github/actions/setup-env
         with:
