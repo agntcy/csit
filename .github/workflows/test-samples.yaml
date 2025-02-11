@@ -38,7 +38,6 @@ jobs:
       fail-fast: false
       matrix:
         app: ${{ fromJson(needs.detect-changes.outputs.apps-changed) }}
-        python-version: [ "3.11", "3.12" ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,7 +52,7 @@ jobs:
         if: ${{ inputs.python == 'true' }}
         uses:  ./.github/actions/setup-python
         with:
-          py-version: ${{ matrix.python-version }}
+          py-version: "3.12"
 
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s
