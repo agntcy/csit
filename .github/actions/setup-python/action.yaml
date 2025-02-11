@@ -6,12 +6,8 @@
 name: Setup Python Environment
 description: setup environment to build/test/lint python applications
 inputs:
-  py-version-1:
+  py-version:
     description: 'Python version to install'
-    required: false
-    default: "3.11"
-  py-version-2:
-    description: 'Additional Python version to install'
     required: false
     default: "3.12"
   py-package-manager:
@@ -30,9 +26,7 @@ runs:
       id: setup-python
       uses: actions/setup-python@v5
       with:
-        python-version: |
-          ${{ inputs.py-version-1 }}
-          ${{ inputs.py-version-2 }}
+        python-version: ${{ inputs.py-version }}
 
     - name: Load cached Poetry Binary
       uses: actions/cache@v4

@@ -10,11 +10,7 @@ inputs:
     description: 'Install python'
     required: false
     default: false
-  python-version-1:
-    description: 'Python version to install'
-    required: false
-    default: '3.11'
-  python-version-2:
+  python-version:
     description: 'Python version to install'
     required: false
     default: '3.12'
@@ -38,8 +34,7 @@ runs:
       if: ${{ inputs.python == 'true' }}
       uses:  ./.github/actions/setup-python
       with:
-        py-version-1: ${{ inputs.python-version-1 }}
-        py-version-2: ${{ inputs.python-version-2 }}
+        py-version: ${{ inputs.python-version }}
 
     - name: Setup Golang
       if: ${{ inputs.go == 'true' }}

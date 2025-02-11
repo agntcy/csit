@@ -12,8 +12,6 @@ tasks:
     desc: Install dependencies
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry env use $(which python3.11)
-      - poetry env info
       - poetry install --no-root
 
   run:crew:
