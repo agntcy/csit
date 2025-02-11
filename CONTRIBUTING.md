@@ -50,9 +50,9 @@ you can do:
   [Wiki](https://github.com/org_name/repo_name/wiki) with up-to-date
   instructions and code samples.
 - Review existing pull requests, and testing patches against real existing
-  applications that use `<project name>`.
+  applications that use CSIT.
 - Write a test, or add a missing test case to an existing test.
 
-Thanks again for your interest on contributing to `<project name>`!
+Thanks again for your interest on contributing to CSIT!
 
 :heart:
