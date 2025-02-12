@@ -19,6 +19,8 @@ vars:
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
+  HELM_NAMESPACE:  '{{ .HELM_NAMESPACE | default "default" }}'
+
 
 tasks:
   default:
@@ -48,18 +50,16 @@ tasks:
   k8s:port-forward:setup:gateway:
     internal: true
     cmds:
-      - kubectl port-forward svc/agntcy-agp-gateway -n default 46357 &
+      - kubectl port-forward svc/agntcy-agp -n {{ .HELM_NAMESPACE }} 46357 &
       - sleep 1
 
   k8s:port-forward:teardown:gateway:
     internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp-gateway | awk '{print $2}') || truex
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || truex
 
   test:env:gateway:deploy:
     desc: Deploy agent gateway test env
-    vars:
-      HELM_NAMESPACE:  '{{ .HELM_NAMESPACE | default "default" }}'
     cmds:
       - |
         helm dependency build ./agntcy-agp/components/helm
@@ -75,8 +75,6 @@ tasks:
 
   test:env:gateway:cleanup:
     desc: Remove agent gateway test env
-    vars:
-      HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
     cmds:
       - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
 
