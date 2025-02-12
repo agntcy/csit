@@ -2,26 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-# import phoenix
+# import agp
 from simple_agentic_app.simple_agentic_app import simple_autogen_app
 
 import argparse
 import gateway_bindings
 
-phoenix = gateway_bindings.Phoenix()
+gateway = agp_bindings.Gateway()
 
 async def run_agent(gateway):
     agent = simple_autogen_app()
 
     # register local agent
-    await phoenix.create_agent("cisco", "default", "autogen")
+    await gateway.create_agent("cisco", "default", "autogen")
 
     # connect to gateway server
-    await phoenix.connect(gateway)
+    await gateway.connect(gateway)
 
     while True:
         # receive messages
-        src, msg = await phoenix.receive()
+        src, msg = await gateway.receive()
 
         # handle received messages
         result = await agent.initate_chat(msg)
@@ -32,7 +32,7 @@ async def run_agent(gateway):
         weather_question = result.inner_messages[-1].content[-1].content.split(":")
         if weather_question[0] == "WEATHER":
             print("about to send back: ", weather_question[1])
-            await phoenix.publish_to(weather_question[1].encode(), src)
+            await gateway.publish_to(weather_question[1].encode(), src)
 
 def main():
     parser = argparse.ArgumentParser(description="Command line client for message passing.")

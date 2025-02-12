@@ -10,30 +10,30 @@ from simple_weather_agent.simple_weather_agent import (
 import argparse
 import gateway_bindings
 
-phoenix = gateway_bindings.Phoenix()
+gateway = agp_bindings.Gateway()
 
 async def run_agent(message, gateway):
 
     agent = SIMPLE_WEATHER_AGENT_WITH_TOOLS()
 
     # register local agent
-    await phoenix.create_agent("cisco", "default", "langchain")
+    await gateway.create_agent("cisco", "default", "langchain")
 
     # connect to gateway server
-    conn_id = await phoenix.connect(gateway)
+    conn_id = await gateway.connect(gateway)
 
     remote_organization = "cisco"
     remote_namespace = "default"
     remote_agent = "autogen"
 
-    await phoenix.set_route(remote_organization, remote_namespace, remote_agent)
+    await gateway.set_route(remote_organization, remote_namespace, remote_agent)
 
-    await phoenix.publish(message.encode(), remote_organization, remote_namespace, remote_agent)
+    await gateway.publish(message.encode(), remote_organization, remote_namespace, remote_agent)
     print(f"sent: {str(message)}")
 
     try:
         # Wait to receive a message
-        source, msg_rcv = await phoenix.receive()
+        source, msg_rcv = await gateway.receive()
         msg = msg_rcv.decode()
         print(f"received: {str(msg)}")
     except asyncio.CancelledError:
