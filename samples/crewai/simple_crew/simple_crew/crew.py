@@ -41,7 +41,7 @@ class Simple:
             model=environ.get("AZURE_MODEL", "gpt-4o-mini"),
             base_url=environ.get("AZURE_OPENAI_ENDPOINT"),
             api_version=environ.get(
-                "AZURE_OPENAI_API_VERSION", "2024-08-01-preview"
+                "AZURE_OPENAI_API_VERSION", "2025-02-01-preview"
             ),
             api_key=environ.get("AZURE_OPENAI_API_KEY"),
             azure=True,

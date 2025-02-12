@@ -59,7 +59,7 @@ jobs:
           task kind:create
         shell: bash
 
-      - name: Deploy Phoenix directory
+      - name: Deploy agntcy agp
         run: |
           cd integrations
           task test:env:gateway:deploy

@@ -14,7 +14,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils"
 )
 
-var _ = ginkgo.Describe("Phoenix gateway tests", func() {
+var _ = ginkgo.Describe("Agntcy gateway tests", func() {
 	var (
 		dockerImage            string
 		azure_openapi_api_key  string

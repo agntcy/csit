@@ -57,7 +57,3 @@ task run:app
 task kind:delete
 ```
 
-## Communication between components
-A full representation of the communication between the components of this app can be found in the
-[confluence page](https://cisco-eti.atlassian.net/wiki/spaces/PHI/pages/970129458/Llama-Deploy+message+and+communication)
-dedicated to llama-deploy.

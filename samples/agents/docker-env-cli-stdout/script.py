@@ -18,8 +18,8 @@ if (key is not None and len(key) > 0):
 
     model = os.environ.get("AZURE_MODEL", "gpt-4o-mini")
     api_key = os.environ.get("AZURE_OPENAI_API_KEY")
-    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
-    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "https://agntcy-csit-agents.openai.azure.com")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
     deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
 
     # Make request to Azure OpenAI

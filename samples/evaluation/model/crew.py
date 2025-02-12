@@ -23,7 +23,7 @@ current_date = today.strftime("%B %d, %Y")
 
 telemetry_endpoint = environ.get('TELEMETRY_ENDPOINT')
 if (telemetry_endpoint is not None):
-  # defualt setting for local Phoenix Server
+  # defualt setting for local Agntcy Server
   # telemetry_endpoint="http://127.0.0.1:6006/v1/traces"
   trace_provider = TracerProvider()
   trace_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(telemetry_endpoint)))
@@ -32,7 +32,7 @@ if (telemetry_endpoint is not None):
 
 azure_openai_api_key = environ.get("AZURE_OPENAI_API_KEY")
 azure_openai_endpoint = environ.get("AZURE_OPENAI_ENDPOINT")
-openai_api_version = environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+openai_api_version = environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
 azure_deployment_name = environ.get("AZURE_DEPLOYMENT_NAME", "gpt-4o-mini")
 azure_model_version = environ.get("AZURE_MODEL_VERSION", "gpt-4o-mini")
 

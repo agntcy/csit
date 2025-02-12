@@ -15,7 +15,7 @@ from langchain_openai import AzureChatOpenAI
 if (os.environ.get("AZURE_OPENAI_API_KEY") is not None):
     llm = AzureChatOpenAI(
         azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini"),
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
+        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview"),
         temperature=0,
         max_tokens=None,
         timeout=None,

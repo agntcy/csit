@@ -16,7 +16,7 @@ from ragas.metrics._aspect_critic import harmfulness, maliciousness, coherence, 
 
 azure_openai_api_key = environ.get("AZURE_OPENAI_API_KEY", "NA")
 azure_openai_endpoint = environ.get("AZURE_OPENAI_ENDPOINT", "NA")
-openai_api_version = environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+openai_api_version = environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
 azure_deployment_name = environ.get("AZURE_DEPLOYMENT_NAME", "gpt-4o-mini")
 azure_model_version = environ.get("AZURE_MODEL_VERSION", "gpt-4o-mini")
 
