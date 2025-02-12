@@ -35,8 +35,7 @@ jobs:
         id: resolve
         run: |
           # Export vars
-          tag=$(task version)
-          echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
       - name: List all targets
         id: all-targets
