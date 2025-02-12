@@ -46,7 +46,7 @@ You can get the actual values from [Vault](https://cisco-eti.atlassian.net/wiki/
 ```
 AZURE_OPENAI_API_KEY=XXX
 AZURE_OPENAI_API_VERSION=2024-08-01-preview
-AZURE_OPENAI_ENDPOINT=https://phoenix-project-agents.openai.azure.com
+AZURE_OPENAI_ENDPOINT=https://agntcy-csit-agents.openai.azure.com
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
 ```
 

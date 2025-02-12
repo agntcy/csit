@@ -12,7 +12,7 @@ You can get the actual values from [Vault](https://cisco-eti.atlassian.net/wiki/
 AZURE_MODEL=gpt-4o-mini
 AZURE_OPENAI_API_KEY=XXX
 AZURE_OPENAI_API_VERSION=2024-08-01-preview
-AZURE_OPENAI_ENDPOINT=https://phoenix-project-agents.openai.azure.com
+AZURE_OPENAI_ENDPOINT=https://agntcy-csit-agents.openai.azure.com
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
 LOCAL_MODEL_NAME=llama3.1
 LOCAL_MODEL_BASE_URL=http://localhost:11434
