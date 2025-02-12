@@ -56,7 +56,7 @@ tasks:
   k8s:port-forward:teardown:gateway:
     internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || truex
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || true
 
   test:env:gateway:deploy:
     desc: Deploy agent gateway test env
@@ -100,7 +100,7 @@ tasks:
               hostMachine=http://host.docker.internal:46357
             ;;
             *)
-        exsac
+        esac
         echo "gw host: ${hostMachine}"
 
         docker run -d --rm \
