@@ -8,7 +8,7 @@ from simple_weather_agent.simple_weather_agent import (
 )
 
 import argparse
-import gateway_bindings
+import agp_bindings
 
 gateway = agp_bindings.Gateway()
 

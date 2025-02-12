@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-# import agp
 from simple_agentic_app.simple_agentic_app import simple_autogen_app
 
 import argparse
-import gateway_bindings
+import agp_bindings
 
 gateway = agp_bindings.Gateway()
 
