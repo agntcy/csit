@@ -14,7 +14,7 @@ vars:
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-10-g794c425" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.0-dev" }}'
+  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.1" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -82,7 +82,7 @@ tasks:
     desc: Build agentic containers
     dir: ./agntcy-agp/agentic-apps
     cmds:
-      - docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
+      - IMAGE_TAG={{ .TEST_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
   test:autogen-agent:run:
     internal: true
