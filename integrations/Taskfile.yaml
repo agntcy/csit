@@ -65,7 +65,7 @@ tasks:
         helm dependency build ./agntcy-agp/components/helm
         helm upgrade agntcy-agp \
           ./agntcy-agp/components/helm \
-          --set gateway.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          --set agp.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \
