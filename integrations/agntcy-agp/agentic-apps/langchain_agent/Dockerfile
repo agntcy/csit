@@ -9,9 +9,6 @@ ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VENV=/opt/poetry-venv
 ENV POETRY_CACHE_DIR=/opt/.cache
 
-ARG POETRY_HTTP_BASIC_DEVHUBCLOUD_USERNAME
-ARG POETRY_HTTP_BASIC_DEVHUBCLOUD_PASSWORD
-
 # Install rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 
