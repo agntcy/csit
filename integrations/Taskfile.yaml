@@ -7,7 +7,7 @@ version: '3'
 silent: true
 
 vars:
-  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "phoenix-test" }}'
+  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
@@ -54,10 +54,10 @@ tasks:
   k8s:port-forward:teardown:gateway:
     internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp-gateway | awk '{print $2}') || true
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp-gateway | awk '{print $2}') || truex
 
   test:env:gateway:deploy:
-    desc: Deploy Phoenix gateway test env
+    desc: Deploy agent gateway test env
     vars:
       HELM_NAMESPACE:  '{{ .HELM_NAMESPACE | default "default" }}'
     cmds:
@@ -74,7 +74,7 @@ tasks:
           --timeout "15m"
 
   test:env:gateway:cleanup:
-    desc: Remove Phoenix gateway test env
+    desc: Remove agent gateway test env
     vars:
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
     cmds:
@@ -102,7 +102,7 @@ tasks:
               hostMachine=http://host.docker.internal:46357
             ;;
             *)
-        esac
+        exsac
         echo "gw host: ${hostMachine}"
 
         docker run -d --rm \
