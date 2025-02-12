@@ -32,7 +32,6 @@ tasks:
     cmds:
       - kind create cluster --name {{.KIND_CLUSTER_NAME}} --wait 60s || true
       - kubectl cluster-info --context kind-{{.KIND_CLUSTER_NAME}}
-      - task: kind:load-images
 
   kind:destroy:
     desc: Destroy kind cluster
@@ -40,7 +39,7 @@ tasks:
       - kind delete cluster --name {{.KIND_CLUSTER_NAME}}
 
   kind:load-images:
-    internal: true
+    desc: Pull and load images to kind
     cmds:
       # pull images
       - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
@@ -60,6 +59,8 @@ tasks:
 
   test:env:gateway:deploy:
     desc: Deploy agent gateway test env
+    deps:
+      - kind:load-images
     cmds:
       - |
         helm dependency build ./agntcy-agp/components/helm

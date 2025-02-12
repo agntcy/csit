@@ -18,18 +18,7 @@ inputs:
     description: 'Kind version'
     required: false
     default: "0.24.0"
-  kind-create-cluster:
-    description: 'Create kind K8s cluster'
-    required: false
-    default: "false"
-  kind-cluster-name:
-    description: 'Kind K8s cluster name to create'
-    required: false
-    default: "kind"
-  kind-cluster-gateway:
-    description: 'Gateway IP to use for kind server nodes. Useful when running actions inside containers.'
-    required: false
-    default: "127.0.0.1"
+
 runs:
   using: "composite"
   steps:
@@ -55,23 +44,3 @@ runs:
     - name: Setup kubectl
       uses: azure/setup-kubectl@3e0aec4d80787158d308d7b364cb1b702e7feb7f # v4.0.0
 
-    #
-    # Setup cluster
-    #
-    - name: Setup Kind cluster
-      if: ${{ inputs.kind-create-cluster == 'true' }}
-      shell: bash
-      run: |
-        # Create cluster config
-        KIND_CONFIG_FILE=$(mktemp -p /tmp)
-        cat <<EOF > $KIND_CONFIG_FILE
-        kind: Cluster
-        apiVersion: kind.x-k8s.io/v1alpha4
-        networking:
-          apiServerAddress: "${{ inputs.kind-cluster-gateway }}"
-          apiServerPort: 6443
-        EOF
-
-        # Create cluster
-        kind create cluster --config $KIND_CONFIG_FILE --name ${{ inputs.kind-cluster-name }}
-        kubectl cluster-info
