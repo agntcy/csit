@@ -12,12 +12,7 @@ gateway = agp_bindings.Gateway()
 async def run_agent(address):
     agent = simple_autogen_app()
 
-    # register local agent
-    await gateway.create_agent("cisco", "default", "autogen")
-
-    # connect to gateway server
-    await gateway.connect(address, insecure=True)
-
+    # Connect to the gateway server
     local_agent_id = await gateway.create_agent(
         "cisco", "default", "autogen"
     )
@@ -25,7 +20,7 @@ async def run_agent(address):
     # Connect to the service and subscribe for the local name
     _ = await gateway.connect(address, insecure=True)
     await gateway.subscribe(
-        "cisco", "default", "autogen", local_agent_id
+        local_organization, local_namespace, local_agent, local_agent_id
     )
 
     while True:
