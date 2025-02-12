@@ -12,15 +12,24 @@ import agp_bindings
 
 gateway = agp_bindings.Gateway()
 
-async def run_agent(message, gateway):
+async def run_agent(message, address):
 
     agent = SIMPLE_WEATHER_AGENT_WITH_TOOLS()
 
-    # register local agent
-    await gateway.create_agent("cisco", "default", "langchain")
+    local_organization = "cisco"
+    local_namespace = "default"
+    local_agent = "langchain"
 
-    # connect to gateway server
-    conn_id = await gateway.connect(gateway)
+    # Connect to the gateway server
+    local_agent_id = await gateway.create_agent(
+        local_organization, local_namespace, local_agent
+    )
+
+    # Connect to the service and subscribe for the local name
+    _ = await gateway.connect(address, insecure=True)
+    await gateway.subscribe(
+        local_organization, local_namespace, local_agent, local_agent_id
+    )
 
     remote_organization = "cisco"
     remote_namespace = "default"
