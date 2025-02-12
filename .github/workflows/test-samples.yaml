@@ -68,6 +68,12 @@ jobs:
           kind-version: "0.25.0"
 
       - name: Run tests
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_MODEL_VERSION: ${{ vars.AZURE_MODEL_VERSION }}
+          AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
           cd ${{ matrix.app }}
           task run:test
