@@ -39,27 +39,32 @@ tasks:
     cmds:
       - kind delete cluster --name {{.KIND_CLUSTER_NAME}}
 
-  kind:load-images:
+  kind:load-images:directory:
+    desc: Pull and load images to kind
+    cmds:
+      # pull images
+      - docker pull {{.IMAGE_REPO}}/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}}
+      # load images
+      - kind load docker-image {{.IMAGE_REPO}}/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+
+  kind:load-images:gateway:
     desc: Pull and load images to kind
     cmds:
       # pull images
       - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
-      - docker pull {{.IMAGE_REPO}}/dir/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}}
-
       # load images
       - kind load docker-image {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-      - kind load docker-image {{.IMAGE_REPO}}/dir/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
 
   k8s:port-forward:setup:directory:
     internal: true
     cmds:
-      - kubectl port-forward svc/agntcy-dir -n {{ .HELM_NAMESPACE }} 8888 &
+      - kubectl port-forward svc/agntcy-dir-apiserver -n {{ .HELM_NAMESPACE }} 8888 &
       - sleep 1
 
   k8s:port-forward:teardown:directory:
     internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-dir | awk '{print $2}') || true
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-dir-apiserver | awk '{print $2}') || true
 
   k8s:port-forward:setup:gateway:
     internal: true
@@ -74,6 +79,8 @@ tasks:
 
   test:env:directory:deploy:
     desc: Deploy Agntcy directory test env
+    deps:
+      - kind:load-images:directory
     vars:
       REGCRED_CREATE:  '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
@@ -100,7 +107,7 @@ tasks:
   test:env:gateway:deploy:
     desc: Deploy agntcy gateway test env
     deps:
-      - kind:load-images
+      - kind:load-images:gateway
     cmds:
       - |
         helm dependency build ./agntcy-agp/components/helm
@@ -128,15 +135,15 @@ tasks:
   test:directory:
     desc: Directory test
     cmds:
-      - task: k8s:port-forward:setup
-      - defer: { task: k8s:port-forward:teardown }
+      - task: k8s:port-forward:setup:directory
+      - defer: { task: k8s:port-forward:teardown:directory }
       - defer: { task: manifests:cleanup }
       - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
 
   test:directory:compiler:
     desc: Agntcy compiler test
     cmds:
-      - docker pull {{.IMAGE_REPO}}/dir/dir-ctl:{{.DIRECTORY_IMAGE_TAG}}
+      - docker pull {{.IMAGE_REPO}}/dir-ctl:{{.DIRECTORY_IMAGE_TAG}}
       - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 10m -timeout 10m -ginkgo.v -ginkgo.focus "agent compilation"
 
   test:directory:push:

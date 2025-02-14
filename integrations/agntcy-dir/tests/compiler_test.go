@@ -35,7 +35,7 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 		mountDest = "/opt/marketing-strategy"
 		mountString = fmt.Sprintf("%s:%s", marketingStrategyPath, mountDest)
 
-		testdataDir, err := filepath.Abs(filepath.Join(examplesDir, "destdata"))
+		testdataDir, err := filepath.Abs(filepath.Join(examplesDir, "testdata"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		expectedAgentModelFile = filepath.Join(testdataDir, "expected_agent.json")
