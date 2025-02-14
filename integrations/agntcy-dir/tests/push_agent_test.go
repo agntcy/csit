@@ -24,12 +24,13 @@ var _ = ginkgo.Describe("Phoenix agent push tests", func() {
 
 	ginkgo.BeforeEach(func() {
 		examplesDir := "../examples/"
-		marketingStrategyPath, err := filepath.Abs(filepath.Join(examplesDir, "marketing-strategy"))
+		testDataDir, err := filepath.Abs(filepath.Join(examplesDir, "testdata"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-		mountDest = "/opt/marketing-strategy"
-		mountString = fmt.Sprintf("%s:%s", marketingStrategyPath, mountDest)
+		mountDest = "/opt/testdata"
+		mountString = fmt.Sprintf("%s:%s", testDataDir, mountDest)
+
 		agentModelFile = filepath.Join(mountDest, "expected_agent.json")
 	})
 

@@ -24,16 +24,18 @@ var _ = ginkgo.Describe("Phoenix compiler tests", func() {
 
 	ginkgo.BeforeEach(func() {
 		examplesDir := "../examples/"
-		marketingStrategyPath, err := filepath.Abs(filepath.Join(examplesDir, "marketing-strategy"))
+		marketingStrategyPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata/marketing-strategy"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		tempAgentPath = filepath.Join(os.TempDir(), "agent.json")
-
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
 		mountDest = "/opt/marketing-strategy"
 		mountString = fmt.Sprintf("%s:%s", marketingStrategyPath, mountDest)
 
-		expectedAgentModelFile = filepath.Join(marketingStrategyPath, "expected_agent.json")
+		testdataDir, err := filepath.Abs(filepath.Join(examplesDir, "destdata"))
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		expectedAgentModelFile = filepath.Join(testdataDir, "expected_agent.json")
 	})
 
 	ginkgo.Context("agent compilation", func() {
