@@ -90,7 +90,6 @@ tasks:
           ./agntcy-dir/components/helm \
           --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set regcred.create="{{ .REGCRED_CREATE }}" \
-          --set dir.apiserver.config.ipfs_api_address="http:/agntcy-dir-ipfs.{{ .HELM_NAMESPACE  }}.svc.cluster.local:10125" \
           --set global.fallbackDefaults.pvcSize="1Gi" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
