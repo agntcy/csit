@@ -2,7 +2,7 @@
 
 The CSIT project team welcomes security reports and is committed to
 providing prompt attention to security issues. Security issues should be
-reported privately via [security@agntcy.ai](mailto:security@agntcy.ai).
+reported privately via [security@agntcy.org](mailto:security@agntcy.org).
 Security issues should not be reported via the public GitHub Issue tracker.
 
 
@@ -16,7 +16,7 @@ users of CSIT, and maintainers of upstream dependencies if applicable.
 
 Downstream project maintainers and CSIT users can request participation in
 coordination of applicable security issues by sending your contact email address,
-GitHub username(s) and any other salient information to [security@agntcy.ai](mailto:security@agntcy.ai).
+GitHub username(s) and any other salient information to [security@agntcy.org](mailto:security@agntcy.org).
 Participation in security issue coordination processes is at the discretion of the CSIT team.
 
 ## Security advisories
