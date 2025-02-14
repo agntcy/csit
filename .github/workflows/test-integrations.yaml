@@ -76,3 +76,54 @@ jobs:
           cd integrations
           task test:gateway
         shell: bash
+
+  run-tests-directory:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      packages: 'read'
+      attestations: 'read'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: false
+
+      - name: Setup K8S Tools
+        uses: ./.github/actions/setup-k8s
+        with:
+          kind-version: ${{ inputs.kind-version }}
+
+      - name: Create kind cluster
+        run: |
+          cd integrations
+          task kind:create
+        shell: bash
+
+      - name: Deploy agntcy dir
+        run: |
+          cd integrations
+          task test:env:directory:deploy
+        shell: bash
+
+      - name: Run simple directory tests
+        run: |
+          cd integrations
+          task test:directory
+        shell: bash
