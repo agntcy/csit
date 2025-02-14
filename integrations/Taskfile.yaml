@@ -12,7 +12,7 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-10-g794c425" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "616b5ce57244db92568ce0b3c85a12f3b36f837c" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "b0791173edb43fe1bc825bdbd765f414cc3bee68" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.1" }}'

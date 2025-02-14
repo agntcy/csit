@@ -4,7 +4,6 @@
 package tests
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +21,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 		mountDest      string
 		mountString    string
 		agentModelFile string
-		agentID        string
+		digest         string
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -57,24 +56,21 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			outputBuffer, err := runner.Run(dirctlArgs...)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
 
-			var response map[string]any
+			digest = outputBuffer.String()
 
-			// Unmarshal or Decode the JSON to the interface.
-			err = json.Unmarshal(outputBuffer.Bytes(), &response)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
-
-			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "agentID: %v\n", response["id"])
+			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %v\n", digest)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			agentID = fmt.Sprintf("%v", response["id"])
 		})
 
 		ginkgo.It("should pull an agent", func() {
 
+			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %v\n", digest)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
 			dirctlArgs := []string{
 				"pull",
-				"--id",
-				agentID,
+				"--digest",
+				digest,
 			}
 
 			if runtime.GOOS != "linux" {

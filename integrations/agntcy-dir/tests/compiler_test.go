@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
@@ -48,7 +47,8 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 				"build",
 				"--name=marketing-strategy",
 				"--version=v1.0.0",
-				"--artifact-type=LOCATOR_TYPE_PYTHON_PACKAGE",
+				"--created-at=2025-01-01T00:00:00Z",
+				"--artifact-type=python-package",
 				"--artifact-url=http://ghcr.io/agntcy/marketing-strategy",
 				"--author=author1",
 				"--author=author2",
@@ -80,33 +80,8 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 			err = json.Unmarshal([]byte(compiledModelJSON), &compiled)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			// Filter "created_at" and "security.signature" fields
-			filter := cmp.FilterPath(func(p cmp.Path) bool {
-				// Ensure the path is deep enough
-				if len(p) >= 7 {
-					parentStep := p[len(p)-3]
-					currentStep := p[len(p)-1]
-					if mapStep, ok := p[len(p)-7].(cmp.MapIndex); ok {
-						if key, ok := mapStep.Key().Interface().(string); ok && key == "extensions" {
-							// Check if the parentStep is a map lookup with key "specs"
-							if parentMapIndex, ok := parentStep.(cmp.MapIndex); ok {
-								if parentKey, ok := parentMapIndex.Key().Interface().(string); ok && parentKey == "specs" {
-									// Check if the currentStep is a map lookup with key "created_at" and "signature"
-									if currentMapIndex, ok := currentStep.(cmp.MapIndex); ok {
-										if currentKey, ok := currentMapIndex.Key().Interface().(string); ok && (currentKey == "created_at" || currentKey == "signature") {
-											return true // Ignore these paths
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				return false // Include all other paths
-			}, cmp.Ignore())
-
 			// Check the compiled agent model without extensions field
-			gomega.Expect(expected).To(gomega.BeComparableTo(compiled, filter))
+			gomega.Expect(expected).To(gomega.BeComparableTo(compiled))
 		})
 	})
 })
