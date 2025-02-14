@@ -13,7 +13,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils"
 )
 
-var _ = ginkgo.Describe("Phoenix compiler tests", func() {
+var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 	var (
 		tempAgentPath          string
 		dockerImage            string

@@ -12,6 +12,7 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.1.0-rc0-10-g794c425" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "616b5ce57244db92568ce0b3c85a12f3b36f837c" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.1" }}'
@@ -43,8 +44,22 @@ tasks:
     cmds:
       # pull images
       - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
+      - docker pull {{.IMAGE_REPO}}/dir/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}}
+
       # load images
       - kind load docker-image {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+      - kind load docker-image {{.IMAGE_REPO}}/dir/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
+
+  k8s:port-forward:setup:directory:
+    internal: true
+    cmds:
+      - kubectl port-forward svc/agntcy-dir -n {{ .HELM_NAMESPACE }} 8888 &
+      - sleep 1
+
+  k8s:port-forward:teardown:directory:
+    internal: true
+    cmds:
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-dir | awk '{print $2}') || true
 
   k8s:port-forward:setup:gateway:
     internal: true
@@ -57,8 +72,33 @@ tasks:
     cmds:
       - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || true
 
+  test:env:directory:deploy:
+    desc: Deploy Agntcy directory test env
+    vars:
+      REGCRED_CREATE:  '{{ .REGCRED_CREATE | default "false" }}'
+    cmds:
+      - |
+        helm dependency build ./agntcy-dir/components/helm
+        helm upgrade agntcy-dir \
+          ./agntcy-dir/components/helm \
+          --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+          --set regcred.create="{{ .REGCRED_CREATE }}" \
+          --set dir.apiserver.config.ipfs_api_address="http:/agntcy-dir-ipfs.{{ .HELM_NAMESPACE  }}.svc.cluster.local:10125" \
+          --set global.fallbackDefaults.pvcSize="1Gi" \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+
+  test:env:directory:cleanup:
+    desc: Remove agntcy directory test env
+    cmds:
+      - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-dir
+
   test:env:gateway:deploy:
-    desc: Deploy agent gateway test env
+    desc: Deploy agntcy gateway test env
     deps:
       - kind:load-images
     cmds:
@@ -84,6 +124,28 @@ tasks:
     dir: ./agntcy-agp/agentic-apps
     cmds:
       - IMAGE_TAG={{ .TEST_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
+
+  test:directory:
+    desc: Directory test
+    cmds:
+      - task: k8s:port-forward:setup
+      - defer: { task: k8s:port-forward:teardown }
+      - defer: { task: manifests:cleanup }
+      - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+
+  test:directory:compiler:
+    desc: Agntcy compiler test
+    cmds:
+      - docker pull {{.IMAGE_REPO}}/dir/dir-ctl:{{.DIRECTORY_IMAGE_TAG}}
+      - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 10m -timeout 10m -ginkgo.v -ginkgo.focus "agent compilation"
+
+  test:directory:push:
+    desc: Directory agent push test
+    cmds:
+      - task: k8s:port-forward:setup
+      - defer: { task: k8s:port-forward:teardown }
+      - defer: { task: manifests:cleanup }
+      - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "agent push and pull"
 
   test:autogen-agent:run:
     internal: true

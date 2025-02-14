@@ -13,7 +13,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils"
 )
 
-var _ = ginkgo.Describe("Phoenix agent push tests", func() {
+var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 	var (
 		dockerImage    string
 		mountDest      string
