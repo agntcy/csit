@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -56,12 +57,12 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			outputBuffer, err := runner.Run(dirctlArgs...)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
 
-			digest = outputBuffer.String()
+			digest = strings.Trim(outputBuffer.String(), "\n")
 		})
 
 		ginkgo.It("should pull an agent", func() {
 
-			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %v\n", digest)
+			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %s\n", digest)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			dirctlArgs := []string{
@@ -76,6 +77,9 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 					"host.docker.internal:8888",
 				)
 			}
+
+			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
 			outputBuffer, err := runner.Run(dirctlArgs...)
