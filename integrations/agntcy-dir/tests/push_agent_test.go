@@ -57,9 +57,6 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
 
 			digest = outputBuffer.String()
-
-			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %v\n", digest)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("should pull an agent", func() {
