@@ -117,11 +117,11 @@ jobs:
           task kind:create
         shell: bash
 
-      - name: Deploy agntcy dir
-        run: |
-          cd integrations
-          task test:env:directory:deploy
-        shell: bash
+      # - name: Deploy agntcy dir
+      #   run: |
+      #     cd integrations
+      #     task test:env:directory:deploy
+      #   shell: bash
 
       - name: Run simple directory tests
         run: |
