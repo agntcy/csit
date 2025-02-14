@@ -117,14 +117,14 @@ jobs:
           task kind:create
         shell: bash
 
-      # - name: Deploy agntcy dir
-      #   run: |
-      #     cd integrations
-      #     task test:env:directory:deploy
-      #   shell: bash
-
-      - name: Run simple directory tests
+      - name: Deploy agntcy dir
         run: |
           cd integrations
-          task test:directory:compiler
+          task test:env:directory:deploy
+        shell: bash
+
+      - name: Run agent build tests
+        run: |
+          cd integrations
+          task test:directory
         shell: bash

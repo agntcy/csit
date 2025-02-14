@@ -90,7 +90,6 @@ tasks:
           ./agntcy-dir/components/helm \
           --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set regcred.create="{{ .REGCRED_CREATE }}" \
-          --set global.fallbackDefaults.pvcSize="1Gi" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \
@@ -148,8 +147,8 @@ tasks:
   test:directory:push:
     desc: Directory agent push test
     cmds:
-      - task: k8s:port-forward:setup
-      - defer: { task: k8s:port-forward:teardown }
+      - task: k8s:port-forward:setup:directory
+      - defer: { task: k8s:port-forward:teardown:directory }
       - defer: { task: manifests:cleanup }
       - IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "agent push and pull"
 
