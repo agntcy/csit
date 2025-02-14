@@ -48,7 +48,7 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 				"build",
 				"--name=marketing-strategy",
 				"--version=v1.0.0",
-				"--artifact-type=docker-image",
+				"--artifact-type=LOCATOR_TYPE_PYTHON_PACKAGE",
 				"--artifact-url=http://ghcr.io/agntcy/marketing-strategy",
 				"--author=author1",
 				"--author=author2",
