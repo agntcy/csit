@@ -20,14 +20,9 @@ vars:
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
-  HELM_NAMESPACE:  '{{ .HELM_NAMESPACE | default "default" }}'
-
+  HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
 tasks:
-  default:
-    cmds:
-      - task -l
-
   kind:create:
     desc: Create kind cluster
     cmds:
@@ -82,7 +77,7 @@ tasks:
     deps:
       - kind:load-images:directory
     vars:
-      REGCRED_CREATE:  '{{ .REGCRED_CREATE | default "false" }}'
+      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - |
         helm dependency build ./agntcy-dir/components/helm
