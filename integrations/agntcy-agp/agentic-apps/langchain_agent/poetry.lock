@@ -2,26 +2,31 @@
 
 [[package]]
 name = "agp-bindings"
-version = "0.1.2"
+version = "0.1.6"
 description = "AGP Rust bindings for Python"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "agp_bindings-0.1.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:51c05eada688b8389f7f3f77f980f7d0d1ddecc0f3e994a0bc8380dade79b149"},
-    {file = "agp_bindings-0.1.2-cp310-cp310-manylinux_2_38_x86_64.whl", hash = "sha256:14ff7f229c6c0f729b706b815fc1984139890a07f1beec13f37eb024640738c7"},
-    {file = "agp_bindings-0.1.2-cp310-cp310-win_amd64.whl", hash = "sha256:ccf1862067cd1ba7c7a734b8295580d7fd9531ad1219867368830950f2ade91d"},
-    {file = "agp_bindings-0.1.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:d3168f9c74da4ece997a891409401029734df1007744944398d8f7202ceb2c5d"},
-    {file = "agp_bindings-0.1.2-cp311-cp311-manylinux_2_38_x86_64.whl", hash = "sha256:d159b1a93e314dec61ee5772157d79a0d3fc816be383fe3e82a126fd73d5ad90"},
-    {file = "agp_bindings-0.1.2-cp311-cp311-win_amd64.whl", hash = "sha256:1bb7bfbaec019031c801688087428985c35213c5375f89594261ad82b34b080f"},
-    {file = "agp_bindings-0.1.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4a71d89f312be619953fa665c88e4d56a2366eeb4a910b9ec09af6b084f54a63"},
-    {file = "agp_bindings-0.1.2-cp312-cp312-manylinux_2_38_x86_64.whl", hash = "sha256:e93d673d7652b6c9cd4b3dfac83811159d29f0b1c0832ad0b65dfd12ebf8e2b9"},
-    {file = "agp_bindings-0.1.2-cp312-cp312-win_amd64.whl", hash = "sha256:4e046f50d4697afaacbc4c5089380e371e396c9a8dff0c1d9a9f6289bd2afe14"},
-    {file = "agp_bindings-0.1.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:2c04718475d49e5bdc225597cf3021f673bc3721ec73822a96da29499fb6ea95"},
-    {file = "agp_bindings-0.1.2-cp313-cp313-manylinux_2_38_x86_64.whl", hash = "sha256:b6bfbd76db7b6813ef2fdda8b9b52f9a4b59483ae9d17880a1186c9d0b5c3aa9"},
-    {file = "agp_bindings-0.1.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:a0f754d35e59d3758644554782d76ffc088653cf9c1becbe3c2f948d1ee69c13"},
-    {file = "agp_bindings-0.1.2-cp39-cp39-manylinux_2_38_x86_64.whl", hash = "sha256:2ea75b71f9b64566d880a0b46d813379e0002e3d2f5836d062e42e6b6f91eac0"},
-    {file = "agp_bindings-0.1.2-cp39-cp39-win_amd64.whl", hash = "sha256:e29f0d1435a2aaaf8f2e07d91438208ee68d887b1a1e5825552b2b2605d1972a"},
-    {file = "agp_bindings-0.1.2.tar.gz", hash = "sha256:a909db479ae57b24d5cf4c72c404c8f53b8e94598efa53a52874d2b97b5d4701"},
+    {file = "agp_bindings-0.1.6-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:a28cb4826455551cc3e0017b47e27c09e838201ab5cdd2e704cdaa67afc61584"},
+    {file = "agp_bindings-0.1.6-cp310-cp310-manylinux_2_38_aarch64.whl", hash = "sha256:e2e4065d6c51ae29b96b991415c13e1160c2edb88953999a88cecbbbfbadc895"},
+    {file = "agp_bindings-0.1.6-cp310-cp310-manylinux_2_38_x86_64.whl", hash = "sha256:15353dd8d2e6095b71ae9fddb6674e1a3f2d3f9ce6e834e5129fa7c26cf77308"},
+    {file = "agp_bindings-0.1.6-cp310-cp310-win_amd64.whl", hash = "sha256:a74bb893984f517d42763433ff3b8cff3b30063beadd5890b16f38f0db6f14d6"},
+    {file = "agp_bindings-0.1.6-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:fd389b66f7049fd74f889a0e3f7227ead2d28f227d8647e7c2a6c6e534aa9649"},
+    {file = "agp_bindings-0.1.6-cp311-cp311-manylinux_2_38_aarch64.whl", hash = "sha256:2a6ba28aad39b4a598d1d1674cfd1de4a8233325df22e1516e573bf7305f1c28"},
+    {file = "agp_bindings-0.1.6-cp311-cp311-manylinux_2_38_x86_64.whl", hash = "sha256:d0d32f0e4a224c6bdbb777b99007acbabaf03a176d6e6870a23a844dccf03309"},
+    {file = "agp_bindings-0.1.6-cp311-cp311-win_amd64.whl", hash = "sha256:af3770d86f9e7722a041c9f3c45073ac5929df06afd454b1e18a62a180cc2d3c"},
+    {file = "agp_bindings-0.1.6-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:618524617627427f5f021bc1ff261a7dcd6ca004bdde4a77624a2a654c1a1ad7"},
+    {file = "agp_bindings-0.1.6-cp312-cp312-manylinux_2_38_aarch64.whl", hash = "sha256:dd07f84a6a31a2e91addafffd8042276bc2856239268b0ef2a64b3579c794e9d"},
+    {file = "agp_bindings-0.1.6-cp312-cp312-manylinux_2_38_x86_64.whl", hash = "sha256:eb361e6ac72f1b10b8cb00cbb8f21546f3196264f150e85a7c23359c34322da6"},
+    {file = "agp_bindings-0.1.6-cp312-cp312-win_amd64.whl", hash = "sha256:6cf8ad22e4f3fc415a22fe51ff7128cd4e60f89d2334fa3f87362074e5ec90db"},
+    {file = "agp_bindings-0.1.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:f049346ecd1f69ae04ad243685ae1631235032ddd39bc88e11ce16ce471f05a6"},
+    {file = "agp_bindings-0.1.6-cp313-cp313-manylinux_2_38_aarch64.whl", hash = "sha256:167ce02797eb6a66b7b70db4389e36b8590fc19798970e3a274eb2fe4774c896"},
+    {file = "agp_bindings-0.1.6-cp313-cp313-manylinux_2_38_x86_64.whl", hash = "sha256:5a7f1b585ce29a5501d4e6946424739dcb67ef6dc2a6d8542713abf2dbc9230f"},
+    {file = "agp_bindings-0.1.6-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:7bb9fd780871dd90bfa226c859491761dafe9a88f55993b6e43822ab42d83efb"},
+    {file = "agp_bindings-0.1.6-cp39-cp39-manylinux_2_38_aarch64.whl", hash = "sha256:d33a5d31b17876feb26ef3361383457ce5ce471ba4939108b34d2397f87858df"},
+    {file = "agp_bindings-0.1.6-cp39-cp39-manylinux_2_38_x86_64.whl", hash = "sha256:498edaba9f25a72aa33025a73afcb7fc51f1e547413f6a0531f0eed41321fa0a"},
+    {file = "agp_bindings-0.1.6-cp39-cp39-win_amd64.whl", hash = "sha256:ba195bcdb5c40e2d1a9027a6f8cbe89f15e76d65d1f79e0cc808b4bb07489387"},
+    {file = "agp_bindings-0.1.6.tar.gz", hash = "sha256:7ac18784ee581ce516ca63db0a0da62b525e307361ac333ee1cc297d0b4764d1"},
 ]
 
 [[package]]
@@ -2543,4 +2548,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "760b0203cf5215c9f91d08551283377d4760fe156c1bc68f5c018abc1d357d4a"
+content-hash = "4ec7d711cbca5665e4525ee06c3ed6ee6f093442dfa396d91d33fd627ef96299"
