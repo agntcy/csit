@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
-name: release
+name: release sample agentic application images
 
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'agentic-apps-v[0-9]+.[0-9]+.[0-9]+'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +17,7 @@ jobs:
     name: Prepare Build
     outputs:
       targets: ${{ steps.all-targets.outputs.targets }}
-      image-tag: ${{ steps.resolve.outputs.image_tag }}
+      image-tag: ${{ steps.resolve.outputs.version }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,8 +34,14 @@ jobs:
       - name: Container image
         id: resolve
         run: |
-          # Export vars
-          echo "image_tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+          # strip gentic-apps- prefix from the tag
+          _target=${GITHUB_REF_NAME#agentic-apps-}
+
+          # get version only
+          version=${_target##*-v}
+          echo version=${version} >> ${GITHUB_OUTPUT}
+
+          echo "Version: $version"
 
       - name: List all targets
         id: all-targets
