@@ -34,22 +34,6 @@ tasks:
     cmds:
       - kind delete cluster --name {{.KIND_CLUSTER_NAME}}
 
-  kind:load-images:directory:
-    desc: Pull and load images to kind
-    cmds:
-      # pull images
-      - docker pull {{.IMAGE_REPO}}/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}}
-      # load images
-      - kind load docker-image {{.IMAGE_REPO}}/dir-apiserver:{{.DIRECTORY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-
-  kind:load-images:gateway:
-    desc: Pull and load images to kind
-    cmds:
-      # pull images
-      - docker pull {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}}
-      # load images
-      - kind load docker-image {{.IMAGE_REPO}}/agp/gw:{{.GATEWAY_IMAGE_TAG}} --name {{.KIND_CLUSTER_NAME}}
-
   k8s:port-forward:setup:directory:
     internal: true
     cmds:
@@ -74,8 +58,6 @@ tasks:
 
   test:env:directory:deploy:
     desc: Deploy Agntcy directory test env
-    deps:
-      - kind:load-images:directory
     vars:
       REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
@@ -99,8 +81,6 @@ tasks:
 
   test:env:gateway:deploy:
     desc: Deploy agntcy gateway test env
-    deps:
-      - kind:load-images:gateway
     cmds:
       - |
         helm dependency build ./agntcy-agp/components/helm
