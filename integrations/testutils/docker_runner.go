@@ -6,6 +6,7 @@ package testutils
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 )
@@ -18,7 +19,12 @@ type DockerRunner struct {
 func NewDockerRunner(dockerImage, mountString string, envVars map[string]string) *DockerRunner {
 	baseArgs := []string{
 		"run",
-		"--rm",
+	}
+
+	if os.Getenv("REMOVE_CONTAINERS") == "true" {
+		baseArgs = append(baseArgs,
+			"--rm",
+		)
 	}
 
 	if mountString != "" {

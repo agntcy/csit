@@ -181,13 +181,15 @@ tasks:
 
   test:gateway:
     desc: Gateway test
+    vars:
+      REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
     cmds:
       - task: k8s:port-forward:setup:gateway
       - defer: { task: k8s:port-forward:teardown:gateway }
       - task: test:autogen-agent:run
       - defer: { task: test:autogen-agent:remove }
       - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .TEST_APP_TAG }}
-      - IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./agntcy-agp/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./agntcy-agp/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
 
   version:
     desc: Get version
