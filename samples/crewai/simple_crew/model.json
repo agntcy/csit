@@ -1,0 +1,165 @@
+{
+  "name": "research_crew",
+  "version": "v0.1.18",
+  "authors": [
+    "Your Name \u003cyou@example.com\u003e"
+  ],
+  "created_at": {
+    "seconds": 1740659438,
+    "nanos": 939623000
+  },
+  "locators": [
+    {
+      "type": 4,
+      "source": {
+        "url": "https://github.com/agntcy/csit/tree/main/samples/crewai/simple_crew"
+      }
+    }
+  ],
+  "extensions": [
+    {
+      "name": "runtime",
+      "version": "v0.0.0",
+      "specs": {
+        "language": "python",
+        "sbom": {
+          "name": "simple_crew",
+          "packages": [
+            {
+              "name": "crewai",
+              "version": "0.83.0"
+            },
+            {
+              "name": "langchain",
+              "version": "0.3.15"
+            },
+            {
+              "name": "langchain-openai",
+              "version": "0.2.14"
+            }
+          ]
+        },
+        "version": "\u003e=3.11,\u003c3.13"
+      }
+    },
+    {
+      "name": "crewai",
+      "version": "v0.0.0",
+      "specs": {
+        "agent.agents.reporting_analyst.backstory": "You're a meticulous analyst with a keen eye for detail. You're known for your ability to turn complex data into clear and concise reports, making it easy for others to understand and act on the information you provide.\n",
+        "agent.agents.reporting_analyst.goal": "Create detailed reports based on {topic} data analysis and research findings\n",
+        "agent.agents.reporting_analyst.role": "{topic} Reporting Analyst\n",
+        "agent.agents.researcher.backstory": "You're a seasoned researcher with a knack for uncovering the latest developments in {topic}. Known for your ability to find the most relevant information and present it in a clear and concise manner.\n",
+        "agent.agents.researcher.goal": "Uncover cutting-edge developments in {topic}\n",
+        "agent.agents.researcher.role": "{topic} Senior Data Researcher\n",
+        "inputs.reporting_task": "string",
+        "inputs.research_task": "string",
+        "inputs.tasks": "string",
+        "task.reporting_task.agent": "reporting_analyst",
+        "task.reporting_task.description": "Review the context you got and expand each topic into a full section for a report. Make sure the report is detailed and contains any and all relevant information.\n",
+        "task.reporting_task.expected_output": "A fully fledge reports with the mains topics, each with a full section of information. Formatted as markdown without '```'\n",
+        "task.research_task.agent": "researcher",
+        "task.research_task.description": "Conduct a thorough research about {topic} Make sure you find any interesting and relevant information given the current year is 2024.\n",
+        "task.research_task.expected_output": "A list with 10 bullet points of the most relevant information about {topic}\n",
+        "task.tasks.reporting_task.agent": "reporting_analyst",
+        "task.tasks.reporting_task.description": "Review the context you got and expand each topic into a full section for a report. Make sure the report is detailed and contains any and all relevant information.\n",
+        "task.tasks.reporting_task.expected_output": "A fully fledge reports with the mains topics, each with a full section of information. Formatted as markdown without '```'\n",
+        "task.tasks.research_task.agent": "researcher",
+        "task.tasks.research_task.description": "Conduct a thorough research about {topic} Make sure you find any interesting and relevant information given the current year is 2024.\n",
+        "task.tasks.research_task.expected_output": "A list with 10 bullet points of the most relevant information about {topic}\n"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/skills",
+      "version": "v1.0.0",
+      "specs": {
+        "skills": [
+          "Natural Language Understanding",
+          "Natural Language Generation",
+          "Information Retrieval and Synthesis",
+          "Fact Extraction",
+          "Knowledge Synthesis"
+        ]
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/io-mapper",
+      "version": "v1.0.0",
+      "specs": {
+        "input_name": "topic",
+        "input_type": "string",
+        "output_description": "A fully fledge reports with the mains topics, each with a full section of information. Formatted as markdown without '```'",
+        "output_name": "report",
+        "output_type": "file"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/language",
+      "version": "v1.0.0",
+      "specs": {
+        "type": "python",
+        "version": "\u003e=3.11,\u003c3.13"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/framework",
+      "version": "v1.0.0",
+      "specs": {
+        "type": "crewai",
+        "version": "0.83.0"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/observability/logging",
+      "version": "v1.0.0",
+      "specs": {
+        "format": "\u003cstring\u003e",
+        "type": "stdout"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/observability/metrics",
+      "version": "v1.0.0",
+      "specs": {
+        "task_duration": "task_duration",
+        "token_usage": [
+          "total_tokens",
+          "prompt_tokens",
+          "cached_prompt_tokens",
+          "completion_tokens",
+          "successful_requests"
+        ]
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/llm",
+      "version": "v1.0.0",
+      "specs": {
+        "base_url": "http://localhost:11434",
+        "model": "ollama/llama3.1"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/evaluation",
+      "version": "v1.0.0",
+      "specs": {
+        "provider": "local",
+        "type": "evaluator agent"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/orchestration",
+      "version": "v1.0.0",
+      "specs": {
+        "type": "sequential"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/memory",
+      "version": "v1.0.0",
+      "specs": {
+        "enabled": false
+      }
+    }
+  ]
+}
