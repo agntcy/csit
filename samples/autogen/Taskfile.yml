@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: "3"
+version: '3'
 
 silent: true
 
@@ -30,12 +30,12 @@ tasks:
       - uv run ruff check --fix .
 
   compose:
-    description: "Run docker-compose"
+    desc: 'Run docker-compose'
     cmds:
       - docker compose up --build -d
 
   kind:
-    description: "Run app in kind"
+    desc: 'Run app in kind'
     dir: '{{.USER_WORKING_DIR}}'
     vars:
       PARENT_DIR:
