@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: "3"
+version: '3'
 
 silent: true
 
@@ -29,9 +29,3 @@ tasks:
       - dependencies
     cmds:
       - poetry run python -m simple_crew.main test
-
-  publish:
-    desc: Publish PyPi package in Espresso-PyPi repo (https://engci-maven-master.cisco.com/artifactory/api/pypi/espresso-pypi/)
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - poetry publish --build --repository devhubcloud --verbose
