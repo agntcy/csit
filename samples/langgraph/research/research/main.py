@@ -28,7 +28,13 @@ else:
 
 class ResearchState(TypedDict):
     topic: str
+
+    researcher_system_prompt: str
+    researcher_research_prompt: str
     research_findings: List[str]
+
+    reporting_system_prompt: str
+    reporting_report_prompt: str
     report: str
 
 
@@ -56,6 +62,8 @@ def researcher_node(state: ResearchState) -> dict:
     ]
 
     return {
+        "researcher_system_prompt": system_prompt,
+        "researcher_research_prompt": research_prompt,
         "research_findings": findings,
     }
 
@@ -82,6 +90,8 @@ def reporting_node(state: ResearchState) -> dict:
     )
 
     return {
+        "reporting_system_prompt": system_prompt,
+        "reporting_report_prompt": report_prompt,
         "report": response.content,
     }
 
@@ -111,6 +121,8 @@ def main(topic: str):
 
     print("Research Report:")
     print(result["report"])
+
+    return result
 
 
 if __name__ == "__main__":
