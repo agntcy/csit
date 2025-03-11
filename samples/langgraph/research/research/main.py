@@ -86,7 +86,7 @@ def reporting_node(state: ResearchState) -> dict:
     }
 
 
-def build_workflow(topic: str):
+def build_workflow():
     workflow = StateGraph(ResearchState)
 
     workflow.add_node("researcher", researcher_node)
@@ -106,7 +106,7 @@ def main(topic: str):
         "report": "",
     }
 
-    workflow = build_workflow(topic)
+    workflow = build_workflow()
     result = workflow.invoke(initial_state)
 
     print("Research Report:")
