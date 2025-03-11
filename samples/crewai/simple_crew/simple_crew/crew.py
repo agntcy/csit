@@ -14,7 +14,11 @@ from crewai.project import (
     crew,
     task,
 )
-from utils.evaluator import CrewEvaluator
+
+try:
+    from utils.evaluator import CrewEvaluator
+except ImportError:
+    from .utils.evaluator import CrewEvaluator
 
 # Uncomment the following line to use an example of a custom tool
 # from simple.tools.custom_tool import MyCustomTool
