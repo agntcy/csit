@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
-import os
-import sys
 import time
 
 import urllib3
@@ -47,9 +45,9 @@ def test_api_post_request():
     health_url = "http://localhost:8000/healthz"
 
     # Wait for the service to be ready
-    assert wait_for_service(
-        health_url, retries=10
-    ), "Service did not become ready in time."
+    assert wait_for_service(health_url, retries=10), (
+        "Service did not become ready in time."
+    )
 
     # Sleep for a few seconds to ensure that the service is ready
     time.sleep(2)
@@ -77,9 +75,9 @@ def test_api_post_request():
 
     # Assert that the status code is 404 (OK)
     # as there is no agent to handle the request for the given intent
-    assert (
-        response.status == 404
-    ), f"Expected status code 404, but got {response.status}: {response.data}"
+    assert response.status == 404, (
+        f"Expected status code 404, but got {response.status}: {response.data}"
+    )
 
     # Now let's make a valid request for the intent "hr"
     payload["intent"] = "hr"
@@ -94,17 +92,15 @@ def test_api_post_request():
     )
 
     # Assert that the status code is 200 (OK)
-    assert (
-        response.status == 200
-    ), f"Expected status code 200, but got {response.status}"
+    assert response.status == 200, (
+        f"Expected status code 200, but got {response.status}"
+    )
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
 
     # Assert that the response contains the expected keys
-    assert (
-        "agent_id" in response_data
-    ), "Response does not contain 'agent_id' key"
+    assert "agent_id" in response_data, "Response does not contain 'agent_id' key"
 
     # Save agent_id
     agent_id = response_data["agent_id"]
@@ -121,22 +117,20 @@ def test_api_post_request():
     )
 
     # Assert that the status code is 200 (OK)
-    assert (
-        response.status == 200
-    ), f"Expected status code 200, but got {response.status}"
+    assert response.status == 200, (
+        f"Expected status code 200, but got {response.status}"
+    )
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
 
     # Assert that the response contains the expected keys
-    assert (
-        "agent_id" in response_data
-    ), "Response does not contain 'agent_id' key"
+    assert "agent_id" in response_data, "Response does not contain 'agent_id' key"
 
     # Assert that the agent_id is different from the previous response
-    assert (
-        response_data["agent_id"] != agent_id
-    ), "Agent ID should be different for different contexts"
+    assert response_data["agent_id"] != agent_id, (
+        "Agent ID should be different for different contexts"
+    )
 
     # Optionally, release the connection back to the pool
     response.release_conn()
