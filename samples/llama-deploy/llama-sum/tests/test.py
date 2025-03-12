@@ -1,11 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
-import time
 
 from llama_deploy import ControlPlaneConfig, LlamaDeployClient
-
-init_timestamp = time.time()
 
 # points to deployed control plane
 client = LlamaDeployClient(ControlPlaneConfig())
