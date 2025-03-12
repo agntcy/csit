@@ -6,6 +6,9 @@ import time
 
 import urllib3
 
+payloads = []
+response_data_array = []
+
 
 def wait_for_service(url, retries=5, delay=2):
     """Wait for the service to be available by polling the health endpoint."""
@@ -64,6 +67,7 @@ def test_api_post_request():
         "context": "ctx",
         "intent": "asd",
     }
+    payloads.append(payload)
 
     # Make a POST request to the API
     response = http.request(
@@ -82,6 +86,7 @@ def test_api_post_request():
     # Now let's make a valid request for the intent "hr"
     payload["intent"] = "hr"
     payload["message"] = "My name is Python"
+    payloads.append(payload)
 
     # Make a POST request to the API
     response = http.request(
@@ -98,6 +103,7 @@ def test_api_post_request():
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
+    response_data_array.append(response_data)
 
     # Assert that the response contains the expected keys
     assert "agent_id" in response_data, "Response does not contain 'agent_id' key"
@@ -107,6 +113,7 @@ def test_api_post_request():
 
     # Send another request with a different context
     payload["context"] = "ctx2"
+    payloads.append(payload)
 
     # Make a POST request to the API
     response = http.request(
@@ -123,6 +130,7 @@ def test_api_post_request():
 
     # Decode the response body
     response_data = json.loads(response.data.decode("utf-8"))
+    response_data_array.append(response_data)
 
     # Assert that the response contains the expected keys
     assert "agent_id" in response_data, "Response does not contain 'agent_id' key"
