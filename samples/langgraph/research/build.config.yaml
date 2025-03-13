@@ -1,64 +1,54 @@
-name: "research"
+model:
+  name: "research"
 
-version: "0.1.0"
+  version: "0.1.0"
 
-authors:
-  - "Zsolt Kacsándi <zkacsand@cisco.com>"
+  authors:
+    - "Zsolt Kacsándi <zkacsand@cisco.com>"
 
-locators:
-  - type: "source-code"
-    url: "https://github.com/agntcy/csit/tree/main/samples/langgraph/research"
+  skills:
+    - "Natural Language Understanding"
+    - "Natural Language Generation"
+    - "Information Retrieval and Synthesis"
+    - "Fact Extraction"
+    - "Knowledge Synthesis"
 
-extensions:
-  - name: "oasf.agntcy.org/skills"
-    version: "v1.0.0"
-    specs:
-      skills:
-        - "Natural Language Understanding"
-        - "Natural Language Generation"
-        - "Information Retrieval and Synthesis"
-        - "Fact Extraction"
-        - "Knowledge Synthesis" 
-  - name: "oasf.agntcy.org/features/runtime/io-mapper"
-    version: "v1.0.0"
-    specs:
-      input_name: "topic"
-      input_type: "string"
-      output_name: "report"
-      output_type: "string"
-      output_description: "Create a detailed markdown report about {state['topic']} based on these research findings: {'\n'.join(state['research_findings'])}. Expand each finding into a full section, ensuring comprehensive coverage."
-  - name: "oasf.agntcy.org/features/runtime/language"
-    version: "v1.0.0"
-    specs:
-      type: "python"
-      version: "^3.12"
-  - name: "oasf.agntcy.org/features/runtime/framework"
-    version: "v1.0.0"
-    specs:
-      type: "langchain"
-      version: "0.3.14"
-  - name: "oasf.agntcy.org/features/observability/logging"
-    version: "v1.0.0"
-    specs:
-      type: "stdout"
-      format: "<string>"
-  - name: "oasf.agntcy.org/features/framework/llm"
-    version: "v1.0.0"
-    specs:
-      model: "gpt-4o-mini"
-      timeout: null
-      temperature: 0
-      max_tokens: null
-      max_retries: 2
-  - name: "oasf.agntcy.org/features/framework/orchestration"
-    version: "v1.0.0"
-    specs:
-      type: "graph"
+  locators:
+    - type: "source-code"
+      url: "https://github.com/agntcy/csit/tree/main/samples/langgraph/research"
+
+  extensions:
+    - name: "oasf.agntcy.org/features/runtime/io-mapper"
+      version: "v1.0.0"
+      specs:
+        input_name: "topic"
+        input_type: "string"
+        output_name: "report"
+        output_type: "string"
+        output_description: "Create a detailed markdown report about {state['topic']} based on these research findings: {'\n'.join(state['research_findings'])}. Expand each finding into a full section, ensuring comprehensive coverage."
+    - name: "oasf.agntcy.org/features/observability/logging"
+      version: "v1.0.0"
+      specs:
+        type: "stdout"
+        format: "<string>"
+    - name: "oasf.agntcy.org/features/framework/llm"
+      version: "v1.0.0"
+      specs:
+        model: "gpt-4o-mini"
+        timeout: null
+        temperature: 0
+        max_tokens: null
+        max_retries: 2
+    - name: "oasf.agntcy.org/features/framework/orchestration"
+      version: "v1.0.0"
+      specs:
+        type: "graph"
 
 builder:
-  source: "agntcy/csit/tree/main/samples/langgraph/research"
+  source: "path/to/source" # TODO(pbalogh-sa) please update
   source-ignore:
     - ".venv/"
 
   llmanalyzer: false
   crewai: false
+  runtime: true
