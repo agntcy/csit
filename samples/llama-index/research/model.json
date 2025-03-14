@@ -1,105 +1,89 @@
 {
-    "name": "research",
-    "version": "0.1.0",
-    "authors": [
-      "Michele Papalini \u003cmicpapal@cisco.com\u003e"
-    ],
-    "created_at": {
-      "seconds": 1740659782,
-      "nanos": 421410000
-    },
-    "locators": [
-      {
-        "type": 4,
-        "source": {
-          "url": "https://github.com/agntcy/csit/tree/main/samples/llama-index/research"
-        }
+  "name": "research",
+  "version": "0.1.0",
+  "authors": [
+    "Michele Papalini \u003cmicpapal@cisco.com\u003e"
+  ],
+  "created_at": {
+    "seconds": 1741964188,
+    "nanos": 855226000
+  },
+  "skills": [
+    "Natural Language Understanding",
+    "Natural Language Generation",
+    "Information Retrieval and Synthesis",
+    "Fact Extraction",
+    "Knowledge Synthesis"
+  ],
+  "locators": [
+    {
+      "name": "source-code",
+      "source": {
+        "url": "https://github.com/agntcy/csit/tree/main/samples/llama-index/research"
       }
-    ],
-    "extensions": [
-      {
-        "name": "runtime",
-        "version": "v0.0.0",
-        "specs": {
-          "language": "python",
-          "sbom": {
-            "name": "research",
-            "packages": [
-              {
-                "name": "llama-index",
-                "version": "0.12.10"
-              },
-              {
-                "name": "llama-index-llms-azure-openai",
-                "version": "0.3.0"
-              }
-            ]
-          },
-          "version": "^3.12"
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/skills",
-        "version": "v1.0.0",
-        "specs": {
-          "skills": [
-            "Natural Language Understanding",
-            "Natural Language Generation",
-            "Information Retrieval and Synthesis",
-            "Fact Extraction",
-            "Knowledge Synthesis"
+    }
+  ],
+  "extensions": [
+    {
+      "name": "oasf.agntcy.org/features/framework/llm",
+      "version": "v1.0.0",
+      "specs": {
+        "model": "gpt-4o-mini",
+        "temperature": 0.5
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/orchestration",
+      "version": "v1.0.0",
+      "specs": {
+        "type": "workflow"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/framework",
+      "version": "v0.0.0",
+      "specs": {
+        "sbom": {
+          "name": "research",
+          "packages": [
+            {
+              "name": "llama-index",
+              "version": "0.12.10"
+            },
+            {
+              "name": "llama-index-llms-azure-openai",
+              "version": "0.3.0"
+            }
           ]
         }
-      },
-      {
-        "name": "oasf.agntcy.org/features/runtime/io-mapper",
-        "version": "v1.0.0",
-        "specs": {
-          "input_name": "topic",
-          "input_type": "string",
-          "output_description": "Create a detailed markdown report about {topic} based on these research findings: {research}. Expand each finding into a full section, ensuring comprehensive coverage.",
-          "output_name": "report",
-          "output_type": "string"
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/features/runtime/language",
-        "version": "v1.0.0",
-        "specs": {
-          "type": "python",
-          "version": "^3.12"
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/features/runtime/framework",
-        "version": "v1.0.0",
-        "specs": {
-          "type": "llama-index",
-          "version": "0.12.10"
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/features/observability/logging",
-        "version": "v1.0.0",
-        "specs": {
-          "format": "\u003cstring\u003e",
-          "type": "stdout"
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/features/framework/llm",
-        "version": "v1.0.0",
-        "specs": {
-          "model": "gpt-4o-mini",
-          "temperature": 0.5
-        }
-      },
-      {
-        "name": "oasf.agntcy.org/features/framework/orchestration",
-        "version": "v1.0.0",
-        "specs": {
-          "type": "workflow"
-        }
       }
-    ]
-  }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/language",
+      "version": "v0.0.0",
+      "specs": {
+        "type": "python",
+        "version": "^3.12"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/io-mapper",
+      "version": "v1.0.0",
+      "specs": {
+        "input_name": "topic",
+        "input_type": "string",
+        "output_description": "Create a detailed markdown report about {topic} based on these research findings: {research}. Expand each finding into a full section, ensuring comprehensive coverage.",
+        "output_name": "report",
+        "output_type": "string"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/observability/logging",
+      "version": "v1.0.0",
+      "specs": {
+        "format": "\u003cstring\u003e",
+        "type": "stdout"
+      }
+    }
+  ]
+}
