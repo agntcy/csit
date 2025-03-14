@@ -3,55 +3,69 @@
 
 import os
 import sys
-from langchain_openai import AzureChatOpenAI
+
 import requests
+from langchain_openai import AzureChatOpenAI
 
-if len(sys.argv) != 2:
-    print("Usage: python script.py <input_string>")
-    sys.exit(1)
+model = None
+output_string = None
 
-input_string = sys.argv[1]
 
-key = os.environ.get("AZURE_OPENAI_API_KEY")
-if (key is not None and len(key) > 0):
-    print("Using Azure OpenAI")
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <input_string>")
+        sys.exit(1)
 
-    model = os.environ.get("AZURE_MODEL", "gpt-4o-mini")
-    api_key = os.environ.get("AZURE_OPENAI_API_KEY")
-    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
-    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
-    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
+    input_string = sys.argv[1]
 
-    # Make request to Azure OpenAI
-    llm = AzureChatOpenAI(
-        model=model,
-        api_key=api_key,
-        api_version=api_version,
-        azure_endpoint=endpoint,
-        azure_deployment=deployment
-    )
-    llm_response = llm.invoke(input_string)
+    key = os.environ.get("AZURE_OPENAI_API_KEY")
+    if key is not None and len(key) > 0:
+        print("Using Azure OpenAI")
 
-    # Parse response
-    output_string = llm_response.content
+        model = os.environ.get("AZURE_MODEL", "gpt-4o-mini")
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+        api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
+        endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+        deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
 
-else:
-    print("Using Local OpenAI")
+        # Make request to Azure OpenAI
+        llm = AzureChatOpenAI(
+            model=model,
+            api_key=api_key,
+            api_version=api_version,
+            azure_endpoint=endpoint,
+            azure_deployment=deployment,
+        )
+        llm_response = llm.invoke(input_string)
 
-    model = os.environ.get("LOCAL_MODEL_NAME")
-    url = os.environ.get("LOCAL_MODEL_BASE_URL")
+        # Parse response
+        output_string = llm_response.content
 
-    # Replace localhost with host.docker.internal
-    url = url.replace("localhost", "host.docker.internal")
+    else:
+        print("Using Local OpenAI")
 
-    # Make request to local model
-    response = requests.post(
-         url + "/api/generate",
-         json={"model": model, "prompt": input_string, "stream": False}
-    )
+        model = os.environ.get("LOCAL_MODEL_NAME")
+        url = os.environ.get("LOCAL_MODEL_BASE_URL")
 
-    # Parse response
-    output_string = response.json()['response'] if response.status_code == 200 else f"Error: {response.text}"
+        # Replace localhost with host.docker.internal
+        url = url.replace("localhost", "host.docker.internal")
 
-output_string = f"Output: {output_string}"
-print(output_string)
+        # Make request to local model
+        response = requests.post(
+            url + "/api/generate",
+            json={"model": model, "prompt": input_string, "stream": False},
+        )
+
+        # Parse response
+        output_string = (
+            response.json()["response"]
+            if response.status_code == 200
+            else f"Error: {response.text}"
+        )
+
+    output_string = f"Output: {output_string}"
+    print(output_string)
+
+
+if __name__ == "__main__":
+    main()
