@@ -7,11 +7,9 @@ WORKDIR /app
 
 COPY . /app
 
-COPY script.py /app/script.py
-
 RUN chmod +x /app/script.py
 
-# install python requirements  
+# install python requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 ENTRYPOINT ["python", "/app/script.py"]
