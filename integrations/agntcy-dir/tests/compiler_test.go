@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
@@ -21,23 +22,22 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 		dockerImage            string
 		mountDest              string
 		mountString            string
+		modelConfigFilePath    string
 		expectedAgentModelFile string
 	)
 
 	ginkgo.BeforeEach(func() {
 		examplesDir := "../examples/"
-		marketingStrategyPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata/marketing-strategy"))
+		testDataPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		tempAgentPath = filepath.Join(os.TempDir(), "agent.json")
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-		mountDest = "/opt/marketing-strategy"
-		mountString = fmt.Sprintf("%s:%s", marketingStrategyPath, mountDest)
+		mountDest = "/testdata"
+		mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 
-		testdataDir, err := filepath.Abs(filepath.Join(examplesDir, "testdata"))
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		expectedAgentModelFile = filepath.Join(testdataDir, "expected_agent.json")
+		modelConfigFilePath = filepath.Join(mountDest, "build.config.yaml")
+		expectedAgentModelFile = filepath.Join(testDataPath, "agent.json")
 	})
 
 	ginkgo.Context("agent compilation", func() {
@@ -45,13 +45,8 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 
 			dirctlArgs := []string{
 				"build",
-				"--name=marketing-strategy",
-				"--version=v1.0.0",
-				"--created-at=2025-01-01T00:00:00Z",
-				"--artifact-type=python-package",
-				"--artifact-url=http://ghcr.io/agntcy/marketing-strategy",
-				"--author=author1",
-				"--author=author2",
+				"--config",
+				modelConfigFilePath,
 				mountDest,
 			}
 
@@ -80,8 +75,20 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 			err = json.Unmarshal([]byte(compiledModelJSON), &compiled)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			// Check the compiled agent model without extensions field
-			gomega.Expect(expected).To(gomega.BeComparableTo(compiled))
+			// Filter "created_at" field
+			filter := cmp.FilterPath(func(p cmp.Path) bool {
+				// Ensure the path is deep enough
+				if len(p) >= 3 {
+					if mapStep, ok := p[len(p)-3].(cmp.MapIndex); ok {
+						if key, ok := mapStep.Key().Interface().(string); ok && key == "created_at" {
+							return true // Ignore these paths
+						}
+					}
+				}
+				return false // Include all other paths
+			}, cmp.Ignore())
+
+			gomega.Expect(expected).To(gomega.BeComparableTo(compiled, filter))
 		})
 	})
 })

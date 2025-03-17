@@ -15,19 +15,9 @@ tasks:
     cmds:
       - ../utils/setup-env.sh
 
-  build:docker-env-cli-stdout:
-    desc: Build docker image
-    dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - setup:docker-env-cli-stdout
-    cmds:
-      - docker buildx bake docker-env-cli-stdout
-
   test:docker-env-cli-stdout:
     desc: Run docker image
     dir: '{{.USER_WORKING_DIR}}/docker-env-cli-stdout'
-    deps:
-      - build:docker-env-cli-stdout
     cmds:
       - docker run --env-file .env docker-env-cli-stdout "Hello, World"
 
@@ -41,6 +31,7 @@ tasks:
     desc: Run test
     dir: '{{.USER_WORKING_DIR}}'
     deps:
+      - setup:docker-env-cli-stdout
       - build
     cmds:
       - task test:docker-env-cli-stdout
