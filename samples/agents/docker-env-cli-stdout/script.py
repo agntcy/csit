@@ -7,11 +7,11 @@ import sys
 import requests
 from langchain_openai import AzureChatOpenAI
 
-model = None
-output_string = None
-
 
 def main():
+    global model
+    global output_string
+
     if len(sys.argv) != 2:
         print("Usage: python script.py <input_string>")
         sys.exit(1)
