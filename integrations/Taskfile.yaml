@@ -22,6 +22,8 @@ vars:
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
+  REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
+
 tasks:
   kind:create:
     desc: Create kind cluster
@@ -161,8 +163,6 @@ tasks:
 
   test:gateway:
     desc: Gateway test
-    vars:
-      REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
     cmds:
       - task: k8s:port-forward:setup:gateway
       - defer: { task: k8s:port-forward:teardown:gateway }
