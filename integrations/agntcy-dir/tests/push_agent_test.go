@@ -27,14 +27,14 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 
 	ginkgo.BeforeEach(func() {
 		examplesDir := "../examples/"
-		testDataDir, err := filepath.Abs(filepath.Join(examplesDir, "testdata"))
+		testDataPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-		mountDest = "/opt/testdata"
-		mountString = fmt.Sprintf("%s:%s", testDataDir, mountDest)
+		mountDest = "/testdata"
+		mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 
-		agentModelFile = filepath.Join(mountDest, "expected_agent.json")
+		agentModelFile = filepath.Join(mountDest, "agent.json")
 	})
 
 	ginkgo.Context("agent push and pull", func() {
