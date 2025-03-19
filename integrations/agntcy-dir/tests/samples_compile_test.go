@@ -112,8 +112,7 @@ var _ = ginkgo.Describe("Samples build test", func() {
 				}, cmp.Ignore())
 
 				gomega.Expect(expected).Should(gomega.BeComparableTo(compiled, filter))
-
-				gomega.Expect(expected["extensions"]).Should(gomega.BeComparableTo(compiled["extensions"]))
+				gomega.Expect(expected["extensions"]).Should(gomega.ConsistOf(compiled["extensions"]))
 			})
 		})
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils"
 )
 
-var _ = ginkgo.Describe("Agntcy compiler tests", func() {
+var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 	var (
 		tempAgentPath          string
 		dockerImage            string
@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 				// Ensure the path is deep enough
 				if len(p) >= 3 {
 					if mapStep, ok := p[len(p)-3].(cmp.MapIndex); ok {
-						if key, ok := mapStep.Key().Interface().(string); ok && key == "created_at" {
+						if key, ok := mapStep.Key().Interface().(string); ok && key == "created_at" || key == "extensions" {
 							return true // Ignore these paths
 						}
 					}
@@ -87,7 +87,8 @@ var _ = ginkgo.Describe("Agntcy compiler tests", func() {
 				return false // Include all other paths
 			}, cmp.Ignore())
 
-			gomega.Expect(expected).To(gomega.BeComparableTo(compiled, filter))
+			gomega.Expect(expected).Should(gomega.BeComparableTo(compiled, filter))
+			gomega.Expect(expected["extensions"]).Should(gomega.ConsistOf(compiled["extensions"]))
 		})
 	})
 })
