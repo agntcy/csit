@@ -104,6 +104,8 @@ def eval():
     )
     print("SCORE", score)
 
+    return (dataset, score)
+
 
 if __name__ == "__main__":
     eval()
