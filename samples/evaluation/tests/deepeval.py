@@ -3,10 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from os import environ
-from deepeval.test_case import LLMTestCase
-from deepeval.metrics import AnswerRelevancyMetric, BiasMetric, ToxicityMetric
-from deepeval.cli.main import set_local_model_env, unset_local_model_env, set_azure_openai_env, unset_azure_openai_env
+
+from deepeval.cli.main import (
+    set_azure_openai_env,
+    set_local_model_env,
+    unset_azure_openai_env,
+    unset_local_model_env,
+)
 from deepeval.dataset import EvaluationDataset
+from deepeval.metrics import AnswerRelevancyMetric, BiasMetric, ToxicityMetric
+from deepeval.test_case import LLMTestCase
 from model.crew import run_crew
 
 azure_openai_api_key = environ.get("AZURE_OPENAI_API_KEY", "NA")
@@ -17,6 +23,7 @@ azure_model_version = environ.get("AZURE_MODEL_VERSION", "gpt-4o-mini")
 
 eval_model_name = environ.get("LOCAL_MODEL_NAME", "llama3.1")
 eval_base_url = environ.get("LOCAL_MODEL_BASE_URL", "http://localhost:11434/v1/")
+
 
 def eval():
     if azure_openai_api_key != "NA":
@@ -30,10 +37,11 @@ def eval():
         )
     else:
         print("Set local model for evaluation")
-        set_local_model_env(model_name=eval_model_name,
-                            base_url=eval_base_url,
-                            api_key="dummy-key",
-                            format='json',
+        set_local_model_env(
+            model_name=eval_model_name,
+            base_url=eval_base_url,
+            api_key="dummy-key",
+            format="json",
         )
 
     test_input = "Gather data about new Critical CVEs from todays date"
@@ -44,8 +52,8 @@ def eval():
 
     test_cases = []
     test_case = LLMTestCase(
-        input = test_input,
-        actual_output = test_output,
+        input=test_input,
+        actual_output=test_output,
     )
     test_cases.append(test_case)
 
@@ -57,12 +65,12 @@ def eval():
     dataset = EvaluationDataset(test_cases=test_cases)
     dataset.evaluate([answer_relevancy_metric, bias_metric, toxicity_metric])
 
-
     print("Test End")
     if azure_openai_api_key != "NA":
         unset_azure_openai_env()
     else:
         unset_local_model_env()
+
 
 if __name__ == "__main__":
     eval()
