@@ -63,13 +63,15 @@ def eval():
     toxicity_metric = ToxicityMetric(threshold=0.5)
 
     dataset = EvaluationDataset(test_cases=test_cases)
-    dataset.evaluate([answer_relevancy_metric, bias_metric, toxicity_metric])
+    result = dataset.evaluate([answer_relevancy_metric, bias_metric, toxicity_metric])
 
     print("Test End")
     if azure_openai_api_key != "NA":
         unset_azure_openai_env()
     else:
         unset_local_model_env()
+
+    return (dataset, result)
 
 
 if __name__ == "__main__":
