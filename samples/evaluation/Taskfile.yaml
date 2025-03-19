@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: "3"
+version: '3'
 
 silent: true
 
@@ -26,13 +26,13 @@ tasks:
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry run python -m tests.deepeval
+      - poetry run python -m tests._deepeval
 
   run:test-ragas:
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry run python -m tests.ragas
+      - poetry run python -m tests._ragas
 
   run:test:
     desc: Run tests
