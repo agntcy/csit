@@ -28,11 +28,10 @@ csit
 |   │   ├── examples                    # the examples that can be used for testing
 |   │   ├── manifests                   # requred manifests for tests
 |   │   └── tests                       # tests
-|   ├── agntcy-agp                      # Agent Gateway related tests, components, etc...
-|   │   └── agentic-apps                # Agentic apps for gateway tests
-|   │       ├── autogen_agent
-|   │       └── langchain_agent
-|   └── report                          # tools for reportning test results
+|   └── agntcy-agp                      # Agent Gateway related tests, components, etc...
+|       └── agentic-apps                # Agentic apps for gateway tests
+|           ├── autogen_agent
+|           └── langchain_agent
 |
 └── samples
     ├── app1                            # Agentic application example
@@ -64,11 +63,10 @@ integrations
 │   ├── examples                    # the examples that can be used for testing
 │   ├── manifests                   # requred manifests for tests
 │   └── tests                       # tests
-├── agntcy-agp                      # Agent Gateway related tests, components, etc...
-│   └── agentic-apps                # Agentic apps for gateway tests
-│       ├── autogen_agent
-│       └── langchain_agent
-└── report                          # tools for reportning test results
+└── agntcy-agp                      # Agent Gateway related tests, components, etc...
+    └── agentic-apps                # Agentic apps for gateway tests
+        ├── autogen_agent
+        └── langchain_agent
 ```
 
 ## Running tests
