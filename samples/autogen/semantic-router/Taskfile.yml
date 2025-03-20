@@ -15,5 +15,6 @@ tasks:
       - compose
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - uv sync --only-dev
-      - uv run pytest
+      - poetry lock --regenerate
+      - poetry sync --no-root
+      - poetry run pytest

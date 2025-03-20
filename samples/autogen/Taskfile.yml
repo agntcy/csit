@@ -11,7 +11,7 @@ tasks:
     desc: Install dependencies
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - uv sync
+      - poetry sync --no-root
 
   lint:
     desc: Run lint with black
@@ -19,7 +19,7 @@ tasks:
     deps:
       - dependencies
     cmds:
-      - uv run ruff check .
+      - poetry run ruff check .
 
   fix-lint:
     desc: Run lint with black
@@ -27,7 +27,7 @@ tasks:
     deps:
       - dependencies
     cmds:
-      - uv run ruff check --fix .
+      - poetry run ruff check --fix .
 
   compose:
     desc: 'Run docker-compose'
