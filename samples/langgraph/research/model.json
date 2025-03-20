@@ -4,37 +4,54 @@
   "authors": [
     "Zsolt Kacsándi \u003czkacsand@cisco.com\u003e"
   ],
-  "created_at": {
-    "seconds": 1741964126,
-    "nanos": 555779000
-  },
+  "created_at": "2025-03-20T12:20:16Z",
   "skills": [
-    "Natural Language Understanding",
-    "Natural Language Generation",
-    "Information Retrieval and Synthesis",
-    "Fact Extraction",
-    "Knowledge Synthesis"
+    {
+      "category_name": "Natural Language Understanding"
+    },
+    {
+      "category_name": "Natural Language Generation"
+    },
+    {
+      "category_name": "Information Retrieval and Synthesis"
+    },
+    {
+      "category_name": "Fact Extraction"
+    },
+    {
+      "category_name": "Knowledge Synthesis"
+    }
   ],
   "locators": [
     {
-      "name": "source-code",
-      "source": {
-        "url": "https://github.com/agntcy/csit/tree/main/samples/langgraph/research"
-      }
+      "type": "source-code",
+      "url": "https://github.com/agntcy/csit/tree/main/samples/langgraph/research"
     }
   ],
   "extensions": [
     {
-      "name": "oasf.agntcy.org/features/framework/orchestration",
+      "name": "oasf.agntcy.org/features/observability/logging",
       "version": "v1.0.0",
-      "specs": {
-        "type": "graph"
+      "data": {
+        "format": "\u003cstring\u003e",
+        "type": "stdout"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/llm",
+      "version": "v1.0.0",
+      "data": {
+        "max_retries": 2,
+        "max_tokens": null,
+        "model": "gpt-4o-mini",
+        "temperature": 0,
+        "timeout": null
       }
     },
     {
       "name": "oasf.agntcy.org/features/runtime/framework",
       "version": "v0.0.0",
-      "specs": {
+      "data": {
         "sbom": {
           "name": "research",
           "packages": [
@@ -61,39 +78,27 @@
     {
       "name": "oasf.agntcy.org/features/runtime/language",
       "version": "v0.0.0",
-      "specs": {
+      "data": {
         "type": "python",
         "version": "^3.12"
       }
     },
     {
+      "name": "oasf.agntcy.org/features/framework/orchestration",
+      "version": "v1.0.0",
+      "data": {
+        "type": "graph"
+      }
+    },
+    {
       "name": "oasf.agntcy.org/features/runtime/io-mapper",
       "version": "v1.0.0",
-      "specs": {
+      "data": {
         "input_name": "topic",
         "input_type": "string",
         "output_description": "Create a detailed markdown report about {state['topic']} based on these research findings: {'\n'.join(state['research_findings'])}. Expand each finding into a full section, ensuring comprehensive coverage.",
         "output_name": "report",
         "output_type": "string"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/observability/logging",
-      "version": "v1.0.0",
-      "specs": {
-        "format": "\u003cstring\u003e",
-        "type": "stdout"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/framework/llm",
-      "version": "v1.0.0",
-      "specs": {
-        "max_retries": 2,
-        "max_tokens": null,
-        "model": "gpt-4o-mini",
-        "temperature": 0,
-        "timeout": null
       }
     }
   ]
