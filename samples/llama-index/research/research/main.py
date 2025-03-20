@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
+import asyncio
+from dataclasses import dataclass
+from os import environ
+
 from llama_index.core.workflow import (
     Event,
     StartEvent,
@@ -8,22 +12,37 @@ from llama_index.core.workflow import (
     Workflow,
     step,
 )
-
 from llama_index.llms.azure_openai import AzureOpenAI
-import asyncio
-from os import environ
+
+
+@dataclass
+class ResearchLog:
+    research_system_prompt: str = ""
+    research_prompt: str = ""
+
+    create_report_system_prompt: str = ""
+    create_report_prompt: str = ""
+
+    llm_model: str = ""
+
+    result: str = ""
 
 
 class ResearchEvent(Event):
     research: str
     topic: str
 
-class ResearchFlow(Workflow):
 
+log = ResearchLog()
+
+
+class ResearchFlow(Workflow):
     def set_llm(self, sys_prompt: str):
         azure_openai_api_key = environ.get("AZURE_OPENAI_API_KEY")
         azure_openai_endpoint = environ.get("AZURE_OPENAI_ENDPOINT")
-        openai_api_version = environ.get("AZURE_OPENAI_API_VERSION", "2025-02-01-preview")
+        openai_api_version = environ.get(
+            "AZURE_OPENAI_API_VERSION", "2025-02-01-preview"
+        )
         azure_deployment_name = environ.get("AZURE_DEPLOYMENT_NAME", "gpt-4o-mini")
         azure_model_version = environ.get("AZURE_MODEL_VERSION", "gpt-4o-mini")
 
@@ -37,13 +56,15 @@ class ResearchFlow(Workflow):
             system_prompt=sys_prompt,
         )
 
+        log.llm_model = azure_model_version
+
         return llm
 
     @step
     async def research(self, ev: StartEvent) -> ResearchEvent:
         topic = ev.topic
 
-        sys_prompt =f"""
+        sys_prompt = f"""
             You are a {topic} Senior Data Researcher. Goal: Uncover cutting-edge developments in {topic}
             You are a seasoned researcher known for finding the most relevant information and presenting it clearly.
             """
@@ -55,6 +76,10 @@ class ResearchFlow(Workflow):
         llm = self.set_llm(sys_prompt)
 
         response = await llm.acomplete(prompt)
+
+        log.research_system_prompt = sys_prompt
+        log.research_prompt = prompt
+
         return ResearchEvent(research=str(response), topic=str(topic))
 
     @step
@@ -62,7 +87,7 @@ class ResearchFlow(Workflow):
         research = ev.research
         topic = ev.topic
 
-        sys_prompt =f"""
+        sys_prompt = f"""
             You are a {topic} Reporting Analyst.
             Goal: Create detailed reports based on {topic} data analysis and research findings
             You are known for turning complex data into clear, concise reports.
@@ -75,13 +100,24 @@ class ResearchFlow(Workflow):
         llm = self.set_llm(sys_prompt)
 
         response = await llm.acomplete(prompt)
+
+        log.create_report_system_prompt = sys_prompt
+        log.create_report_prompt = prompt
+
         return StopEvent(result=str(response))
 
 
-async def run():
+async def run(topic: str):
     w = ResearchFlow(timeout=60, verbose=False)
-    result = await w.run(topic="Artificial Intelligence")
+    result = await w.run(topic=topic)
     print(str(result))
 
+    log.result = result
+
+
+def main(topic: str):
+    asyncio.run(run(topic))
+
+
 if __name__ == "__main__":
-    asyncio.run(run())
+    main(topic="Artificial Intelligence")
