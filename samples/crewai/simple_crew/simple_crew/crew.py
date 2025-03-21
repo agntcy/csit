@@ -140,7 +140,7 @@ class Simple:
                 break
 
         # Example of a task callback function that logs the task duration and score
-        self.task_duration_map[task_output.name] = task._execution_time
+        self.task_duration_map[task_output.name] = task.execution_duration
         self.task_score_map[task_output.name] = self.evaluator.evaluate(
             task, task_output
         )
