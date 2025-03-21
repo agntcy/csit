@@ -6,7 +6,7 @@ group "default" {
 }
 
 target "docker-env-cli-stdout" {
-  context = "./docker-env-cli-stdout"
+  context = "."
   dockerfile = "./Dockerfile"
   tags = ["docker-env-cli-stdout:latest"]
 }

@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: "3"
+version: '3'
 
 silent: true
 
 tasks:
   setup:docker-env-cli-stdout:
     desc: Create env file
-    dir: '{{.USER_WORKING_DIR}}/docker-env-cli-stdout'
+    dir: '{{.USER_WORKING_DIR}}'
     status:
       - test -f .env
     cmds:
@@ -17,7 +17,7 @@ tasks:
 
   test:docker-env-cli-stdout:
     desc: Run docker image
-    dir: '{{.USER_WORKING_DIR}}/docker-env-cli-stdout'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - docker run --env-file .env docker-env-cli-stdout "Hello, World"
 
