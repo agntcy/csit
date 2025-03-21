@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-
 name: Setup Environment
 description: setup environment with common tools/vars
 inputs:
@@ -14,6 +13,11 @@ inputs:
     description: 'Python version to install'
     required: false
     default: '3.12'
+  py-poetry-version:
+    description: 'Poetry version to install'
+    required: false
+    default: '2.1.1'
+
   go:
     description: 'Install golang'
     required: false
@@ -24,7 +28,7 @@ inputs:
     default: '1.23.1'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Setup Taskfile
       shell: bash
@@ -32,9 +36,10 @@ runs:
 
     - name: Setup Python
       if: ${{ inputs.python == 'true' }}
-      uses:  ./.github/actions/setup-python
+      uses: ./.github/actions/setup-python
       with:
         py-version: ${{ inputs.python-version }}
+        py-poetry-version: ${{ inputs.py-poetry-version }}
 
     - name: Setup Golang
       if: ${{ inputs.go == 'true' }}
