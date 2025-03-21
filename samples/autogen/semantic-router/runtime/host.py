@@ -4,12 +4,12 @@
 import asyncio
 import logging
 
-from autogen_core.application import WorkerAgentRuntimeHost
-from autogen_core.application.logging import TRACE_LOGGER_NAME
+from autogen_core import TRACE_LOGGER_NAME
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 
 
 async def run_host():
-    host = WorkerAgentRuntimeHost(address="0.0.0.0:50051")
+    host = GrpcWorkerAgentRuntimeHost(address="0.0.0.0:50051")
     host.start()  # Start a host service in the background.
     await host.stop_when_signal()
 

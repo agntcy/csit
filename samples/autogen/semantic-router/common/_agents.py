@@ -1,28 +1,31 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
+import json
 import logging
 import os
-import json
 
+from autogen_core import (
+    TRACE_LOGGER_NAME,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    message_handler,
+)
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from common._semantic_router_components import (
     TerminationMessage,
     UserProxyMessage,
     WorkerAgentMessage,
 )
-
-from autogen_core.application.logging import TRACE_LOGGER_NAME
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 from openai import AzureOpenAI
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.workers")
 
 
-def worker_agent_runtime() -> WorkerAgentRuntime:
-    return WorkerAgentRuntime(
+def worker_agent_runtime() -> GrpcWorkerAgentRuntime:
+    return GrpcWorkerAgentRuntime(
         host_address=os.getenv("RUNTIME_ADDRESS", "localhost:50051"),
         extra_grpc_config=[
             (

@@ -8,17 +8,15 @@ to dynamically route user messages to the most appropriate agent for a conversat
 
 import asyncio
 
+from autogen_core import DefaultSubscription, try_get_known_serializers_for_type
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from common._agents import WorkerAgent, worker_agent_runtime
 from common._semantic_router_components import TerminationMessage, WorkerAgentMessage
 
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import try_get_known_serializers_for_type
-from autogen_core.components import DefaultSubscription
-
 
 async def run_workers():
-    agent_runtime: WorkerAgentRuntime = worker_agent_runtime()
-    agent_runtime.start()
+    agent_runtime: GrpcWorkerAgentRuntime = worker_agent_runtime()
+    await agent_runtime.start()
 
     serializer_termination = try_get_known_serializers_for_type(TerminationMessage)
     serializer_worker_agent_message = try_get_known_serializers_for_type(

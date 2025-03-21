@@ -4,21 +4,22 @@
 import asyncio
 import logging
 
+from autogen_core import (
+    TRACE_LOGGER_NAME,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    default_subscription,
+    message_handler,
+    try_get_known_serializers_for_type,
+)
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
+from common._agents import worker_agent_runtime
 from common._semantic_router_components import (
     AgentRegistryBase,
     IntentClassifierBase,
     TerminationMessage,
     UserProxyMessage,
-)
-from common._agents import worker_agent_runtime
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.application.logging import TRACE_LOGGER_NAME
-from autogen_core.base import MessageContext, try_get_known_serializers_for_type
-from autogen_core.components import (
-    DefaultTopicId,
-    RoutedAgent,
-    default_subscription,
-    message_handler,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -111,8 +112,8 @@ class SemanticRouterAgent(RoutedAgent):
 
 
 async def run_workers():
-    agent_runtime: WorkerAgentRuntime = worker_agent_runtime()
-    agent_runtime.start()
+    agent_runtime: GrpcWorkerAgentRuntime = worker_agent_runtime()
+    await agent_runtime.start()
 
     serializer = try_get_known_serializers_for_type(TerminationMessage)
     agent_runtime.add_message_serializer(serializer)

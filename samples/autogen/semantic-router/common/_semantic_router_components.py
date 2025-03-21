@@ -35,6 +35,7 @@ class TextMessage(BaseMessage):
 @dataclass
 class UserProxyMessage(TextMessage):
     """A message that is sent from the user to the system, and needs to be routed to the appropriate agent."""
+
     intent: str
 
     pass
@@ -53,6 +54,7 @@ class TerminationMessage(UserProxyMessage):
 @dataclass
 class WorkerAgentMessage(BaseMessage):
     """A message that is sent from a worker agent to the user."""
+
     agent_type: str
     agent_id: str
     agent_instance: str

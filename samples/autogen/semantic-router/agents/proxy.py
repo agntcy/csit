@@ -1,31 +1,31 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 import asyncio
-from typing import Mapping
+import logging
 from dataclasses import asdict
+from typing import Mapping
 
-from common._semantic_router_components import (
-    FinalResult,
-    UserProxyMessage,
-    TerminationMessage,
-    WorkerAgentMessage,
-)
-from common._agents import worker_agent_runtime
-
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.application.logging import TRACE_LOGGER_NAME
-from autogen_core.base import MessageContext, try_get_known_serializers_for_type
-from autogen_core.components import (
+import uvicorn
+from autogen_core import (
+    TRACE_LOGGER_NAME,
     DefaultSubscription,
     DefaultTopicId,
+    MessageContext,
     RoutedAgent,
     message_handler,
+    try_get_known_serializers_for_type,
+)
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
+from common._agents import worker_agent_runtime
+from common._semantic_router_components import (
+    FinalResult,
+    TerminationMessage,
+    UserProxyMessage,
+    WorkerAgentMessage,
 )
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import uvicorn
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.proxy")
@@ -120,7 +120,9 @@ class Proxy:
 
             # Wait for the response
             try:
-                response: WorkerAgentMessage | TerminationMessage = await asyncio.wait_for(
+                response: (
+                    WorkerAgentMessage | TerminationMessage
+                ) = await asyncio.wait_for(
                     self.contexts[data.context],
                     timeout=30,
                 )
@@ -134,8 +136,8 @@ class Proxy:
             return asdict(response)
 
     async def run_workers(self):
-        self.agent_runtime: WorkerAgentRuntime = worker_agent_runtime()
-        self.agent_runtime.start()
+        self.agent_runtime: GrpcWorkerAgentRuntime = worker_agent_runtime()
+        await self.agent_runtime.start()
 
         serializer_proxy_message = try_get_known_serializers_for_type(UserProxyMessage)
         serializer_final_result = try_get_known_serializers_for_type(FinalResult)
