@@ -9,12 +9,6 @@ authors = ["Your Name <you@example.com>"]
 python = ">=3.11,<3.13"
 crewai = "^0.83.0"
 
-[[tool.poetry.source]]
-name = "devhubcloud"
-url = "https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/espresso-cloud-pypi/simple"
-priority = "supplemental"
-
-
 [tool.poetry.scripts]
 simple = "simple.main:run"
 run_crew = "simple.main:run"
