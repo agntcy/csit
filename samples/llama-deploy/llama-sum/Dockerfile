@@ -1,23 +1,22 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-FROM python:3.12-slim
+FROM python:3.13.2-bookworm
 
 WORKDIR /app
-
-ENV POETRY_VERSION=1.8.3
 
 # Install libraries for necessary python package builds
 RUN apt-get update && apt-get install build-essential python3-dev libpq-dev -y && \
     pip install --upgrade pip && \
-    pip install --upgrade poetry==${POETRY_VERSION}
+    pip install poetry
 
-# Install ssh wget 
+# Install ssh wget
 RUN apt-get -yq update && apt-get -yqq install ssh wget
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install
+RUN poetry lock --regenerate
+RUN poetry install --no-root
 
 # Copy source code
 COPY ./llama_sum ./llama_sum

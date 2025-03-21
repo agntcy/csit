@@ -1,14 +1,15 @@
-[tool.poetry]
+[project]
 name = "llama-sum"
 version = "0.1.0"
 description = ""
-authors = ["Michele Papalini <micpapal@cisco.com>"]
+authors = [{ name = "Michele Papalini", email = "micpapal@cisco.com" }]
+requires-python = "<4.0,>=3.11"
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-llama-deploy = {version = "^0.2.1"}
-
+dependencies = [
+    "llama-deploy (==0.3.6)",          # FIXME: Latest working version, needs investigation
+    "llama-index (>=0.12.25,<0.13.0)",
+]
 
 [build-system]
 requires = ["poetry-core"]
