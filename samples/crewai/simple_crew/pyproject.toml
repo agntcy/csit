@@ -1,13 +1,10 @@
-[tool.poetry]
+[project]
 name = "simple_crew"
 version = "0.1.18"
 description = "simple using crewAI"
-authors = ["Your Name <you@example.com>"]
+requires-python = "<3.13,>=3.10"
+dependencies = ["crewai (>=0.108.0,<0.109.0)"]
 
-
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-crewai = "^0.83.0"
 
 [tool.poetry.scripts]
 simple = "simple.main:run"
