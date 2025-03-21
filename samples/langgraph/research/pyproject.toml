@@ -1,17 +1,17 @@
-[tool.poetry]
+[project]
 name = "research"
 version = "0.1.0"
 description = ""
-authors = ["Zsolt Kacsándi <zkacsand@cisco.com>"]
+authors = [{ name = "Zsolt Kacsándi", email = "zkacsand@cisco.com" }]
+requires-python = "<4.0,>=3.9"
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-langchain = "^0.3.12"
-langchain-ollama = "^0.2.1"
-langgraph = "^0.2.59"
-langchain-openai = "^0.2.12"
-
+dependencies = [
+    "langchain (>=0.3.21,<0.4.0)",
+    "langchain-ollama (>=0.2.3,<0.3.0)",
+    "langgraph (>=0.3.18,<0.4.0)",
+    "langchain-openai (>=0.3.9,<0.4.0)",
+]
 
 [build-system]
 requires = ["poetry-core"]
