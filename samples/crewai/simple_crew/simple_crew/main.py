@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-import json
 import sys
 import warnings
 
