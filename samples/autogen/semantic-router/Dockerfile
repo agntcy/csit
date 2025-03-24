@@ -12,7 +12,6 @@ COPY pyproject.toml poetry.lock ./
 RUN touch README.md
 
 RUN poetry config virtualenvs.in-project true
-RUN poetry lock --regenerate
 RUN poetry sync --no-root
 
 # # The runtime image, used to just run the code provided its virtual environment

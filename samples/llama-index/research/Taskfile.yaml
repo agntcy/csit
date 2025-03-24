@@ -12,7 +12,6 @@ tasks:
     desc: Install dependencies
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry lock --regenerate
       - poetry install --no-root
 
   run:test:

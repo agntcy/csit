@@ -15,7 +15,6 @@ RUN apt-get -yq update && apt-get -yqq install ssh wget
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry lock --regenerate
 RUN poetry install --no-root
 
 # Copy source code

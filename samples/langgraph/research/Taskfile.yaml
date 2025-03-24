@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: "3"
+version: '3'
 
 silent: true
 
@@ -12,7 +12,6 @@ tasks:
     desc: Install dependencies
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry lock --regenerate
       - poetry install --no-root
 
   run:test:

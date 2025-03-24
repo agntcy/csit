@@ -15,6 +15,5 @@ tasks:
       - compose
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - poetry lock --regenerate
       - poetry sync --no-root
       - poetry run pytest
