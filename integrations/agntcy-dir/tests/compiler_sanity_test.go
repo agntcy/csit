@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -36,7 +37,7 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 		mountDest = "/testdata"
 		mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 
-		modelConfigFilePath = filepath.Join(mountDest, "build.config.yaml")
+		modelConfigFilePath = filepath.Join(mountDest, "build.config.yml")
 		expectedAgentModelFile = filepath.Join(testDataPath, "agent.json")
 	})
 
@@ -50,6 +51,10 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 			}
 
 			runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
+
+			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl command: %v %s\n", runner.GetCommandArgs(), strings.Join(dirctlArgs, " "))
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
 			outputBuffer, err := runner.Run(dirctlArgs...)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
 
@@ -77,8 +82,8 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 			// Filter "created_at" field
 			filter := cmp.FilterPath(func(p cmp.Path) bool {
 				// Ensure the path is deep enough
-				if len(p) >= 3 {
-					if mapStep, ok := p[len(p)-3].(cmp.MapIndex); ok {
+				if len(p) >= 2 {
+					if mapStep, ok := p[len(p)-2].(cmp.MapIndex); ok {
 						if key, ok := mapStep.Key().Interface().(string); ok && key == "created_at" || key == "extensions" {
 							return true // Ignore these paths
 						}
@@ -87,7 +92,7 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 				return false // Include all other paths
 			}, cmp.Ignore())
 
-			gomega.Expect(expected).Should(gomega.BeComparableTo(compiled, filter))
+			gomega.Expect(expected).To(gomega.BeComparableTo(compiled, filter))
 			gomega.Expect(expected["extensions"]).Should(gomega.ConsistOf(compiled["extensions"]))
 		})
 	})

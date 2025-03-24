@@ -60,3 +60,7 @@ func (r *DockerRunner) Run(args ...string) (bytes.Buffer, error) {
 
 	return outputBuffer, cmd.Run()
 }
+
+func (r *DockerRunner) GetCommandArgs() []string {
+	return r.baseArgs
+}
