@@ -4,7 +4,7 @@
   "authors": [
     "Your Name \u003cyou@example.com\u003e"
   ],
-  "created_at": "2025-03-20T12:19:05Z",
+  "created_at": "2025-03-25T12:33:14Z",
   "skills": [
     {
       "category_name": "Natural Language Understanding"
@@ -38,60 +38,10 @@
           "packages": [
             {
               "name": "crewai",
-              "version": "0.83.0"
-            },
-            {
-              "name": "langchain",
-              "version": "0.3.20"
-            },
-            {
-              "name": "langchain-openai",
-              "version": "0.2.14"
+              "version": "0.108.0"
             }
           ]
         }
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/framework/llm",
-      "version": "v1.0.0",
-      "data": {
-        "base_url": "http://localhost:11434",
-        "model": "ollama/llama3.1"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/framework/orchestration",
-      "version": "v1.0.0",
-      "data": {
-        "type": "sequential"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/framework/evaluation",
-      "version": "v1.0.0",
-      "data": {
-        "provider": "local",
-        "type": "evaluator agent"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/runtime/language",
-      "version": "v0.0.0",
-      "data": {
-        "type": "python",
-        "version": "\u003e=3.11,\u003c3.13"
-      }
-    },
-    {
-      "name": "oasf.agntcy.org/features/runtime/io-mapper",
-      "version": "v1.0.0",
-      "data": {
-        "input_name": "topic",
-        "input_type": "string",
-        "output_description": "A fully fledge reports with the mains topics, each with a full section of information. Formatted as markdown without '```'",
-        "output_name": "report",
-        "output_type": "file"
       }
     },
     {
@@ -117,10 +67,52 @@
       }
     },
     {
+      "name": "oasf.agntcy.org/features/framework/orchestration",
+      "version": "v1.0.0",
+      "data": {
+        "type": "sequential"
+      }
+    },
+    {
       "name": "oasf.agntcy.org/features/framework/memory",
       "version": "v1.0.0",
       "data": {
         "enabled": false
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/language",
+      "version": "v0.0.0",
+      "data": {
+        "type": "python",
+        "version": "\u003c3.13,\u003e=3.10"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/runtime/io-mapper",
+      "version": "v1.0.0",
+      "data": {
+        "input_name": "topic",
+        "input_type": "string",
+        "output_description": "A fully fledge reports with the mains topics, each with a full section of information. Formatted as markdown without '```'",
+        "output_name": "report",
+        "output_type": "file"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/llm",
+      "version": "v1.0.0",
+      "data": {
+        "base_url": "http://localhost:11434",
+        "model": "ollama/llama3.1"
+      }
+    },
+    {
+      "name": "oasf.agntcy.org/features/framework/evaluation",
+      "version": "v1.0.0",
+      "data": {
+        "provider": "local",
+        "type": "evaluator agent"
       }
     }
   ]
