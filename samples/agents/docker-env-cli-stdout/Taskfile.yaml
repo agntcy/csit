@@ -25,7 +25,7 @@ tasks:
     desc: Build images
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - docker buildx bake
+      - docker buildx bake --load
 
   run:test:
     desc: Run test
