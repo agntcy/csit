@@ -79,9 +79,7 @@ it before running the tests.
 It requires the following tools to be installed on local machine:
   - [Taskfile](https://taskfile.dev/installation/)
   - [Go](https://go.dev/doc/install)
-  - [Docker on Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
-  - [Docker on Linux](https://docs.docker.com/desktop/setup/install/linux/)
-  - [Docker on Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+  - [Docker](https://docs.docker.com/get-started/get-docker/)
   - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
   - [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
   - [Helm](https://helm.sh/docs/intro/install/)
@@ -237,9 +235,7 @@ It requires the followings on local machine:
   - [Taskfile](https://taskfile.dev/installation/)
   - [Python 3.12.X](https://www.python.org/downloads/)
   - [Poetry](https://python-poetry.org/docs/#installation)
-  - [Docker on Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
-  - [Docker on Linux](https://docs.docker.com/desktop/setup/install/linux/)
-  - [Docker on Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+  - [Docker](https://docs.docker.com/get-started/get-docker/)
   - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
   - [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
 
