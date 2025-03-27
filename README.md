@@ -21,20 +21,20 @@ The directory structure of the CSIT:
 ```
 csit
 └── integrations
-|   ├── Taskfile.yaml                   # Task definitions
-|   ├── docs                            # Documentations
-|   ├── environment
-|   │   └── kind                        # kind related manifests
-|   ├── agntcy-dir                      # Agent directory related tests, components, etc...
-|   │   ├── components                  # the compontents charts
-|   │   ├── examples                    # the examples that can be used for testing
-|   │   ├── manifests                   # requred manifests for tests
-|   │   └── tests                       # tests
-|   └── agntcy-agp                      # Agent Gateway related tests, components, etc...
-|       └── agentic-apps                # Agentic apps for gateway tests
-|           ├── autogen_agent
-|           └── langchain_agent
-|
+│   ├── Taskfile.yaml                   # Task definitions
+│   ├── docs                            # Documentations
+│   ├── environment
+│   │   └── kind                        # kind related manifests
+│   ├── agntcy-dir                      # Agent directory related tests, components, etc...
+│   │   ├── components                  # the compontents charts
+│   │   ├── examples                    # the examples that can be used for testing
+│   │   ├── manifests                   # requred manifests for tests
+│   │   └── tests                       # tests
+│   └── agntcy-agp                      # Agent Gateway related tests, components, etc...
+│       └── agentic-apps                # Agentic apps for gateway tests
+│           ├── autogen_agent
+│           └── langchain_agent
+│
 └── samples
     ├── app1                            # Agentic application example
     │   ├── model.json                  # Required model file
