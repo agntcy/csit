@@ -6,8 +6,10 @@
   - [Directory structure](#directory-structure)
   - [Running tests](#running-tests)
   - [Running tests using GitHub actions](#running-tests-using-github-actions)
-  - [Copyright Notice](#copyright-notice)
+  - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
 - [Samples](#samples)
+  - [Running tests](#running-tests-1)
+  - [Copyright Notice](#copyright-notice)
 
 ## Architecture
 
@@ -73,8 +75,14 @@ integrations
 
 We can launch tests using taskfile locally or in GitHub actions.
 Running locally we need to create a test cluster and deploy the test env on
-it before running the tests. It requires Kind and Helm installed on local machine.
-Instructions for installing [helm](https://helm.sh/docs/intro/install/) and [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+it before running the tests.
+It requires the following tools to be installed on local machine:
+  - [Taskfile](https://taskfile.dev/installation/)
+  - [Go](https://go.dev/doc/install)
+  - [Docker](https://docs.docker.com/desktop/setup/install/windows-install/)
+  - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
+  - [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
+  - [Helm](https://helm.sh/docs/intro/install/)
 
 ```bash
 cd integrations
@@ -219,6 +227,22 @@ The samples directory in the CSIT repository serves two primary purposes related
 2. Base for Agent Directory Integration Test:
 The agentic applications in the samples directory also serve as the foundation for the agent model build and push test. This specific test checks for the presence of two required files: model.json and build.config.yaml. If these files are present within an agentic application, the integration agent model build and push testa are triggered. This test is crucial for validating the construction and verification of the agent model, ensuring that all necessary components are correctly configured and operational.
 
+## Running tests
+
+We can launch tests using taskfile locally or in GitHub actions.
+Running locally we need some tools to build the sample applications and run the tests.
+It requires the followings on local machine:
+  - [Taskfile](https://taskfile.dev/installation/)
+  - [Python 3.12.X](https://www.python.org/downloads/)
+  - [Poetry](https://python-poetry.org/docs/#installation)
+  - [Docker](https://docs.docker.com/desktop/setup/install/windows-install/)
+  - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
+  - [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
+
+```bash
+cd samples/[app-name]
+task run:test
+```
 
 ## Copyright Notice
 
