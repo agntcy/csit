@@ -7,7 +7,9 @@ regcred:
 dir:
   apiserver:
     config:
-      server_port: 8888
-      health_port: 8889
+      listen_address: "0.0.0.0:8888"
+      healthcheck_address: "0.0.0.0:8889"
+
       provider: "oci"
-      oci_registry_address: "agntcy-dir-zot:5000"
+      oci:
+        registry_address: "agntcy-dir-zot:5000"

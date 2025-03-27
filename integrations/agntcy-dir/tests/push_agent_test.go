@@ -42,7 +42,6 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 
 			dirctlArgs := []string{
 				"push",
-				"--from-file",
 				agentModelFile,
 			}
 
@@ -67,7 +66,6 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 
 			dirctlArgs := []string{
 				"pull",
-				"--digest",
 				digest,
 			}
 
