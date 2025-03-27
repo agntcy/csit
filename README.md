@@ -19,20 +19,20 @@ The directory structure of the CSIT:
 ```
 csit
 └── integrations
-|   ├── Taskfile.yaml                   # Task definitions
-|   ├── docs                            # Documentations
-|   ├── environment
-|   │   └── kind                        # kind related manifests
-|   ├── agntcy-dir                      # Agent directory related tests, components, etc...
-|   │   ├── components                  # the compontents charts
-|   │   ├── examples                    # the examples that can be used for testing
-|   │   ├── manifests                   # requred manifests for tests
-|   │   └── tests                       # tests
-|   └── agntcy-agp                      # Agent Gateway related tests, components, etc...
-|       └── agentic-apps                # Agentic apps for gateway tests
-|           ├── autogen_agent
-|           └── langchain_agent
-|
+│   ├── Taskfile.yaml                   # Task definitions
+│   ├── docs                            # Documentations
+│   ├── environment
+│   │   └── kind                        # kind related manifests
+│   ├── agntcy-dir                      # Agent directory related tests, components, etc...
+│   │   ├── components                  # the compontents charts
+│   │   ├── examples                    # the examples that can be used for testing
+│   │   ├── manifests                   # requred manifests for tests
+│   │   └── tests                       # tests
+│   └── agntcy-agp                      # Agent Gateway related tests, components, etc...
+│       └── agentic-apps                # Agentic apps for gateway tests
+│           ├── autogen_agent
+│           └── langchain_agent
+│
 └── samples
     ├── app1                            # Agentic application example
     │   ├── model.json                  # Required model file
@@ -73,8 +73,14 @@ integrations
 
 We can launch tests using taskfile locally or in GitHub actions.
 Running locally we need to create a test cluster and deploy the test env on
-it before running the tests. It requires Kind and Helm installed on local machine.
-Instructions for installing [helm](https://helm.sh/docs/intro/install/) and [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+it before running the tests. It requires Kind, Helm, Taskfile and Docker installed on local machine.
+Instructions for installing
+- [helm](https://helm.sh/docs/intro/install/)
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+- [task](https://taskfile.dev/installation/)
+- [docker on Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+- [docker on Linux](https://docs.docker.com/desktop/setup/install/linux/)
+- [docker on Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
 
 ```bash
 cd integrations
