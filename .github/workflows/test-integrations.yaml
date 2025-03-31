@@ -92,7 +92,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'true'
-          token: ${{ secrets.AGNTCY_BUILD_BOT_GH_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
