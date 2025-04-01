@@ -135,6 +135,14 @@ tasks:
       - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "agent push and pull"
 
+  test:directory:list:
+    desc: Directory agent list test
+    cmds:
+      - task: k8s:port-forward:setup:directory
+      - defer: { task: k8s:port-forward:teardown:directory }
+      - defer: { task: manifests:cleanup }
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./agntcy-dir/tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "agents push for listing"
+
   test:autogen-agent:run:
     internal: true
     cmds:
