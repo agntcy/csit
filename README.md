@@ -9,7 +9,8 @@
   - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
 - [Samples](#samples)
   - [Running tests](#running-tests-1)
-  - [Copyright Notice](#copyright-notice)
+- [Updating the `agntcy/dir` testdata](#updating-the-agntcydir-testdata)
+- [Copyright Notice](#copyright-notice)
 
 ## Architecture
 
@@ -242,6 +243,19 @@ It requires the followings on local machine:
 ```bash
 cd samples/[app-name]
 task run:test
+```
+
+## Updating the agntcy/dir testdata
+
+If we want to update the `integrations/agntcy-dir/examples/dir/e2e/testdata` directory we will need to add `agntcy/dir` as a remote and create a patch for it by diffing with the `agntcy/dir` repo
+
+```bash
+# add agntcy/dir as remote
+git remote add -f dir https://github.com/agntcy/dir.git
+# fetch dir
+git fetch dir
+# example of updating the integrations/agntcy-dir/examples/dir/e2e/testdata directory to the agntcy/dir main
+git diff --binary HEAD:integrations/agntcy-dir/examples/dir/e2e/testdata dir/main:e2e/testdata | git apply --directory=integrations/agntcy-dir/examples/dir/e2e/testdata
 ```
 
 ## Copyright Notice
