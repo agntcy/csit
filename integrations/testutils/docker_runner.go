@@ -4,63 +4,86 @@
 package testutils
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
-	"runtime"
+	"strings"
 )
 
-type DockerRunner struct {
-	runCmd   string
-	baseArgs []string
+type dockerRunner struct {
+	dockerCmd   string
+	dockerArgs  []string
+	dockerImage string
+	envVars     map[string]string
 }
 
-func NewDockerRunner(dockerImage, mountString string, envVars map[string]string) *DockerRunner {
-	baseArgs := []string{
-		"run",
+func (r *dockerRunner) Run(command string, args ...string) (string, error) {
+	r.dockerArgs = append(r.dockerArgs, "--entrypoint", command)
+
+	combinedArgs := make([]string, 0, len(r.dockerArgs)+1+len(args))
+	combinedArgs = append(combinedArgs, r.dockerArgs...)
+
+	for key, value := range r.envVars {
+		combinedArgs = append(combinedArgs, "-e", key+"="+value)
 	}
 
-	if os.Getenv("REMOVE_CONTAINERS") == "true" {
-		baseArgs = append(baseArgs,
-			"--rm",
-		)
-	}
+	combinedArgs = append(combinedArgs, r.dockerImage)
+	combinedArgs = append(combinedArgs, args...)
 
-	if mountString != "" {
-		baseArgs = append(baseArgs,
-			"-v",
-			mountString,
-		)
-	}
+	cmd := exec.Command(r.dockerCmd, combinedArgs...)
 
-	if runtime.GOOS == "linux" {
-		baseArgs = append(baseArgs,
-			"--net=host",
-		)
-	}
+	output, err := cmd.Output()
 
-	for k, v := range envVars {
-		baseArgs = append(baseArgs, "-e", fmt.Sprintf("%s=%s", k, v))
-	}
-
-	baseArgs = append(baseArgs, dockerImage)
-
-	return &DockerRunner{runCmd: "docker",
-		baseArgs: baseArgs,
-	}
+	return string(output), err
 }
 
-// example usage: runner.Run("push", "--from-file", "file.json")
-func (r *DockerRunner) Run(args ...string) (bytes.Buffer, error) {
-	var outputBuffer bytes.Buffer
-
-	cmd := exec.Command(r.runCmd, append(r.baseArgs, args...)...)
-	cmd.Stdout = &outputBuffer
-
-	return outputBuffer, cmd.Run()
+type withDockerCmdOption struct {
+	dockerCmd string
 }
 
-func (r *DockerRunner) GetCommandArgs() []string {
-	return r.baseArgs
+func (o *withDockerCmdOption) applyOption(runner Runner) Runner {
+	if dockerRunner, ok := runner.(*dockerRunner); ok {
+		dockerRunner.dockerCmd = o.dockerCmd
+	}
+
+	return runner
+}
+
+func WithDockerCmd(dockerCmd string) RunnerOption {
+	return &withDockerCmdOption{dockerCmd: dockerCmd}
+}
+
+type withDockerArgsOption struct {
+	dockerArgs []string
+}
+
+func (o *withDockerArgsOption) applyOption(runner Runner) Runner {
+	if dockerRunner, ok := runner.(*dockerRunner); ok {
+		dockerRunner.dockerArgs = o.dockerArgs
+	}
+
+	return runner
+}
+
+func WithDockerArgs(dockerArgs []string) RunnerOption {
+	return &withDockerArgsOption{dockerArgs: dockerArgs}
+}
+
+type withDockerImageOption struct {
+	dockerImage string
+}
+
+func (o *withDockerImageOption) applyOption(runner Runner) Runner {
+	if dockerRunner, ok := runner.(*dockerRunner); ok {
+		dockerRunner.dockerImage = o.dockerImage
+	}
+
+	return runner
+}
+
+func WithDockerImage(dockerImage string) RunnerOption {
+	return &withDockerImageOption{dockerImage: dockerImage}
+}
+
+func (r *dockerRunner) GetDockerCommandAndArgs() string {
+	return fmt.Sprintf("%s %s %s", r.dockerCmd, strings.Join(r.dockerArgs, " "), r.dockerImage)
 }
