@@ -25,6 +25,21 @@ vars:
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
 
   RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
+
+  ARCH:
+    sh: |
+      if [ "$ARCH" == "" ]; then
+        uname -m
+      else
+        printf $ARCH
+      fi
+  OS:
+    sh: |
+      if [ "$OS" == "" ]; then
+        uname -s
+      else
+        printf $OS
+      fi
   DIRCTL_BIN_PATH:
     sh: |
       if [ "$DIRCTL_BIN_PATH" == "" ]; then
@@ -32,6 +47,7 @@ vars:
       else
         printf $DIRCTL_BIN_PATH
       fi
+  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.0" }}'
 
 tasks:
   kind:create:
@@ -198,3 +214,27 @@ tasks:
     desc: Get version
     cmds:
       - git describe --tags --match "v*" | cut -c 2-
+
+  download:dirctl-bin:
+    desc: Get dirctl binary from GitHub
+    vars:
+      ARCH:
+        sh: |
+          printf "%s" "{{.ARCH}}" | \
+            sed -E 's/^(aarch64|aarch64_be|armv6l|armv7l|armv8b|armv8l)$$/arm64/g' | \
+            sed -E 's/^x86_64$$/amd64/g'
+      OS:
+        sh: printf "%s" "{{.OS}}" | tr '[:upper:]' '[:lower:]'
+    cmds:
+      - |
+        URL=https://github.com/agntcy/dir/releases/download/{{.DIRCTL_BIN_VERSION}}/dirctl-{{.OS}}-{{.ARCH}}
+        echo $URL
+        curl \
+          --fail \
+          --show-error \
+          --location $URL \
+          --output "{{.DIRCTL_BIN_PATH}}/dirctl" && \
+        chmod +x "{{.DIRCTL_BIN_PATH}}/dirctl"
+
+        # NOTE: The attribute may removed already, silent errors
+        xattr -d com.apple.quarantine "{{.DIRCTL_BIN_PATH}}/dirctl" &> /dev/null || true
