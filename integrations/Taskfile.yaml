@@ -12,7 +12,7 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.2" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.0" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "f33f77c" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.3" }}'
@@ -101,6 +101,53 @@ tasks:
           --wait \
           --wait-for-jobs \
           --timeout "15m"
+
+  test:env:directory:bootstrap:deploy:
+    desc: Deploy Directory network peers
+    vars:
+      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
+    cmds:
+      - |
+        openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
+        bootstrap_peerid=$(/Users/pebalogh/work/src/github.com/agntcy/dir/bin/dirctl generate --private-key-file-path=/tmp/node.privkey)
+        echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
+        helm dependency build ./agntcy-dir/components/helm
+        helm upgrade agntcy-dir \
+          ./agntcy-dir/components/helm \
+          --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+          --set regcred.create="{{ .REGCRED_CREATE }}" \
+          --set dir.apiserver.privKey="$(cat /tmp/node.privkey)" \
+          -f ./agntcy-dir/components/config/bootstrap.yaml \
+          --namespace bootstrap \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+
+  test:env:directory:peers:deploy:
+    desc: Deploy Directory network peers
+    deps:
+      - test:env:directory:bootstrap:deploy
+    vars:
+      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
+    cmds:
+      - for:
+          matrix:
+            NODE: [ "1", "2", "3" ]
+        cmd: |
+          export $(cat .env)
+          helm upgrade agntcy-dir \
+            ./agntcy-dir/components/helm \
+            --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+            --set regcred.create="{{ .REGCRED_CREATE }}" \
+            --set dir.apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
+            --namespace "peer{{ .ITEM.NODE }}" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
 
   test:env:directory:cleanup:
     desc: Remove agntcy directory test env

@@ -6,6 +6,7 @@ regcred:
 
 dir:
   apiserver:
+    log_level: DEBUG
     config:
       listen_address: "0.0.0.0:8888"
       healthcheck_address: "0.0.0.0:8889"
