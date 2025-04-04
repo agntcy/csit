@@ -21,8 +21,9 @@ vars:
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
-
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
+  REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
+
 
   RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
 
@@ -86,8 +87,6 @@ tasks:
 
   test:env:directory:deploy:
     desc: Deploy Agntcy directory test env
-    vars:
-      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - |
         helm dependency build ./agntcy-dir/components/helm
@@ -104,8 +103,6 @@ tasks:
 
   test:env:directory:bootstrap:deploy:
     desc: Deploy Directory network peers
-    vars:
-      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - |
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
@@ -129,8 +126,6 @@ tasks:
     desc: Deploy Directory network peers
     deps:
       - test:env:directory:bootstrap:deploy
-    vars:
-      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - for:
           matrix:
