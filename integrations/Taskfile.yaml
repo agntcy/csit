@@ -109,7 +109,7 @@ tasks:
     cmds:
       - |
         openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$(/Users/pebalogh/work/src/github.com/agntcy/dir/bin/dirctl generate --private-key-file-path=/tmp/node.privkey)
+        bootstrap_peerid=$(./bin/dirctl generate --private-key-file-path=/tmp/node.privkey)
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm dependency build ./agntcy-dir/components/helm
         helm upgrade agntcy-dir \
