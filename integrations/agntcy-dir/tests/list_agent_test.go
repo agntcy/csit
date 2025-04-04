@@ -6,6 +6,7 @@ package tests
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -27,6 +28,7 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 		mountDest   string
 		mountString string
 		agents      []*agent
+		runner      testutils.Runner
 	)
 
 	ginkgo.Context("agents push for listing", func() {
@@ -36,8 +38,13 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-			mountDest = "/testdata"
-			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+
+			if os.Getenv("RUNNER_TYPE") == "local" {
+				mountDest = testDataPath
+			} else {
+				mountDest = "/testdata"
+				mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+			}
 
 			agents = append(agents, &agent{modelFile: filepath.Join(mountDest, "crewai.agent.json")})
 			agents = append(agents, &agent{modelFile: filepath.Join(mountDest, "langgraph.agent.json")})
@@ -49,35 +56,65 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 					agent.modelFile,
 				}
 
-				if runtime.GOOS != "linux" {
+				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
 					dirctlArgs = append(dirctlArgs,
 						"--server-addr",
 						"host.docker.internal:8888",
 					)
 				}
 
-				runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
-				outputBuffer, err := runner.Run(dirctlArgs...)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+				var err error
 
-				agent.digest = strings.Trim(outputBuffer.String(), "\n")
+				switch os.Getenv("RUNNER_TYPE") {
+				case "local":
+					runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+				default:
+					runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
+						testutils.WithDockerCmd("docker"),
+						testutils.WithDockerImage(dockerImage),
+						testutils.WithDockerArgs([]string{"run", "-v" + mountString}),
+					)
+				}
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+				cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
+
+				if err != nil {
+					exitErr, ok := err.(*exec.ExitError)
+					if ok {
+						err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+					}
+				}
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+				agent.digest = strings.Trim(cmdOutput, "\n")
 				_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "DIGEST: %v\n", agent.digest)
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), cmdOutput)
 
 				dirctlArgs = []string{
 					"publish",
 					agent.digest,
 				}
 
-				if runtime.GOOS != "linux" {
+				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
 					dirctlArgs = append(dirctlArgs,
 						"--server-addr",
 						"host.docker.internal:8888",
 					)
 				}
 
-				runner = testutils.NewDockerRunner(dockerImage, mountString, nil)
-				outputBuffer, err = runner.Run(dirctlArgs...)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+				_, err = runner.Run("dirctl", dirctlArgs...)
+				if err != nil {
+					exitErr, ok := err.(*exec.ExitError)
+					if ok {
+						err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+					}
+				}
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
 		})
 
@@ -95,7 +132,7 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 
 				dirctlArgs = append(dirctlArgs, labels...)
 
-				if runtime.GOOS != "linux" {
+				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
 					dirctlArgs = append(dirctlArgs,
 						"--server-addr",
 						"host.docker.internal:8888",
@@ -105,16 +142,23 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
-				outputBuffer, err := runner.Run(dirctlArgs...)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+				cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
+
+				if err != nil {
+					exitErr, ok := err.(*exec.ExitError)
+					if ok {
+						err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+					}
+				}
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				if expectFound {
 					for _, agent := range agents {
-						gomega.Expect(outputBuffer.String()).To(gomega.ContainSubstring(agent.digest))
+						gomega.Expect(cmdOutput).To(gomega.ContainSubstring(agent.digest))
 					}
 				} else {
-					gomega.Expect(outputBuffer.String()).To(gomega.BeEmpty())
+					gomega.Expect(cmdOutput).To(gomega.BeEmpty())
 				}
 
 			},

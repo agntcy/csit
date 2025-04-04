@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -25,6 +26,7 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 		mountString            string
 		modelConfigFilePath    string
 		expectedAgentModelFile string
+		runner                 testutils.Runner
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -34,8 +36,13 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 
 		tempAgentPath = filepath.Join(os.TempDir(), "agent.json")
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-		mountDest = "/testdata"
-		mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+
+		if os.Getenv("RUNNER_TYPE") == "local" {
+			mountDest = testDataPath
+		} else {
+			mountDest = "/testdata"
+			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+		}
 
 		modelConfigFilePath = filepath.Join(mountDest, "build.config.yml")
 		expectedAgentModelFile = filepath.Join(testDataPath, "agent.json")
@@ -50,15 +57,35 @@ var _ = ginkgo.Describe("Agntcy compiler sanity tests", func() {
 				mountDest,
 			}
 
-			runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
+			var err error
 
-			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl command: %v %s\n", runner.GetCommandArgs(), strings.Join(dirctlArgs, " "))
+			switch os.Getenv("RUNNER_TYPE") {
+			case "local":
+				runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+			default:
+				runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
+					testutils.WithDockerCmd("docker"),
+					testutils.WithDockerArgs([]string{"run", "-v", mountString}),
+					testutils.WithDockerImage(dockerImage),
+				)
+			}
+
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			outputBuffer, err := runner.Run(dirctlArgs...)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl command: %v %s\n", runner.GetDockerCommandAndArgs(), strings.Join(dirctlArgs, " "))
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			err = os.WriteFile(tempAgentPath, outputBuffer.Bytes(), 0644)
+			cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
+			if err != nil {
+				exitErr, ok := err.(*exec.ExitError)
+				if ok {
+					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+				}
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			err = os.WriteFile(tempAgentPath, []byte(cmdOutput), 0644)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
 

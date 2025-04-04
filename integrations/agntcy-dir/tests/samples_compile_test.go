@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -26,6 +27,7 @@ var _ = ginkgo.Describe("Samples build test", func() {
 	var (
 		dockerImage string
 		samples     []string
+		runner      testutils.Runner
 	)
 
 	samplesDir, err := filepath.Abs(samplesPath)
@@ -50,8 +52,13 @@ var _ = ginkgo.Describe("Samples build test", func() {
 			)
 
 			ginkgo.BeforeEach(func() {
-				mountDest = fmt.Sprintf("/%s", filepath.Base(entry))
-				mountString = fmt.Sprintf("%s:%s", entry, mountDest)
+				if os.Getenv("RUNNER_TYPE") == "local" {
+					mountDest = entry
+				} else {
+					mountDest = fmt.Sprintf("/%s", filepath.Base(entry))
+					mountString = fmt.Sprintf("%s:%s", entry, mountDest)
+				}
+
 				modelConfigFilePath = filepath.Join(mountDest, buildConfigName)
 				expectedAgentModelFile = filepath.Join(entry, expectedModelName)
 				tempFileName := fmt.Sprintf("%s.json", strings.ReplaceAll(entry, "/", "-"))
@@ -70,15 +77,35 @@ var _ = ginkgo.Describe("Samples build test", func() {
 					modelConfigFilePath,
 					mountDest,
 				}
-				runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
 
-				_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl command: %v %s\n", runner.GetCommandArgs(), strings.Join(dirctlArgs, " "))
+				switch os.Getenv("RUNNER_TYPE") {
+				case "local":
+					runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+				default:
+					runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
+						testutils.WithDockerCmd("docker"),
+						testutils.WithDockerImage(dockerImage),
+						testutils.WithDockerArgs([]string{"run", "-v" + mountString}),
+					)
+				}
+
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				outputBuffer, err := runner.Run(dirctlArgs...)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+				_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl command: %v %s\n", runner.GetDockerCommandAndArgs(), strings.Join(dirctlArgs, " "))
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				err = os.WriteFile(tempAgentPath, outputBuffer.Bytes(), 0644)
+				cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
+
+				if err != nil {
+					exitErr, ok := err.(*exec.ExitError)
+					if ok {
+						err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+					}
+				}
+
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+				err = os.WriteFile(tempAgentPath, []byte(cmdOutput), 0644)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			})
 

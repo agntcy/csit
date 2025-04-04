@@ -6,6 +6,7 @@ package tests
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -23,6 +24,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 		mountString    string
 		agentModelFile string
 		digest         string
+		runner         testutils.Runner
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -31,8 +33,13 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
-		mountDest = "/testdata"
-		mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+
+		if os.Getenv("RUNNER_TYPE") == "local" {
+			mountDest = testDataPath
+		} else {
+			mountDest = "/testdata"
+			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
+		}
 
 		agentModelFile = filepath.Join(mountDest, "agent.json")
 	})
@@ -45,18 +52,40 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 				agentModelFile,
 			}
 
-			if runtime.GOOS != "linux" {
+			if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
 				dirctlArgs = append(dirctlArgs,
 					"--server-addr",
 					"host.docker.internal:8888",
 				)
 			}
 
-			runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
-			outputBuffer, err := runner.Run(dirctlArgs...)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+			var err error
 
-			digest = strings.Trim(outputBuffer.String(), "\n")
+			switch os.Getenv("RUNNER_TYPE") {
+			case "local":
+				runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+			default:
+				runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
+					testutils.WithDockerCmd("docker"),
+					testutils.WithDockerArgs([]string{"run", "-v", mountString}),
+					testutils.WithDockerImage(dockerImage),
+				)
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
+
+			if err != nil {
+				exitErr, ok := err.(*exec.ExitError)
+				if ok {
+					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+				}
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			digest = strings.Trim(cmdOutput, "\n")
 		})
 
 		ginkgo.It("should pull an agent", func() {
@@ -69,7 +98,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 				digest,
 			}
 
-			if runtime.GOOS != "linux" {
+			if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
 				dirctlArgs = append(dirctlArgs,
 					"--server-addr",
 					"host.docker.internal:8888",
@@ -79,9 +108,16 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			runner := testutils.NewDockerRunner(dockerImage, mountString, nil)
-			outputBuffer, err := runner.Run(dirctlArgs...)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+			_, err = runner.Run("dirctl", dirctlArgs...)
+
+			if err != nil {
+				exitErr, ok := err.(*exec.ExitError)
+				if ok {
+					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+				}
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
 	})
 })
