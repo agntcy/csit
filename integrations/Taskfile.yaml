@@ -122,14 +122,14 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"
 
-  test:env:directory:peers:deploy:
+  test:env:directory:network:deploy:
     desc: Deploy Directory network peers
     deps:
       - test:env:directory:bootstrap:deploy
     cmds:
       - for:
           matrix:
-            NODE: [ "1", "2", "3" ]
+            PEER: [ "1", "2", "3" ]
         cmd: |
           export $(cat .env)
           helm upgrade agntcy-dir \
@@ -137,7 +137,7 @@ tasks:
             --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
             --set regcred.create="{{ .REGCRED_CREATE }}" \
             --set dir.apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
-            --namespace "peer{{ .ITEM.NODE }}" \
+            --namespace "peer{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \
             --wait \
