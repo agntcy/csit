@@ -108,7 +108,7 @@ tasks:
       REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - |
-        openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
+        test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
         bootstrap_peerid=$(./bin/dirctl generate --private-key-file-path=/tmp/node.privkey)
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm dependency build ./agntcy-dir/components/helm
