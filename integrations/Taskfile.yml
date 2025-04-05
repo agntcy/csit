@@ -10,9 +10,18 @@ includes:
   gateway:
     taskfile: ./agntcy-agp/Taskfile.yml
     dir: ./agntcy-agp
+    vars:
+      KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
+      GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG }}'
+      HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
+
   directory:
     taskfile: ./agntcy-dir/Taskfile.yml
     dir: ./agntcy-dir
+    vars:
+      KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
+      DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG }}'
+      HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
 
 vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
