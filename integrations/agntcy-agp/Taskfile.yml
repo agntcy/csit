@@ -1,0 +1,108 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+vars:
+  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
+
+  ## Image config
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
+  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.2" }}'
+
+  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
+  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.3" }}'
+
+  AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
+  AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
+
+  HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
+
+  REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
+
+  RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
+
+tasks:
+  k8s:port-forward:setup:
+    internal: true
+    cmds:
+      - kubectl port-forward svc/agntcy-agp -n {{ .HELM_NAMESPACE }} 46357 &
+      - sleep 1
+
+  k8s:port-forward:teardown:
+    internal: true
+    cmds:
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || true
+
+  test-env:deploy:
+    desc: Deploy agntcy gateway test env
+    cmds:
+      - |
+        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
+        helm dependency build ./components/helm
+        helm upgrade agntcy-agp \
+          ./components/helm \
+          --set agp.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+
+  test-env:cleanup:
+    desc: Remove agent gateway test env
+    cmds:
+      - kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
+      - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
+
+  build:agentic-apps:
+    desc: Build agentic containers
+    dir: ./agentic-apps
+    cmds:
+      - IMAGE_TAG={{ .TEST_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
+
+  test:autogen-agent:run:
+    internal: true
+    cmds:
+      - |
+        hostNetFlag=""
+        hostMachine=http://host.docker.internal:46357
+        unameOut=$(uname -s)
+        case ${unameOut} in
+            Linux*)
+              hostMachine=http://127.0.0.1:46357
+              hostNetFlag="--net=host"
+            ;;
+            Darwin*)
+              hostMachine=http://host.docker.internal:46357
+            ;;
+            *)
+        esac
+        echo "gw host: ${hostMachine}"
+
+        docker run -d --rm \
+        -e AZURE_OPENAI_API_KEY={{.AZURE_OPENAI_API_KEY}} \
+        -e AZURE_OPENAI_ENDPOINT={{.AZURE_OPENAI_ENDPOINT}} \
+        ${hostNetFlag} \
+        --name autogen-agent \
+        {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .TEST_APP_TAG }} \
+        poetry run python autogen_agent.py -g ${hostMachine}
+
+  test:autogen-agent:remove:
+    internal: true
+    cmds:
+      - docker stop $(docker ps -a --no-trunc --filter name=^/autogen-agent$ -q)
+
+  test:
+    desc: All gateway test
+    cmds:
+      - task: k8s:port-forward:setup
+      - defer: { task: k8s:port-forward:teardown }
+      - task: test:autogen-agent:run
+      - defer: { task: test:autogen-agent:remove }
+      - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .TEST_APP_TAG }}
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
