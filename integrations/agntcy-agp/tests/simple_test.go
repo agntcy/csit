@@ -6,6 +6,7 @@ package tests
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -19,6 +20,7 @@ var _ = ginkgo.Describe("Agntcy gateway tests", func() {
 		dockerImage            string
 		azure_openapi_api_key  string
 		azure_openapi_endpoint string
+		runner                 testutils.Runner
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -30,7 +32,6 @@ var _ = ginkgo.Describe("Agntcy gateway tests", func() {
 	ginkgo.Context("agent gateway", func() {
 		ginkgo.It("simple agent gateway test", func() {
 			langchainAgentArgs := []string{
-				"poetry",
 				"run",
 				"python",
 				"langchain_agent.py",
@@ -50,9 +51,33 @@ var _ = ginkgo.Describe("Agntcy gateway tests", func() {
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 			}
-			runner := testutils.NewDockerRunner(dockerImage, "", envVars)
-			outputBuffer, err := runner.Run(langchainAgentArgs...)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), outputBuffer.String())
+
+			var err error
+
+			switch os.Getenv("RUNNER_TYPE") {
+			// NOTE: No binary release for agp yet
+			// case "local":
+			// 	runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, testutils.WithEnvVars(envVars))
+			default:
+				runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
+					testutils.WithDockerCmd("docker"),
+					testutils.WithDockerImage(dockerImage),
+					testutils.WithDockerArgs([]string{"run"}),
+					testutils.WithEnvVars(envVars),
+				)
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			_, err = runner.Run("poetry", langchainAgentArgs...)
+			if err != nil {
+				exitErr, ok := err.(*exec.ExitError)
+				if ok {
+					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
+				}
+			}
+
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
 	})
 })
