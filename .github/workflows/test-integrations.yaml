@@ -54,15 +54,11 @@ jobs:
           kind-version: ${{ inputs.kind-version }}
 
       - name: Create kind cluster
-        run: |
-          cd integrations
-          task kind:create
+        run: task integrations:kind:create
         shell: bash
 
       - name: Deploy agntcy agp
-        run: |
-          cd integrations
-          task test:env:gateway:deploy
+        run: task integrations:gateway:test-env:deploy
         shell: bash
 
       - name: Run simple gateway tests
@@ -72,9 +68,7 @@ jobs:
           AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
           AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-        run: |
-          cd integrations
-          task test:gateway
+        run: task integrations:gateway:test
         shell: bash
 
   run-tests-directory:
@@ -111,19 +105,13 @@ jobs:
           kind-version: ${{ inputs.kind-version }}
 
       - name: Create kind cluster
-        run: |
-          cd integrations
-          task kind:create
+        run: task integrations:kind:create
         shell: bash
 
       - name: Deploy agntcy dir
-        run: |
-          cd integrations
-          task test:env:directory:deploy
+        run: task integrations:directory:test-env:deploy
         shell: bash
 
       - name: Run agent build tests
-        run: |
-          cd integrations
-          task test:directory
+        run: task integrations:directory:test
         shell: bash
