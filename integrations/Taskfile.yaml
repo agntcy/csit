@@ -12,7 +12,7 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.2" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "f33f77c" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "cd8a5c6" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.3" }}'
@@ -103,10 +103,13 @@ tasks:
 
   test:env:directory:bootstrap:deploy:
     desc: Deploy Directory network peers
+    env:
+       DIRECTORY_LOGGER_LOG_LEVEL: ERROR
     cmds:
       - |
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$(./bin/dirctl generate --private-key-file-path=/tmp/node.privkey)
+        bootstrap_peerid=$(./bin/dirctl network info /tmp/node.privkey)
+        echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm dependency build ./agntcy-dir/components/helm
         helm upgrade agntcy-dir \
