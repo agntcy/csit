@@ -1,0 +1,31 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-reusable-components-action
+on:
+  workflow_dispatch:
+
+jobs:
+  run-tests-gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/deploy-components
+        with:
+            deploy-gateway: "true"
+            deploy-directory: "true"
+            install-kind-dependency: "true"
+            install-taskfile-dependency: "true"
+
+      - name: Check deployments
+        shell: bash
+        run: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+            chmod +x kubectl && mv ./kubectl /usr/local/bin
+            kubectl get deployments
