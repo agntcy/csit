@@ -9,22 +9,32 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      destroy-cluster:
-        description: 'Destroy test cluster'
-        required: false
-        default: true
-        type: boolean
-      python-version:
-        description: 'Python version to install'
-        required: false
-        default: '3.12'
       kind-version:
         description: 'Kind version'
         required: false
         default: '0.24.0'
 
 jobs:
+  set-kind-version:
+    runs-on: ubuntu-latest
+    outputs:
+      kind-version: ${{steps.set-kind-version.outputs.kind-version }}
+    steps:
+      - name: Set KinD version
+        id: set-kind-version
+        env:
+          KIND_VERSION: '0.24.0'
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
+              KIND_VERSION="${{ inputs.kind-version }}"
+          fi
+
+          echo "Set KinD version to: $KIND_VERSION"
+          echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
+
   run-tests-gateway:
+    needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
     permissions:
@@ -55,7 +65,7 @@ jobs:
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s
         with:
-          kind-version: ${{ inputs.kind-version }}
+          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
       - name: Create kind cluster
         run: task integrations:kind:create
@@ -76,6 +86,7 @@ jobs:
         shell: bash
 
   run-tests-directory:
+    needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
     permissions:
@@ -106,7 +117,7 @@ jobs:
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s
         with:
-          kind-version: ${{ inputs.kind-version }}
+          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
       - name: Create kind cluster
         run: task integrations:kind:create
