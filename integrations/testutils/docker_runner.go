@@ -6,6 +6,7 @@ package testutils
 import (
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -24,6 +25,12 @@ func (r *dockerRunner) Run(command string, args ...string) (string, error) {
 
 	for key, value := range r.envVars {
 		combinedArgs = append(combinedArgs, "-e", key+"="+value)
+	}
+
+	if runtime.GOOS == "linux" {
+		combinedArgs = append(combinedArgs,
+			"--net=host",
+		)
 	}
 
 	combinedArgs = append(combinedArgs, r.dockerImage)
