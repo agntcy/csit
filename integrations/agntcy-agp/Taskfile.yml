@@ -57,8 +57,9 @@ tasks:
   test-env:cleanup:
     desc: Remove agent gateway test env
     cmds:
-      - kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-      - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
+      - |
+        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
+        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
 
   build:agentic-apps:
     desc: Build agentic containers
