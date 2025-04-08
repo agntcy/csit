@@ -10,13 +10,11 @@ tasks:
   dependencies:
     internal: true
     desc: Install dependencies
-    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - poetry install --no-root
 
   run:crew:
     desc: Run crew
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - dependencies
     cmds:
@@ -24,7 +22,6 @@ tasks:
 
   run:test:
     desc: Run crew
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - dependencies
     cmds:
