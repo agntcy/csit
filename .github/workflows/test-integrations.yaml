@@ -9,11 +9,18 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      kind-version:
+      kind_version:
         description: 'Kind version'
         required: false
         default: '0.24.0'
-
+      override_directory_image_tag:
+        description: 'Directory image tag'
+        required: false
+        default: ''
+      override_gateway_image_tag:
+        description: 'Gateway image tag'
+        required: false
+        default: ''
 jobs:
   set-kind-version:
     runs-on: ubuntu-latest
@@ -27,7 +34,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
-              KIND_VERSION="${{ inputs.kind-version }}"
+              KIND_VERSION="${{ inputs.kind_version }}"
           fi
 
           echo "Set KinD version to: $KIND_VERSION"
@@ -67,13 +74,11 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Create kind cluster
-        run: task integrations:kind:create
-        shell: bash
-
-      - name: Deploy agntcy agp
-        run: task integrations:gateway:test-env:deploy
-        shell: bash
+      - name: Deploy Gateway
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-gateway: 'true'
+          gateway-image-tag: ${{ inputs.override_gateway_image_tag }}
 
       - name: Run simple gateway tests
         env:
@@ -119,14 +124,12 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Create kind cluster
-        run: task integrations:kind:create
-        shell: bash
+      - name: Deploy Directory
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-directory: 'true'
+          directory-image-tag: ${{ inputs.override_directory_image_tag}}
 
-      - name: Deploy agntcy dir
-        run: task integrations:directory:test-env:deploy
-        shell: bash
-
-      - name: Run agent build tests
+      - name: Run Directory tests
         run: task integrations:directory:test
         shell: bash

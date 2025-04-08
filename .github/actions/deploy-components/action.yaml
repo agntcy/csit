@@ -5,11 +5,19 @@
 name: Deploy agntcy components
 description: Deploy agntcy components for integration testing
 inputs:
+  checkout-repository:
+    description: 'Checkout AGNTCY repository'
+    required: false
+    default: 'false'
+  checkout-path:
+    description: 'Path to checkout AGNTCY repository'
+    required: false
+    default: ''
   deploy-gateway:
     description: 'Deploy gateway to a kind cluster'
     required: false
     default: 'false'
-  gateway-image-version:
+  gateway-image-tag:
     description: 'Set gateway container image version'
     required: false
     default: ''
@@ -17,14 +25,14 @@ inputs:
     description: 'Deploy directory to a kind cluster'
     required: false
     default: 'false'
-  directory-image-version:
+  directory-image-tag:
     description: 'Set directory container image version'
     required: false
     default: ''
   kind-cluster-name:
     description: 'Set kind cluster name where components are deployed'
     required: false
-    default: 'agntcy-components'
+    default: 'agntcy-test'
   kind-cluster-namespace:
     description: 'Set cluster namespace where components are deployed'
     required: false
@@ -50,11 +58,12 @@ runs:
   using: composite
   steps:
     - name: Checkout agntcy repository
+      if: ${{ inputs.checkout-repository != 'false' }}
       uses: actions/checkout@v4
       with:
         repository: 'agntcy/csit'
         ref: ${{ inputs.github-repository-ref }}
-        path: 'agntcy-csit'
+        path: ${{ inputs.checkout-path }}
 
     - name: Install KinD
       if: ${{ inputs.install-kind-depedency != 'false' }}
@@ -81,23 +90,18 @@ runs:
       with:
         version: 3.x
 
-    # Maybe /usr/local/bin is already in PATH by default
-    # - name: Update GITHUB_PATH
-    #   shell: bash
-    #   run: echo "/usr/local/bin" >> $GITHUB_PATH
-
     - name: Create kind cluster
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:kind:create \
+        task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
     - name: Deploy Gateway
       if: ${{ inputs.deploy-gateway != 'false' }}
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:gateway:test-env:deploy \
-          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-version }}   \
+        task -d ./${{ inputs.checkout-path }} integrations:gateway:test-env:deploy \
+          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-tag }}   \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}       \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
@@ -105,7 +109,7 @@ runs:
       if: ${{ inputs.deploy-directory != 'false' }}
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:directory:test-env:deploy \
-          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-version }} \
+        task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:deploy \
+          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}         \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
