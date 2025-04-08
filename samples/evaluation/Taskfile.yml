@@ -10,13 +10,11 @@ tasks:
   dependencies:
     internal: true
     desc: Install dependencies
-    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - poetry install --no-root
 
   run:crew:
     desc: Run application main
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - dependencies
     cmds:
@@ -24,19 +22,15 @@ tasks:
 
   run:test-deepeval:
     internal: true
-    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - poetry run python -m tests._deepeval
 
   run:test-ragas:
     internal: true
-    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - poetry run python -m tests._ragas
 
   run:test:
-    desc: Run tests
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - dependencies
     cmds:

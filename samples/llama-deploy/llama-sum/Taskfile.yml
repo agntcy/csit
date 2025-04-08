@@ -9,13 +9,13 @@ silent: true
 tasks:
   dependencies:
     desc: Install dependencies
-    dir: '{{.USER_WORKING_DIR}}'
+    internal: true
     cmds:
       - poetry install --no-root
 
   stack:up:
-    desc: Deploy all app components as indipendend processes
-    dir: '{{.USER_WORKING_DIR}}'
+    desc: Deploy all app components as independend processes
+    internal: true
     deps:
       - dependencies
     cmds:
@@ -30,13 +30,14 @@ tasks:
 
   stack:down:
     desc: kill all processes run with deploy-processes
-    dir: '{{.USER_WORKING_DIR}}'
+    internal: true
     cmds:
       - |
         for pid in $(ps aux | grep llama_sum | grep deploy | awk '{print $2}'); do kill -9 $pid; done
 
   build-image:
     desc: build app image
+    internal: true
     cmds:
       - docker build -t sum --no-cache .
 
@@ -44,6 +45,7 @@ tasks:
     desc: setup kind
     deps:
       - build-image
+    internal: true
     vars:
       PARENT_DIR:
         sh: basename ${PWD}
@@ -54,6 +56,7 @@ tasks:
 
   kind:deploy:
     desc: deploy the application in kind
+    internal: true
     deps:
       - kind:setup
     cmds:
@@ -62,12 +65,14 @@ tasks:
 
   kind:port-forward:
     desc: set port forward
+    internal: true
     cmds:
       - kubectl port-forward svc/control-plane -n llama-deploy-demo 8000:8000 &
       - sleep 1
 
   kind:delete:
     desc: remove the application from kind
+    internal: true
     cmds:
       - kubectl delete -f k8s/ || true
       - kill -9 $(ps aux | grep port-forward | grep control-plane | awk '{print $2}') || true
@@ -76,15 +81,15 @@ tasks:
 
   run:app:
     desc: Run application main
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - dependencies
+      - stack:up
     cmds:
       - poetry run python -m llama_sum.run
+      - defer: stack:down
 
   run:test:
     desc: Run tests
-    dir: '{{.USER_WORKING_DIR}}'
     deps:
       - kind:deploy
       - dependencies
@@ -92,3 +97,4 @@ tasks:
       - sleep 30
       - task: kind:port-forward
       - poetry run python -m tests.test
+      - defer: kind:delete

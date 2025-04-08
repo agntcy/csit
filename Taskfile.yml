@@ -1,0 +1,19 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+includes:
+  integrations:
+    taskfile: ./integrations/Taskfile.yml
+    dir: ./integrations
+  samples:
+    taskfile: ./samples/Taskfile.yml
+    dir: ./samples
+
+tasks:
+  default:
+    cmd: task -l

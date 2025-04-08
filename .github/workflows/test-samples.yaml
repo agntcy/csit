@@ -27,7 +27,7 @@ jobs:
         uses: ./.github/actions/detect-changes
         id: detect-changes
         with:
-          dirs: $(find ./samples \( -name 'pyproject.toml' -o -name 'Taskfile.yaml' \) | xargs -n1 dirname | sort -u)
+          dirs: $(find ./samples -mindepth 2 \( -name 'pyproject.toml' -o -name 'Taskfile.yml' \) | xargs -n1 dirname | sort -u)
 
   test:
     name: Test on samples
