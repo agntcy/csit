@@ -130,6 +130,6 @@ jobs:
           deploy-directory: 'true'
           directory-image-tag: ${{ inputs.override_directory_image_tag}}
 
-      - name: Run agent build tests
+      - name: Run Directory tests
         run: task integrations:directory:test
         shell: bash
