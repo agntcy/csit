@@ -26,12 +26,7 @@ version: 0.1.0
 # It is recommended to use it with quotes.
 appVersion: "0.1.0"
 
-# dependencies:
-#   - name: dir
-#     version: "v0.2.0"
-#     repository: oci://ghcr.io/agntcy/dir/helm-charts
-
 dependencies:
   - name: dir
-    version: 0.1.0
-    repository: file://dir
+    version: "v0.2.1"
+    repository: oci://ghcr.io/agntcy/dir/helm-charts

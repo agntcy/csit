@@ -12,7 +12,7 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.2" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "cd8a5c6" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.3" }}'
@@ -49,7 +49,7 @@ vars:
       else
         printf $DIRCTL_BIN_PATH
       fi
-  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.0" }}'
+  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.1" }}'
 
 tasks:
   kind:create:
@@ -103,12 +103,14 @@ tasks:
 
   test:env:directory:bootstrap:deploy:
     desc: Deploy Directory network peers
+    deps:
+      - download:dirctl-bin
     env:
        DIRECTORY_LOGGER_LOG_LEVEL: ERROR
     cmds:
       - |
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$(./bin/dirctl network info /tmp/node.privkey)
+        bootstrap_peerid=$(./agntcy-dir/tests/.bin/dirctl network info /tmp/node.privkey)
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm dependency build ./agntcy-dir/components/helm
@@ -132,7 +134,7 @@ tasks:
     cmds:
       - for:
           matrix:
-            PEER: [ "1", "2", "3" ]
+            PEER: [ "peer1", "peer2", "peer3" ]
         cmd: |
           export $(cat .env)
           helm upgrade agntcy-dir \
@@ -140,12 +142,22 @@ tasks:
             --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
             --set regcred.create="{{ .REGCRED_CREATE }}" \
             --set dir.apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
-            --namespace "peer{{ .ITEM.PEER }}" \
+            --namespace "{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \
             --wait \
             --wait-for-jobs \
             --timeout "15m"
+
+  test:env:directory:network:cleanup:
+    desc: Remove Directory network peers
+    cmds:
+      - for:
+          matrix:
+            PEER: [ "bootstrap", "peer1", "peer2", "peer3" ]
+        cmd: |
+          helm delete --namespace {{ .ITEM.PEER }} agntcy-dir
+
 
   test:env:directory:cleanup:
     desc: Remove agntcy directory test env
