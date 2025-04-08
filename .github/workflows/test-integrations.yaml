@@ -13,9 +13,14 @@ on:
         description: 'Kind version'
         required: false
         default: '0.24.0'
-  repository_dispatch:
-    types: [ test_image ]
-
+      override-directory-image-tag:
+        description: 'Directory image tag'
+        required: false
+        default: ''
+      override-gateway-image-tag:
+        description: 'Gateway image tag'
+        required: false
+        default: ''
 jobs:
   set-kind-version:
     runs-on: ubuntu-latest
@@ -73,7 +78,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-gateway: 'true'
-          gateway-image-tag: ${{ github.event.client_payload.gateway-image-tag }}
+          gateway-image-tag: ${{ inputs.override-gateway-image-tag }}
 
       - name: Run simple gateway tests
         env:
@@ -123,7 +128,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-directory: 'true'
-          directory-image-tag: ${{ github.event.client_payload.directory-image-tag }}
+          directory-image-tag: ${{ inputs.override-directory-image-tag}}
 
       - name: Run agent build tests
         run: task integrations:directory:test
