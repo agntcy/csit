@@ -73,6 +73,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-gateway: 'true'
+          gateway-image-tag: ${{ github.event.client_payload.gateway-image-tag }}
 
       - name: Run simple gateway tests
         env:
@@ -122,6 +123,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-directory: 'true'
+          directory-image-tag: ${{ github.event.client_payload.directory-image-tag }}
 
       - name: Run agent build tests
         run: task integrations:directory:test
