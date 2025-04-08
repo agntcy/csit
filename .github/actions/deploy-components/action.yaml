@@ -17,7 +17,7 @@ inputs:
     description: 'Deploy gateway to a kind cluster'
     required: false
     default: 'false'
-  gateway-image-version:
+  gateway-image-tag:
     description: 'Set gateway container image version'
     required: false
     default: ''
@@ -25,14 +25,14 @@ inputs:
     description: 'Deploy directory to a kind cluster'
     required: false
     default: 'false'
-  directory-image-version:
+  directory-image-tag:
     description: 'Set directory container image version'
     required: false
     default: ''
   kind-cluster-name:
     description: 'Set kind cluster name where components are deployed'
     required: false
-    default: 'agntcy-components'
+    default: 'agntcy-test'
   kind-cluster-namespace:
     description: 'Set cluster namespace where components are deployed'
     required: false
@@ -101,7 +101,7 @@ runs:
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:gateway:test-env:deploy \
-          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-version }}   \
+          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-tag }}   \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}       \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
@@ -110,6 +110,6 @@ runs:
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:deploy \
-          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-version }} \
+          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}         \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
