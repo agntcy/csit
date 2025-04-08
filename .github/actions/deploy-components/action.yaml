@@ -9,6 +9,10 @@ inputs:
     description: 'Checkout AGNTCY repository'
     required: false
     default: 'false'
+  checkout-path:
+    description: 'Path to checkout AGNTCY repository'
+    required: false
+    default: ''
   deploy-gateway:
     description: 'Deploy gateway to a kind cluster'
     required: false
@@ -59,7 +63,7 @@ runs:
       with:
         repository: 'agntcy/csit'
         ref: ${{ inputs.github-repository-ref }}
-        path: 'agntcy-csit'
+        path: ${{ inputs.checkout-path }}
 
     - name: Install KinD
       if: ${{ inputs.install-kind-depedency != 'false' }}
@@ -89,14 +93,14 @@ runs:
     - name: Create kind cluster
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:kind:create \
+        task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
     - name: Deploy Gateway
       if: ${{ inputs.deploy-gateway != 'false' }}
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:gateway:test-env:deploy \
+        task -d ./${{ inputs.checkout-path }} integrations:gateway:test-env:deploy \
           GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-version }}   \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}       \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
@@ -105,7 +109,7 @@ runs:
       if: ${{ inputs.deploy-directory != 'false' }}
       shell: bash
       run: |
-        task -d agntcy-csit/ integrations:directory:test-env:deploy \
+        task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:deploy \
           DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-version }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}         \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
