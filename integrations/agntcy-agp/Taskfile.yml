@@ -19,6 +19,7 @@ vars:
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
+  GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG | default "v0.1.2" }}'
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
@@ -42,10 +43,10 @@ tasks:
     cmds:
       - |
         kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-        helm dependency build ./components/helm
         helm upgrade agntcy-agp \
-          ./components/helm \
-          --set agp.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          oci://ghcr.io/agntcy/agp/helm/agp \
+          --version {{ .GATEWAY_CHART_TAG }} \
+          --set image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \
