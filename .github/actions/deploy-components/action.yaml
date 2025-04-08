@@ -5,6 +5,10 @@
 name: Deploy agntcy components
 description: Deploy agntcy components for integration testing
 inputs:
+  checkout-repository:
+    description: 'Checkout AGNTCY repository'
+    required: false
+    default: 'false'
   deploy-gateway:
     description: 'Deploy gateway to a kind cluster'
     required: false
@@ -50,6 +54,7 @@ runs:
   using: composite
   steps:
     - name: Checkout agntcy repository
+      if: ${{ inputs.checkout-repository != 'false' }}
       uses: actions/checkout@v4
       with:
         repository: 'agntcy/csit'
