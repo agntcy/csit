@@ -13,6 +13,8 @@ on:
         description: 'Kind version'
         required: false
         default: '0.24.0'
+  repository_dispatch:
+    types: [ test_image ]
 
 jobs:
   set-kind-version:
