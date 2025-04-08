@@ -69,13 +69,10 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Create kind cluster
-        run: task integrations:kind:create
-        shell: bash
-
-      - name: Deploy agntcy agp
-        run: task integrations:gateway:test-env:deploy
-        shell: bash
+      - name: Deploy Gateway
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-gateway: 'true'
 
       - name: Run simple gateway tests
         env:
@@ -121,13 +118,10 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Create kind cluster
-        run: task integrations:kind:create
-        shell: bash
-
-      - name: Deploy agntcy dir
-        run: task integrations:directory:test-env:deploy
-        shell: bash
+      - name: Deploy Directory
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-directory: 'true'
 
       - name: Run agent build tests
         run: task integrations:directory:test
