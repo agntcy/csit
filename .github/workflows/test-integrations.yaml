@@ -9,15 +9,15 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      kind-version:
+      kind_version:
         description: 'Kind version'
         required: false
         default: '0.24.0'
-      override-directory-image-tag:
+      override_directory_image_tag:
         description: 'Directory image tag'
         required: false
         default: ''
-      override-gateway-image-tag:
+      override_gateway_image_tag:
         description: 'Gateway image tag'
         required: false
         default: ''
@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
-              KIND_VERSION="${{ inputs.kind-version }}"
+              KIND_VERSION="${{ inputs.kind_version }}"
           fi
 
           echo "Set KinD version to: $KIND_VERSION"
@@ -78,7 +78,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-gateway: 'true'
-          gateway-image-tag: ${{ inputs.override-gateway-image-tag }}
+          gateway-image-tag: ${{ inputs.override_gateway_image_tag }}
 
       - name: Run simple gateway tests
         env:
@@ -128,7 +128,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-directory: 'true'
-          directory-image-tag: ${{ inputs.override-directory-image-tag}}
+          directory-image-tag: ${{ inputs.override_directory_image_tag}}
 
       - name: Run agent build tests
         run: task integrations:directory:test
