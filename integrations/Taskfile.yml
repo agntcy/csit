@@ -1,0 +1,35 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+includes:
+  gateway:
+    taskfile: ./agntcy-agp/Taskfile.yml
+    dir: ./agntcy-agp
+  directory:
+    taskfile: ./agntcy-dir/Taskfile.yml
+    dir: ./agntcy-dir
+
+vars:
+  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
+
+tasks:
+  kind:create:
+    desc: Create kind cluster
+    cmds:
+      - kind create cluster --name {{.KIND_CLUSTER_NAME}} --wait 60s || true
+      - kubectl cluster-info --context kind-{{.KIND_CLUSTER_NAME}}
+
+  kind:destroy:
+    desc: Destroy kind cluster
+    cmds:
+      - kind delete cluster --name {{.KIND_CLUSTER_NAME}}
+
+  version:
+    desc: Get version
+    cmds:
+      - git describe --tags --match "v*" | cut -c 2-
