@@ -1,0 +1,111 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Deploy agntcy components
+description: Deploy agntcy components for integration testing
+inputs:
+  deploy-gateway:
+    description: 'Deploy gateway to a kind cluster'
+    required: false
+    default: 'false'
+  gateway-image-version:
+    description: 'Set gateway container image version'
+    required: false
+    default: ''
+  deploy-directory:
+    description: 'Deploy directory to a kind cluster'
+    required: false
+    default: 'false'
+  directory-image-version:
+    description: 'Set directory container image version'
+    required: false
+    default: ''
+  kind-cluster-name:
+    description: 'Set kind cluster name where components are deployed'
+    required: false
+    default: 'agntcy-components'
+  kind-cluster-namespace:
+    description: 'Set cluster namespace where components are deployed'
+    required: false
+    default: 'default'
+  github-repository-ref:
+    description: 'Set a ref for git checkout'
+    required: false
+    default: 'main'
+  install-kind-dependency:
+    description: 'KinD installer'
+    required: false
+    default: 'false'
+  kind-binary-version:
+    description: 'Installed KinD version'
+    required: false
+    default: 'v0.27.0'
+  install-taskfile-dependency:
+    description: 'Taskfile installer'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout agntcy repository
+      uses: actions/checkout@v4
+      with:
+        repository: 'agntcy/csit'
+        ref: ${{ inputs.github-repository-ref }}
+        path: 'agntcy-csit'
+
+    - name: Install KinD
+      if: ${{ inputs.install-kind-depedency != 'false' }}
+      shell: bash
+      run: |
+        ARCH=""
+        if [ $(uname -m) = x86_64 ]; then
+          ARCH="amd64"
+        elif [ $(uname -m) = aarch64 ]; then
+          ARCH="arm64"
+        else
+          echo "Unkown architecture, abort!"
+          exit 1
+        fi
+
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/${{ inputs.kind-binary-version }}/kind-linux-$ARCH
+
+        chmod +x ./kind
+        sudo mv ./kind /usr/local/bin/kind
+
+    - name: Install Taskfile
+      if: ${{ inputs.install-taskfile-depedency != 'false' }}
+      uses: arduino/setup-task@v2
+      with:
+        version: 3.x
+
+    # Maybe /usr/local/bin is already in PATH by default
+    # - name: Update GITHUB_PATH
+    #   shell: bash
+    #   run: echo "/usr/local/bin" >> $GITHUB_PATH
+
+    - name: Create kind cluster
+      shell: bash
+      run: |
+        task -d agntcy-csit/ integrations:kind:create \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
+
+    - name: Deploy Gateway
+      if: ${{ inputs.deploy-gateway != 'false' }}
+      shell: bash
+      run: |
+        task -d agntcy-csit/ integrations:gateway:test-env:deploy \
+          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-version }}   \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}       \
+          HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
+
+    - name: Deploy Directory
+      if: ${{ inputs.deploy-directory != 'false' }}
+      shell: bash
+      run: |
+        task -d agntcy-csit/ integrations:directory:test-env:deploy \
+          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-version }} \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}         \
+          HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
