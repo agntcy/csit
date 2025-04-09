@@ -18,7 +18,7 @@ async def run_agent(message, address, iterations):
 
     remote_organization = "cisco"
     remote_namespace = "default"
-    remote_agent = "autogen"
+    remote_agent = "langchain"
 
     # create new gateway object
     gateway = await agp_bindings.Gateway.new(local_organization, local_namespace, local_agent)

@@ -17,7 +17,7 @@ async def run_agent(message, address, iterations):
 
     local_organization = "cisco"
     local_namespace = "default"
-    local_agent = "autogen"
+    local_agent = "langchain"
 
     remote_organization = "cisco"
     remote_namespace = "default"
