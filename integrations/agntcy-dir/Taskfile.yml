@@ -38,8 +38,8 @@ vars:
   DIRCTL_BIN_PATH:
     sh: |
       if [ "$DIRCTL_BIN_PATH" == "" ]; then
-        mkdir -p $PWD/agntcy-dir/tests/.bin
-        printf $PWD/tests/.bin
+        mkdir -p ./tests/.bin
+        printf ./tests/.bin
       else
         printf $DIRCTL_BIN_PATH
       fi
