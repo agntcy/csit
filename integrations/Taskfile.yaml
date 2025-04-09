@@ -15,7 +15,7 @@ vars:
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.4" }}'
+  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.3" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
