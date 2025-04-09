@@ -66,6 +66,7 @@ async def run_agent(message, address, iterations):
                 except Exception as e:
                     print("received error: ", e)
 
+                # handle received messages
                 result = agent.call(msg)
                 print(result)
 
@@ -87,19 +88,6 @@ async def run_agent(message, address, iterations):
                             f"{instance.capitalize()} received (from session {session_id}):",
                             f"{msg.decode()}",
                         )
-
-                        ret = f"{msg.decode()} from {instance}"
-
-                        # handle received messages
-                        result = await agent.initate_chat(msg)
-                        print(result)
-
-                        # process response
-                        result.inner_messages
-                        weather_question = result.inner_messages[-1].content[-1].content.split(":")
-                        if weather_question[0] == "WEATHER":
-                            await gateway.publish_to(weather_question[1].encode(), src)
-                            print(f"{instance.capitalize()} replies:", weather_question[1])
 
                 asyncio.create_task(background_task(session_info.id))
 
