@@ -30,4 +30,4 @@ RUN poetry install
 
 # Run your app
 COPY . /app
-CMD [ "poetry", "run", "python", "langchain_agent.py", "-m", "Budapest", "-i", "1" ]
+CMD [ "poetry", "run", "python", "langchain_agent.py", "-m", "Budapest" ]

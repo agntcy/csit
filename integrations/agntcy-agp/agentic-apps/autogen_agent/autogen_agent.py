@@ -100,7 +100,7 @@ async def main():
     parser = argparse.ArgumentParser(description="Command line client for message passing.")
     parser.add_argument("-g", "--gateway", type=str, help="Gateway address.", default="http://127.0.0.1:12345")
     parser.add_argument("-m", "--message", type=str, help="Message to send.")
-    parser.add_argument("-i", "--iterations",type=int,help="Number of messages to send, one per second.",)
+    parser.add_argument("-i", "--iterations",type=int,help="Number of messages to send, one per second.", default=1)
     args = parser.parse_args()
     await run_agent(args.message, args.gateway, args.iterations)
 
