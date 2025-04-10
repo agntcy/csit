@@ -26,3 +26,6 @@ tasks:
       - dependencies
     cmds:
       - poetry run python -m simple_crew.main test
+
+  default:
+    cmd: task -l

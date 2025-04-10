@@ -108,3 +108,6 @@ tasks:
       - defer: { task: test:autogen-agent:remove }
       - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .TEST_APP_TAG }}
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+
+  default:
+    cmd: task -l

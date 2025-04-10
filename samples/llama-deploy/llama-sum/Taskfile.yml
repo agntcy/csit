@@ -98,3 +98,6 @@ tasks:
       - task: kind:port-forward
       - poetry run python -m tests.test
       - defer: kind:delete
+
+  default:
+    cmd: task -l

@@ -19,3 +19,6 @@ tasks:
       - dependencies
     cmds:
       - poetry run python -m research.main
+
+  default:
+    cmd: task -l

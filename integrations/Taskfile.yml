@@ -42,3 +42,6 @@ tasks:
     desc: Get version
     cmds:
       - git describe --tags --match "v*" | cut -c 2-
+
+  default:
+    cmd: task -l

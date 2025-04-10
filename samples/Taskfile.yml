@@ -38,3 +38,6 @@ tasks:
     - task: langgraph:run:test
     - task: llama-deploy:run:test
     - task: llama-index:run:test
+
+  default:
+    cmd: task -l

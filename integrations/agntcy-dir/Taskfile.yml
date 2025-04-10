@@ -194,3 +194,6 @@ tasks:
 
         # NOTE: The attribute may removed already, silent errors
         xattr -d com.apple.quarantine "{{.DIRCTL_BIN_PATH}}/dirctl" &> /dev/null || true
+
+  default:
+    cmd: task -l

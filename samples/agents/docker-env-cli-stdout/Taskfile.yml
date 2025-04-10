@@ -34,3 +34,6 @@ tasks:
       - build
     cmds:
       - task: test:docker-env-cli-stdout
+
+  default:
+    cmd: task -l
