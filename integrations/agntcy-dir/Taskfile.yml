@@ -11,7 +11,6 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
 
   DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.1" }}'
