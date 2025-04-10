@@ -37,8 +37,7 @@ vars:
   DIRCTL_BIN_PATH:
     sh: |
       if [ "$DIRCTL_BIN_PATH" == "" ]; then
-        mkdir -p ./tests/.bin
-        printf ./tests/.bin
+        printf /tmp/
       else
         printf $DIRCTL_BIN_PATH
       fi
@@ -188,6 +187,7 @@ tasks:
         curl \
           --fail \
           --show-error \
+          --create-dirs \
           --location $URL \
           --output "{{.DIRCTL_BIN_PATH}}/dirctl" && \
         chmod +x "{{.DIRCTL_BIN_PATH}}/dirctl"
