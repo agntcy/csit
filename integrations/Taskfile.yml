@@ -10,6 +10,7 @@ includes:
   gateway:
     taskfile: ./agntcy-agp/Taskfile.yml
     dir: ./agntcy-agp
+    excludes: [default]
     vars:
       KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
       GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG }}'
@@ -18,6 +19,7 @@ includes:
   directory:
     taskfile: ./agntcy-dir/Taskfile.yml
     dir: ./agntcy-dir
+    excludes: [default]
     vars:
       KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
       DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG }}'
