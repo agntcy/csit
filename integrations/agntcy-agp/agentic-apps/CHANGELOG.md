@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.3...agentic-apps-v0.0.4) (2025-04-10)
+
+
+### Bug Fixes
+
+* update gw test agetic apps ([#59](https://github.com/agntcy/csit/issues/59)) ([d4decf5](https://github.com/agntcy/csit/commit/d4decf56b99cedfad9c44fa44eacb39f9967ed7f))
+
 ## [0.0.3](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.2...agentic-apps-v0.0.3) (2025-03-11)
 
 
