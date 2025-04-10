@@ -11,19 +11,12 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
   DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
 
-  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.4" }}'
-
-  AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
-  AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
-
+  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.1" }}'
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
-  REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
 
   RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
 
@@ -44,8 +37,8 @@ vars:
   DIRCTL_BIN_PATH:
     sh: |
       if [ "$DIRCTL_BIN_PATH" == "" ]; then
-        mkdir -p $PWD/agntcy-dir/tests/.bin
-        printf $PWD/tests/.bin
+        mkdir -p ./tests/.bin
+        printf ./tests/.bin
       else
         printf $DIRCTL_BIN_PATH
       fi
@@ -65,16 +58,14 @@ tasks:
 
   test-env:deploy:
     desc: Deploy Agntcy directory test env
-    vars:
-      REGCRED_CREATE: '{{ .REGCRED_CREATE | default "false" }}'
     cmds:
       - |
         kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-        helm dependency build ./components/helm
         helm upgrade agntcy-dir \
-          ./components/helm \
-          --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-          --set regcred.create="{{ .REGCRED_CREATE }}" \
+          oci://ghcr.io/agntcy/dir/helm-charts/dir \
+          --version {{ .DIRECTORY_CHART_TAG }} \
+          --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+          --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \
@@ -86,7 +77,7 @@ tasks:
     desc: Remove agntcy directory test env
     cmds:
       - kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-      - helm delete --ignore-not-found --namespace {{ .HELM_NAMESPACE }} agntcy-dir
+        helm delete --ignore-not-found --namespace {{ .HELM_NAMESPACE }} agntcy-dir
 
   test-env:bootstrap:deploy:
     desc: Deploy Directory network peers
@@ -97,16 +88,15 @@ tasks:
     cmds:
       - |
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$(./agntcy-dir/tests/.bin/dirctl network info /tmp/node.privkey)
+        bootstrap_peerid=$(./tests/.bin/dirctl network info /tmp/node.privkey)
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
-        helm dependency build ./agntcy-dir/components/helm
         helm upgrade agntcy-dir \
-          ./agntcy-dir/components/helm \
-          --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-          --set regcred.create="{{ .REGCRED_CREATE }}" \
-          --set dir.apiserver.privKey="$(cat /tmp/node.privkey)" \
-          -f ./agntcy-dir/components/config/bootstrap.yaml \
+          oci://ghcr.io/agntcy/dir/helm-charts/dir \
+          --version {{ .DIRECTORY_CHART_TAG }} \
+          --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+          --set apiserver.privKey="$(cat /tmp/node.privkey)" \
+          -f ./components/config/bootstrap.yaml \
           --namespace bootstrap \
           --create-namespace \
           --install \
@@ -125,10 +115,10 @@ tasks:
         cmd: |
           export $(cat .env)
           helm upgrade agntcy-dir \
-            ./agntcy-dir/components/helm \
-            --set dir.apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-            --set regcred.create="{{ .REGCRED_CREATE }}" \
-            --set dir.apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
+           oci://ghcr.io/agntcy/dir/helm-charts/dir \
+            --version {{ .DIRECTORY_CHART_TAG }} \
+            --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+            --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
             --namespace "{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \
@@ -136,7 +126,7 @@ tasks:
             --wait-for-jobs \
             --timeout "15m"
 
-  test:env:directory:network:cleanup:
+  test-env:network:cleanup:
     desc: Remove Directory network peers
     cmds:
       - for:

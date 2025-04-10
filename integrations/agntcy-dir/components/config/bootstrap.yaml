@@ -1,18 +1,20 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-dir:
-  apiserver:
-    config:
-      # Routing settings for the peer-to-peer network.
-      routing:
-        # Address to use for routing
-        listen_address: "/ip4/0.0.0.0/tcp/8999"
+apiserver:
+  config:
+    # Routing settings for the peer-to-peer network.
+    routing:
+      # Address to use for routing
+      listen_address: '/ip4/0.0.0.0/tcp/8999'
 
-        # Path to private key file for peer ID.
-        key_path: /etc/agntcy/dir/node.privkey
+      # Path to private key file for peer ID.
+      key_path: /etc/agntcy/dir/node.privkey
 
-        # Nodes to use for bootstrapping of the DHT.
-        # We read initial routing tables here and get introduced
-        # to the network.
-        bootstrap_peers: []
+      # Nodes to use for bootstrapping of the DHT.
+      # We read initial routing tables here and get introduced
+      # to the network.
+      bootstrap_peers: []
+
+      oci:
+        registry_address: 'agntcy-dir-zot:5000'
