@@ -11,10 +11,10 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
 
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
   DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.1" }}'
-  HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
+  DIRECTORY_NAMESPACE: '{{ .DIRECTORY_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
 
@@ -47,7 +47,7 @@ tasks:
   k8s:port-forward:setup:
     internal: true
     cmds:
-      - kubectl port-forward svc/agntcy-dir-apiserver -n {{ .HELM_NAMESPACE }} 8888 &
+      - kubectl port-forward svc/agntcy-dir-apiserver -n {{ .DIRECTORY_NAMESPACE }} 8888 &
       - sleep 1
 
   k8s:port-forward:teardown:
@@ -61,11 +61,11 @@ tasks:
       - |
         kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
         helm upgrade agntcy-dir \
-          oci://ghcr.io/agntcy/dir/helm-charts/dir \
+          oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
-          --namespace {{ .HELM_NAMESPACE }} \
+          --namespace {{ .DIRECTORY_NAMESPACE }} \
           --create-namespace \
           --install \
           --wait \
@@ -76,7 +76,7 @@ tasks:
     desc: Remove agntcy directory test env
     cmds:
       - kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-        helm delete --ignore-not-found --namespace {{ .HELM_NAMESPACE }} agntcy-dir
+        helm delete --ignore-not-found --namespace {{ .DIRECTORY_NAMESPACE }} agntcy-dir
 
   test-env:bootstrap:deploy:
     desc: Deploy Directory network peers
@@ -91,7 +91,7 @@ tasks:
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm upgrade agntcy-dir \
-          oci://ghcr.io/agntcy/dir/helm-charts/dir \
+          oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set apiserver.privKey="$(cat /tmp/node.privkey)" \
@@ -114,7 +114,7 @@ tasks:
         cmd: |
           export $(cat .env)
           helm upgrade agntcy-dir \
-           oci://ghcr.io/agntcy/dir/helm-charts/dir \
+           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
             --version {{ .DIRECTORY_CHART_TAG }} \
             --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \

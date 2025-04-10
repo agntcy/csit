@@ -14,7 +14,8 @@ vars:
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  TEST_APP_TAG: '{{ .TEST_APP_TAG | default "v0.0.4" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.4" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.4" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -44,7 +45,7 @@ tasks:
       - |
         kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
         helm upgrade agntcy-agp \
-          oci://ghcr.io/agntcy/agp/helm/agp \
+          oci://{{ .IMAGE_REPO }}/agp/helm/agp \
           --version {{ .GATEWAY_CHART_TAG }} \
           --set image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
           --namespace {{ .HELM_NAMESPACE }} \
@@ -65,7 +66,7 @@ tasks:
     desc: Build agentic containers
     dir: ./agentic-apps
     cmds:
-      - IMAGE_TAG={{ .TEST_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
+      - IMAGE_TAG={{ .LANGCHAIN_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
   test:autogen-agent:run:
     internal: true
@@ -91,7 +92,7 @@ tasks:
         -e AZURE_OPENAI_ENDPOINT={{.AZURE_OPENAI_ENDPOINT}} \
         ${hostNetFlag} \
         --name autogen-agent \
-        {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .TEST_APP_TAG }} \
+        {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .AUTOGEN_APP_TAG }} \
         poetry run python autogen_agent.py -g ${hostMachine}
 
   test:autogen-agent:remove:
@@ -106,8 +107,8 @@ tasks:
       - defer: { task: k8s:port-forward:teardown }
       - task: test:autogen-agent:run
       - defer: { task: test:autogen-agent:remove }
-      - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .TEST_APP_TAG }}
-      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} IMAGE_REPO={{.IMAGE_REPO}} TEST_APP_TAG={{.TEST_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+      - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .LANGCHAIN_APP_TAG }}
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
 
   default:
     cmd: task -l

@@ -24,7 +24,7 @@ var _ = ginkgo.Describe("Agntcy gateway tests", func() {
 	)
 
 	ginkgo.BeforeEach(func() {
-		dockerImage = fmt.Sprintf("%s/csit/test-langchain-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("TEST_APP_TAG"))
+		dockerImage = fmt.Sprintf("%s/csit/test-langchain-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LANGCHAIN_APP_TAG"))
 		azure_openapi_api_key = os.Getenv("AZURE_OPENAI_API_KEY")
 		azure_openapi_endpoint = os.Getenv("AZURE_OPENAI_ENDPOINT")
 	})
