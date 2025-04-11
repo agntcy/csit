@@ -37,7 +37,7 @@ vars:
   DIRCTL_BIN_PATH:
     sh: |
       if [ "$DIRCTL_BIN_PATH" == "" ]; then
-        printf /tmp/
+        printf /tmp
       else
         printf $DIRCTL_BIN_PATH
       fi
@@ -87,7 +87,7 @@ tasks:
     cmds:
       - |
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$(./tests/.bin/dirctl network info /tmp/node.privkey)
+        bootstrap_peerid=$({{ .DIRCTL_BIN_PATH }}/dirctl network info /tmp/node.privkey)
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
         helm upgrade agntcy-dir \
