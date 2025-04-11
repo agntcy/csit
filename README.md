@@ -88,13 +88,13 @@ It requires the following tools to be installed on local machine:
 ```bash
 cd integrations
 task kind:create
-task test:env:directory:deploy
-task test:directory
+task directory:test-env:deploy
+task directory:test
 ```
 
 We can focus on specified tests:
 ```bash
-task test:directory:compiler
+task directory:test:compiler
 ```
 
 After we finish the tests we can destroy the test cluster
@@ -182,9 +182,9 @@ Before pushing your changes, test them locally to ensure everything works as exp
 
 ```bash
 task kind:create
-task test:env:new-componet:deploy
-task test:new-component
-task test:env:new-componet:cleanup
+task new-componet:test-env:deploy
+task new-component:test
+task new-componet:test-env:cleanup
 task kind:destroy
 ```
 
