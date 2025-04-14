@@ -150,7 +150,6 @@ tasks:
       - task: k8s:port-forward:setup
       - task: k8s:peers:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
-      - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
 
   test:compiler:
@@ -170,7 +169,6 @@ tasks:
     cmds:
       - task: k8s:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
-      - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "agent push and pull"
 
   test:list:
@@ -178,7 +176,6 @@ tasks:
     cmds:
       - task: k8s:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
-      - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy agent list tests"
 
   test:networking:
@@ -186,7 +183,6 @@ tasks:
     cmds:
       - task: k8s:peers:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
-      - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy directory networking test"
 
   download:dirctl-bin:
