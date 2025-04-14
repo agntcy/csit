@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	dirAPIHost = "0.0.0.0"
+	dirAPIHost = "127.0.0.1"
 	dirAPIPort = 8888
 )
 
