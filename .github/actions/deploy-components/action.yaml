@@ -101,8 +101,8 @@ runs:
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:gateway:test-env:deploy \
-          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-tag }}   \
-          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}       \
+          GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-tag }} \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
     - name: Deploy Directory
@@ -111,5 +111,9 @@ runs:
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:deploy \
           DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
-          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}         \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
+          
+        task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:network:deploy \
+          DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
+          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
