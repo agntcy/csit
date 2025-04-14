@@ -50,6 +50,14 @@ tasks:
       - kubectl port-forward svc/agntcy-dir-apiserver -n {{ .DIRECTORY_NAMESPACE }} 8888 &
       - sleep 1
 
+  k8s:peers:port-forward:setup:
+    internal: true
+    cmds:
+      - kubectl port-forward svc/agntcy-dir-apiserver -n peer1 8890:8888 &
+      - kubectl port-forward svc/agntcy-dir-apiserver -n peer2 8891:8888 &
+      - kubectl port-forward svc/agntcy-dir-apiserver -n peer3 8892:8888 &
+      - sleep 1
+
   k8s:port-forward:teardown:
     internal: true
     cmds:
@@ -95,6 +103,7 @@ tasks:
           --version {{ .DIRECTORY_CHART_TAG }} \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set apiserver.privKey="$(cat /tmp/node.privkey)" \
+          --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
           -f ./components/config/bootstrap.yaml \
           --namespace bootstrap \
           --create-namespace \
@@ -118,6 +127,7 @@ tasks:
             --version {{ .DIRECTORY_CHART_TAG }} \
             --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
+            --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
             --namespace "{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \
@@ -138,6 +148,7 @@ tasks:
     desc: All directory test
     cmds:
       - task: k8s:port-forward:setup
+      - task: k8s:peers:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
       - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
@@ -169,6 +180,14 @@ tasks:
       - defer: { task: k8s:port-forward:teardown }
       - defer: { task: manifests:cleanup }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy agent list tests"
+
+  test:networking:
+    desc: Directory agent networking test
+    cmds:
+      - task: k8s:peers:port-forward:setup
+      - defer: { task: k8s:port-forward:teardown }
+      - defer: { task: manifests:cleanup }
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy directory networking test"
 
   download:dirctl-bin:
     desc: Get dirctl binary from GitHub
