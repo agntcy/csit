@@ -21,6 +21,8 @@ on:
         description: 'Override Gateway image tag'
         required: false
         default: ''
+  schedule:
+    - cron: "0 4 * * *"
 jobs:
   set-kind-version:
     runs-on: ubuntu-latest
