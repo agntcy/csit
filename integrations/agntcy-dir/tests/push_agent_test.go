@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -50,13 +49,8 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			dirctlArgs := []string{
 				"push",
 				agentModelFile,
-			}
-
-			if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-				dirctlArgs = append(dirctlArgs,
-					"--server-addr",
-					"host.docker.internal:8888",
-				)
+				"--server-addr",
+				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
 			}
 
 			var err error
@@ -96,13 +90,8 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			dirctlArgs := []string{
 				"pull",
 				digest,
-			}
-
-			if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-				dirctlArgs = append(dirctlArgs,
-					"--server-addr",
-					"host.docker.internal:8888",
-				)
+				"--server-addr",
+				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
 			}
 
 			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)

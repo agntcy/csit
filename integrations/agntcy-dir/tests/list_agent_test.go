@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -54,13 +53,8 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				dirctlArgs := []string{
 					"push",
 					agent.modelFile,
-				}
-
-				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-					dirctlArgs = append(dirctlArgs,
-						"--server-addr",
-						"host.docker.internal:8888",
-					)
+					"--server-addr",
+					fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
 				}
 
 				var err error
@@ -97,13 +91,8 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				dirctlArgs = []string{
 					"publish",
 					agent.digest,
-				}
-
-				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-					dirctlArgs = append(dirctlArgs,
-						"--server-addr",
-						"host.docker.internal:8888",
-					)
+					"--server-addr",
+					fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
 				}
 
 				_, err = runner.Run("dirctl", dirctlArgs...)
@@ -128,16 +117,11 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 
 				dirctlArgs := []string{
 					"list",
+					"--server-addr",
+					fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
 				}
 
 				dirctlArgs = append(dirctlArgs, labels...)
-
-				if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-					dirctlArgs = append(dirctlArgs,
-						"--server-addr",
-						"host.docker.internal:8888",
-					)
-				}
 
 				_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
