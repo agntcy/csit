@@ -18,10 +18,10 @@ type dockerRunner struct {
 }
 
 func (r *dockerRunner) Run(command string, args ...string) (string, error) {
-	r.dockerArgs = append(r.dockerArgs, "--entrypoint", command)
-
 	combinedArgs := make([]string, 0, len(r.dockerArgs)+1+len(args))
 	combinedArgs = append(combinedArgs, r.dockerArgs...)
+
+	combinedArgs = append(combinedArgs, "--entrypoint", command)
 
 	for key, value := range r.envVars {
 		combinedArgs = append(combinedArgs, "-e", key+"="+value)
