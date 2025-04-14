@@ -25,7 +25,7 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 		digest           string
 		runner           testutils.Runner
 		peerApiHostPorts = []int{8890, 8891, 8892}
-		dirApiPort       = dirApiPort // NOTE: Shadow the suite variable
+		dirAPIPort       = dirAPIPort // NOTE: Shadow the suite variable
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -47,13 +47,13 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 
 	ginkgo.Context("agent push, publish and list from another peer", func() {
 		ginkgo.It("should push an agent", func() {
-			dirApiPort = peerApiHostPorts[0]
+			dirAPIPort = peerApiHostPorts[0]
 
 			dirctlArgs := []string{
 				"push",
 				agentModelFile,
 				"--server-addr",
-				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
+				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
 
 			var err error
@@ -89,14 +89,14 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %s\n", digest)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			dirApiPort = peerApiHostPorts[0]
+			dirAPIPort = peerApiHostPorts[0]
 
 			dirctlArgs := []string{
 				"publish",
 				digest,
 				"--network",
 				"--server-addr",
-				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
+				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
 
 			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)
@@ -118,14 +118,14 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %s\n", digest)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			dirApiPort = peerApiHostPorts[1]
+			dirAPIPort = peerApiHostPorts[1]
 
 			dirctlArgs := []string{
 				"list",
 				"--digest",
 				digest,
 				"--server-addr",
-				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
+				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
 
 			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)

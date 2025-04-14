@@ -50,7 +50,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 				"push",
 				agentModelFile,
 				"--server-addr",
-				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
+				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
 
 			var err error
@@ -91,7 +91,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 				"pull",
 				digest,
 				"--server-addr",
-				fmt.Sprintf("%s:%d", dirApiHost, dirApiPort),
+				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
 
 			_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "dirctl args: %v\n", dirctlArgs)

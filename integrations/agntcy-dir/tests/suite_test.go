@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	dirApiHost = "0.0.0.0"
-	dirApiPort = 8888
+	dirAPIHost = "0.0.0.0"
+	dirAPIPort = 8888
 )
 
 func TestTests(t *testing.T) {
@@ -24,6 +24,6 @@ func TestTests(t *testing.T) {
 
 var _ = ginkgo.BeforeSuite(func() {
 	if runtime.GOOS != "linux" && os.Getenv("RUNNER_TYPE") != "local" {
-		dirApiHost = "host.docker.internal"
+		dirAPIHost = "host.docker.internal"
 	}
 })
