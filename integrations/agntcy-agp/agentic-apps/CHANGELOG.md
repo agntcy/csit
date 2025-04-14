@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.4...agentic-apps-v0.0.5) (2025-04-14)
+
+
+### Bug Fixes
+
+* **agp-apps:** update to agp-bindings 0.2.4 ([#61](https://github.com/agntcy/csit/issues/61)) ([ff58414](https://github.com/agntcy/csit/commit/ff584144e51adf872b22382d36bc5fc918cda224))
+
 ## [0.0.4](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.3...agentic-apps-v0.0.4) (2025-04-10)
 
 
