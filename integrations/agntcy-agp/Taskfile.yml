@@ -14,8 +14,8 @@ vars:
   GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.4" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.4" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.5" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.5" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
