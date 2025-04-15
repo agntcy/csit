@@ -13,7 +13,9 @@ includes:
     excludes: [default]
     vars:
       DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG }}'
+      DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG }}'
       GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG }}'
+      GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG }}'
 
   samples:
     taskfile: ./samples/Taskfile.yml

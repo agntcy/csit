@@ -17,8 +17,16 @@ on:
         description: 'Override Directory image tag'
         required: false
         default: ''
+      override_directory_chart_tag:
+        description: 'Override Directory chart tag'
+        required: false
+        default: ''
       override_gateway_image_tag:
         description: 'Override Gateway image tag'
+        required: false
+        default: ''
+      override_gateway_chart_tag:
+        description: 'Override Gateway chart tag'
         required: false
         default: ''
       skip_directory_test:
@@ -93,6 +101,7 @@ jobs:
         with:
           deploy-gateway: 'true'
           gateway-image-tag: ${{ inputs.override_gateway_image_tag }}
+          gateway-chart-tag: ${{ inputs.override_gateway_chart_tag }}
 
       - name: Run simple gateway tests
         env:
@@ -144,6 +153,7 @@ jobs:
         with:
           deploy-directory: 'true'
           directory-image-tag: ${{ inputs.override_directory_image_tag}}
+          directory-chart-tag: ${{ inputs.override_directory_chart_tag }}
 
       - name: Run Directory tests
         run: task integrations:directory:test

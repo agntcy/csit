@@ -21,12 +21,20 @@ inputs:
     description: 'Set gateway container image version'
     required: false
     default: ''
+  gateway-chart-tag:
+    description: 'Set gateway chart version'
+    required: false
+    default: ''
   deploy-directory:
     description: 'Deploy directory to a kind cluster'
     required: false
     default: 'false'
   directory-image-tag:
     description: 'Set directory container image version'
+    required: false
+    default: ''
+  directory-chart-tag:
+    description: 'Set directory chart version'
     required: false
     default: ''
   kind-cluster-name:
@@ -102,6 +110,7 @@ runs:
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:gateway:test-env:deploy \
           GATEWAY_IMAGE_TAG=${{ inputs.gateway-image-tag }} \
+          GATEWAY_CHART_TAG=${{ inputs.gateway-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
@@ -111,9 +120,11 @@ runs:
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:deploy \
           DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
+          DIRECTORY_CHART_TAG=${{ inputs.directory-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
-          
+
         task -d ./${{ inputs.checkout-path }} integrations:directory:test-env:network:deploy \
           DIRECTORY_IMAGE_TAG=${{ inputs.directory-image-tag }} \
+          DIRECTORY_CHART_TAG=${{ inputs.directory-chart-tag }}
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
