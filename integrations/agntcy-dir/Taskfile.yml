@@ -178,6 +178,13 @@ tasks:
       - defer: { task: k8s:port-forward:teardown }
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy agent list tests"
 
+  test:delete:
+    desc: Directory agent delete test
+    cmds:
+      - task: k8s:port-forward:setup
+      - defer: { task: k8s:port-forward:teardown }
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy agent delete tests"
+
   test:networking:
     desc: Directory agent networking test
     cmds:
