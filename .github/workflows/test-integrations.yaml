@@ -149,7 +149,7 @@ jobs:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
       - name: Deploy Directory
-        uses: ./.github/actions/deploy-components
+        uses: ./.github/actions/deploy-components 
         with:
           deploy-directory: 'true'
           directory-image-tag: ${{ inputs.override_directory_image_tag}}
@@ -157,4 +157,8 @@ jobs:
 
       - name: Run Directory tests
         run: task integrations:directory:test
+        shell: bash
+
+      - name: Run Agentic Apps
+        run: task integrations:apps:run-marketing-campaign
         shell: bash

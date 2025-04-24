@@ -27,6 +27,13 @@ includes:
       DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG }}'
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
 
+  apps:
+    taskfile: ./agntcy-apps/Taskfile.yml
+    dir: ./agntcy-apps
+    excludes: [default]
+    vars:
+      WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION }}'
+
 vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 
