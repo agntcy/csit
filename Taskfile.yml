@@ -22,6 +22,11 @@ includes:
     dir: ./samples
     excludes: [default]
 
+  benchmarks:
+    taskfile: ./benchmarks/Taskfile.yml
+    dir: ./benchmarks
+    excludes: [default]
+
 tasks:
   default:
     cmd: task -l
