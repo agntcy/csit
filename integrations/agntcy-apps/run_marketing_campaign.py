@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 ITERATION_SECONDS = 1
-TIMEOUT_SECONDS = 120
+TIMEOUT_SECONDS = 300
 
 marketing_campaign_host = ""
 marketing_campaign_id = ""
@@ -48,6 +48,7 @@ def read_log_file(working_dir: str = "./", log_file_path="./wfsm.log"):
         return False
 
     count_servers = 0
+    last_line_count = 0
     while time.time() - start_time < TIMEOUT_SECONDS:
 
         # Regular expression to remove ANSI escape codes
@@ -57,7 +58,10 @@ def read_log_file(working_dir: str = "./", log_file_path="./wfsm.log"):
             log_entries = log_file.readlines()
 
         # Analyze the new lines
-        for line in log_entries:
+        new_lines = log_entries[last_line_count:]
+        last_line_count = len(log_entries)
+        for line in new_lines:
+            print(line.strip())
             line = ansi_escape.sub('', line)
             # Search for Agent ID
 
