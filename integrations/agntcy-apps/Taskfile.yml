@@ -101,6 +101,14 @@ tasks:
     desc: Run marketing campaign
     deps: [get-marketing-campaign-cfgs, download:wfsm-bin]
     cmds:
+      - |
+        if [ ! -f "./marketing_campaign_cfg_yaml.env" ]; then
+          echo "Error: marketing_campaign_cfg_yaml.env file is missing. Please run 'task get-marketing-campaign-cfgs' to generate it."
+          exit 1
+        fi
+        echo "Counting lines in marketing_campaign_cfg_yaml.env..."
+        line_count=$(wc -l < "./marketing_campaign_cfg_yaml.env")
+        echo "The file marketing_campaign_cfg_yaml.env has $line_count lines."
       - echo "Installing dependencies with Poetry..."
       - poetry install --no-root
       - echo "Running the marketing campaign test..."
