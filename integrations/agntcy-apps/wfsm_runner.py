@@ -96,6 +96,7 @@ def validate_env_file(working_dir: str, env_file: str, example_file: str) -> boo
         env_keys = set(flatten_keys(env_data))
         logger.debug(f"Keys in wfsm env file: {env_keys}")
         # Compare keys
+
         missing_keys = example_keys - env_keys
         extra_keys = env_keys - example_keys
 
@@ -104,7 +105,11 @@ def validate_env_file(working_dir: str, env_file: str, example_file: str) -> boo
         if extra_keys:
             logger.error(f"Extra keys in {env_file}: {extra_keys}")
 
-        return not missing_keys and not extra_keys
+        if not missing_keys and not extra_keys:
+            #todo: rm
+            logger.debug(f"SENDGRID_HOST: {env_data.get("values", {}).get("SENDGRID_HOST")}")
+            return True
+        return False
 
     except Exception as e:
         logger.error(f"Error while validating env file: {e}")
