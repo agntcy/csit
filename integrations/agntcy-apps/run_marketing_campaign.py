@@ -110,6 +110,8 @@ def read_log_file(working_dir: str = "./", log_file_path="./wfsm.log"):
         time.sleep(ITERATION_SECONDS)
 
     logger.error("Timeout reached: error starting the workflow server.")
+    with open(log_file_path, 'r', encoding='utf8') as log_file:
+        logger.error("Timeout reached: error starting the workflow server.\n" + log_file.read())
     return False
 
 
