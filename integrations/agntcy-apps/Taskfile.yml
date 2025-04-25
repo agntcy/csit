@@ -10,6 +10,7 @@ vars:
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
+  AZURE_OPENAI_API_VERSION: '{{ .AZURE_OPENAI_API_VERSION | default "2025-02-01-preview" }}'
   SENDGRID_HOST: '{{ .SENDGRID_HOST | default "http://echo-server:80" }}'
 
   ARCH:
