@@ -175,5 +175,5 @@ jobs:
           go: false
 
       - name: Run Agentic Apps
-        run: echo "ARCH is ${ARCH}" && echo "OS is ${OS}" && task integrations:apps:run-marketing-campaign
+        run: echo "ARCH is $(uname -m)" && echo "OS is $(uname -s)" && task integrations:apps:run-marketing-campaign
         shell: bash
