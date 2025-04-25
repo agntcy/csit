@@ -106,9 +106,7 @@ tasks:
           echo "Error: marketing_campaign_cfg_yaml.env file is missing. Please run 'task get-marketing-campaign-cfgs' to generate it."
           exit 1
         fi
-        echo "Counting lines in marketing_campaign_cfg_yaml.env..."
-        line_count=$(wc -l < "./marketing_campaign_cfg_yaml.env")
-        echo "The file marketing_campaign_cfg_yaml.env has $line_count lines."
+      - echo "AZURE_OPENAI_ENDPOINT is ${AZURE_OPENAI_ENDPOINT}"
       - echo "Installing dependencies with Poetry..."
       - poetry install --no-root
       - echo "Running the marketing campaign test..."
