@@ -56,6 +56,8 @@ tasks:
         sh: printf "%s" "{{.OS}}" | tr '[:upper:]' '[:lower:]'
     cmds:
       - |
+          echo "Current ARCH is {{.ARCH}}"
+          echo "Current OS is {{.OS}}"
           URL=""
           if [[ "{{.OS}}" == "darwin" && "{{.ARCH}}" == "arm64" ]]; then
             URL="https://github.com/agntcy/workflow-srv-mgr/releases/download/v{{.WFSM_BIN_VERSION}}/wfsm{{.WFSM_BIN_VERSION}}_darwin_arm64.tar.gz"
