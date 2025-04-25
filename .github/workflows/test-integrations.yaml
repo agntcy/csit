@@ -163,6 +163,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: false
+
       - name: Run Agentic Apps
         run: task integrations:apps:run-marketing-campaign
         shell: bash
