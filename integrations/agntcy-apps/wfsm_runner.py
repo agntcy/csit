@@ -73,14 +73,15 @@ def flatten_keys(data, parent_key=""):
 
 def validate_env_file(working_dir: str, env_file: str, example_file: str) -> bool:
     """
-    Validates that the env file contains the keys required by the marketing campaign.
+    Validates that the env file contains the keys required by the marketing campaign
+    and ensures no keys have empty values.
 
     Args:
         env_file (str): Path to the environment file.
         example_file (str): Path to the example YAML file.
 
     Returns:
-        bool: True if the keys match, False otherwise.
+        bool: True if the keys match and no empty values are found, False otherwise.
     """
     try:
         os.chdir(working_dir)
@@ -94,9 +95,8 @@ def validate_env_file(working_dir: str, env_file: str, example_file: str) -> boo
         with open(env_file, "r") as f:
             env_data = yaml.safe_load(f)
         env_keys = set(flatten_keys(env_data))
-        logger.debug(f"Keys in wfsm env file: {env_keys}")
-        # Compare keys
 
+        # Compare keys
         missing_keys = example_keys - env_keys
         extra_keys = env_keys - example_keys
 
@@ -105,15 +105,38 @@ def validate_env_file(working_dir: str, env_file: str, example_file: str) -> boo
         if extra_keys:
             logger.error(f"Extra keys in {env_file}: {extra_keys}")
 
-        if not missing_keys and not extra_keys:
-            #todo: rm
-            logger.debug(f"SENDGRID_HOST: {env_data.get("values", {}).get("SENDGRID_HOST")}")
-            return True
-        return False
+        # Check for empty values
+        empty_keys = [
+            key for key in flatten_keys(env_data)
+            if not get_nested_value(env_data, key)
+        ]
+        if empty_keys:
+            logger.error(f"Keys with empty values in {env_file}: {empty_keys}")
+
+        return not missing_keys and not extra_keys and not empty_keys
 
     except Exception as e:
         logger.error(f"Error while validating env file: {e}")
         return False
+
+def get_nested_value(data, key):
+    """
+    Retrieves the value of a nested key in a dictionary.
+
+    Args:
+        data (dict): The dictionary to search.
+        key (str): The nested key, represented as a dot-separated string.
+
+    Returns:
+        Any: The value of the key, or None if the key does not exist.
+    """
+    keys = key.split(".")
+    for k in keys:
+        if isinstance(data, dict) and k in data:
+            data = data[k]
+        else:
+            return None
+    return data
 
 if __name__ == "__main__":
     working_dir = os.path.dirname(os.path.abspath(__file__)) + "/agentic-apps/marketing-campaign"
