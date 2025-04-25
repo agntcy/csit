@@ -33,7 +33,7 @@ vars:
       else
         printf $WFSM_BIN_PATH
       fi
-  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.1.1" }}'
+  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.1.1-dev.111" }}'
 
 tasks:
   default:
