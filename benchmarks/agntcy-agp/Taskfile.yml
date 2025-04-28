@@ -1,0 +1,16 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+tasks:
+  default:
+    cmd: task -l
+
+  test:
+    desc: All AGP benchmark test
+    cmds:
+      - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
