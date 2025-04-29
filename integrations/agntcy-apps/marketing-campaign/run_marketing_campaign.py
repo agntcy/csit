@@ -223,11 +223,11 @@ class MarketingCampaign:
         }
 
         json_response = self.send_acp_runs_wait_request(payload)
-        # request_prompt = json_response['output']['values']['mailcomposer_state']['input']['messages'][0]['content']
-        # composed_email = json_response['output']['values']['mailcomposer_state']['output']['messages'][1]['content']
+        request_prompt = json_response['output']['values']['mailcomposer_state']['input']['messages'][0]['content']
+        composed_email = json_response['output']['values']['mailcomposer_state']['output']['messages'][1]['content']
 
-        # logger.info("========    Request Composition:    ========\n" + request_prompt)
-        # logger.info("========    Composed Email:    ========\n" + composed_email)
+        logger.info("========    Request Composition:    ========\n" + request_prompt)
+        logger.info("========    Composed Email:    ========\n" + composed_email)
 
 
     def test_reviewer(self):
