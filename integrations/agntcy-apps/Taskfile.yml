@@ -31,7 +31,7 @@ vars:
   WFSM_BIN_PATH:
     sh: |
       if [ "$WFSM_BIN_PATH" == "" ]; then
-        printf "{{.TASKFILE_DIR}}"
+        printf "{{.TASKFILE_DIR}}/tools"
       else
         printf $WFSM_BIN_PATH
       fi
