@@ -259,10 +259,12 @@ class MarketingCampaign:
         }
 
         json_response = self.send_acp_runs_wait_request(payload)
-        original_email = json_response['output']['values']['email_reviewer_state']['input']['email']
-        revised_email = json_response['output']['values']['email_reviewer_state']['output']['corrected_email']
-        logger.info("========    Original Email:    ========\n" + original_email)
-        logger.info("========    Reviewed Email:    ========\n" + revised_email)
+        composed_email = json_response['output']['values']['email_reviewer_state']['input']['email']
+        reviewed_email = json_response['output']['values']['email_reviewer_state']['output']['corrected_email']
+        sendgrid_query = json_response['output']['values']['sendgrid_state']['input']['query']
+        logger.info("========    Composed Email:    ========\n" + composed_email)
+        logger.info("========    Reviewed Email:    ========\n" + reviewed_email)
+        logger.info("========    Sendgrid Query:    ========\n" + sendgrid_query)
 
 
 def main():
