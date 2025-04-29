@@ -8,6 +8,7 @@ silent: true
 
 vars:
 
+  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.1.2" }}'
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
   AZURE_OPENAI_API_VERSION: '{{ .AZURE_OPENAI_API_VERSION | default "2025-02-01-preview" }}'
@@ -34,7 +35,6 @@ vars:
       else
         printf $WFSM_BIN_PATH
       fi
-  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.1.1-dev.111" }}'
 
 tasks:
   default:
@@ -93,23 +93,32 @@ tasks:
           }
           output = output $0 "\n"
         }
-        END { print output > "./marketing_campaign_cfg_yaml.env" }
+        END { print output > "./marketing-campaign/marketing_campaign_cfg_yaml.env" }
         ' ./agentic-apps/marketing-campaign/deploy/marketing_campaign_example.yaml
-
 
   run-marketing-campaign:
     desc: Run marketing campaign
     deps: [get-marketing-campaign-cfgs, download:wfsm-bin]
     cmds:
       - |
-        if [ ! -f "./marketing_campaign_cfg_yaml.env" ]; then
+        if [ ! -f "./marketing-campaign/marketing_campaign_cfg_yaml.env" ]; then
           echo "Error: marketing_campaign_cfg_yaml.env file is missing. Please run 'task get-marketing-campaign-cfgs' to generate it."
           exit 1
         fi
-      - echo "AZURE_OPENAI_ENDPOINT is ${AZURE_OPENAI_ENDPOINT}"
       - echo "Installing dependencies with Poetry..."
       - poetry install --no-root
-      - echo "Running the marketing campaign test..."
-      - poetry run python wfsm_runner.py
-      - poetry run python run_marketing_campaign.py
+      - echo "Running wfsm cli"
+      - |
+        poetry run python ./tools/wfsm_runner.py \
+          -w ../agentic-apps/marketing-campaign \
+          -b ../../tools/wfsm \
+          -l ../../tools/wfsm.log \
+          -m ./deploy/marketing-campaign.json \
+          -e ../../marketing-campaign/marketing_campaign_cfg_yaml.env \
+          -f ./deploy/marketing_campaign_example.yaml
+      - echo "Running the marketing campaign test, waiting workflow server to be ready..."
+      - |
+        poetry run python ./marketing-campaign/run_marketing_campaign.py \
+          -w ../agentic-apps/marketing-campaign \
+          -l ../../tools/wfsm.log
       - echo "test completed successfully"
