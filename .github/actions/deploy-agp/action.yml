@@ -33,13 +33,17 @@ runs:
 
     - name: deploy agntcy-agp
       shell: bash
+      env:
+        GATEWAY_IMAGE_TAG: ${{ inputs.gateway-image-tag }}
+        GATEWAY_CHART_TAG: ${{ inputs.gateway-chart-tag }}
+        KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
+        KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
       run: |
-        kubectl config use-context kind-${{ inputs.kind-cluster-name }}
-        helm upgrade agntcy-agp \
-          oci://ghcr.io/agntcy/agp/helm/agp \
-          --version ${{ inputs.gateway-chart-tag }} \
-          --set image.tag="${{ inputs.gateway-image-tag }}" \
-          --namespace ${{ inputs.kind-cluster-namespace }} \
+        kubectl config use-context kind-$KIND_CLUSTER_NAME
+        helm upgrade agntcy-agp oci://ghcr.io/agntcy/agp/helm/agp \
+          --version $GATEWAY_CHART_TAG \
+          --set image.tag="${GATEWAY_IMAGE_TAG}" \
+          --namespace $KIND_CLUSTER_NAMESPACE \
           --create-namespace \
           --install \
           --wait \
