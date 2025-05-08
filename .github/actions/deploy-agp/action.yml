@@ -34,9 +34,9 @@ runs:
     - name: deploy agntcy-agp
       shell: bash
       run: |
-        kubectl config use-context kind-${{ inputs.kind-cluster-name }} &&
+        kubectl config use-context kind-${{ inputs.kind-cluster-name }}
         helm upgrade agntcy-agp \
-          oci://{{ .IMAGE_REPO }}/agp/helm/agp \
+          oci://ghcr.io/agntcy/agp/helm/agp \
           --version ${{ inputs.gateway-chart-tag }} \
           --set image.tag="${{ inputs.gateway-image-tag }}" \
           --namespace ${{ inputs.kind-cluster-namespace }} \
