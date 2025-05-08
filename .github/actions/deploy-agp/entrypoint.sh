@@ -15,7 +15,7 @@ echo "Using chart version: $GATEWAY_CHART_TAG"
 echo "To cluster: $KIND_CLUSTER_NAME"
 echo "In namespace: $KIND_CLUSTER_NAMESPACE"
 
-ls /apps
+ls
 which task
 
 task
