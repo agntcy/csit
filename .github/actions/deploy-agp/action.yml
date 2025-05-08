@@ -1,0 +1,32 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Deploy agntcy components
+description: Deploy agntcy components for integration testing
+inputs:
+  gateway-image-tag:
+    description: 'Set gateway container image version'
+    required: false
+    default: ''
+  gateway-chart-tag:
+    description: 'Set gateway chart version'
+    required: false
+    default: ''
+  kind-cluster-name:
+    description: 'Set kind cluster name where components are deployed'
+    required: false
+    default: 'agntcy-test'
+  kind-cluster-namespace:
+    description: 'Set cluster namespace where components are deployed'
+    required: false
+    default: 'default'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.gateway-image-tag }}
+    - ${{ inputs.gateway-chart-tag }}
+    - ${{ inputs.kind-cluster-name }}
+    - ${{ inputs.kind-cluster-namespace }}

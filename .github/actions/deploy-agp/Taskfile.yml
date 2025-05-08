@@ -1,0 +1,40 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+vars:
+  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
+
+  ## Image config
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
+  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
+  GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG | default "v0.1.2" }}'
+  HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
+
+tasks:
+  test-env:deploy:
+    desc: Deploy agntcy gateway test env
+    cmds:
+      - |
+        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
+        helm upgrade agntcy-agp \
+          oci://{{ .IMAGE_REPO }}/agp/helm/agp \
+          --version {{ .GATEWAY_CHART_TAG }} \
+          --set image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+
+  test-env:cleanup:
+    desc: Remove agent gateway test env
+    cmds:
+      - |
+        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
+        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
