@@ -23,10 +23,25 @@ inputs:
     default: 'default'
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.gateway-image-tag }}
-    - ${{ inputs.gateway-chart-tag }}
-    - ${{ inputs.kind-cluster-name }}
-    - ${{ inputs.kind-cluster-namespace }}
+  using: 'composite'
+  steps:
+    - name: Create Kind Cluster
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: agntcy-test
+        wait: 300s
+
+    - name: deploy agntcy-agp
+      shell: bash
+      run: |
+        kubectl config use-context kind-${{ inputs.kind-cluster-name }} &&
+        helm upgrade agntcy-agp \
+          oci://{{ .IMAGE_REPO }}/agp/helm/agp \
+          --version ${{ inputs.gateway-chart-tag }} \
+          --set image.tag="${{ inputs.gateway-image-tag }}" \
+          --namespace ${{ inputs.kind-cluster-namespace }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"

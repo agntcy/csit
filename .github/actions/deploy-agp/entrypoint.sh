@@ -18,6 +18,4 @@ echo "In namespace: $KIND_CLUSTER_NAMESPACE"
 ls
 which task
 
-task
-
 task test-env:deploy
