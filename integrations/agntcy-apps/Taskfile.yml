@@ -8,11 +8,12 @@ silent: true
 
 vars:
 
-  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.1.2" }}'
+  WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.2.1" }}'
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
   AZURE_OPENAI_API_VERSION: '{{ .AZURE_OPENAI_API_VERSION | default "2025-02-01-preview" }}'
   SENDGRID_HOST: '{{ .SENDGRID_HOST | default "http://echo-server:80" }}'
+  SENDGRID_API_KEY: 'DUMMY'
 
   ARCH:
     sh: |
@@ -77,24 +78,11 @@ tasks:
     cmds:
       - |
         echo "Read the example file and generate the configuration file..."
-        awk -v api_key="{{.AZURE_OPENAI_API_KEY}}" \
-            -v endpoint="{{.AZURE_OPENAI_ENDPOINT}}" \
-            -v sendgrid_host="{{.SENDGRID_HOST}}" '
-        BEGIN { output = "" }
-        {
-          if ($0 ~ /AZURE_OPENAI_API_KEY:/) {
-            gsub("your-api-key", api_key)
-          }
-          if ($0 ~ /AZURE_OPENAI_ENDPOINT:/) {
-            gsub("https://your-project-agents.openai.azure.com", endpoint)
-          }
-          if ($0 ~ /SENDGRID_HOST:/) {
-            gsub("http://host.docker.internal:8080", sendgrid_host)
-          }
-          output = output $0 "\n"
-        }
-        END { print output > "./marketing-campaign/marketing_campaign_cfg_yaml.env" }
-        ' ./agentic-apps/marketing-campaign/deploy/marketing_campaign_example.yaml
+        sed -e "s|\(AZURE_OPENAI_API_KEY:\).*|\1 {{.AZURE_OPENAI_API_KEY}}|" \
+            -e "s|\(AZURE_OPENAI_ENDPOINT:\).*|\1 {{.AZURE_OPENAI_ENDPOINT}}|" \
+            -e "s|\(SENDGRID_HOST:\).*|\1 {{.SENDGRID_HOST}}|g" \
+            -e "s|\(SENDGRID_API_KEY:\).*|\1 {{.SENDGRID_API_KEY}}|g" \
+            ./agentic-apps/marketing-campaign/deploy/marketing_campaign_example.yaml > ./marketing-campaign/marketing_campaign_cfg_yaml.env
 
   run-marketing-campaign:
     desc: Run marketing campaign
@@ -110,12 +98,10 @@ tasks:
       - echo "Running wfsm cli"
       - |
         poetry run python ./tools/wfsm_runner.py \
-          -w ../agentic-apps/marketing-campaign \
-          -b ../../tools/wfsm \
-          -l ../../tools/wfsm.log \
-          -m ./deploy/marketing-campaign.json \
-          -e ../../marketing-campaign/marketing_campaign_cfg_yaml.env \
-          -f ./deploy/marketing_campaign_example.yaml
+          -b ./tools/wfsm \
+          -l ./tools/wfsm.log \
+          -m ./agentic-apps/marketing-campaign/deploy/marketing-campaign.json \
+          -c ./marketing-campaign/marketing_campaign_cfg_yaml.env
       - echo "Running the marketing campaign test, waiting workflow server to be ready..."
       - |
         poetry run python ./marketing-campaign/run_marketing_campaign.py \
