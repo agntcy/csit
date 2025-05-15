@@ -23,7 +23,7 @@ vars:
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
-  MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "false" }}'
+  MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "true" }}'
   LLAMAINDEX_TIME_AGENT_TAG: '{{ .LLAMAINDEX_TIME_AGENT_TAG | default "0.1.1" }}'
   MCP_SERVER_TIME_TAG: '{{ .MCP_SERVER_TIME_TAG | default "0.1.1" }}'
 
