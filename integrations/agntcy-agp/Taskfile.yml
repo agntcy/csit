@@ -24,6 +24,8 @@ vars:
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
   MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "false" }}'
+  LLAMAINDEX_TIME_AGENT_TAG: '{{ .LLAMAINDEX_TIME_AGENT_TAG | default "0.1.1" }}'
+  MCP_SERVER_TIME_TAG: '{{ .MCP_SERVER_TIME_TAG | default "0.1.1" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
 
@@ -113,6 +115,12 @@ tasks:
       - defer: { task: test:autogen-agent:remove }
       - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .LANGCHAIN_APP_TAG }}
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+
+  test:mcp-server:
+    desc: Test AGP native MCP server
+    cmds:
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "AGP native MCP server"
+
 
   default:
     cmd: task -l
