@@ -11,7 +11,9 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.11" }}'
+  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.14" }}'
+  MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.3" }}'
+  GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG | default "v0.1.4" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.5" }}'
@@ -20,8 +22,8 @@ vars:
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
-  GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG | default "v0.1.2" }}'
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
+  MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "false" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
 
@@ -47,7 +49,9 @@ tasks:
         helm upgrade agntcy-agp \
           oci://{{ .IMAGE_REPO }}/agp/helm/agp \
           --version {{ .GATEWAY_CHART_TAG }} \
-          --set image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          --set gw.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+          --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \
