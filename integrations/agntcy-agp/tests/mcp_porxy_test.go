@@ -53,7 +53,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 		// The MCP server is AGP-native and works on top of AGP using it as transport.
 		// The client can address the MCP server as if it was a normal agent.
 		ginkgo.BeforeAll(func() {
-			podName := "mcp-server-time"
+			podName := "mcp-server-native"
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      podName,
@@ -152,18 +152,19 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 	ginkgo.Context("MCP server via MCP proxy", ginkgo.Ordered, func() {
 		// The MCP server works on top of SSE and we can access it using the MCP proxy
 		ginkgo.BeforeAll(func() {
+			podName := "mcp-server-proxy"
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mcp-server-time",
+					Name:      podName,
 					Namespace: namespace,
 					Labels: map[string]string{
-						"app": "mcp-server-time",
+						"app": podName,
 					},
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  "mcp-server-time",
+							Name:  podName,
 							Image: mcpServerTimeImage,
 							Args: []string{
 								"--local-timezone",
@@ -206,7 +207,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 				},
 				Spec: corev1.ServiceSpec{
 					Selector: map[string]string{
-						"app": "mcp-server-time",
+						"app": podName,
 					},
 					Ports: []corev1.ServicePort{
 						{
