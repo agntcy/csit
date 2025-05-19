@@ -74,50 +74,10 @@ tasks:
     cmds:
       - IMAGE_TAG={{ .LANGCHAIN_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
-  # test:autogen-agent:run:
-  #   internal: true
-  #   cmds:
-  #     - |
-  #       hostNetFlag=""
-  #       hostMachine=http://host.docker.internal:46357
-  #       unameOut=$(uname -s)
-  #       case ${unameOut} in
-  #           Linux*)
-  #             hostMachine=http://127.0.0.1:46357
-  #             hostNetFlag="--net=host"
-  #           ;;
-  #           Darwin*)
-  #             hostMachine=http://host.docker.internal:46357
-  #           ;;
-  #           *)
-  #       esac
-  #       echo "gw host: ${hostMachine}"
-
-  #       docker run -d --rm \
-  #       -e AZURE_OPENAI_API_KEY={{.AZURE_OPENAI_API_KEY}} \
-  #       -e AZURE_OPENAI_ENDPOINT={{.AZURE_OPENAI_ENDPOINT}} \
-  #       ${hostNetFlag} \
-  #       --name autogen-agent \
-  #       {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .AUTOGEN_APP_TAG }} \
-  #       poetry run python autogen_agent.py -g ${hostMachine}
-
-  # test:autogen-agent:remove:
-  #   internal: true
-  #   cmds:
-  #     - docker stop $(docker ps -a --no-trunc --filter name=^/autogen-agent$ -q)
-
   test:sanity:
     desc: Sanity gateway test
     cmds:
-      # - task: k8s:port-forward:setup
-      # - defer: { task: k8s:port-forward:teardown }
-      # - task: test:autogen-agent:run
-      # - defer: { task: test:autogen-agent:remove }
-      - docker pull {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .AUTOGEN_APP_TAG }}
-      - docker pull {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .LANGCHAIN_APP_TAG }}
-      - kind load docker-image {{ .IMAGE_REPO }}/csit/test-langchain-agent:{{ .LANGCHAIN_APP_TAG }} --name {{.KIND_CLUSTER_NAME}}
-      - kind load docker-image {{ .IMAGE_REPO }}/csit/test-autogen-agent:{{ .AUTOGEN_APP_TAG }} --name {{.KIND_CLUSTER_NAME}}
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} LANGCHAIN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy gateway sanity test"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy gateway sanity test"
 
   test:mcp-server:
     desc: Test MCP over AGP

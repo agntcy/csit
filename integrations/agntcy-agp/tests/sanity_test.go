@@ -32,7 +32,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 	ginkgo.BeforeEach(func() {
 		// Setup test images
 		langchainImage = fmt.Sprintf("%s/csit/test-langchain-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LANGCHAIN_APP_TAG"))
-		autogenImage = fmt.Sprintf("%s/csit/test-langchain-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LANGCHAIN_APP_TAG"))
+		autogenImage = fmt.Sprintf("%s/csit/test-autogen-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("AUTOGEN_APP_TAG"))
 
 		// Setup LLM credentials
 		azure_openapi_api_key = os.Getenv("AZURE_OPENAI_API_KEY")
@@ -61,11 +61,25 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  podName,
-							Image: autogenImage,
+							Name:    podName,
+							Image:   autogenImage,
+							Command: []string{"poetry"},
 							Args: []string{
+								"run",
+								"python",
+								"autogen_agent.py",
 								"-g",
 								"http://agntcy-agp:46357",
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "AZURE_OPENAI_ENDPOINT",
+									Value: azure_openapi_endpoint,
+								},
+								{
+									Name:  "AZURE_OPENAI_API_KEY",
+									Value: azure_openapi_api_key,
+								},
 							},
 						},
 					},
@@ -101,9 +115,15 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Name:  jobName,
-									Image: langchainImage,
+									Name:    jobName,
+									Image:   langchainImage,
+									Command: []string{"poetry"},
 									Args: []string{
+										"run",
+										"python",
+										"langchain_agent.py",
+										"-m",
+										"Budapest",
 										"-g",
 										"http://agntcy-agp:46357",
 									},
@@ -144,56 +164,3 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 		})
 	})
 })
-
-// 	ginkgo.Context("agent gateway", func() {
-// 		ginkgo.It("agent gateway sanity test", func() {
-// 			langchainAgentArgs := []string{
-// 				"run",
-// 				"python",
-// 				"langchain_agent.py",
-// 				"-m",
-// 				"Budapest",
-// 				"-g",
-// 			}
-
-// 			gwHost := "http://127.0.0.1:46357"
-// 			if runtime.GOOS != "linux" {
-// 				gwHost = "http://host.docker.internal:46357"
-// 			}
-
-// 			langchainAgentArgs = append(langchainAgentArgs, gwHost)
-
-// 			envVars := map[string]string{
-// 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
-// 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
-// 			}
-
-// 			var err error
-
-// 			switch os.Getenv("RUNNER_TYPE") {
-// 			// NOTE: No binary release for agp yet
-// 			// case "local":
-// 			// 	runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, testutils.WithEnvVars(envVars))
-// 			default:
-// 				runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
-// 					testutils.WithDockerCmd("docker"),
-// 					testutils.WithDockerImage(dockerImage),
-// 					testutils.WithDockerArgs([]string{"run"}),
-// 					testutils.WithEnvVars(envVars),
-// 				)
-// 			}
-
-// 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-// 			_, err = runner.Run("poetry", langchainAgentArgs...)
-// 			if err != nil {
-// 				exitErr, ok := err.(*exec.ExitError)
-// 				if ok {
-// 					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
-// 				}
-// 			}
-
-// 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-// 		})
-// 	})
-// })
