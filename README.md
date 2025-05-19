@@ -71,6 +71,8 @@ csit
 └── Taskfile.yml                                  # Repository level task definintions
 ```
 
+In the Taskfiles, all required tasks and steps are defined in a structured manner. Each CSIT component contains its necessary tasks within dedicated Taskfiles, with higher-level Taskfiles incorporating lower-level ones to efficiently leverage their defined tasks.
+
 # Integration tests
 
 > Focuses on testing interactions between integrated components.
