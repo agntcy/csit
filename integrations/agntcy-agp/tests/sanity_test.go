@@ -49,8 +49,6 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 	})
 
 	ginkgo.Context("AGP sanity test", ginkgo.Ordered, func() {
-		// The MCP server is AGP-native and works on top of AGP using it as transport.
-		// The client can address the MCP server as if it was a normal agent.
 		ginkgo.BeforeAll(func() {
 			podName := "autogen-agent"
 			pod := &corev1.Pod{
