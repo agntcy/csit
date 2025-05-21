@@ -67,7 +67,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 			})
 
 			// Wait for pod to be running
-			err = k8sHelper.WaitForPodRunning(300 * time.Second)
+			err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 		})
 
@@ -94,7 +94,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 			})
 
 			// Wait for job to be succeded
-			err = k8sHelper.WaitForJobCompletion(300 * time.Second)
+			err = k8sHelper.WaitForJobCompletion(k8sTimeOutSeconds * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
 		})
 	})
@@ -125,7 +125,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 			})
 
 			// Wait for pod to be running
-			err = k8sHelper.WaitForPodRunning(300 * time.Second)
+			err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 
 			createdService, err := k8sHelper.CreateService("mcp-server")
@@ -167,7 +167,7 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 			})
 
 			// Wait for job to be succeded
-			err = k8sHelper.WaitForJobCompletion(300 * time.Second)
+			err = k8sHelper.WaitForJobCompletion(k8sTimeOutSeconds * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
 		})
 	})

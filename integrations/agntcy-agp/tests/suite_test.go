@@ -10,6 +10,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
+const k8sTimeOutSeconds = 600
+
 func TestTests(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Tests Suite")
