@@ -10,10 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	testrunner "github.com/agntcy/csit/integrations/testutils/runner"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
-	"github.com/agntcy/csit/integrations/testutils"
 )
 
 var _ = ginkgo.Describe("Agntcy directory networking test", func() {
@@ -23,7 +22,7 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 		mountString      string
 		agentModelFile   string
 		digest           string
-		runner           testutils.Runner
+		runner           testrunner.Runner
 		peerApiHostPorts = []int{8890, 8891, 8892}
 		dirAPIPort       = dirAPIPort // NOTE: Shadow the suite variable
 	)
@@ -60,12 +59,12 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 
 			switch os.Getenv("RUNNER_TYPE") {
 			case "local":
-				runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+				runner, err = testrunner.NewRunner(testrunner.RunnerTypeLocal, nil)
 			default:
-				runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
-					testutils.WithDockerCmd("docker"),
-					testutils.WithDockerArgs([]string{"run", "-v", mountString}),
-					testutils.WithDockerImage(dockerImage),
+				runner, err = testrunner.NewRunner(testrunner.RunnerTypeDocker,
+					testrunner.WithDockerCmd("docker"),
+					testrunner.WithDockerArgs([]string{"run", "-v", mountString}),
+					testrunner.WithDockerImage(dockerImage),
 				)
 			}
 

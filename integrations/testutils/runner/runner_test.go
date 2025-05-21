@@ -1,4 +1,4 @@
-package testutils
+package runner
 
 import (
 	"os"

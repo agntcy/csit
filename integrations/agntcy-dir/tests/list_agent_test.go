@@ -13,7 +13,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
-	"github.com/agntcy/csit/integrations/testutils"
+	testrunner "github.com/agntcy/csit/integrations/testutils/runner"
 )
 
 var _ = ginkgo.Describe("Agntcy agent list tests", func() {
@@ -27,7 +27,7 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 		mountDest   string
 		mountString string
 		agents      []*agent
-		runner      testutils.Runner
+		runner      testrunner.Runner
 	)
 
 	ginkgo.Context("agents push for listing", func() {
@@ -61,12 +61,12 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 
 				switch os.Getenv("RUNNER_TYPE") {
 				case "local":
-					runner, err = testutils.NewRunner(testutils.RunnerTypeLocal, nil)
+					runner, err = testrunner.NewRunner(testrunner.RunnerTypeLocal, nil)
 				default:
-					runner, err = testutils.NewRunner(testutils.RunnerTypeDocker,
-						testutils.WithDockerCmd("docker"),
-						testutils.WithDockerImage(dockerImage),
-						testutils.WithDockerArgs([]string{"run", "-v" + mountString}),
+					runner, err = testrunner.NewRunner(testrunner.RunnerTypeDocker,
+						testrunner.WithDockerCmd("docker"),
+						testrunner.WithDockerImage(dockerImage),
+						testrunner.WithDockerArgs([]string{"run", "-v" + mountString}),
 					)
 				}
 

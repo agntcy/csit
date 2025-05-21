@@ -7,16 +7,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
 
 var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
@@ -39,10 +36,8 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 		azure_openapi_endpoint = os.Getenv("AZURE_OPENAI_ENDPOINT")
 
 		// Create Kubernetes client
-		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to load kubeconfig")
-		clientset, err = kubernetes.NewForConfig(config)
+		var err error
+		clientset, err = k8shelper.CreateK8sClientSet()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
 
 		namespace = os.Getenv("NAMESPACE")
@@ -51,113 +46,59 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 	ginkgo.Context("AGP sanity test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
 			podName := "autogen-agent"
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName,
-					Namespace: namespace,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:    podName,
-							Image:   autogenImage,
-							Command: []string{"poetry"},
-							Args: []string{
-								"run",
-								"python",
-								"autogen_agent.py",
-								"-g",
-								"http://agntcy-agp:46357",
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "AZURE_OPENAI_ENDPOINT",
-									Value: azure_openapi_endpoint,
-								},
-								{
-									Name:  "AZURE_OPENAI_API_KEY",
-									Value: azure_openapi_api_key,
-								},
-							},
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyAlways,
-				},
-			}
-			// Create the pod
-			fmt.Println("Creating pod...")
-			createdPod, err := clientset.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset)
+
+			createdPod, err := k8sHelper.WithEnvVars(map[string]string{
+				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
+				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
+			}).WithCommand([]string{"poetry"}).WithArgs([]string{
+				"run",
+				"python",
+				"autogen_agent.py",
+				"-g",
+				"http://agntcy-agp:46357",
+			}).CreatePod()
+
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create MCP time server pod")
 
 			// Register cleanup to run after all the spec is done
 			ginkgo.DeferCleanup(func(ctx context.Context) {
-				err := clientset.CoreV1().Pods(namespace).Delete(ctx, createdPod.Name, metav1.DeleteOptions{})
+				err := k8sHelper.CleanupPod(ctx)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete pod")
 			})
 
 			// Wait for pod to be running
-			err = waitForPodRunning(clientset, namespace, createdPod.Name, 300*time.Second)
+			err = k8sHelper.WaitForPodRunning(300 * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 		})
 
 		ginkgo.It("Create langchain agent Job", func() {
-			var backOffLimit int32 = 2
 			jobName := "langchain-agent"
-			job := &batchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      jobName,
-					Namespace: namespace,
-				},
-				Spec: batchv1.JobSpec{
-					Template: corev1.PodTemplateSpec{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									Name:    jobName,
-									Image:   langchainImage,
-									Command: []string{"poetry"},
-									Args: []string{
-										"run",
-										"python",
-										"langchain_agent.py",
-										"-m",
-										"Budapest",
-										"-g",
-										"http://agntcy-agp:46357",
-									},
-									Env: []corev1.EnvVar{
-										{
-											Name:  "AZURE_OPENAI_ENDPOINT",
-											Value: azure_openapi_endpoint,
-										},
-										{
-											Name:  "AZURE_OPENAI_API_KEY",
-											Value: azure_openapi_api_key,
-										},
-									},
-								},
-							},
-							RestartPolicy: corev1.RestartPolicyNever,
-						},
-					},
-					BackoffLimit: &backOffLimit,
-				},
-			}
+			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, langchainImage, clientset)
 
-			// Create the job
-			fmt.Println("Creating job...")
-			createdJob, err := clientset.BatchV1().Jobs(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+			createdJob, err := k8sHelper.WithEnvVars(map[string]string{
+				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
+				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
+			}).WithCommand([]string{"poetry"}).WithArgs([]string{
+				"run",
+				"python",
+				"langchain_agent.py",
+				"-m",
+				"Budapest",
+				"-g",
+				"http://agntcy-agp:46357",
+			}).CreateJob()
+
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create Llamaindext time agent job")
 
 			// Register cleanup to run after this spec completes
 			ginkgo.DeferCleanup(func(ctx context.Context) {
-				deletePolicy := metav1.DeletePropagationBackground
-				err := clientset.BatchV1().Jobs(namespace).Delete(ctx, createdJob.Name, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+				err := k8sHelper.CleanupJob(ctx)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete job")
 			})
 
 			// Wait for job to be succeded
-			err = waitForJobCompletion(clientset, namespace, createdJob.Name, 300*time.Second)
+			err = k8sHelper.WaitForJobCompletion(300 * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
 		})
 	})
