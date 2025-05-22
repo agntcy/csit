@@ -8,6 +8,7 @@ A GitHub action to craate a kind cluster and deploy the agntcy/agp into it.
 - `gateway-chart-tag`: Agntcy AGP chart version (default: `v0.1.4`)
 - `mcp-proxy-image-tag`: Agntcy AGP MCP proxy image tag (default: `0.1.4`)
 - `mcp-proxy-deploy`: Agntcy AGP MCP proxy deploy (default: `false`)
+- `mcp-server-addr`: Set MCP server address (default: `http://mcp-server:8000/sse`)
 - `kind-cluster-name`: KinD cluster name
 - `kind-cluster-namespace`: Deployment namespace
 
