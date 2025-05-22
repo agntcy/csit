@@ -7,7 +7,6 @@ version: '3'
 silent: true
 
 vars:
-
   WFSM_BIN_VERSION: '{{ .WFSM_BIN_VERSION | default "0.2.1" }}'
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -32,7 +31,7 @@ vars:
   WFSM_BIN_PATH:
     sh: |
       if [ "$WFSM_BIN_PATH" == "" ]; then
-        printf "{{.TASKFILE_DIR}}/tools"
+        printf "{{.TASKFILE_DIR}}/marketing-campaign/tools"
       else
         printf $WFSM_BIN_PATH
       fi
@@ -58,19 +57,19 @@ tasks:
         sh: printf "%s" "{{.OS}}" | tr '[:upper:]' '[:lower:]'
     cmds:
       - |
-          echo "Current ARCH is {{.ARCH}}"
-          echo "Current OS is {{.OS}}"
-          URL="https://github.com/agntcy/workflow-srv-mgr/releases/download/v{{.WFSM_BIN_VERSION}}/wfsm{{.WFSM_BIN_VERSION}}_{{.OS}}_{{.ARCH}}.tar.gz"
-          echo "Downloading from $URL"
-          echo "Working directory is {{.WFSM_BIN_PATH}}"
-          if ! curl --fail --show-error --create-dirs --location $URL --output "{{.WFSM_BIN_PATH}}/wfsm.tar.gz"; then
-            echo "ARCH or OS not supported"
-            exit 1
-          fi
-          echo "Extracting wfsm binary in {{.WFSM_BIN_PATH}}"
-          tar -xzf "{{.WFSM_BIN_PATH}}/wfsm.tar.gz" -C "{{.WFSM_BIN_PATH}}"
-          rm "{{.WFSM_BIN_PATH}}/wfsm.tar.gz"
-          chmod +x "{{.WFSM_BIN_PATH}}/wfsm"
+        echo "Current ARCH is {{.ARCH}}"
+        echo "Current OS is {{.OS}}"
+        URL="https://github.com/agntcy/workflow-srv-mgr/releases/download/v{{.WFSM_BIN_VERSION}}/wfsm{{.WFSM_BIN_VERSION}}_{{.OS}}_{{.ARCH}}.tar.gz"
+        echo "Downloading from $URL"
+        echo "Working directory is {{.WFSM_BIN_PATH}}"
+        if ! curl --fail --show-error --create-dirs --location $URL --output "{{.WFSM_BIN_PATH}}/wfsm.tar.gz"; then
+          echo "ARCH or OS not supported"
+          exit 1
+        fi
+        echo "Extracting wfsm binary in {{.WFSM_BIN_PATH}}"
+        tar -xzf "{{.WFSM_BIN_PATH}}/wfsm.tar.gz" -C "{{.WFSM_BIN_PATH}}"
+        rm "{{.WFSM_BIN_PATH}}/wfsm.tar.gz"
+        chmod +x "{{.WFSM_BIN_PATH}}/wfsm"
 
   get-marketing-campaign-cfgs:
     desc: Populate marketing campaign config file
@@ -97,14 +96,14 @@ tasks:
       - poetry install --no-root
       - echo "Running wfsm cli"
       - |
-        poetry run python ./tools/wfsm_runner.py \
-          -b ./tools/wfsm \
-          -l ./tools/wfsm.log \
+        poetry run python "{{.WFSM_BIN_PATH}}/wfsm_runner.py" \
+          -b "{{.WFSM_BIN_PATH}}/wfsm" \
+          -l "{{.WFSM_BIN_PATH}}/wfsm.log" \
           -m ./agentic-apps/marketing-campaign/deploy/marketing-campaign.json \
           -c ./marketing-campaign/marketing_campaign_cfg_yaml.env
       - echo "Running the marketing campaign test, waiting workflow server to be ready..."
       - |
         poetry run python ./marketing-campaign/run_marketing_campaign.py \
-          -w ../agentic-apps/marketing-campaign \
-          -l ../../tools/wfsm.log
+          -w ./agentic-apps/marketing-campaign \
+          -l "{{.WFSM_BIN_PATH}}/wfsm.log"
       - echo "test completed successfully"
