@@ -40,7 +40,7 @@ runs:
     - name: Create Kind Cluster
       uses: helm/kind-action@v1
       with:
-        cluster_name: agntcy-test
+        cluster_name: ${{ inputs.kind-cluster-name }}
         wait: 300s
 
     - name: deploy agntcy-agp
