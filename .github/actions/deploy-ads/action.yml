@@ -59,6 +59,7 @@ runs:
           --timeout "15m"
 
     - name: deploy agntcy ADS network bootstrap node
+      id: boostrap-node
       shell: bash
       env:
         DIRECTORY_LOGGER_LOG_LEVEL: ERROR
@@ -111,25 +112,29 @@ runs:
           --wait-for-jobs \
           --timeout "15m"
 
-  # test-env:network:deploy:
-  #   desc: Deploy Directory network peers
-  #   deps:
-  #     - test-env:bootstrap:deploy
-  #   cmds:
-  #     - for:
-  #         matrix:
-  #           PEER: ['peer1', 'peer2', 'peer3']
-  #       cmd: |
-  #         export $(cat .env)
-  #         helm upgrade agntcy-dir \
-  #          oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
-  #           --version {{ .DIRECTORY_CHART_TAG }} \
-  #           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-  #           --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
-  #           --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
-  #           --namespace "{{ .ITEM.PEER }}" \
-  #           --create-namespace \
-  #           --install \
-  #           --wait \
-  #           --wait-for-jobs \
-  #           --timeout "15m"
+    - name: deploy agntcy ADS network nodes
+      shell: bash
+      env:
+        BOOSTRAP_PEER_ID: ${{ steps.boostrap-node.outputs.BOOTSTRAP_PEER_ID }}
+        DIRECTORY_LOGGER_LOG_LEVEL: ERROR
+        DIRECTORY_IMAGE_TAG: ${{ inputs.directory-image-tag }}
+        DIRECTORY_CHART_TAG: ${{ inputs.directory-chart-tag }}
+        KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
+        NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
+        run: |
+          peers=("peer1" "peer2" "peer3")
+          for peer in "${peers[@]}"
+          do
+            helm upgrade agntcy-dir \
+            oci://ghcr.io/agntcy/dir/helm-charts/dir \
+              --version $DIRECTORY_CHART_TAG \
+              --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
+              --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.${NETWORK_NAMESPACE_PREFIX}-bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOSTRAP_PEER_ID}" \
+              --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
+              --namespace "${NETWORK_NAMESPACE_PREFIX}-${peer}" \
+              --create-namespace \
+              --install \
+              --wait \
+              --wait-for-jobs \
+              --timeout "15m"
+          done
