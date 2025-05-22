@@ -12,7 +12,7 @@ A GitHub action to craate a kind cluster and deploy the agntcy/agp into it.
 ## Example Workflow
 
 ```yaml
-name: Deploy AGNTCY Components
+name: Deploy AGNTCY ADS Components
 on:
   push:
     branches:
@@ -30,8 +30,8 @@ jobs:
       - name: Deploy AGNTCY ADS components
         uses: agntcy/csit/.github/actions/deploy-agp
         with:
-          directory-image-tag: '0.3.11'
-          directory-chart-tag: 'v0.1.2'
+          directory-image-tag: 'v0.2.5'
+          directory-chart-tag: 'v0.2.5'
           kind-cluster-name: 'agntcy-test'
           kind-cluster-namespace: 'default'
 ```
