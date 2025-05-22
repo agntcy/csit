@@ -8,6 +8,9 @@ A GitHub action to craate a kind cluster and deploy the agntcy/agp into it.
 - `directory-chart-tag`: Agntcy ADS chart version (default: `v0.2.5`)
 - `kind-cluster-name`: KinD cluster name
 - `kind-cluster-namespace`: Deployment namespace
+- `deploy-dir-network`: Deploy directory network (default: `false`)
+- `dirctl-bin-version`: Dirctl binary version (default: `v0.2.1`)
+- `network-namespace-prefix`: Set cluster namespace where directory network are deployed (default: `network`)
 
 ## Example Workflow
 

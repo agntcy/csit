@@ -21,6 +21,10 @@ inputs:
     description: 'Set cluster namespace where components are deployed'
     required: false
     default: 'default'
+  deploy-dir-network:
+    description: 'Deploy directory network'
+    required: false
+    default: 'false'
   dirctl-bin-version:
     description: 'dirctl binary version'
     required: false
@@ -59,6 +63,7 @@ runs:
           --timeout "15m"
 
     - name: deploy agntcy ADS network bootstrap node
+      if: ${{ inputs.deploy-dir-network == 'true' }}
       id: boostrap-node
       shell: bash
       env:
@@ -114,6 +119,7 @@ runs:
           --timeout "15m"
 
     - name: deploy agntcy ADS network nodes
+      if: ${{ inputs.deploy-dir-network == 'true' }}
       shell: bash
       env:
         BOOSTRAP_PEER_ID: ${{ steps.boostrap-node.outputs.BOOTSTRAP_PEER_ID }}
@@ -151,6 +157,7 @@ runs:
         kubectl get pods -n $KIND_CLUSTER_NAMESPACE
 
     - name: list deployed ADS components
+      if: ${{ inputs.deploy-dir-network == 'true' }}
       shell: bash
       env:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
