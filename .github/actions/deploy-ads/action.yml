@@ -121,20 +121,20 @@ runs:
         DIRECTORY_CHART_TAG: ${{ inputs.directory-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
-        run: |
-          peers=("peer1" "peer2" "peer3")
-          for peer in "${peers[@]}"
-          do
-            helm upgrade agntcy-dir \
-            oci://ghcr.io/agntcy/dir/helm-charts/dir \
-              --version $DIRECTORY_CHART_TAG \
-              --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
-              --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.${NETWORK_NAMESPACE_PREFIX}-bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOSTRAP_PEER_ID}" \
-              --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
-              --namespace "${NETWORK_NAMESPACE_PREFIX}-${peer}" \
-              --create-namespace \
-              --install \
-              --wait \
-              --wait-for-jobs \
-              --timeout "15m"
-          done
+      run: |
+        peers=("peer1" "peer2" "peer3")
+        for peer in "${peers[@]}"
+        do
+          helm upgrade agntcy-dir \
+          oci://ghcr.io/agntcy/dir/helm-charts/dir \
+            --version $DIRECTORY_CHART_TAG \
+            --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
+            --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.${NETWORK_NAMESPACE_PREFIX}-bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOSTRAP_PEER_ID}" \
+            --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
+            --namespace "${NETWORK_NAMESPACE_PREFIX}-${peer}" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        done
