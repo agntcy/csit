@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy AGNTCY ADS components
-        uses: agntcy/csit/.github/actions/deploy-agp
+        uses: agntcy/csit/.github/actions/deploy-ads
         with:
           directory-image-tag: 'v0.2.5'
           directory-chart-tag: 'v0.2.5'
