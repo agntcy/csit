@@ -8,11 +8,23 @@ inputs:
   gateway-image-tag:
     description: 'Set gateway container image version'
     required: false
-    default: ''
+    default: '0.3.14'
+  mcp-proxy-deploy:
+    description: 'Deploy MCP proxy'
+    required: false
+    default: 'false'
+  mcp-proxy-image-tag:
+    description: 'Set mcp proxy container image version'
+    required: false
+    default: '0.1.4'
+  mcp-server-addr:
+    description: 'Set mcp server address'
+    required: false
+    default: 'http://mcp-server:8000/sse'
   gateway-chart-tag:
     description: 'Set gateway chart version'
     required: false
-    default: ''
+    default: 'v0.1.4'
   kind-cluster-name:
     description: 'Set kind cluster name where components are deployed'
     required: false
@@ -35,6 +47,9 @@ runs:
       shell: bash
       env:
         GATEWAY_IMAGE_TAG: ${{ inputs.gateway-image-tag }}
+        MCP_PROXY_IMAGE_TAG: ${{ inputs.mcp-proxy-image-tag }}
+        MCP_PROXY_DEPLOY: ${{ inputs.mcp-proxy-deploy }}
+        MCP_SERVER_ADDR: ${{ inputs.mcp-server-addr }}
         GATEWAY_CHART_TAG: ${{ inputs.gateway-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
@@ -42,7 +57,10 @@ runs:
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         helm upgrade agntcy-agp oci://ghcr.io/agntcy/agp/helm/agp \
           --version $GATEWAY_CHART_TAG \
-          --set image.tag="${GATEWAY_IMAGE_TAG}" \
+          --set gw.image.tag="${GATEWAY_IMAGE_TAG}" \
+          --set mcpProxy.enabled="${MCP_PROXY_DEPLOY}"
+          --set mcpProxy.image.tag="${MCP_PROXY_IMAGE_TAG}" \
+          --set mcpProxy.args.mcpServer="${MCP_SERVER_ADDR}" \
           --namespace $KIND_CLUSTER_NAMESPACE \
           --create-namespace \
           --install \
