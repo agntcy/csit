@@ -33,6 +33,10 @@ inputs:
     description: 'Set cluster namespace where directory network are deployed'
     required: false
     default: 'network'
+  network-size:
+    description: 'Number of directory network peers'
+    required: false
+    default: '3'
 
 runs:
   using: 'composite'
@@ -144,8 +148,7 @@ runs:
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
-        peers=("peer1" "peer2" "peer3")
-        for peer in "${peers[@]}"
+        for i in $(seq 1 $NETWORK_SIZE)
         do
           helm upgrade agntcy-dir \
           oci://ghcr.io/agntcy/dir/helm-charts/dir \
@@ -153,7 +156,7 @@ runs:
             --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.${NETWORK_NAMESPACE_PREFIX}-bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOSTRAP_PEER_ID}" \
             --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
-            --namespace "${NETWORK_NAMESPACE_PREFIX}-${peer}" \
+            --namespace "${NETWORK_NAMESPACE_PREFIX}-peer${i}" \
             --create-namespace \
             --install \
             --wait \
@@ -176,11 +179,11 @@ runs:
       env:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
+        NETWORK_SIZE: ${{ inputs.network-size }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         kubectl get pods -n ${NETWORK_NAMESPACE_PREFIX}-bootstrap
-        peers=("peer1" "peer2" "peer3")
-        for peer in "${peers[@]}"
+        for i in $(seq 1 $NETWORK_SIZE)
         do
-          kubectl get pods -n ${NETWORK_NAMESPACE_PREFIX}-$peer
+          kubectl get pods -n ${NETWORK_NAMESPACE_PREFIX}-peer$i
         done
