@@ -146,6 +146,7 @@ runs:
         DIRECTORY_CHART_TAG: ${{ inputs.directory-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
+        NETWORK_SIZE: ${{ inputs.network-size }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         for i in $(seq 1 $NETWORK_SIZE)
