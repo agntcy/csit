@@ -50,6 +50,9 @@ runs:
         DIRECTORY_CHART_TAG: ${{ inputs.directory-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
+        GH_TOKEN: ${{ github.token }}
+        ARCH: ${{ runner.arch }}
+        OS: ${{ runner.os }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         helm upgrade agntcy-ads oci://ghcr.io/agntcy/dir/helm-charts/dir \
@@ -91,8 +94,6 @@ runs:
                 # to the network.
                 bootstrap_peers: []
         EOF
-        ARCH="${{ runner.arch }}"
-        OS="${{ runner.os }}"
         gh release download ${DIRCTL_BIN_VERSION} --repo agntcy/dir --pattern "dirctl-${OS}-${ARCH}*" --skip-existing --output "/tmp/dirctl" && \
         chmod +x "/tmp/dirctl"
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
