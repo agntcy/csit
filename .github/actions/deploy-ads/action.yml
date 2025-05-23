@@ -91,14 +91,9 @@ runs:
                 # to the network.
                 bootstrap_peers: []
         EOF
-        URL=https://github.com/agntcy/dir/releases/download/${DIRCTL_BIN_VERSION}/dirctl-linux-amd64
-        echo $URL
-        curl \
-          --fail \
-          --show-error \
-          --create-dirs \
-          --location $URL \
-          --output "/tmp/dirctl" && \
+        ARCH="${{ runner.arch }}"
+        OS="${{ runner.os }}"
+        gh release download ${DIRCTL_BIN_VERSION} --repo agntcy/dir --pattern "dirctl-${OS}-${ARCH}*" --skip-existing --output "/tmp/dirctl" && \
         chmod +x "/tmp/dirctl"
         test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
         bootstrap_peerid=$(/tmp/dirctl network info /tmp/node.privkey)
