@@ -11,6 +11,7 @@ A GitHub action to craate a kind cluster and deploy the agntcy/agp into it.
 - `deploy-dir-network`: Deploy directory network (default: `false`)
 - `dirctl-bin-version`: Dirctl binary version (default: `v0.2.1`)
 - `network-namespace-prefix`: Set cluster namespace where directory network are deployed (default: `network`)
+- `network-size`: Number of directory network peers (default: `3`)
 
 ## Example Workflow
 
