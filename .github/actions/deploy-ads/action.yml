@@ -50,9 +50,6 @@ runs:
         DIRECTORY_CHART_TAG: ${{ inputs.directory-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
-        GH_TOKEN: ${{ github.token }}
-        ARCH: ${{ runner.arch }}
-        OS: ${{ runner.os }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         helm upgrade agntcy-ads oci://ghcr.io/agntcy/dir/helm-charts/dir \
@@ -76,6 +73,9 @@ runs:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
         DIRCTL_BIN_VERSION: ${{ inputs.dirctl-bin-version }}
+        GH_TOKEN: ${{ github.token }}
+        ARCH: ${{ runner.arch }}
+        OS: ${{ runner.os }}
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         cat <<EOF > /tmp/bootstrap.yaml
