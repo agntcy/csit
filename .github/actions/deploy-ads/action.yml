@@ -86,6 +86,7 @@ runs:
         esac
 
     - name: deploy agntcy ADS network bootstrap node
+      if: ${{ inputs.deploy-dir-network == 'true' }}
       id: boostrap-node
       shell: bash
       env:
@@ -138,6 +139,7 @@ runs:
           --timeout "15m"
 
     - name: deploy agntcy ADS network nodes
+      if: ${{ inputs.deploy-dir-network == 'true' }}
       shell: bash
       env:
         BOOSTRAP_PEER_ID: ${{ steps.boostrap-node.outputs.BOOTSTRAP_PEER_ID }}
