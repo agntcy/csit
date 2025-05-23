@@ -62,8 +62,26 @@ runs:
           --wait-for-jobs \
           --timeout "15m"
 
-    - name: deploy agntcy ADS network bootstrap node
+
+    - name: Set OS and Architecture variables
       if: ${{ inputs.deploy-dir-network == 'true' }}
+      id: os_arch
+      shell: bash
+      run: |
+        # Convert OS
+        case "${{ runner.os }}" in
+          Linux) echo "os=linux" >> $GITHUB_OUTPUT ;;
+          Windows) echo "os=windows" >> $GITHUB_OUTPUT ;;
+          macOS) echo "os=darwin" >> $GITHUB_OUTPUT ;;
+        esac
+
+        # Convert Architecture
+        case "${{ runner.arch }}" in
+          X64) echo "arch=amd64" >> $GITHUB_OUTPUT ;;
+          ARM64) echo "arch=arm64" >> $GITHUB_OUTPUT ;;
+        esac
+
+    - name: deploy agntcy ADS network bootstrap node
       id: boostrap-node
       shell: bash
       env:
@@ -74,8 +92,8 @@ runs:
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
         DIRCTL_BIN_VERSION: ${{ inputs.dirctl-bin-version }}
         GH_TOKEN: ${{ github.token }}
-        ARCH: ${{ runner.arch }}
-        OS: ${{ runner.os }}
+        ARCH: ${{ steps.os_arch.outputs.arch }}"
+        OS: ${{ steps.os_arch.outputs.os }}"
       run: |
         kubectl config use-context kind-$KIND_CLUSTER_NAME
         cat <<EOF > /tmp/bootstrap.yaml
@@ -116,7 +134,6 @@ runs:
           --timeout "15m"
 
     - name: deploy agntcy ADS network nodes
-      if: ${{ inputs.deploy-dir-network == 'true' }}
       shell: bash
       env:
         BOOSTRAP_PEER_ID: ${{ steps.boostrap-node.outputs.BOOTSTRAP_PEER_ID }}
