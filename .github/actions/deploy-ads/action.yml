@@ -55,7 +55,6 @@ runs:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         helm upgrade agntcy-ads oci://ghcr.io/agntcy/dir/helm-charts/dir \
           --version $DIRECTORY_CHART_TAG \
           --set image.tag="${DIRECTORY_IMAGE_TAG}" \
@@ -100,7 +99,6 @@ runs:
         ARCH: ${{ steps.os_arch.outputs.arch }}
         OS: ${{ steps.os_arch.outputs.os }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         cat <<EOF > /tmp/bootstrap.yaml
           apiserver:
             config:
@@ -150,7 +148,6 @@ runs:
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
         NETWORK_SIZE: ${{ inputs.network-size }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         for i in $(seq 1 $NETWORK_SIZE)
         do
           helm upgrade agntcy-dir \
@@ -173,7 +170,6 @@ runs:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         kubectl get pods -n $KIND_CLUSTER_NAMESPACE
 
     - name: list deployed ADS components
@@ -184,7 +180,6 @@ runs:
         NETWORK_NAMESPACE_PREFIX: ${{ inputs.network-namespace-prefix }}
         NETWORK_SIZE: ${{ inputs.network-size }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         kubectl get pods -n ${NETWORK_NAMESPACE_PREFIX}-bootstrap
         for i in $(seq 1 $NETWORK_SIZE)
         do

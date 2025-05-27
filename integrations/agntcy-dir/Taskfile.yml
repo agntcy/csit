@@ -67,7 +67,6 @@ tasks:
     desc: Deploy Agntcy directory test env
     cmds:
       - |
-        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
         helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
@@ -83,8 +82,7 @@ tasks:
   test-env:cleanup:
     desc: Remove agntcy directory test env
     cmds:
-      - kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
-        helm delete --ignore-not-found --namespace {{ .DIRECTORY_NAMESPACE }} agntcy-dir
+      - helm delete --ignore-not-found --namespace {{ .DIRECTORY_NAMESPACE }} agntcy-dir
 
   test-env:bootstrap:deploy:
     desc: Deploy Directory network peers

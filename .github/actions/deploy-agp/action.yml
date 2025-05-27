@@ -54,7 +54,6 @@ runs:
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
       run: |
-        kubectl config use-context kind-$KIND_CLUSTER_NAME
         helm upgrade agntcy-agp oci://ghcr.io/agntcy/agp/helm/agp \
           --version $GATEWAY_CHART_TAG \
           --set gw.image.tag="${GATEWAY_IMAGE_TAG}" \

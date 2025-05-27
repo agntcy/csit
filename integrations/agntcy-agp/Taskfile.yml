@@ -47,7 +47,6 @@ tasks:
     desc: Deploy agntcy gateway test env
     cmds:
       - |
-        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
         helm upgrade agntcy-agp \
           oci://{{ .IMAGE_REPO }}/agp/helm/agp \
           --version {{ .GATEWAY_CHART_TAG }} \
@@ -65,7 +64,6 @@ tasks:
     desc: Remove agent gateway test env
     cmds:
       - |
-        kubectl config use-context kind-{{ .KIND_CLUSTER_NAME }} &&
         helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
 
   build:agentic-apps:
