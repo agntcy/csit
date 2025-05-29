@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.5...agentic-apps-v0.0.6) (2025-05-29)
+
+
+### Bug Fixes
+
+* reduce agentic app image size ([#104](https://github.com/agntcy/csit/issues/104)) ([ef2dd9e](https://github.com/agntcy/csit/commit/ef2dd9e04791b9eeb41daa9fe2260ed14540c57b))
+
 ## [0.0.5](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.4...agentic-apps-v0.0.5) (2025-04-14)
 
 
