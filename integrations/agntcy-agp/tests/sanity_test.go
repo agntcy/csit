@@ -51,9 +51,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 			createdPod, err := k8sHelper.WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
-			}).WithCommand([]string{"poetry"}).WithArgs([]string{
-				"run",
-				"python",
+			}).WithCommand([]string{"python"}).WithArgs([]string{
 				"autogen_agent.py",
 				"-g",
 				"http://agntcy-agp:46357",
@@ -79,9 +77,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 			createdJob, err := k8sHelper.WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
-			}).WithCommand([]string{"poetry"}).WithArgs([]string{
-				"run",
-				"python",
+			}).WithCommand([]string{"python"}).WithArgs([]string{
 				"langchain_agent.py",
 				"-m",
 				"Budapest",
