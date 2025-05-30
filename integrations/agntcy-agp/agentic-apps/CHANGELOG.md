@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.9](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.8...agentic-apps-v0.0.9) (2025-05-30)
+
+
+### Bug Fixes
+
+* AGP  agentic apps update usage of agp_bindings ([#111](https://github.com/agntcy/csit/issues/111)) ([e87161f](https://github.com/agntcy/csit/commit/e87161fb770599167cf9152f13b0b3b6ccaba6d7))
+
 ## [0.0.8](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.7...agentic-apps-v0.0.8) (2025-05-30)
 
 
