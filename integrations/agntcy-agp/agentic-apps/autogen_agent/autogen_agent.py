@@ -6,7 +6,6 @@ from simple_agentic_app.simple_agentic_app import simple_autogen_app
 
 import argparse
 import agp_bindings
-from agp_bindings import GatewayConfig
 
 
 async def run_agent(message, address, iterations):
@@ -23,13 +22,9 @@ async def run_agent(message, address, iterations):
     # create new gateway object
     gateway = await agp_bindings.Gateway.new(local_organization, local_namespace, local_agent)
 
-    # Configure gateway
-    config = GatewayConfig(endpoint=address, insecure=True)
-    gateway.configure(config)
-
     # Connect to remote gateway server
     print(f"connecting to: {address}")
-    _ = await gateway.connect()
+    _ = await gateway.connect({"endpoint": address, "tls": {"insecure": True}})
 
     # Get the local agent instance from env
     instance = "autogen_instance"
@@ -40,7 +35,9 @@ async def run_agent(message, address, iterations):
             await gateway.set_route(remote_organization, remote_namespace, remote_agent)
 
             # create a session
-            session = await gateway.create_ff_session(agp_bindings.PyFireAndForgetConfiguration())
+            session = await gateway.create_session(
+                agp_bindings.PySessionConfiguration.RequestResponse()
+            )
 
             for i in range(0, iterations):
                 try:
