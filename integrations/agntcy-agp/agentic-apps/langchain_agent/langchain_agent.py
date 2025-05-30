@@ -9,7 +9,6 @@ from simple_weather_agent.simple_weather_agent import (
 
 import argparse
 import agp_bindings
-import agp_bindings
 
 
 async def run_agent(message, address, iterations):
