@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.7...agentic-apps-v0.0.8) (2025-05-30)
+
+
+### Bug Fixes
+
+* python packages ([#109](https://github.com/agntcy/csit/issues/109)) ([f198196](https://github.com/agntcy/csit/commit/f198196e12267ae2ee03e754f66f38f8c02b7cbd))
+
 ## [0.0.7](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.6...agentic-apps-v0.0.7) (2025-05-30)
 
 
