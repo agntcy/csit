@@ -5,7 +5,7 @@ import asyncio
 from simple_agentic_app.simple_agentic_app import simple_autogen_app
 
 import argparse
-import agp_bindings
+import slim_bindings
 
 
 async def run_agent(message, address, iterations):
@@ -20,7 +20,7 @@ async def run_agent(message, address, iterations):
     remote_agent = "langchain"
 
     # create new gateway object
-    gateway = await agp_bindings.Gateway.new(local_organization, local_namespace, local_agent)
+    gateway = await slim_bindings.Gateway.new(local_organization, local_namespace, local_agent)
 
     # Connect to remote gateway server
     print(f"connecting to: {address}")
@@ -36,7 +36,7 @@ async def run_agent(message, address, iterations):
 
             # create a session
             session = await gateway.create_session(
-                agp_bindings.PySessionConfiguration.RequestResponse()
+                slim_bindings.PySessionConfiguration.RequestResponse()
             )
 
             for i in range(0, iterations):

@@ -8,7 +8,7 @@ from simple_weather_agent.simple_weather_agent import (
 )
 
 import argparse
-import agp_bindings
+import slim_bindings
 
 
 async def run_agent(message, address, iterations):
@@ -23,7 +23,7 @@ async def run_agent(message, address, iterations):
     remote_agent = "autogen"
 
     # create new gateway object
-    gateway = await agp_bindings.Gateway.new(local_organization, local_namespace, local_agent)
+    gateway = await slim_bindings.Gateway.new(local_organization, local_namespace, local_agent)
 
     # Connect to remote gateway server
     print(f"connecting to: {address}")
@@ -39,7 +39,7 @@ async def run_agent(message, address, iterations):
 
             # create a session
             session = await gateway.create_session(
-                agp_bindings.PySessionConfiguration.FireAndForget()
+                slim_bindings.PySessionConfiguration.FireAndForget()
             )
 
             for i in range(0, iterations):
