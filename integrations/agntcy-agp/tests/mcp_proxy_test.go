@@ -29,8 +29,8 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 
 	ginkgo.BeforeEach(func() {
 		// Setup MCP server test images
-		llamaindexTimeAgentImage = fmt.Sprintf("%s/agp/llamaindex-time-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LLAMAINDEX_TIME_AGENT_TAG"))
-		mcpServerTimeImage = fmt.Sprintf("%s/agp/mcp-server-time:%s", os.Getenv("IMAGE_REPO"), os.Getenv("MCP_SERVER_TIME_TAG"))
+		llamaindexTimeAgentImage = fmt.Sprintf("%s/slim/llamaindex-time-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LLAMAINDEX_TIME_AGENT_TAG"))
+		mcpServerTimeImage = fmt.Sprintf("%s/slim/mcp-server-time:%s", os.Getenv("IMAGE_REPO"), os.Getenv("MCP_SERVER_TIME_TAG"))
 
 		// Setup LLM credentials
 		azure_openapi_api_key = os.Getenv("AZURE_OPENAI_API_KEY")

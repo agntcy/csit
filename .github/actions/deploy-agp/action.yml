@@ -5,10 +5,10 @@
 name: Deploy agntcy Slim components
 description: Deploy agntcy Slim components
 inputs:
-  gateway-image-tag:
-    description: 'Set gateway container image version'
+  slim-image-tag:
+    description: 'Set slim container image version'
     required: false
-    default: '0.3.14'
+    default: '0.3.15'
   mcp-proxy-deploy:
     description: 'Deploy MCP proxy'
     required: false
@@ -16,15 +16,15 @@ inputs:
   mcp-proxy-image-tag:
     description: 'Set mcp proxy container image version'
     required: false
-    default: '0.1.4'
+    default: '0.1.5'
   mcp-server-addr:
     description: 'Set mcp server address'
     required: false
     default: 'http://mcp-server:8000/sse'
-  gateway-chart-tag:
-    description: 'Set gateway chart version'
+  slim-chart-tag:
+    description: 'Set slim chart version'
     required: false
-    default: 'v0.1.4'
+    default: 'v0.1.5'
   kind-cluster-name:
     description: 'Set kind cluster name where components are deployed'
     required: false
@@ -46,17 +46,17 @@ runs:
     - name: deploy agntcy Slim
       shell: bash
       env:
-        GATEWAY_IMAGE_TAG: ${{ inputs.gateway-image-tag }}
+        SLIM_IMAGE_TAG: ${{ inputs.slim-image-tag }}
         MCP_PROXY_IMAGE_TAG: ${{ inputs.mcp-proxy-image-tag }}
         MCP_PROXY_DEPLOY: ${{ inputs.mcp-proxy-deploy }}
         MCP_SERVER_ADDR: ${{ inputs.mcp-server-addr }}
-        GATEWAY_CHART_TAG: ${{ inputs.gateway-chart-tag }}
+        SLIM_CHART_TAG: ${{ inputs.slim-chart-tag }}
         KIND_CLUSTER_NAME: ${{ inputs.kind-cluster-name }}
         KIND_CLUSTER_NAMESPACE: ${{ inputs.kind-cluster-namespace }}
       run: |
-        helm upgrade agntcy-slim oci://ghcr.io/agntcy/slim/helm/agp \
-          --version $GATEWAY_CHART_TAG \
-          --set gw.image.tag="${GATEWAY_IMAGE_TAG}" \
+        helm upgrade agntcy-slim oci://ghcr.io/agntcy/slim/helm/slim \
+          --version $SLIM_CHART_TAG \
+          --set gw.image.tag="${SLIM_IMAGE_TAG}" \
           --set mcpProxy.enabled="${MCP_PROXY_DEPLOY}"
           --set mcpProxy.image.tag="${MCP_PROXY_IMAGE_TAG}" \
           --set mcpProxy.args.mcpServer="${MCP_SERVER_ADDR}" \

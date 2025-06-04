@@ -15,7 +15,7 @@
 ## Architecture
 
 Agncty CSIT system design needs to meet continuously expanding requirements of
-Agntcy projects including Agent Gateway Protocol, Agent Directory and many more.
+Agntcy projects including Slim Protocol, Agent Directory and many more.
 
 The directory structure of the CSIT:
 
@@ -103,7 +103,7 @@ task: Available tasks for this project:
 * integrations:gateway:test-env:cleanup:                  Remove agent gateway test env
 * integrations:gateway:test-env:deploy:                   Deploy agntcy gateway test env
 * integrations:gateway:test:mcp-server:                   Test MCP over Slim
-* integrations:gateway:test:mcp-server:agp-native:        Test Slim native MCP server
+* integrations:gateway:test:mcp-server:slim-native:       Test Slim native MCP server
 * integrations:gateway:test:mcp-server:mcp-proxy:         Test MCP server via MCP proxy
 * integrations:gateway:test:sanity:                       Sanity gateway test
 * integrations:kind:create:                               Create kind cluster

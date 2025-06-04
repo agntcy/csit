@@ -11,9 +11,9 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG | default "0.3.15" }}'
-  MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.4" }}'
-  GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG | default "v0.1.4" }}'
+  GATEWAY_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.3.15" }}'
+  MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
+  GATEWAY_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.5" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.9" }}'
@@ -48,9 +48,9 @@ tasks:
     cmds:
       - |
         helm upgrade agntcy-slim \
-          oci://{{ .IMAGE_REPO }}/agp/helm/agp \
-          --version {{ .GATEWAY_CHART_TAG }} \
-          --set gw.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
+          oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
           --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
           --namespace {{ .HELM_NAMESPACE }} \
@@ -61,7 +61,7 @@ tasks:
           --timeout "15m"
 
   test-env:cleanup:
-    desc: Remove agent gateway test env
+    desc: Remove agent slim test env
     cmds:
       - |
         helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-slim
@@ -82,7 +82,7 @@ tasks:
     cmds:
       - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over Slim test"
 
-  test:mcp-server:agp-native:
+  test:mcp-server:slim-native:
     desc: Test Slim native MCP server
     cmds:
       - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim native MCP server"
