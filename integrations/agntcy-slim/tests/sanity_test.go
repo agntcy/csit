@@ -53,7 +53,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
 			}).WithCommand([]string{"python"}).WithArgs([]string{
 				"autogen_agent.py",
-				"-g",
+				"-s",
 				"http://agntcy-slim:46357",
 			}).CreatePod()
 
@@ -81,7 +81,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 				"langchain_agent.py",
 				"-m",
 				"Budapest",
-				"-g",
+				"-s",
 				"http://agntcy-slim:46357",
 			}).CreateJob()
 
