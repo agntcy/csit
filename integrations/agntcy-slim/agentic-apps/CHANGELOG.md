@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.9...agentic-apps-v0.0.10) (2025-06-04)
+
+
+### Bug Fixes
+
+* trigger slim apps release ([#115](https://github.com/agntcy/csit/issues/115)) ([d703944](https://github.com/agntcy/csit/commit/d703944730dcd8b091d31eed6f4c27f34428383f))
+
 ## [0.0.9](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.8...agentic-apps-v0.0.9) (2025-05-30)
 
 
