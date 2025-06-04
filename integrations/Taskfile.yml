@@ -13,8 +13,8 @@ includes:
     excludes: [ default ]
     vars:
       KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
-      GATEWAY_IMAGE_TAG: '{{ .GATEWAY_IMAGE_TAG }}'
-      GATEWAY_CHART_TAG: '{{ .GATEWAY_CHART_TAG }}'
+      SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
+      SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
 
   directory:

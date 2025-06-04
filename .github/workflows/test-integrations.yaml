@@ -22,11 +22,11 @@ on:
         required: false
         default: ''
       override_slim_image_tag:
-        description: 'Override Gateway image tag'
+        description: 'Override Slim image tag'
         required: false
         default: ''
       override_slim_chart_tag:
-        description: 'Override Gateway chart tag'
+        description: 'Override Slim chart tag'
         required: false
         default: ''
       skip_directory_test:
@@ -96,7 +96,7 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Deploy Gateway
+      - name: Deploy Slim
         uses: ./.github/actions/deploy-components
         with:
           deploy-slim: 'true'

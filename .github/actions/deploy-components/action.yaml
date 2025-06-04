@@ -104,13 +104,13 @@ runs:
         task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
-    - name: Deploy Gateway
+    - name: Deploy Slim
       if: ${{ inputs.deploy-slim != 'false' }}
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy \
-          GATEWAY_IMAGE_TAG=${{ inputs.slim-image-tag }} \
-          GATEWAY_CHART_TAG=${{ inputs.slim-chart-tag }} \
+          SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
+          SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 

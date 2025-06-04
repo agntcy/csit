@@ -10,7 +10,7 @@ import (
 
 var _ = ginkgo.Describe("Benchmarking slim", func() {
 	ginkgo.It("Measures slim test run 10 times", func() {
-		experiment := gmeasure.NewExperiment("Gateway Benchmark")
+		experiment := gmeasure.NewExperiment("Slim Benchmark")
 		experiment.SampleDuration("slim test", func(_ int) {
 			runTest()
 		}, gmeasure.SamplingConfig{N: 10})
