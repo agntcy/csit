@@ -32,7 +32,7 @@ csit
 │   ├── go.sum
 │   └── Taskfile.yml
 ├── integrations                                  # Integration tests
-│   ├── agntcy-slim                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
+│   ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
 │   │   ├── agentic-apps
 │   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   │   └── tests
@@ -133,7 +133,7 @@ Inside csit integrations directory contains the tasks that creating the test
 environment, deploying the components that will be tested, and running the tests.
 
 ```
-├── agntcy-slim                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
+├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
 │   ├── agentic-apps
 │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   └── tests

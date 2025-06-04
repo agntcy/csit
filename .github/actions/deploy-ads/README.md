@@ -1,6 +1,6 @@
 # AGNTCY ADS deploy action
 
-A GitHub action to craate a kind cluster and deploy the agntcy/agp into it.
+A GitHub action to craate a kind cluster and deploy the agntcy/slim into it.
 
 ## Inputs:
 
