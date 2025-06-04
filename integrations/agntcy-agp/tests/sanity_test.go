@@ -54,7 +54,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 			}).WithCommand([]string{"python"}).WithArgs([]string{
 				"autogen_agent.py",
 				"-g",
-				"http://agntcy-agp:46357",
+				"http://agntcy-slim:46357",
 			}).CreatePod()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create MCP time server pod")
@@ -82,7 +82,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 				"-m",
 				"Budapest",
 				"-g",
-				"http://agntcy-agp:46357",
+				"http://agntcy-slim:46357",
 			}).CreateJob()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create Llamaindext time agent job")

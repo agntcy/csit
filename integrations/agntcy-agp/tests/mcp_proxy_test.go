@@ -55,7 +55,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 				"--local-timezone",
 				"America/New_York",
 				"--config",
-				`{"endpoint":"http://agntcy-agp:46357","tls":{"insecure":true}}`,
+				`{"endpoint":"http://agntcy-slim:46357","tls":{"insecure":true}}`,
 			}).CreatePod()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create MCP time server pod")
@@ -82,7 +82,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 				"--city",
 				"New York",
 				"--config",
-				`{"endpoint":"http://agntcy-agp:46357","tls":{"insecure":true}}`,
+				`{"endpoint":"http://agntcy-slim:46357","tls":{"insecure":true}}`,
 			}).CreateJob()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create Llamaindext time agent job")
@@ -109,7 +109,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 				"--local-timezone",
 				"America/New_York",
 				"--config",
-				`{"endpoint":"http://agntcy-agp:46357","tls":{"insecure":true}}`,
+				`{"endpoint":"http://agntcy-slim:46357","tls":{"insecure":true}}`,
 				"--transport",
 				"sse",
 			}).WithContainerPorts([]int32{
@@ -149,7 +149,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 				"--city",
 				"New York",
 				"--config",
-				`{"endpoint":"http://agntcy-agp:46357","tls":{"insecure":true}}`,
+				`{"endpoint":"http://agntcy-slim:46357","tls":{"insecure":true}}`,
 				"--mcp-server-organization",
 				"org",
 				"--mcp-server-namespace",

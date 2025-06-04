@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy AGNTCY Slim components
-        uses: agntcy/csit/.github/actions/deploy-agp
+        uses: agntcy/csit/.github/actions/deploy-slim
         with:
           gateway-image-tag: '0.3.14'
           gateway-chart-tag: 'v0.1.4'

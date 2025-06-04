@@ -35,19 +35,19 @@ tasks:
   k8s:port-forward:setup:
     internal: true
     cmds:
-      - kubectl port-forward svc/agntcy-agp -n {{ .HELM_NAMESPACE }} 46357 &
+      - kubectl port-forward svc/agntcy-slim -n {{ .HELM_NAMESPACE }} 46357 &
       - sleep 1
 
   k8s:port-forward:teardown:
     internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-agp | awk '{print $2}') || true
+      - kill -9 $(ps aux | grep port-forward | grep agntcy-slim | awk '{print $2}') || true
 
   test-env:deploy:
     desc: Deploy agntcy gateway test env
     cmds:
       - |
-        helm upgrade agntcy-agp \
+        helm upgrade agntcy-slim \
           oci://{{ .IMAGE_REPO }}/agp/helm/agp \
           --version {{ .GATEWAY_CHART_TAG }} \
           --set gw.image.tag="{{ .GATEWAY_IMAGE_TAG }}" \
@@ -64,7 +64,7 @@ tasks:
     desc: Remove agent gateway test env
     cmds:
       - |
-        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-agp
+        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-slim
 
   build:agentic-apps:
     desc: Build agentic containers

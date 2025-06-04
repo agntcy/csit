@@ -22,7 +22,7 @@ The directory structure of the CSIT:
 ```
 csit
 ├── benchmarks                                    # Benchmark tests
-│   ├── agntcy-agp                                # Benchmark tests for Slim
+│   ├── agntcy-slim                                # Benchmark tests for Slim
 │   │   ├── Taskfile.yml                          # Tasks for Slim benchmark tests
 │   │   └── tests
 │   ├── agntcy-dir                                # Benchmark tests for ADS
@@ -32,7 +32,7 @@ csit
 │   ├── go.sum
 │   └── Taskfile.yml
 ├── integrations                                  # Integration tests
-│   ├── agntcy-agp                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
+│   ├── agntcy-slim                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
 │   │   ├── agentic-apps
 │   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   │   └── tests
@@ -133,7 +133,7 @@ Inside csit integrations directory contains the tasks that creating the test
 environment, deploying the components that will be tested, and running the tests.
 
 ```
-├── agntcy-agp                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
+├── agntcy-slim                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
 │   ├── agentic-apps
 │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   └── tests

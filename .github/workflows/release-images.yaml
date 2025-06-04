@@ -47,7 +47,7 @@ jobs:
         id: all-targets
         uses: docker/bake-action/subaction/list-targets@a4d7f0b5b91c14a296d792d4ec53a9db17f02e67 # v5.5.0
         with:
-          workdir: ./integrations/agntcy-agp/agentic-apps
+          workdir: ./integrations/agntcy-slim/agentic-apps
 
   build-push:
     name: Build docker image - ${{ matrix.target }}
@@ -66,7 +66,7 @@ jobs:
       bake-target: ${{ matrix.target }}
       image-name: ${{ matrix.target }}
       image-tag: ${{ needs.prepare-build.outputs.image-tag }}
-      workdir: ./integrations/agntcy-agp/agentic-apps
+      workdir: ./integrations/agntcy-slim/agentic-apps
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 
