@@ -11,6 +11,6 @@ tasks:
     cmd: task -l
 
   test:
-    desc: All AGP benchmark test
+    desc: All Slim benchmark test
     cmds:
       - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v

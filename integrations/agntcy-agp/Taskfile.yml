@@ -78,14 +78,14 @@ tasks:
       - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy gateway sanity test"
 
   test:mcp-server:
-    desc: Test MCP over AGP
+    desc: Test MCP over Slim
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over AGP test"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over Slim test"
 
   test:mcp-server:agp-native:
-    desc: Test AGP native MCP server
+    desc: Test Slim native MCP server
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "AGP native MCP server"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim native MCP server"
 
   test:mcp-server:mcp-proxy:
     desc: Test MCP server via MCP proxy

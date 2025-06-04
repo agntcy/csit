@@ -22,8 +22,8 @@ The directory structure of the CSIT:
 ```
 csit
 ├── benchmarks                                    # Benchmark tests
-│   ├── agntcy-agp                                # Benchmark tests for AGP
-│   │   ├── Taskfile.yml                          # Tasks for AGP benchmark tests
+│   ├── agntcy-agp                                # Benchmark tests for Slim
+│   │   ├── Taskfile.yml                          # Tasks for Slim benchmark tests
 │   │   └── tests
 │   ├── agntcy-dir                                # Benchmark tests for ADS
 │   │   ├── Taskfile.yml                          # Tasks for ADS benchmark tests
@@ -34,7 +34,7 @@ csit
 ├── integrations                                  # Integration tests
 │   ├── agntcy-agp                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
 │   │   ├── agentic-apps
-│   │   ├── Taskfile.yml                          # Tasks for AGP integration tests
+│   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   │   └── tests
 │   ├── agntcy-apps                               # Integration tests for ([agntcy/agentic-apps](https://github.com/agntcy/agentic-apps))
 │   │   ├── agentic-apps
@@ -81,7 +81,7 @@ The following tasks are defined:
 ```bash
 task: Available tasks for this project:
 * benchmarks:directory:test:                              All ADS benchmark test
-* benchmarks:gateway:test:                                All AGP benchmark test
+* benchmarks:gateway:test:                                All Slim benchmark test
 * integrations:apps:download:wfsm-bin:                    Get wfsm binary from GitHub
 * integrations:apps:get-marketing-campaign-cfgs:          Populate marketing campaign config file
 * integrations:apps:init-submodules:                      Initialize submodules
@@ -102,8 +102,8 @@ task: Available tasks for this project:
 * integrations:gateway:build:agentic-apps:                Build agentic containers
 * integrations:gateway:test-env:cleanup:                  Remove agent gateway test env
 * integrations:gateway:test-env:deploy:                   Deploy agntcy gateway test env
-* integrations:gateway:test:mcp-server:                   Test MCP over AGP
-* integrations:gateway:test:mcp-server:agp-native:        Test AGP native MCP server
+* integrations:gateway:test:mcp-server:                   Test MCP over Slim
+* integrations:gateway:test:mcp-server:agp-native:        Test Slim native MCP server
 * integrations:gateway:test:mcp-server:mcp-proxy:         Test MCP server via MCP proxy
 * integrations:gateway:test:sanity:                       Sanity gateway test
 * integrations:kind:create:                               Create kind cluster
@@ -135,7 +135,7 @@ environment, deploying the components that will be tested, and running the tests
 ```
 ├── agntcy-agp                                # Integration tests for [agntcy/agp](https://github.com/agntcy/agp)
 │   ├── agentic-apps
-│   ├── Taskfile.yml                          # Tasks for AGP integration tests
+│   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   └── tests
 ├── agntcy-apps                               # Integration tests for ([agntcy/agentic-apps](https://github.com/agntcy/agentic-apps))
 │   ├── agentic-apps

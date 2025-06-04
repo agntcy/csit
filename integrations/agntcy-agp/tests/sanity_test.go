@@ -43,7 +43,7 @@ var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
 		namespace = os.Getenv("NAMESPACE")
 	})
 
-	ginkgo.Context("AGP sanity test", ginkgo.Ordered, func() {
+	ginkgo.Context("Slim sanity test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
 			podName := "autogen-agent"
 			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset)

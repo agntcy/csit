@@ -17,7 +17,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
 
-var _ = ginkgo.Describe("MCP over AGP test", func() {
+var _ = ginkgo.Describe("MCP over Slim test", func() {
 	var (
 		llamaindexTimeAgentImage string
 		mcpServerTimeImage       string
@@ -44,8 +44,8 @@ var _ = ginkgo.Describe("MCP over AGP test", func() {
 		namespace = os.Getenv("NAMESPACE")
 	})
 
-	ginkgo.Context("AGP native MCP server", ginkgo.Ordered, func() {
-		// The MCP server is AGP-native and works on top of AGP using it as transport.
+	ginkgo.Context("Slim native MCP server", ginkgo.Ordered, func() {
+		// The MCP server is Slim-native and works on top of Slim using it as transport.
 		// The client can address the MCP server as if it was a normal agent.
 		ginkgo.BeforeAll(func() {
 			podName := "mcp-server"

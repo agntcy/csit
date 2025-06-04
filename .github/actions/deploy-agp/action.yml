@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-name: Deploy agntcy AGP components
-description: Deploy agntcy AGP components
+name: Deploy agntcy Slim components
+description: Deploy agntcy Slim components
 inputs:
   gateway-image-tag:
     description: 'Set gateway container image version'
@@ -43,7 +43,7 @@ runs:
         cluster_name: ${{ inputs.kind-cluster-name }}
         wait: 300s
 
-    - name: deploy agntcy AGP
+    - name: deploy agntcy Slim
       shell: bash
       env:
         GATEWAY_IMAGE_TAG: ${{ inputs.gateway-image-tag }}
