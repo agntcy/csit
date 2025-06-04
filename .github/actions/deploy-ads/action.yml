@@ -6,11 +6,11 @@ name: Deploy agntcy ADS components
 description: Deploy agntcy ADS components
 inputs:
   directory-image-tag:
-    description: 'Set gateway container image version'
+    description: 'Set slim container image version'
     required: false
     default: 'v0.2.5'
   directory-chart-tag:
-    description: 'Set gateway chart version'
+    description: 'Set slim chart version'
     required: false
     default: 'v0.2.5'
   kind-cluster-name:

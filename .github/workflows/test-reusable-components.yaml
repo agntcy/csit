@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-tests-gateway:
+  run-tests-slim:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -17,7 +17,7 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/deploy-components
         with:
-            deploy-gateway: "true"
+            deploy-slim: "true"
             deploy-directory: "true"
             install-kind-dependency: "true"
             install-taskfile-dependency: "true"

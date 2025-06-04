@@ -44,7 +44,7 @@ tasks:
       - kill -9 $(ps aux | grep port-forward | grep agntcy-slim | awk '{print $2}') || true
 
   test-env:deploy:
-    desc: Deploy agntcy gateway test env
+    desc: Deploy agntcy slim test env
     cmds:
       - |
         helm upgrade agntcy-slim \
@@ -73,9 +73,9 @@ tasks:
       - IMAGE_TAG={{ .LANGCHAIN_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
 
   test:sanity:
-    desc: Sanity gateway test
+    desc: Sanity slim test
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy gateway sanity test"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test"
 
   test:mcp-server:
     desc: Test MCP over Slim

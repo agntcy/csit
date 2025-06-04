@@ -8,10 +8,10 @@ import (
 	"github.com/onsi/gomega/gmeasure"
 )
 
-var _ = ginkgo.Describe("Benchmarking gateway", func() {
-	ginkgo.It("Measures gateway test run 10 times", func() {
+var _ = ginkgo.Describe("Benchmarking slim", func() {
+	ginkgo.It("Measures slim test run 10 times", func() {
 		experiment := gmeasure.NewExperiment("Gateway Benchmark")
-		experiment.SampleDuration("gateway test", func(_ int) {
+		experiment.SampleDuration("slim test", func(_ int) {
 			runTest()
 		}, gmeasure.SamplingConfig{N: 10})
 

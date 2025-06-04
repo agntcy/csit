@@ -20,7 +20,7 @@ jobs:
                     workflow_id: 'test-integrations.yaml',
                     ref: 'feat/gh-action-repository-dispatch',
                     inputs: {
-                        override_gateway_image_tag: '0.3.11',
+                        override_slim_image_tag: '0.3.11',
                         override_directory_image_tag: 'v0.2.1',
                     },
                 });

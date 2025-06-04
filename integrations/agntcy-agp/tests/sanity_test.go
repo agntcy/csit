@@ -16,7 +16,7 @@ import (
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
 
-var _ = ginkgo.Describe("Agntcy gateway sanity test", func() {
+var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 	var (
 		langchainImage         string
 		autogenImage           string
