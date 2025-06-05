@@ -16,16 +16,16 @@ vars:
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.5" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.9" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.9" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.10" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.10" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
   MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "true" }}'
-  LLAMAINDEX_TIME_AGENT_TAG: '{{ .LLAMAINDEX_TIME_AGENT_TAG | default "0.1.1" }}'
-  MCP_SERVER_TIME_TAG: '{{ .MCP_SERVER_TIME_TAG | default "0.1.1" }}'
+  LLAMAINDEX_TIME_AGENT_TAG: '{{ .LLAMAINDEX_TIME_AGENT_TAG | default "0.1.2" }}'
+  MCP_SERVER_TIME_TAG: '{{ .MCP_SERVER_TIME_TAG | default "0.1.2" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
 
