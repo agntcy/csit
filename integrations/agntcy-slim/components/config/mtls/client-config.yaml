@@ -25,7 +25,7 @@ slim:
 
   extraVolumes:
     - name: certs
-      sercret:
+      secret:
         secretName: mtls-server-tls
 
   extraVolumeMounts:
