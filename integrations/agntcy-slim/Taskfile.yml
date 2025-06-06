@@ -82,11 +82,15 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"
 
+  cert-manager:remove:
+    desc: Remove cert-manager
+    cmds:
+      - helm delete cert-manger -n cert-manger
+
   certificates:create:
     desc: Create certificates
     cmds:
-      - |
-        kubectl apply -f components/certificates
+      - kubectl apply -f components/certificates
 
   build:agentic-apps:
     desc: Build agentic containers
