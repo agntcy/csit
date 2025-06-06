@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mtls-server-cert
+spec:
+  secretName: mtls-server-tls
+  privateKey:
+    algorithm: ECDSA
+    size: 384  # secp384r1
+  issuerRef:
+    name: ecdsa-ca-issuer
+    kind: ClusterIssuer
+  commonName: "server.agntcy.org"
+  dnsNames:
+    - server.agntcy.org
+  usages:
+    - server auth

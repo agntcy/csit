@@ -14,6 +14,7 @@ vars:
   SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.3.15" }}'
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.5" }}'
+  SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.10" }}'
@@ -53,6 +54,7 @@ tasks:
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
           --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
+          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
           --install \

@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ecdsa-ca
+  namespace: cert-manager
+spec:
+  secretName: ecdsa-ca-secret
+  isCA: true
+  privateKey:
+    algorithm: ECDSA
+    size: 384  # This selects secp384r1 (P-384)
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  commonName: "my-ecdsa-ca"
+  dnsNames:
+    - ca.agntcy.org
