@@ -65,8 +65,28 @@ tasks:
   test-env:cleanup:
     desc: Remove agent slim test env
     cmds:
+      - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-slim
+
+  cert-manager:deploy:
+    desc: Deploy cert-manager
+    cmds:
       - |
-        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-slim
+        helm repo add jetstack https://charts.jetstack.io --force-update
+        helm upgrade cert-manager jetstack/cert-manager \
+          --namespace cert-manager \
+          --create-namespace \
+          --version v1.17.2 \
+          --set crds.enabled=true \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+
+  certificates:create:
+    desc: Create certificates
+    cmds:
+      - |
+        kubectl apply -f components/certificates
 
   build:agentic-apps:
     desc: Build agentic containers
