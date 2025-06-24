@@ -5,10 +5,11 @@ import asyncio
 from simple_agentic_app.simple_agentic_app import simple_autogen_app
 
 import argparse
+import json
 import slim_bindings
 
 
-async def run_agent(message, address, iterations):
+async def run_agent(message, config, iterations):
     agent = simple_autogen_app()
 
     local_organization = "cisco"
@@ -23,8 +24,8 @@ async def run_agent(message, address, iterations):
     participant = await slim_bindings.Slim.new(local_organization, local_namespace, local_agent)
 
     # Connect to remote slim server
-    print(f"connecting to: {address}")
-    _ = await participant.connect({"endpoint": address, "tls": {"insecure": True}})
+    print(f"connecting to: {config['endpoint']}")
+    _ = await participant.connect(config)
 
     # Get the local agent instance from env
     instance = "autogen_instance"
@@ -93,13 +94,36 @@ async def run_agent(message, address, iterations):
                 asyncio.create_task(background_task(session_info.id))
 
 
+def convert(value, param):
+    import json
+
+    if isinstance(value, dict):
+        return value  # Already a dict (for default value)
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        raise ValueError(f"{value} is not valid JSON for parameter {param}")
+
 async def main():
     parser = argparse.ArgumentParser(description="Command line client for message passing.")
-    parser.add_argument("-s", "--slim", type=str, help="Slim address.", default="http://127.0.0.1:12345")
+    parser.add_argument("-c", "--config", type=str, help="Slim config.",
+    default={
+        "endpoint": "http://127.0.0.1:12345",
+        "tls": {
+            "insecure": True,
+        },
+    })
     parser.add_argument("-m", "--message", type=str, help="Message to send.")
     parser.add_argument("-i", "--iterations",type=int,help="Number of messages to send, one per second.", default=1)
     args = parser.parse_args()
-    await run_agent(args.message, args.slim, args.iterations)
+
+    try:
+        config = convert(args.config, "config")
+    except Exception as e:
+        print(f"Failed to parse config: {e}")
+        exit(1)
+
+    await run_agent(args.message, config, args.iterations)
 
 
 if __name__ == "__main__":
