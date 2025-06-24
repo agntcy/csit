@@ -23,6 +23,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 		azure_openapi_api_key  string
 		azure_openapi_endpoint string
 		namespace              string
+		slimConfig             string
 		clientset              kubernetes.Interface
 	)
 
@@ -30,6 +31,8 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 		// Setup test images
 		langchainImage = fmt.Sprintf("%s/csit/test-langchain-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("LANGCHAIN_APP_TAG"))
 		autogenImage = fmt.Sprintf("%s/csit/test-autogen-agent:%s", os.Getenv("IMAGE_REPO"), os.Getenv("AUTOGEN_APP_TAG"))
+
+		slimConfig = os.Getenv("SLIM_CONFIG")
 
 		// Setup LLM credentials
 		azure_openapi_api_key = os.Getenv("AZURE_OPENAI_API_KEY")
@@ -46,16 +49,56 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 	ginkgo.Context("Slim sanity test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
 			podName := "autogen-agent"
-			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset)
+			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset).WithEnvVars(
+				map[string]string{
+					"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
+					"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
+				})
 
-			createdPod, err := k8sHelper.WithEnvVars(map[string]string{
-				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
-				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
-			}).WithCommand([]string{"python"}).WithArgs([]string{
-				"autogen_agent.py",
-				"-s",
-				"http://agntcy-slim:46357",
-			}).CreatePod()
+			switch slimConfig {
+			case "base":
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"autogen_agent.py",
+					"--config",
+					`{"endpoint": "http://agntcy-slim:46357",
+					"tls": {
+						"insecure": true			    	
+					}}`,
+				})
+
+			case "mtls":
+				// Create a pod with the autogen agent with MTLS cert from secret
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"autogen_agent.py",
+					"--config",
+					`{"endpoint": "https://agntcy-slim:46357",
+				"tls": {
+			    	"insecure_skip_verify": false,
+			    	"cert_file": "/etc/certs/tls.crt",
+			    	"key_file": "/etc/certs/tls.key",
+			    	"ca_file": "/etc/certs/ca.crt"
+				}}`,
+				}).WithCertSecret()
+
+			case "spire":
+				// Create a pod with the autogen agent with MTLS from SPIRE
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"autogen_agent.py",
+					"--config",
+					`{"endpoint": "https://agntcy-slim:46357",
+				"tls": {
+			    	"insecure_skip_verify": false,
+			    	"cert_file": "/svids/tls.crt",
+			    	"key_file": "/svids/tls.key",
+			    	"ca_file": "/svids/svid_bundle.pem"
+				}}`,
+				}).WithSpireHelper()
+			default:
+				ginkgo.Fail(fmt.Sprintf("Unknown SLIM_CONFIG value: %s", slimConfig))
+			}
+
+			// Create a pod with the autogen agent with MTLS cert from secret
+			createdPod, err := k8sHelper.CreatePod()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create MCP time server pod")
 
@@ -72,18 +115,61 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 
 		ginkgo.It("Create langchain agent Job", func() {
 			jobName := "langchain-agent"
-			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, langchainImage, clientset)
-
-			createdJob, err := k8sHelper.WithEnvVars(map[string]string{
+			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, langchainImage, clientset).WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
-			}).WithCommand([]string{"python"}).WithArgs([]string{
-				"langchain_agent.py",
-				"-m",
-				"Budapest",
-				"-s",
-				"http://agntcy-slim:46357",
-			}).CreateJob()
+			})
+
+			switch slimConfig {
+			case "base":
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"langchain_agent.py",
+					"-m",
+					"Budapest",
+					"--config",
+					`{"endpoint": "http://agntcy-slim:46357", 
+					"tls": {
+						"insecure": true
+					}}`,
+				})
+
+			case "mtls":
+				// Create a pod with the autogen agent with MTLS cert from secret
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"langchain_agent.py",
+					"-m",
+					"Budapest",
+					"--config",
+					`{"endpoint": "https://agntcy-slim:46357", 
+					"tls": {
+						"insecure_skip_verify": false,
+						"cert_file": "/etc/certs/tls.crt",
+						"key_file": "/etc/certs/tls.key",
+						"ca_file": "/etc/certs/ca.crt"            
+					}}`,
+				}).WithCertSecret()
+
+			case "spire":
+				// Create a pod with the autogen agent with MTLS from SPIRE
+				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
+					"langchain_agent.py",
+					"-m",
+					"Budapest",
+					"--config",
+					`{"endpoint": "https://agntcy-slim:46357", 
+					"tls": {
+						"insecure_skip_verify": false,
+						"cert_file": "/svids/tls.crt",
+						"key_file": "/svids/tls.key",
+						"ca_file": "/svids/svid_bundle.pem"            
+					}}`,
+				}).WithSpireHelper()
+
+			default:
+				ginkgo.Fail(fmt.Sprintf("Unknown SLIM_CONFIG value: %s", slimConfig))
+			}
+
+			createdJob, err := k8sHelper.CreateJob()
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create Llamaindext time agent job")
 

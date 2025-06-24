@@ -15,6 +15,7 @@ spec:
     kind: ClusterIssuer
   commonName: "client.agntcy.org"
   dnsNames:
-    - client.agntcy.org
+    - agntcy-slim
+    - agntcy-slim.default.svc.cluster.local
   usages:
     - client auth

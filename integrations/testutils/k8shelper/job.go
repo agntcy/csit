@@ -56,6 +56,42 @@ func (k *k8sHelper) CreateJob() (*batchv1.Job, error) {
 		job.Spec.Template.Spec.Containers[0].Args = k.args
 	}
 
+	if k.secretVolumes != nil {
+		var volumes []corev1.Volume
+		var volumeMounts []corev1.VolumeMount
+		for _, secretVolume := range k.secretVolumes {
+			volume := corev1.Volume{
+				Name: secretVolume.VolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secretVolume.SecretName,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+
+			volumeMount := corev1.VolumeMount{
+				Name:      secretVolume.VolumeName,
+				MountPath: secretVolume.Path,
+			}
+			volumeMounts = append(volumeMounts, volumeMount)
+		}
+		job.Spec.Template.Spec.Volumes = volumes
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = volumeMounts
+	}
+
+	if k.volumeMounts != nil {
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, k.volumeMounts...)
+	}
+
+	if k.container.Name != "" {
+		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, k.container)
+	}
+
+	if k.volumes != nil {
+		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, k.volumes...)
+	}
+
 	// Create the job
 	fmt.Println("Creating job...")
 

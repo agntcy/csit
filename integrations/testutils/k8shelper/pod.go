@@ -29,6 +29,42 @@ func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 		},
 	}
 
+	if k.secretVolumes != nil {
+		var volumes []corev1.Volume
+		var volumeMounts []corev1.VolumeMount
+		for _, secretVolume := range k.secretVolumes {
+			volume := corev1.Volume{
+				Name: secretVolume.VolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secretVolume.SecretName,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+
+			volumeMount := corev1.VolumeMount{
+				Name:      secretVolume.VolumeName,
+				MountPath: secretVolume.Path,
+			}
+			volumeMounts = append(volumeMounts, volumeMount)
+		}
+		pod.Spec.Volumes = volumes
+		pod.Spec.Containers[0].VolumeMounts = volumeMounts
+	}
+
+	if k.volumeMounts != nil {
+		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, k.volumeMounts...)
+	}
+
+	if k.container.Name != "" {
+		pod.Spec.Containers = append(pod.Spec.Containers, k.container)
+	}
+
+	if k.volumes != nil {
+		pod.Spec.Volumes = append(pod.Spec.Volumes, k.volumes...)
+	}
+
 	if k.envVars != nil {
 		var envVars []corev1.EnvVar
 		for k, v := range k.envVars {

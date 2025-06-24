@@ -3,6 +3,8 @@
 
 slim:
 
+  spire: true
+
   config:
     tracing:
       log_level: debug
@@ -20,18 +22,8 @@ slim:
           servers:
           - endpoint: "0.0.0.0:46357"
             tls:
-              cert_file: "/etc/certs/tls.crt"
-              key_file: "/etc/certs/tls.key"
-              ca_file: "/etc/certs/ca.crt"
+              cert_file: "/svids/tls.crt"
+              key_file: "/svids/tls.key"
+              ca_file: "/svids/svid_bundle.pem"
 
           clients: []
-
-  extraVolumes:
-    - name: certs
-      secret:
-        secretName: mtls-server-tls
-
-  extraVolumeMounts:
-    - name: certs
-      mountPath: "/etc/certs"
-      readOnly: true

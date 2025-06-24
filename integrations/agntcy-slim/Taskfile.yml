@@ -17,8 +17,8 @@ vars:
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.10" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.10" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.12" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.12" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -60,7 +60,26 @@ tasks:
           --install \
           --wait \
           --wait-for-jobs \
-          --timeout "15m"
+          --timeout "15m"        
+
+
+  test-env:test:deploy:
+    desc: Deploy agntcy slim test env
+    cmds:
+      - |
+        helm upgrade agntcy-slim \
+          charts/slim \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+          --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
+          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"  
 
   test-env:cleanup:
     desc: Remove agent slim test env
@@ -101,7 +120,7 @@ tasks:
   test:sanity:
     desc: Sanity slim test
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test"
+      - SLIM_CONFIG={{ .SLIM_CONFIG }} NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test"
 
   test:mcp-server:
     desc: Test MCP over Slim

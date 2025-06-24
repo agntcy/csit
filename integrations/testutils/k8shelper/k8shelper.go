@@ -9,9 +9,16 @@ import (
 	"path/filepath"
 
 	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+type SecretVolume struct {
+	SecretName string
+	VolumeName string
+	Path       string
+}
 
 type k8sHelper struct {
 	clientset      kubernetes.Interface
@@ -22,6 +29,11 @@ type k8sHelper struct {
 	command        []string
 	args           []string
 	containerPorts []int32
+	secretVolumes  []SecretVolume
+
+	volumes      []corev1.Volume
+	volumeMounts []corev1.VolumeMount
+	container    corev1.Container
 }
 
 func NewK8sHelper(name, namespace, imageName string, c kubernetes.Interface) *k8sHelper {
@@ -53,6 +65,30 @@ func (k *k8sHelper) WithArgs(args []string) *k8sHelper {
 
 func (k *k8sHelper) WithContainerPorts(ports []int32) *k8sHelper {
 	k.containerPorts = ports
+
+	return k
+}
+
+func (k *k8sHelper) WithSecretVolumes(secretVolumes []SecretVolume) *k8sHelper {
+	k.secretVolumes = secretVolumes
+
+	return k
+}
+
+func (k *k8sHelper) WithContainer(container corev1.Container) *k8sHelper {
+	k.container = container
+
+	return k
+}
+
+func (k *k8sHelper) WithWithVolumeMounts(volumeMounts []corev1.VolumeMount) *k8sHelper {
+	k.volumeMounts = volumeMounts
+
+	return k
+}
+
+func (k *k8sHelper) WithVolumes(volumes []corev1.Volume) *k8sHelper {
+	k.volumes = volumes
 
 	return k
 }
