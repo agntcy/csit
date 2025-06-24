@@ -32,6 +32,9 @@ vars:
 
   RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
 
+  SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire-server" }}'
+
+
 tasks:
   k8s:port-forward:setup:
     internal: true
@@ -110,6 +113,36 @@ tasks:
     desc: Create certificates
     cmds:
       - kubectl apply -f components/certificates
+
+  spire:deploy:
+    desc: Deploy SPIRE server
+    cmds:
+      - |
+        helm upgrade --install  \
+        spire-crds \
+        spire-crds \
+        --repo https://spiffe.github.io/helm-charts-hardened/ \
+        --namespace {{ .SPIRE_NAMESPACE }} \
+        --create-namespace \
+        --wait \
+        --wait-for-jobs \
+        --timeout "15m"
+      - |
+        helm upgrade --install  \
+        spire \
+        spire \
+        --repo https://spiffe.github.io/helm-charts-hardened/ \
+        --namespace {{ .SPIRE_NAMESPACE }} \
+        --create-namespace \
+        --wait \
+        --wait-for-jobs \
+        --timeout "15m"
+
+  spire:remove:
+    desc: Remove SPIRE server
+    cmds:
+        - helm delete spire -n {{ .SPIRE_NAMESPACE }}
+        - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
   build:agentic-apps:
     desc: Build agentic containers
