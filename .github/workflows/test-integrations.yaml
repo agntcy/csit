@@ -32,12 +32,12 @@ on:
       skip_directory_test:
         description: 'Skip directory tests'
         required: false
-        default: false
+        default: true
         type: boolean
       skip_slim_test:
         description: 'Skip slim tests'
         required: false
-        default: false
+        default: true
         type: boolean
   schedule:
     - cron: "0 4 * * *"
