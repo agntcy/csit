@@ -6,11 +6,38 @@ package k8shelper
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func (k *k8sHelper) CreateConfigMap(fileName, content string) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      k.name,
+			Namespace: k.namespace,
+		},
+		Data: map[string]string{
+			fileName: content,
+		},
+	}
+
+	return k.clientset.CoreV1().ConfigMaps(k.namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+}
+
+func (k *k8sHelper) CreateConfigMapFromFile(fileName, filePath string) (*corev1.ConfigMap, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+	return k.CreateConfigMap(fileName, string(content))
+}
+
+func (k *k8sHelper) CleanupConfigMap(ctx context.Context) error {
+	return k.clientset.CoreV1().ConfigMaps(k.namespace).Delete(ctx, k.name, metav1.DeleteOptions{})
+}
 
 func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 	pod := &corev1.Pod{
@@ -57,8 +84,8 @@ func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, k.volumeMounts...)
 	}
 
-	if k.container.Name != "" {
-		pod.Spec.Containers = append(pod.Spec.Containers, k.container)
+	if k.initContainer.Name != "" {
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, k.initContainer)
 	}
 
 	if k.volumes != nil {

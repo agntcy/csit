@@ -14,7 +14,7 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 				Name: "spire-agent-socket",
 				VolumeSource: corev1.VolumeSource{
 					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/run/spire/sockets",
+						Path: "/run/spire/agent-sockets",
 						Type: func() *corev1.HostPathType {
 							t := corev1.HostPathDirectory
 							return &t
@@ -33,7 +33,7 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "agntcy-slim",
+							Name: k.name,
 						},
 					},
 				},
@@ -44,11 +44,16 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 			Name:      "svids-volume",
 			MountPath: "/svids",
 		},
-	}).WithContainer(
+	}).WithInitContainer(
 		corev1.Container{
 			Name:  "spiffe-helper",
 			Image: "ghcr.io/spiffe/spiffe-helper:0.10.0",
 			Args:  []string{"-config", "config/helper.conf"},
+			// Use inline func to get address of the constant
+			RestartPolicy: func() *corev1.ContainerRestartPolicy {
+				v := corev1.ContainerRestartPolicyAlways
+				return &v
+			}(),
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "config-volume",
@@ -57,7 +62,7 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 				},
 				{
 					Name:      "spire-agent-socket",
-					MountPath: "/run/spire/sockets",
+					MountPath: "/run/spire/agent-sockets",
 					ReadOnly:  false,
 				},
 				{

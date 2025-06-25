@@ -81,6 +81,16 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 				}).WithCertSecret()
 
 			case "spire":
+
+				createdConfigMap, err := k8sHelper.CreateConfigMapFromFile("helper.conf", "../components/config/spire/helper.conf")
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdConfigMap)
+
+				// Register cleanup to run after all the spec is done
+				ginkgo.DeferCleanup(func(ctx context.Context) {
+					err := k8sHelper.CleanupConfigMap(ctx)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
+				})
+
 				// Create a pod with the autogen agent with MTLS from SPIRE
 				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
 					"autogen_agent.py",
@@ -150,6 +160,16 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 				}).WithCertSecret()
 
 			case "spire":
+
+				createdConfigMap, err := k8sHelper.CreateConfigMapFromFile("helper.conf", "../components/config/spire/helper.conf")
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdConfigMap)
+
+				// Register cleanup to run after all the spec is done
+				ginkgo.DeferCleanup(func(ctx context.Context) {
+					err := k8sHelper.CleanupConfigMap(ctx)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
+				})
+
 				// Create a pod with the autogen agent with MTLS from SPIRE
 				k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs([]string{
 					"langchain_agent.py",

@@ -31,9 +31,9 @@ type k8sHelper struct {
 	containerPorts []int32
 	secretVolumes  []SecretVolume
 
-	volumes      []corev1.Volume
-	volumeMounts []corev1.VolumeMount
-	container    corev1.Container
+	volumes       []corev1.Volume
+	volumeMounts  []corev1.VolumeMount
+	initContainer corev1.Container
 }
 
 func NewK8sHelper(name, namespace, imageName string, c kubernetes.Interface) *k8sHelper {
@@ -75,8 +75,8 @@ func (k *k8sHelper) WithSecretVolumes(secretVolumes []SecretVolume) *k8sHelper {
 	return k
 }
 
-func (k *k8sHelper) WithContainer(container corev1.Container) *k8sHelper {
-	k.container = container
+func (k *k8sHelper) WithInitContainer(container corev1.Container) *k8sHelper {
+	k.initContainer = container
 
 	return k
 }

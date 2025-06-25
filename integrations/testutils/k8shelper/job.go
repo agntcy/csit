@@ -84,8 +84,8 @@ func (k *k8sHelper) CreateJob() (*batchv1.Job, error) {
 		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, k.volumeMounts...)
 	}
 
-	if k.container.Name != "" {
-		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, k.container)
+	if k.initContainer.Name != "" {
+		job.Spec.Template.Spec.InitContainers = append(job.Spec.Template.Spec.InitContainers, k.initContainer)
 	}
 
 	if k.volumes != nil {

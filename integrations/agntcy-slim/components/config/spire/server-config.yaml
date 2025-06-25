@@ -1,9 +1,10 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-slim:
+spire:
+  enabled: true
 
-  spire: true
+slim:
 
   config:
     tracing:
@@ -27,3 +28,16 @@ slim:
               ca_file: "/svids/svid_bundle.pem"
 
           clients: []
+
+mcpProxy:   
+  enabled: false       
+  config:
+    services:
+      slim/0:
+        pubsub:
+          clients:
+            - endpoint: "https://agntcy-slim:46357"              
+              tls:
+                cert_file: "/svids/tls.crt"
+                key_file: "/svids/tls.key"
+                ca_file: "/svids/svid_bundle.pem"
