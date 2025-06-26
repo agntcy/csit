@@ -67,7 +67,7 @@ tasks:
 
 
   test-env:test:deploy:
-    desc: Deploy agntcy slim test env
+    desc: Deploy agntcy slim test env. (MCP Proxy is deployed only in case SLIM_CONFIG=base)
     cmds:
       - |
         helm upgrade agntcy-slim \
@@ -75,7 +75,6 @@ tasks:
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-          --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
           -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
@@ -83,6 +82,21 @@ tasks:
           --wait \
           --wait-for-jobs \
           --timeout "15m"  
+
+  test-env:test:template:
+    desc: Deploy agntcy slim test env. (MCP Proxy is deployed only in case SLIM_CONFIG=base)
+    cmds:
+      - |
+        helm template agntcy-slim \
+          charts/slim \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"           
 
   test-env:cleanup:
     desc: Remove agent slim test env
