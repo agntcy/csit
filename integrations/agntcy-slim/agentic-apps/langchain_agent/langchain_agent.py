@@ -89,8 +89,6 @@ async def run_agent(message, config, iterations):
                 asyncio.create_task(background_task(session_info.id))
 
 def convert(value, param):
-    import json
-
     if isinstance(value, dict):
         return value  # Already a dict (for default value)
     try:
