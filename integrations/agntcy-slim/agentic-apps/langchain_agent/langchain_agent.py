@@ -9,6 +9,7 @@ from simple_weather_agent.simple_weather_agent import (
 
 import argparse
 import slim_bindings
+import json
 
 
 async def run_agent(message, config, iterations):
