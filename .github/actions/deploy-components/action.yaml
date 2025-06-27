@@ -17,6 +17,14 @@ inputs:
     description: 'Deploy slim to a kind cluster'
     required: false
     default: 'false'
+  slim-config:
+    description: 'Set slim configuration to deploy'
+    required: false
+    default: 'base'
+  deploy-spire:    
+    description: 'Deploy SPIRE to a kind cluster'
+    required: false
+    default: 'false'
   slim-image-tag:
     description: 'Set slim container image version'
     required: false
