@@ -39,6 +39,17 @@ on:
         required: false
         default: true
         type: boolean
+      skip_slim_spire_test:
+        description: 'Skip slim with SPIRE tests'
+        required: false
+        default: false
+        type: boolean
+      skip_agentic_apps_test:
+        description: 'Skip agentic apps tests'
+        required: false
+        default: true
+        type: boolean        
+
   schedule:
     - cron: "0 4 * * *"
 
@@ -99,6 +110,7 @@ jobs:
       - name: Deploy Slim
         uses: ./.github/actions/deploy-components
         with:
+          deploy-spire: 'true'
           deploy-slim: 'true'
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
@@ -121,6 +133,60 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: task integrations:slim:test:mcp-server
+        shell: bash
+
+  run-tests-slim-spire:
+    if: ${{ inputs.skip_slim_spire_test == false }}
+    needs: [ set-kind-version ]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      packages: 'read'
+      attestations: 'read'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: false
+
+      - name: Setup K8S Tools
+        uses: ./.github/actions/setup-k8s
+        with:
+          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
+
+      - name: Deploy Slim with SPIRE
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-slim: 'true'
+          slim-config: 'spire'
+          slim-image-tag: ${{ inputs.override_slim_image_tag }}
+          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+
+      - name: Run slim sanity tests (mtls with SPIRE)
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_MODEL_VERSION: ${{ vars.AZURE_MODEL_VERSION }}
+          AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          SLIM_CONFIG: 'spire'
+        run: task integrations:slim:test:sanity
         shell: bash
 
   run-tests-directory:
@@ -170,6 +236,7 @@ jobs:
         shell: bash
 
   run-agentic-apps:
+    if: ${{ inputs.skip_agentic_apps_test == false }}
     runs-on: ubuntu-latest
 
     steps:

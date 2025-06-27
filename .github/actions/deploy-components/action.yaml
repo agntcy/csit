@@ -104,11 +104,18 @@ runs:
         task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
+    - name: Deploy SPIRE
+      if: ${{ inputs.deploy-spire != 'false' }}      
+      shell: bash
+      run: |
+        task -d ./${{ inputs.checkout-path }} integrations:slim:spire:deploy
+
     - name: Deploy Slim
       if: ${{ inputs.deploy-slim != 'false' }}
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy \
+          SLIM_CONFIG=${{ inputs.slim-config }} \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
