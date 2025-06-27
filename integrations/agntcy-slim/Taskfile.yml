@@ -13,12 +13,12 @@ vars:
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.3.15" }}'
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.7" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.8" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.11" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.11" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.12" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.12" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
@@ -56,7 +56,6 @@ tasks:
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-          --set mcpProxy.enabled="{{ .MCP_PROXY_DEPLOY }}" \
           -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
@@ -65,23 +64,6 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"        
 
-
-  test-env:test:deploy:
-    desc: Deploy agntcy slim test env. (MCP Proxy is deployed only in case SLIM_CONFIG=base)
-    cmds:
-      - |
-        helm upgrade agntcy-slim \
-          charts/slim \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
-          --namespace {{ .HELM_NAMESPACE }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"  
 
   test-env:test:template:
     desc: Deploy agntcy slim test env. (MCP Proxy is deployed only in case SLIM_CONFIG=base)
