@@ -42,13 +42,18 @@ on:
       skip_slim_spire_test:
         description: 'Skip slim with SPIRE tests'
         required: false
+        default: true
+        type: boolean
+      run_agentic_apps_test:
+        description: 'Run agentic apps tests'
+        required: false
         default: false
         type: boolean
-      skip_agentic_apps_test:
-        description: 'Skip agentic apps tests'
+      run_wfsm_test:                
+        description: 'Run WFSM tests'
         required: false
-        default: true
-        type: boolean        
+        default: false
+        type: boolean
 
   schedule:
     - cron: "0 4 * * *"
@@ -73,7 +78,7 @@ jobs:
           echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
 
   run-tests-slim:
-    if: ${{ inputs.skip_slim_test == false }}
+    if:  ${{ !inputs.skip_slim_test }}
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
@@ -136,7 +141,7 @@ jobs:
         shell: bash
 
   run-tests-slim-spire:
-    if: ${{ inputs.skip_slim_spire_test == false }}
+    if: ${{ !inputs.skip_slim_spire_test }}
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
@@ -174,6 +179,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-slim: 'true'
+          deploy-spire: 'true'
           slim-config: 'spire'
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
@@ -190,7 +196,7 @@ jobs:
         shell: bash
 
   run-tests-directory:
-    if: ${{ inputs.skip_directory_test == false }}
+    if: ${{ !inputs.skip_directory_test }}
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
@@ -236,7 +242,7 @@ jobs:
         shell: bash
 
   run-agentic-apps:
-    if: ${{ inputs.skip_agentic_apps_test == false }}
+    if: ${{ inputs.run_agentic_apps_test }}
     runs-on: ubuntu-latest
 
     steps:
@@ -261,6 +267,7 @@ jobs:
         shell: bash
 
   run-tests-wfsm:
+    if: ${{ inputs.run_wfsm_test }}  
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
