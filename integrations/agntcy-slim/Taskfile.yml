@@ -133,22 +133,22 @@ tasks:
   test:sanity:
     desc: Sanity slim test
     cmds:
-      - SLIM_CONFIG={{ .SLIM_CONFIG }} NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test"
+      - SLIM_CONFIG={{ .SLIM_CONFIG }} NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test" --ginkgo.json-report=../reports/report-slim-sanity.json --ginkgo.junit-report=../reports/report-slim-sanity.xml
 
   test:mcp-server:
     desc: Test MCP over Slim
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over Slim test"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over Slim test" --ginkgo.json-report=../reports/report-slim-mcp-server.json --ginkgo.junit-report=../reports/report-slim-mcp-server.xml
 
   test:mcp-server:slim-native:
     desc: Test Slim native MCP server
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim native MCP server"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim native MCP server" --ginkgo.json-report=../reports/report-slim-native-mcp-server.json --ginkgo.junit-report=../reports/report-slim-native-mcp-server.xml
 
   test:mcp-server:mcp-proxy:
     desc: Test MCP server via MCP proxy
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP server via MCP proxy"
+      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP server via MCP proxy" --ginkgo.json-report=../reports/report-slim-mcp-proxy.json --ginkgo.junit-report=../reports/report-slim-mcp-proxy.xml
 
   default:
     cmd: task -l

@@ -148,7 +148,7 @@ tasks:
       - task: k8s:port-forward:setup
       - task: k8s:peers:port-forward:setup
       - defer: { task: k8s:port-forward:teardown }
-      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v --ginkgo.json-report=../reports/report-agntcy-dir.json --ginkgo.junit-report=../reports/report-agntcy-dir.xml
 
   test:compiler:
     desc: Agntcy compiler test

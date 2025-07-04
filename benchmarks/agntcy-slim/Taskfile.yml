@@ -13,4 +13,4 @@ tasks:
   test:
     desc: All Slim benchmark test
     cmds:
-      - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v
+      - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v --ginkgo.json-report=../../reports/test-report-agntcy-slim.json --ginkgo.junit-report=../../reports/test-report-agntcy-slim.xml
