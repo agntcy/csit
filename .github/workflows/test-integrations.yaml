@@ -185,6 +185,11 @@ jobs:
         shell: bash          
 
 
+      - name: Create artifact from sample test reports
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: "${{ env.APP_NAME }}-test-result"
+
   run-tests-slim-spire:
     if: ${{ !inputs.skip_slim_test }}
     needs: [ set-kind-version ]
@@ -285,6 +290,11 @@ jobs:
       - name: Run Directory tests
         run: task integrations:directory:test
         shell: bash
+
+      - name: Create artifact from sample test reports
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: "${{ env.APP_NAME }}-test-result"
 
   run-agentic-apps:
     if: ${{ inputs.run_agentic_apps_test }}

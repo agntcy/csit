@@ -1,0 +1,29 @@
+name: Setup Environment
+description: setup environment with common tools/vars
+inputs:
+  artifact-name:
+    description: 'Name of the artifact'
+    required: false
+    default: 'test-results'
+  path-to-archive:
+    description: 'The wildcard pattern to apply which files to be archived'
+    required: false
+    default: './**/{report,test-report}*.json'
+  compression-level:
+    description: 'Compression level of the artifact'
+    required: false
+    default: '9'
+  retention-days:
+    description: 'Retention days for the artifact'
+    required: false
+    default: '30'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.path-to-archive }}
+        compression-level: ${{ inputs.compression-lelve }}
+        retention-days: ${{ inputs.retention-days }}
