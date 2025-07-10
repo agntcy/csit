@@ -49,11 +49,6 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 			Name:  "spiffe-helper",
 			Image: "ghcr.io/spiffe/spiffe-helper:0.10.0",
 			Args:  []string{"-config", "config/helper.conf"},
-			// Use inline func to get address of the constant
-			RestartPolicy: func() *corev1.ContainerRestartPolicy {
-				v := corev1.ContainerRestartPolicyAlways
-				return &v
-			}(),
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "config-volume",

@@ -14,7 +14,7 @@ import (
 )
 
 func (k *k8sHelper) CreateJob() (*batchv1.Job, error) {
-	var backOffLimit int32 = 2
+	var backOffLimit int32 = 3
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      k.name,
@@ -29,7 +29,7 @@ func (k *k8sHelper) CreateJob() (*batchv1.Job, error) {
 							Image: k.imageName,
 						},
 					},
-					RestartPolicy: corev1.RestartPolicyNever,
+					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			},
 			BackoffLimit: &backOffLimit,

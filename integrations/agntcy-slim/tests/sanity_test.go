@@ -118,7 +118,6 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete pod")
 			})
 
-			// Wait for pod to be running
 			err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 		})
