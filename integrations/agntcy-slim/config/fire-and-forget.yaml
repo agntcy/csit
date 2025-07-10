@@ -1,0 +1,39 @@
+topology:
+    clients:
+        "agentA":
+            auth:
+                spireJwt: true
+            connectedTo:
+                - "slim_1"
+            image: "ghcr.io/agntcy/slim/python-examples:latest"    
+            cmd: ./examples/fire-and-forget.py
+            args: ["-m","hello","-i","1000"]
+        "agentB":
+            auth:
+                spireJwt: true
+            connectedTo:
+                - "slim_2"
+            image: "ghcr.io/agntcy/slim/python-examples:latest"    
+            cmd: ./examples/fire-and-forget.py
+            args: ["-i","1000"]                
+    servers:
+        "main":
+            auth:
+                spireMtls: true
+            routes:
+                - "agentA > slim_1"
+                - "agentA > slim_2"
+                - "agentB > slim_1"
+                - "agentB > slim_2"
+        "slim_1":
+            auth:
+                spireMtls: true
+            routes:                
+                - "agentA > main"
+                - "agentB > main"
+        "slim_2":
+            auth:
+                spireMtls: true
+            routes:                
+                - "agentA > main"
+                - "agentB > main"
