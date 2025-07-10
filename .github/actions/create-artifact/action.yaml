@@ -8,7 +8,7 @@ inputs:
   path-to-archive:
     description: 'The wildcard pattern to apply which files to be archived'
     required: false
-    default: './**/report*.json'
+    default: './**/*report*.json'
   compression-level:
     description: 'Compression level of the artifact'
     required: false
