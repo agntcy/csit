@@ -71,6 +71,8 @@ tasks:
 
   test-env:deploy:generated:
     desc: Deploy agntcy slim test env for each values file in config/.generated
+    deps:
+      - test-env:generate:configs
     cmd: |
       #!/bin/sh
       for file in "./config/.generated"/* ;do
