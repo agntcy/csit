@@ -64,6 +64,11 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"   
 
+  test-env:generate:configs:
+    desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
+    cmd: |
+      go run ./tests/config/main/
+
   test-env:deploy:generated:
     desc: Deploy agntcy slim test env for each values file in config/.generated
     cmd: |
@@ -142,8 +147,8 @@ tasks:
   spire:remove:
     desc: Remove SPIRE server
     cmds:
-        - helm delete spire -n {{ .SPIRE_NAMESPACE }}
-        - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
+      - helm delete spire -n {{ .SPIRE_NAMESPACE }}
+      - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
   build:agentic-apps:
     desc: Build agentic containers

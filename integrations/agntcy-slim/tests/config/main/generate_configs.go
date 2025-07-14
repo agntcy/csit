@@ -86,7 +86,7 @@ func GenerateServerConfigs(topology *config.Config, templatePath, outputDir stri
 
 func main() {
 	// Parse the fire-and-forget.yaml configuration
-	topology, err := config.ParseTopology("agntcy-slim/config/fire-and-forget.yaml")
+	topology, err := config.ParseTopology("config/fire-and-forget.yaml")
 	if err != nil {
 		log.Fatalf("Failed to parse configuration: %v", err)
 	}
@@ -95,8 +95,8 @@ func main() {
 	fmt.Printf("Found %d servers in topology\n", len(topology.Topology.Servers))
 
 	// Generate server configs from topology
-	templatePath := "agntcy-slim/config/server-config.tpl"
-	outputDir := "agntcy-slim/config/.generated"
+	templatePath := "config/server-config.tpl"
+	outputDir := "config/.generated"
 
 	// create outputDir if it does not exist
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
