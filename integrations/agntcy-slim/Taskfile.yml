@@ -62,7 +62,27 @@ tasks:
           --install \
           --wait \
           --wait-for-jobs \
-          --timeout "15m"                 
+          --timeout "15m"   
+
+  test-env:deploy:generated:
+    desc: Deploy agntcy slim test env for each values file in config/.generated
+    cmds:
+      - |
+        for file in "components/config/.generated/*"; do
+          echo "$file"
+          helm upgrade agntcy-slim-$(basename "$f" .yaml) \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+            -f "$f" \
+            --namespace {{ .HELM_NAMESPACE }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        done                          
 
   test-env:cleanup:
     desc: Remove agent slim test env
