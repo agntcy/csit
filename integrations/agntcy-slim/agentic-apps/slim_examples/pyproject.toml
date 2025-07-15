@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "slim-clients"
+version = "0.1.0"
+description = "Example slim clients using slim python bindings"
+authors = ["Sandor Magyari <smagyari@cisco.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+typing-extensions = "^4.12.2"
+autogen-agentchat = "^0.4.3"
+autogen-ext = "^0.4.3"
+tiktoken = "^0.8.0"
+openai = "^1.60.2"
+autogen-core = "^0.4.3"
+slim-bindings = "^0.3.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
