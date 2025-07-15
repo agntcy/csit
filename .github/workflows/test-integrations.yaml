@@ -381,3 +381,16 @@ jobs:
           task integrations:wfsm:wfsm:test:e2e
 
         shell: bash
+
+  combine-all-artifacts:
+    # Ensure this job runs only after all jobs that produce artifacts have completed
+    needs: [run-tests-slim, run-tests-slim-spire, run-tests-directory, run-agentic-apps, run-tests-wfsm]
+    if: always() && (needs.run-tests-slim.result == 'success' || needs.run-tests-slim.result == 'failure' || needs.run-tests-slim-spire.result == 'success' || needs.run-tests-slim-spire.result == 'failure' || needs.run-tests-directory.result == 'success' || needs.run-tests-directory.result == 'failure' || needs.run-agentic-apps.result == 'success' || needs.run-agentic-apps.result == 'failure' || needs.run-tests-wfsm.result == 'success' || needs.run-tests-wfsm.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (required for local actions)
+        uses: actions/checkout@v4
+      - name: Combine and upload all artifacts
+        uses: ./.github/actions/collect-reports # Path relative to your workflow file
+        with:
+          combined-artifact-name: 'combined-test-reports'
