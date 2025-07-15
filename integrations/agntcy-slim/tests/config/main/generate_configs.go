@@ -10,8 +10,12 @@ import (
 	"github.com/agntcy/csit/integrations/agntcy-slim/tests/config"
 )
 
-const SlimEndpoint = "0.0.0.0:46357"
-const SlimControllerEndpoint = "0.0.0.0:46358"
+const (
+	SlimEndpoint                 = "0.0.0.0:46357"
+	SlimControllerEndpoint       = "0.0.0.0:46358"
+	ServerConfigTemplatePath     = "config/server-config.tpl"
+	ServerConnConfigTemplatePath = "config/server-conn-config.tpl"
+)
 
 // SpireConfig represents the spire configuration section
 type SpireConfig struct {
@@ -26,17 +30,11 @@ type ServerConfigData struct {
 }
 
 // GenerateServerConfig generates a server configuration file from the template
-func GenerateServerConfig(templatePath, outputPath string, data ServerConfigData) error {
+func GenerateConfigFromTemplate(templatePath, outputPath string, data ServerConfigData) error {
 	// Parse the template file
 	tmpl, err := template.ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse template file %s: %w", templatePath, err)
-	}
-
-	// Create the output directory if it doesn't exist
-	outputDir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 	}
 
 	// Create the output file
@@ -55,11 +53,11 @@ func GenerateServerConfig(templatePath, outputPath string, data ServerConfigData
 }
 
 // GenerateServerConfigs generates server configs for each server in the topology
-func GenerateServerConfigs(topology *config.Config, templatePath, outputDir string) error {
+func GenerateServerConfigs(topology *config.Config, outputDir string) error {
 	// Generate a config file for each server
 	for serverName, serverConfig := range topology.Topology.Servers {
 		// Determine spire settings based on auth configuration
-		spireEnabled := serverConfig.Auth.SpireMtls || serverConfig.Auth.SpireJwt
+		spireEnabled := serverConfig.SpireMtls || serverConfig.Auth.SpireJwt
 
 		// Create template data
 		data := ServerConfigData{
@@ -70,11 +68,15 @@ func GenerateServerConfigs(topology *config.Config, templatePath, outputDir stri
 			SlimControllerEndpoint: SlimControllerEndpoint,
 		}
 
-		// Generate output file path
+		// Generate server config file
 		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s-config.yaml", serverName))
+		if err := GenerateConfigFromTemplate(ServerConfigTemplatePath, outputPath, data); err != nil {
+			return fmt.Errorf("failed to generate config for server %s: %w", serverName, err)
+		}
 
-		// Generate the config file
-		if err := GenerateServerConfig(templatePath, outputPath, data); err != nil {
+		// Generate connection config file
+		outputPath = filepath.Join(outputDir, fmt.Sprintf("%s-conn-config.json", serverName))
+		if err := GenerateConfigFromTemplate(ServerConnConfigTemplatePath, outputPath, data); err != nil {
 			return fmt.Errorf("failed to generate config for server %s: %w", serverName, err)
 		}
 
@@ -85,8 +87,12 @@ func GenerateServerConfigs(topology *config.Config, templatePath, outputDir stri
 }
 
 func main() {
+	topologyConfig := os.Getenv("TOPOLOGY_CONFIG")
+	if topologyConfig == "" {
+		log.Fatal("TOPOLOGY_CONFIG environment variable is not set")
+	}
 	// Parse the fire-and-forget.yaml configuration
-	topology, err := config.ParseTopology("config/fire-and-forget.yaml")
+	topology, err := config.ParseTopology(topologyConfig)
 	if err != nil {
 		log.Fatalf("Failed to parse configuration: %v", err)
 	}
@@ -94,16 +100,15 @@ func main() {
 	fmt.Println("Configuration loaded successfully!")
 	fmt.Printf("Found %d servers in topology\n", len(topology.Topology.Servers))
 
-	// Generate server configs from topology
-	templatePath := "config/server-config.tpl"
-	outputDir := "config/.generated"
-
-	// create outputDir if it does not exist
+	outputPath := "config/.generated"
+	// Create the output directory if it doesn't exist
+	outputDir := filepath.Dir(outputPath)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	err = GenerateServerConfigs(topology, templatePath, outputDir)
+	// Generate server configs from topology
+	err = GenerateServerConfigs(topology, outputDir)
 	if err != nil {
 		log.Fatalf("Failed to generate server configs: %v", err)
 	}

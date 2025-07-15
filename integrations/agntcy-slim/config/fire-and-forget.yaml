@@ -18,22 +18,17 @@ topology:
             args: ["-i","1000"]                
     servers:
         "main":
-            auth:
-                spireMtls: true
+            spireMtls: false
             routes:
                 - "agentA > slim-1"
                 - "agentA > slim-2"
                 - "agentB > slim-1"
                 - "agentB > slim-2"
         "slim-1":
-            auth:
-                spireMtls: true
             routes:                
                 - "agentA > main"
                 - "agentB > main"
         "slim-2":
-            auth:
-                spireMtls: true
             routes:                
                 - "agentA > main"
                 - "agentB > main"

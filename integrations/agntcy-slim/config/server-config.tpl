@@ -21,11 +21,15 @@ slim:
         pubsub:
           servers:
           - endpoint: "{{ .SlimEndpoint }}"
-            tls:
-              cert_file: "/svids/tls.crt"
-              key_file: "/svids/tls.key"
-              ca_file: "/svids/svid_bundle.pem"
-            controller:
+                  tls:
+            {{- if .Spire.Enabled }}
+
+                    cert_file: "/svids/tls.crt"
+                    key_file: "/svids/tls.key"
+                    ca_file: "/svids/svid_bundle.pem"
+            {{- else }}                  
+                    insecure: true
+            {{- end }}
         controller:
           server:
             endpoint: "{{ .SlimControllerEndpoint }}"

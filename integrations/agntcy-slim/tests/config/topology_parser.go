@@ -3,19 +3,20 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Auth represents authentication configuration
 type Auth struct {
-	SpireJwt  bool `yaml:"spireJwt,omitempty"`
-	SpireMtls bool `yaml:"spireMtls,omitempty"`
+	SpireJwt bool `yaml:"spireJwt,omitempty"`
 }
 
 // Client represents a client configuration in the topology
 type Client struct {
 	Auth        Auth     `yaml:"auth"`
+	SpireMtls   bool     `yaml:"spireMtls,omitempty"`
 	ConnectedTo []string `yaml:"connectedTo"`
 	Image       string   `yaml:"image"`
 	Cmd         string   `yaml:"cmd"`
@@ -24,8 +25,9 @@ type Client struct {
 
 // Server represents a server configuration in the topology
 type Server struct {
-	Auth   Auth     `yaml:"auth"`
-	Routes []string `yaml:"routes"`
+	Auth      Auth     `yaml:"auth"`
+	SpireMtls bool     `yaml:"spireMtls,omitempty"`
+	Routes    []string `yaml:"routes"`
 }
 
 // Topology represents the topology configuration
@@ -97,4 +99,28 @@ func (c *Config) ListServers() []string {
 		servers = append(servers, name)
 	}
 	return servers
+}
+
+func ParseRoute(route string) (string, string) {
+	// Assuming route is in the format "channelName > destinationServerName"
+	parts := strings.Split(route, ">")
+	if len(parts) != 2 {
+		return "", ""
+	}
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+}
+
+func (c *Config) ValidateRoutes() error {
+	for serverName, server := range c.Topology.Servers {
+		for _, route := range server.Routes {
+			channelName, destServerName := ParseRoute(route)
+			if channelName == "" || destServerName == "" {
+				return fmt.Errorf("invalid route '%s' in server '%s'", route, serverName)
+			}
+			if _, exists := c.Topology.Servers[destServerName]; !exists {
+				return fmt.Errorf("destination server '%s' does not exist for route '%s'", destServerName, route)
+			}
+		}
+	}
+	return nil
 }

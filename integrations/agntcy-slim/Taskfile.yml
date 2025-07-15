@@ -34,6 +34,8 @@ vars:
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire-server" }}'
 
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "fire-and-forget" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "/Users/smagyari/dev/genai/slim/.dist/bin/slimctl" }}'
 
 tasks:
   k8s:port-forward:setup:
@@ -76,7 +78,7 @@ tasks:
     cmd: |
       #!/bin/sh
       for file in "./config/.generated"/* ;do
-        helm upgrade agntcy-slim-$(basename "$file" .yaml) \
+        helm upgrade agntcy-$(basename "$file" .yaml) \
           oci://{{ .IMAGE_REPO }}/slim/helm/slim \
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
