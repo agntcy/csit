@@ -4,6 +4,9 @@
 spire:
   enabled: {{ .Spire.Enabled }}
 
+serviceAccount:
+    name:
+
 slim:
   config:
     tracing:
@@ -20,16 +23,15 @@ slim:
       slim/0:
         pubsub:
           servers:
-          - endpoint: "{{ .SlimEndpoint }}"
-                  tls:
-            {{- if .Spire.Enabled }}
-
-                    cert_file: "/svids/tls.crt"
-                    key_file: "/svids/tls.key"
-                    ca_file: "/svids/svid_bundle.pem"
-            {{- else }}                  
-                    insecure: true
-            {{- end }}
+          - endpoint: "0.0.0.0:{{ .SlimPort }}"
+            tls:
+    {{- if .Spire.Enabled }}
+              cert_file: "/svids/tls.crt"
+              key_file: "/svids/tls.key"
+              ca_file: "/svids/svid_bundle.pem"
+    {{- else }}
+              insecure: true
+        {{- end }}
         controller:
           server:
             endpoint: "{{ .SlimControllerEndpoint }}"

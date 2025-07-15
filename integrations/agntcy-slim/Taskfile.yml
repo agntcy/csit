@@ -34,7 +34,7 @@ vars:
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire-server" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "fire-and-forget" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/fire-and-forget.yaml" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "/Users/smagyari/dev/genai/slim/.dist/bin/slimctl" }}'
 
 tasks:
@@ -66,6 +66,23 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"   
 
+  test-env:local:deploy:
+    desc: Deploy agntcy slim test env
+    cmds:
+      - |
+        helm upgrade agntcy-slim \
+          charts/slim \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"           
+
   test-env:generate:configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
     cmd: |
@@ -77,9 +94,9 @@ tasks:
       - test-env:generate:configs
     cmd: |
       #!/bin/sh
-      for file in "./config/.generated"/* ;do
+      for file in "./config/.gen"/*.yaml ;do
         helm upgrade agntcy-$(basename "$file" .yaml) \
-          oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+          charts/slim \
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
@@ -89,8 +106,7 @@ tasks:
           --install \
           --wait \
           --wait-for-jobs \
-          --timeout "15m" \
-          --dry-run
+          --timeout "15m"
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
@@ -164,6 +180,11 @@ tasks:
     desc: Sanity slim test
     cmds:
       - SLIM_CONFIG={{ .SLIM_CONFIG }} NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test" --ginkgo.json-report=../reports/report-slim-sanity.json --ginkgo.junit-report=../reports/report-slim-sanity.xml
+
+  test:topology:
+    desc: Slim topology test
+    cmds:
+      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH={{.SLIMCTL_PATH}} TOPOLOGY_CONFIG={{.TOPOLOGY_CONFIG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test"
 
   test:mcp-server:
     desc: Test MCP over Slim

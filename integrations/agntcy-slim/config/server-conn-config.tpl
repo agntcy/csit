@@ -1,5 +1,5 @@
 {
-  "endpoint": "http://{{ .SlimEndpoint }}",
+  "endpoint": "http://{{ .SlimHost }}:{{ .SlimPort }}",
   "auth": {
     "basic": {
       "username": "testuser",

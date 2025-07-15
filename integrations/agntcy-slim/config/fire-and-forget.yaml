@@ -1,34 +1,34 @@
 topology:
     clients:
-        "agentA":
+        "alice":
             auth:
                 spireJwt: true
             connectedTo:
                 - "slim-1"
-            image: "ghcr.io/agntcy/slim/python-examples:latest"    
-            cmd: ./examples/fire-and-forget.py
-            args: ["-m","hello","-i","1000"]
-        "agentB":
+            image: agntcy/slim-python-examples:v0.0.1
+            cmd: fire-and-forget.py
+            args: ["-m","hello","-i","1000","-l", "cisco/default/alice", "-r", "cisco/default/bob"]
+        "bob":
             auth:
                 spireJwt: true
             connectedTo:
-                - "slim-2"
-            image: "ghcr.io/agntcy/slim/python-examples:latest"    
-            cmd: ./examples/fire-and-forget.py
-            args: ["-i","1000"]                
+                - "slim-1"
+            image: agntcy/slim-python-examples:v0.0.1
+            cmd: fire-and-forget.py
+            args: ["-i","1000", "-l", "cisco/default/bob"]
     servers:
         "main":
             spireMtls: false
             routes:
-                - "agentA > slim-1"
-                - "agentA > slim-2"
-                - "agentB > slim-1"
-                - "agentB > slim-2"
+                - "alice > slim-1"
+                - "alice > slim-2"
+                - "bob > slim-1"
+                - "bob > slim-2"
         "slim-1":
             routes:                
-                - "agentA > main"
-                - "agentB > main"
+                - "alice > main"
+                - "bob > main"
         "slim-2":
             routes:                
-                - "agentA > main"
-                - "agentB > main"
+                - "alice > main"
+                - "bob > main"

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SlimEndpoint                 = "0.0.0.0:46357"
+	SlimMessagingPort            = "46357"
 	SlimControllerEndpoint       = "0.0.0.0:46358"
 	ServerConfigTemplatePath     = "config/server-config.tpl"
 	ServerConnConfigTemplatePath = "config/server-conn-config.tpl"
@@ -25,7 +25,8 @@ type SpireConfig struct {
 // ServerConfigData represents the data structure for the server-config.tpl template
 type ServerConfigData struct {
 	Spire                  SpireConfig `yaml:"spire"`
-	SlimEndpoint           string      `yaml:"slimEndpoint"`
+	SlimHost               string      `yaml:"slimHost"`
+	SlimPort               string      `yaml:"slimPort"`
 	SlimControllerEndpoint string      `yaml:"slimControllerEndpoint"`
 }
 
@@ -64,12 +65,13 @@ func GenerateServerConfigs(topology *config.Config, outputDir string) error {
 			Spire: SpireConfig{
 				Enabled: spireEnabled,
 			},
-			SlimEndpoint:           SlimEndpoint,
+			SlimHost:               fmt.Sprintf("agntcy-%s", serverName),
+			SlimPort:               SlimMessagingPort,
 			SlimControllerEndpoint: SlimControllerEndpoint,
 		}
 
 		// Generate server config file
-		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s-config.yaml", serverName))
+		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.yaml", serverName))
 		if err := GenerateConfigFromTemplate(ServerConfigTemplatePath, outputPath, data); err != nil {
 			return fmt.Errorf("failed to generate config for server %s: %w", serverName, err)
 		}
@@ -100,15 +102,14 @@ func main() {
 	fmt.Println("Configuration loaded successfully!")
 	fmt.Printf("Found %d servers in topology\n", len(topology.Topology.Servers))
 
-	outputPath := "config/.generated"
+	outputPath := "config/.gen"
 	// Create the output directory if it doesn't exist
-	outputDir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputPath, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
 	// Generate server configs from topology
-	err = GenerateServerConfigs(topology, outputDir)
+	err = GenerateServerConfigs(topology, outputPath)
 	if err != nil {
 		log.Fatalf("Failed to generate server configs: %v", err)
 	}

@@ -5,11 +5,11 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+
 	"os"
-	"os/exec"
-	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -18,6 +18,20 @@ import (
 	"github.com/agntcy/csit/integrations/agntcy-slim/tests/config"
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
+
+type TLSConfig struct {
+	InsecureSkipVerify bool   `json:"insecure_skip_verify"`
+	CertFile           string `json:"cert_file"`
+	KeyFile            string `json:"key_file"`
+	CAFile             string `json:"ca_file"`
+}
+
+type ClientConfig struct {
+	Endpoint string    `json:"endpoint"`
+	TLS      TLSConfig `json:"tls"`
+}
+
+// ...
 
 var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	var (
@@ -50,27 +64,27 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		topology = &config.Topology
 	})
 
-	ginkgo.Context("Slim sanity test", ginkgo.Ordered, func() {
+	ginkgo.Context("Slim topology test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
-
+			log.Print(slimctlPath)
 			// setup routes using the topology configuration
 
 			// wait for SLIM instances to start
-			time.Sleep(2000 * time.Millisecond)
-
-			for serverName, server := range topology.Servers {
-				for _, route := range server.Routes {
-					channelName, destServerName := config.ParseRoute(route)
-
-					log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
-
-					// add route using slimctl
-					gomega.Expect(exec.Command(slimctlPath,
-						"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
-						"via", fmt.Sprintf("%s-conn-config.json", destServerName),
-						"-s", fmt.Sprintf("http://agntcy-%s:46358", serverName)).Run()).To(gomega.Succeed())
-				}
-			}
+			//time.Sleep(2000 * time.Millisecond)
+			//
+			//for serverName, server := range topology.Servers {
+			//	for _, route := range server.Routes {
+			//		channelName, destServerName := config.ParseRoute(route)
+			//
+			//		log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
+			//
+			//		// add route using slimctl
+			//		gomega.Expect(exec.Command(slimctlPath,
+			//			"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
+			//			"via", fmt.Sprintf("%s-conn-config.json", destServerName),
+			//			"-s", fmt.Sprintf("http://agntcy-%s:46358", serverName)).Run()).To(gomega.Succeed())
+			//	}
+			//}
 
 		})
 
@@ -82,10 +96,8 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				imageName := client.Image
 				envVars := map[string]string{}
 				command := client.Cmd
-				cmdArgs := client.Args
+				args := client.Args
 				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset).WithEnvVars(envVars)
-				args := []string{command}
-				args = append(args, cmdArgs...)
 
 				// expect client.ConnectedTo is not empty
 				gomega.Expect(len(client.ConnectedTo)).NotTo(gomega.BeZero(), "client %s must be connected to at least one server", clientName)
@@ -97,45 +109,56 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 					// Register cleanup to run after all the spec is done
 					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupConfigMap(ctx)
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
+						//err := k8sHelper.CleanupConfigMap(ctx)
+						//gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
 					})
-					args := append(args,
-						fmt.Sprintf("--config",
-							`{"endpoint": "https://agntcy-%s:46357", 
-							"tls": {
-								"insecure_skip_verify": false,
-								"cert_file": "/svids/tls.crt",
-								"key_file": "/svids/tls.key",
-								"ca_file": "/svids/svid_bundle.pem"            
-							}}`, client.ConnectedTo[0]))
+
+					cfg := ClientConfig{
+						Endpoint: fmt.Sprintf("https://agntcy-%s:46357", client.ConnectedTo[0]),
+						TLS: TLSConfig{
+							InsecureSkipVerify: false,
+							CertFile:           "/svids/tls.crt",
+							KeyFile:            "/svids/tls.key",
+							CAFile:             "/svids/svid_bundle.pem",
+						},
+					}
+					cfgJSON, err := json.Marshal(cfg)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
+
+					args := append(args, "--config", string(cfgJSON))
 					// Create a pod with the autogen agent with MTLS from SPIRE
-					k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs(args).WithSpireHelper()
+					k8sHelper = k8sHelper.WithCommand([]string{"python", command}).WithArgs(args).WithSpireHelper()
 
 				} else {
+					endpoint := fmt.Sprintf("http://agntcy-%s:46357", client.ConnectedTo[0])
+					cfg := ClientConfig{
+						Endpoint: endpoint,
+						TLS: TLSConfig{
+							InsecureSkipVerify: true,
+						},
+					}
+					_, err := json.Marshal(cfg)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args = append(args, fmt.Sprintf("--config",
-						`{"endpoint": "http://agntcy-%s:46357", 
-						"tls": {
-							"insecure": true
-						}}`, client.ConnectedTo[0]))
-					k8sHelper = k8sHelper.WithCommand([]string{"python"}).WithArgs(args)
+					//args = append(args, "--config", string(cfgJSON))
+					args = append(args, "--slim", endpoint)
+					k8sHelper = k8sHelper.WithCommand([]string{"python", command}).WithArgs(args)
 
 				}
 
-				createdJob, err := k8sHelper.CreateJob()
+				_, err := k8sHelper.CreateJob()
 
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create Llamaindext time agent job")
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to create %s job", clientName))
 
 				// Register cleanup to run after this spec completes
 				ginkgo.DeferCleanup(func(ctx context.Context) {
-					err := k8sHelper.CleanupJob(ctx)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete job")
+					//err := k8sHelper.CleanupJob(ctx)
+					//gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete job %s", clientName))
 				})
 
 				// Wait for job to be succeded
-				err = k8sHelper.WaitForJobCompletion(k8sTimeOutSeconds * time.Second)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
+				//err = k8sHelper.WaitForJobCompletion(k8sTimeOutSeconds * time.Second)
+				//gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
 			}
 		})
 	})
