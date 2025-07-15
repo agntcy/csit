@@ -391,6 +391,6 @@ jobs:
       - name: Checkout repository (required for local actions)
         uses: actions/checkout@v4
       - name: Combine and upload all artifacts
-        uses: ./.github/actions/collect-reports # Path relative to your workflow file
+        uses: ./.github/actions/collect-reports
         with:
           combined-artifact-name: 'combined-test-reports'
