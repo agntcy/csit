@@ -133,7 +133,7 @@ tasks:
           charts/slim \
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.repository="agntcy/slim" \
-          --set slim.image.tag="latest" \          
+          --set slim.image.tag="latest" \
           -f "$file" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
