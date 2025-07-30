@@ -28,7 +28,7 @@ var _ = ginkgo.Describe("Agntcy agent delete tests", func() {
 
 	ginkgo.BeforeEach(func() {
 		examplesDir := "../examples/"
-		testDataPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata"))
+		testDataPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata/examples/"))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		dockerImage = fmt.Sprintf("%s/dir-ctl:%s", os.Getenv("IMAGE_REPO"), os.Getenv("DIRECTORY_IMAGE_TAG"))
@@ -40,7 +40,7 @@ var _ = ginkgo.Describe("Agntcy agent delete tests", func() {
 			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 		}
 
-		agentModelFile = filepath.Join(mountDest, "agent.json")
+		agentModelFile = filepath.Join(mountDest, "crewai.agent.json")
 	})
 
 	ginkgo.Context("agent push and pull", func() {
