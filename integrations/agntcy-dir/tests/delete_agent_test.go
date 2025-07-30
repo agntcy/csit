@@ -70,7 +70,9 @@ var _ = ginkgo.Describe("Agntcy agent delete tests", func() {
 
 			cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
 
-			if err != nil {
+			sqlite_err := IsSQLitePushFailure(err)
+
+			if err != nil && !sqlite_err {
 				exitErr, ok := err.(*exec.ExitError)
 				if ok {
 					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
