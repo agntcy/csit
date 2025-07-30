@@ -12,7 +12,6 @@ import (
 
 const (
 	SlimMessagingPort            = "46357"
-	SlimControllerEndpoint       = "0.0.0.0:46358"
 	ServerConfigTemplatePath     = "config/server-config.tpl"
 	ServerConnConfigTemplatePath = "config/server-conn-config.tpl"
 )
@@ -54,7 +53,7 @@ func GenerateConfigFromTemplate(templatePath, outputPath string, data ServerConf
 }
 
 // GenerateServerConfigs generates server configs for each server in the topology
-func GenerateServerConfigs(topology *config.Config, outputDir string) error {
+func GenerateServerConfigs(topology *config.Config, slimControllerEndpoint string, outputDir string) error {
 	// Generate a config file for each server
 	for serverName, serverConfig := range topology.Topology.Servers {
 		// Determine spire settings based on auth configuration
@@ -67,7 +66,7 @@ func GenerateServerConfigs(topology *config.Config, outputDir string) error {
 			},
 			SlimHost:               fmt.Sprintf("agntcy-%s", serverName),
 			SlimPort:               SlimMessagingPort,
-			SlimControllerEndpoint: SlimControllerEndpoint,
+			SlimControllerEndpoint: slimControllerEndpoint,
 		}
 
 		// Generate server config file
@@ -93,6 +92,10 @@ func main() {
 	if topologyConfig == "" {
 		log.Fatal("TOPOLOGY_CONFIG environment variable is not set")
 	}
+	slimControllerEndpoint := os.Getenv("SLIM_CONTROLLER_ENDPOINT")
+	if slimControllerEndpoint == "" {
+		log.Fatal("SLIM_CONTROLLER_ENDPOINT environment variable is not set")
+	}
 	// Parse the fire-and-forget.yaml configuration
 	topology, err := config.ParseTopology(topologyConfig)
 	if err != nil {
@@ -109,7 +112,7 @@ func main() {
 	}
 
 	// Generate server configs from topology
-	err = GenerateServerConfigs(topology, outputPath)
+	err = GenerateServerConfigs(topology, slimControllerEndpoint, outputPath)
 	if err != nil {
 		log.Fatalf("Failed to generate server configs: %v", err)
 	}

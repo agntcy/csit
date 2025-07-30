@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
+	"time"
 
 	"os"
 
@@ -40,6 +42,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		topologyConfig string
 		topology       *config.Topology
 		clientset      kubernetes.Interface
+		slimController string
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -52,6 +55,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		namespace = os.Getenv("NAMESPACE")
 		slimctlPath = os.Getenv("SLIMCTL_PATH")
 		topologyConfig = os.Getenv("TOPOLOGY_CONFIG")
+		slimController = os.Getenv("SLIM_CONTROLLER_LOCAL_ENDPOINT")
 		// Parse the topology configuration
 		config, err := config.ParseTopology(topologyConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
@@ -70,21 +74,21 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 			// setup routes using the topology configuration
 
 			// wait for SLIM instances to start
-			//time.Sleep(2000 * time.Millisecond)
-			//
-			//for serverName, server := range topology.Servers {
-			//	for _, route := range server.Routes {
-			//		channelName, destServerName := config.ParseRoute(route)
-			//
-			//		log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
-			//
-			//		// add route using slimctl
-			//		gomega.Expect(exec.Command(slimctlPath,
-			//			"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
-			//			"via", fmt.Sprintf("%s-conn-config.json", destServerName),
-			//			"-s", fmt.Sprintf("http://agntcy-%s:46358", serverName)).Run()).To(gomega.Succeed())
-			//	}
-			//}
+			time.Sleep(2000 * time.Millisecond)
+
+			for serverName, server := range topology.Servers {
+				for _, route := range server.Routes {
+					channelName, destServerName := config.ParseRoute(route)
+
+					log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
+
+					// add route using slimctl
+					gomega.Expect(exec.Command(slimctlPath,
+						"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
+						"via", fmt.Sprintf("%s-conn-config.json", destServerName),
+						"-s", slimController).Run()).To(gomega.Succeed())
+				}
+			}
 
 		})
 

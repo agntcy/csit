@@ -33,8 +33,7 @@ slim:
               insecure: true
         {{- end }}
         controller:
-          server:
-            endpoint: "{{ .SlimControllerEndpoint }}"
-            tls:
-              insecure: true
-
+          clients:
+            - endpoint: "{{ .SlimControllerEndpoint }}"
+              tls:
+                insecure: true
