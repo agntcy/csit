@@ -12,8 +12,8 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.1" }}'
-  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.1" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.7" }}'
+  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.7" }}'
   DIRECTORY_NAMESPACE: '{{ .DIRECTORY_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
@@ -41,7 +41,7 @@ vars:
       else
         printf $DIRCTL_BIN_PATH
       fi
-  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.1" }}'
+  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.7" }}'
 
 tasks:
   k8s:port-forward:setup:
