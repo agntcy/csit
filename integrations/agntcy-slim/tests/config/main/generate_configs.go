@@ -27,6 +27,7 @@ type ServerConfigData struct {
 	SlimHost               string      `yaml:"slimHost"`
 	SlimPort               string      `yaml:"slimPort"`
 	SlimControllerEndpoint string      `yaml:"slimControllerEndpoint"`
+	ServiceName            string      `yaml:"serviceName"`
 }
 
 // GenerateServerConfig generates a server configuration file from the template
@@ -67,6 +68,7 @@ func GenerateServerConfigs(topology *config.Config, slimControllerEndpoint strin
 			SlimHost:               fmt.Sprintf("agntcy-%s", serverName),
 			SlimPort:               SlimMessagingPort,
 			SlimControllerEndpoint: slimControllerEndpoint,
+			ServiceName:            serverName,
 		}
 
 		// Generate server config file

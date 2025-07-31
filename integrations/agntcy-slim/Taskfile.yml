@@ -13,12 +13,13 @@ vars:
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
   SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.4.0" }}'
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.8" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.9" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "0.0.1" }}'
-  SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "http://slim-control:50052" }}'
-  SLIM_CONTROLLER_LOCAL_ENDPOINT: '{{ .SLIM_CONTROLLER_LOCAL_ENDPOINT | default "http://localhost:50052" }}'
 
+  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "0.1.2" }}'
+  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "0.1.0" }}'
+  SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "http://slim-control:50052" }}'
+  SLIM_CONTROLLER_LOCAL_ENDPOINT: '{{ .SLIM_CONTROLLER_LOCAL_ENDPOINT | default "localhost:50051" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
   LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.16" }}'
@@ -54,15 +55,13 @@ tasks:
       - kill -9 $(ps aux | grep port-forward | grep agntcy-slim | awk '{print $2}') || true
 
   k8s:port-forward:controller:setup:
-    internal: true
     cmds:
-      - kubectl port-forward svc/slim-controller -n {{ .HELM_NAMESPACE }} 50052 &
+      - kubectl port-forward svc/slim-control -n {{ .HELM_NAMESPACE }} 50051:50051 &
       - sleep 1
 
   k8s:port-forward:controller:teardown:
-    internal: true
     cmds:
-      - kill -9 $(ps aux | grep port-forward | grep slim-controller | awk '{print $2}') || true      
+      - kill -9 $(ps aux | grep port-forward | grep slim-control | awk '{print $2}') || true      
 
   test-env:deploy:
     desc: Deploy agntcy slim test env
@@ -71,24 +70,6 @@ tasks:
         helm upgrade agntcy-slim \
           oci://{{ .IMAGE_REPO }}/slim/helm/slim \
           --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
-          --namespace {{ .HELM_NAMESPACE }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"   
-
-  test-env:local:deploy:
-    desc: Deploy agntcy slim test env
-    cmds:
-      - |
-        helm upgrade agntcy-slim \
-          charts/slim \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_REPO }}" \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
           -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
@@ -108,7 +89,9 @@ tasks:
     desc: Deploy slim controller
     cmds:
       - |
-        helm upgrade slim-controller charts/slim-control-plane \
+        helm upgrade slim-controller \
+          oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
+          --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
           --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
           --namespace {{ .HELM_NAMESPACE }} \
           --create-namespace \
@@ -120,9 +103,31 @@ tasks:
   test-env:cleanup:contoroller:
     desc: Remove agent slim test env
     cmds:
+      - task k8s:port-forward:controller:teardown
       - helm delete --namespace {{ .HELM_NAMESPACE }} slim-controller                
 
   test-env:deploy:generated:
+    desc: Deploy agntcy slim test env for each values file in config/.generated
+    deps:
+      - test-env:generate:configs
+    cmd: |
+      #!/bin/sh
+      for file in "./config/.gen"/*.yaml ;do
+        helm upgrade agntcy-$(basename "$file" .yaml) \
+          oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          -f "$file" \
+          --namespace {{ .HELM_NAMESPACE }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --wait-for-jobs \
+          --timeout "15m"
+      echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
+      done
+
+  test-env:deploy:local:generated:
     desc: Deploy agntcy slim test env for each values file in config/.generated
     deps:
       - test-env:generate:configs
@@ -141,13 +146,11 @@ tasks:
           --wait \
           --wait-for-jobs \
           --timeout "15m"
-      echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
-      done
+      echo "Deployed agntcy-$(basename "$file" .yaml) with config $(basename "$file")"
+      done      
 
   test-env:cleanup:generated:
     desc: Undeploy agntcy slim test env for each values file in config/.generated
-    deps:
-      - test-env:generate:configs
     cmd: |
       #!/bin/sh
       for file in "./config/.gen"/*.yaml ;do
@@ -229,7 +232,8 @@ tasks:
   test:topology:
     desc: Slim topology test
     cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH={{.SLIMCTL_PATH}} TOPOLOGY_CONFIG={{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test"
+      - task k8s:port-forward:controller:setup
+      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH={{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test"
 
   test:mcp-server:
     desc: Test MCP over Slim

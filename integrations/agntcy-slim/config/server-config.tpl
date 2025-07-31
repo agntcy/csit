@@ -8,7 +8,7 @@ serviceAccount:
     name:
 
 slim:
-  config:
+  overrideConfig:
     tracing:
       log_level: debug
       display_thread_names: true
@@ -20,7 +20,7 @@ slim:
       drain_timeout: 10s
 
     services:
-      slim/0:
+      slim/{{.ServiceName }}:
         pubsub:
           servers:
           - endpoint: "0.0.0.0:{{ .SlimPort }}"

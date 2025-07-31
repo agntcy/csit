@@ -4,6 +4,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -80,19 +81,29 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				for _, route := range server.Routes {
 					channelName, destServerName := config.ParseRoute(route)
 
+					log.Printf("slimController %s", slimController)
 					log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
 
 					// add route using slimctl
-					gomega.Expect(exec.Command(slimctlPath,
+					var out bytes.Buffer
+					cmd := exec.Command(slimctlPath,
 						"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
-						"via", fmt.Sprintf("%s-conn-config.json", destServerName),
-						"-s", slimController).Run()).To(gomega.Succeed())
+						"via", fmt.Sprintf("../config/.gen/%s-conn-config.json", destServerName),
+						"--node-id", fmt.Sprintf("slim/%s", serverName),
+						"--server", slimController)
+					cmd.Stdout = &out
+					cmd.Stderr = &out
+
+					err := cmd.Run()
+					fmt.Println("Command output:", out.String())
+					gomega.Expect(err).To(gomega.Succeed())
+
 				}
 			}
 
 		})
 
-		ginkgo.It("Create SLIM client Job(s)", func() {
+		ginkgo.It("Create SLIM client Pods", func() {
 
 			for clientName, client := range topology.Clients {
 
@@ -113,8 +124,8 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 					// Register cleanup to run after all the spec is done
 					ginkgo.DeferCleanup(func(ctx context.Context) {
-						//err := k8sHelper.CleanupConfigMap(ctx)
-						//gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
+						err := k8sHelper.CleanupConfigMap(ctx)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
 					})
 
 					cfg := ClientConfig{
@@ -150,19 +161,21 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 				}
 
-				_, err := k8sHelper.CreateJob()
+				createdPod, err := k8sHelper.CreatePod()
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to create %s job", clientName))
 
 				// Register cleanup to run after this spec completes
-				ginkgo.DeferCleanup(func(ctx context.Context) {
-					//err := k8sHelper.CleanupJob(ctx)
-					//gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete job %s", clientName))
-				})
+				// ginkgo.DeferCleanup(func(ctx context.Context) {
+				// 	err := k8sHelper.CleanupPod(ctx)
+				// 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
+				// })
 
-				// Wait for job to be succeded
-				//err = k8sHelper.WaitForJobCompletion(k8sTimeOutSeconds * time.Second)
-				//gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdJob)
+				// Wait for pod to be running
+				err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
+
+				//TODO assert pod logs
 			}
 		})
 	})

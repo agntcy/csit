@@ -5,30 +5,26 @@ topology:
                 spireJwt: true
             connectedTo:
                 - "slim-1"
-            image: agntcy/slim-python-examples:v0.0.1
-            cmd: fire-and-forget.py
-            args: ["-m","hello","-i","1000","-l", "cisco/default/alice", "-r", "cisco/default/bob"]
+            image: agntcy/slim-bindings-examples:v0.0.1
+            cmd: /app/bin/ff
+            args: ["-m","hello","-i","1000","-l", "org/default/alice", "-r", "org/default/bob"]
         "bob":
             auth:
                 spireJwt: true
             connectedTo:
-                - "slim-1"
-            image: agntcy/slim-python-examples:v0.0.1
-            cmd: fire-and-forget.py
-            args: ["-i","1000", "-l", "cisco/default/bob"]
+                - "slim-2"
+            image: agntcy/slim-bindings-examples:v0.0.1
+            cmd: /app/bin/ff
+            args: ["-i","1000", "-l", "org/default/bob"]
     servers:
-        "main":
+        "slim-0":
             spireMtls: false
-            routes:
-                - "alice > slim-1"
-                - "alice > slim-2"
-                - "bob > slim-1"
-                - "bob > slim-2"
-        "slim-1":
             routes:                
-                - "alice > main"
-                - "bob > main"
+                - "bob > slim-2"  
+                - "alice > slim-1"              
+        "slim-1":
+            routes:                                
+                - "bob > slim-0"
         "slim-2":
             routes:                
-                - "alice > main"
-                - "bob > main"
+                - "alice > slim-0"                
