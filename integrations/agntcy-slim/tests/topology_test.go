@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"sort"
 	"time"
 
 	"os"
@@ -81,14 +82,12 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 			for serverName, server := range topology.Servers {
 				for _, route := range server.Routes {
 					channelName, destServerName := config.ParseRoute(route)
-
-					log.Printf("slimController %s", slimController)
 					log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
 
 					// add route using slimctl
 					var out bytes.Buffer
 					cmd := exec.Command(slimctlPath,
-						"route", "add", fmt.Sprintf("org/default/%s/0", channelName),
+						"route", "add", fmt.Sprintf("%s/0", channelName),
 						"via", fmt.Sprintf("../config/.gen/%s-conn-config.json", destServerName),
 						"--node-id", fmt.Sprintf("slim/%s", serverName),
 						"--server", slimController)
@@ -106,12 +105,20 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 		ginkgo.It("Create SLIM client Pods", func() {
 
-			for clientName, client := range topology.Clients {
+			// alphanumerically order topology.Clients by key
+			clientNames := make([]string, 0, len(topology.Clients))
+			for name := range topology.Clients {
+				clientNames = append(clientNames, name)
+			}
+			sort.Strings(clientNames)
+
+			for _, clientName := range clientNames {
+				client := topology.Clients[clientName]
 
 				jobName := clientName
 				imageName := client.Image
 				envVars := map[string]string{}
-				command := client.Cmd
+				//command := client.Cmd
 				args := client.Args
 				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset).WithEnvVars(envVars)
 
@@ -143,7 +150,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 					args := append(args, "--config", string(cfgJSON))
 					// Create a pod with the autogen agent with MTLS from SPIRE
-					k8sHelper = k8sHelper.WithCommand([]string{command}).WithArgs(args).WithSpireHelper()
+					k8sHelper = k8sHelper.WithArgs(args).WithSpireHelper()
 
 				} else {
 					endpoint := fmt.Sprintf("http://agntcy-%s:46357", client.ConnectedTo[0])
@@ -158,7 +165,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 					//args = append(args, "--config", string(cfgJSON))
 					args = append(args, "--slim", string(cfgJSON))
-					k8sHelper = k8sHelper.WithCommand([]string{"python", command}).WithArgs(args)
+					k8sHelper = k8sHelper.WithArgs(args)
 
 				}
 
@@ -176,6 +183,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 
+				time.Sleep(1000 * time.Millisecond) // wait for pod to be ready
 				//TODO assert pod logs
 			}
 		})

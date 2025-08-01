@@ -129,28 +129,6 @@ tasks:
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
-  test-env:deploy:local:generated:
-    desc: Deploy agntcy slim test env for each values file in config/.generated
-    deps:
-      - test-env:generate:configs
-    cmd: |
-      #!/bin/sh
-      for file in "./config/.gen"/*.yaml ;do
-        helm upgrade agntcy-$(basename "$file" .yaml) \
-          charts/slim \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.repository="agntcy/slim" \
-          --set slim.image.tag="latest" \
-          -f "$file" \
-          --namespace {{ .HELM_NAMESPACE }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"
-      echo "Deployed agntcy-$(basename "$file" .yaml) with config $(basename "$file")"
-      done      
-
   test-env:cleanup:generated:
     desc: Undeploy agntcy slim test env for each values file in config/.generated
     cmd: |

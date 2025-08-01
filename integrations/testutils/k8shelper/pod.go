@@ -52,7 +52,7 @@ func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 					Image: k.imageName,
 				},
 			},
-			RestartPolicy: corev1.RestartPolicyAlways,
+			RestartPolicy: corev1.RestartPolicyOnFailure,
 		},
 	}
 

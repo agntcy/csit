@@ -52,7 +52,7 @@ func (k *k8sHelper) WithEnvVars(envVars map[string]string) *k8sHelper {
 }
 
 func (k *k8sHelper) WithCommand(command []string) *k8sHelper {
-	//k.command = command
+	k.command = command
 
 	return k
 }
