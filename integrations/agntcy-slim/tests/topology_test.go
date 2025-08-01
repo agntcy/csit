@@ -23,10 +23,11 @@ import (
 )
 
 type TLSConfig struct {
-	InsecureSkipVerify bool   `json:"insecure_skip_verify"`
-	CertFile           string `json:"cert_file"`
-	KeyFile            string `json:"key_file"`
-	CAFile             string `json:"ca_file"`
+	Insecure           bool   `json:"insecure,omitempty"`
+	InsecureSkipVerify bool   `json:"insecure_skip_verify,omitempty"`
+	CertFile           string `json:"cert_file,omitempty"`
+	KeyFile            string `json:"key_file,omitempty"`
+	CAFile             string `json:"ca_file,omitempty"`
 }
 
 type ClientConfig struct {
@@ -142,21 +143,21 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 					args := append(args, "--config", string(cfgJSON))
 					// Create a pod with the autogen agent with MTLS from SPIRE
-					k8sHelper = k8sHelper.WithCommand([]string{"python", command}).WithArgs(args).WithSpireHelper()
+					k8sHelper = k8sHelper.WithCommand([]string{command}).WithArgs(args).WithSpireHelper()
 
 				} else {
 					endpoint := fmt.Sprintf("http://agntcy-%s:46357", client.ConnectedTo[0])
 					cfg := ClientConfig{
 						Endpoint: endpoint,
 						TLS: TLSConfig{
-							InsecureSkipVerify: true,
+							Insecure: true,
 						},
 					}
-					_, err := json.Marshal(cfg)
+					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
 					//args = append(args, "--config", string(cfgJSON))
-					args = append(args, "--slim", endpoint)
+					args = append(args, "--slim", string(cfgJSON))
 					k8sHelper = k8sHelper.WithCommand([]string{"python", command}).WithArgs(args)
 
 				}

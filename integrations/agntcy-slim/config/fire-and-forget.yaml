@@ -5,26 +5,28 @@ topology:
                 spireJwt: true
             connectedTo:
                 - "slim-1"
-            image: agntcy/slim-bindings-examples:v0.0.1
-            cmd: /app/bin/ff
-            args: ["-m","hello","-i","1000","-l", "org/default/alice", "-r", "org/default/bob"]
+            image: agntcy/slim-bindings-examples:v0.0.1                              
+            args: ["ff", "--message","hello","--iterations","1000","--local", "org/default/alice", "--remote", "org/default/bob","--shared-secret","secret123"]
         "bob":
             auth:
                 spireJwt: true
             connectedTo:
                 - "slim-2"
-            image: agntcy/slim-bindings-examples:v0.0.1
-            cmd: /app/bin/ff
-            args: ["-i","1000", "-l", "org/default/bob"]
+            image: agntcy/slim-bindings-examples:v0.0.1            
+            args: ["ff", "--iterations","1000", "--local", "org/default/bob", "--shared-secret","secret123"]
     servers:
         "slim-0":
             spireMtls: false
             routes:                
                 - "bob > slim-2"  
+                - "bob > slim-1"
+                - "alice > slim-2"
                 - "alice > slim-1"              
         "slim-1":
             routes:                                
                 - "bob > slim-0"
+                - "alice > slim-0"
         "slim-2":
             routes:                
                 - "alice > slim-0"                
+                - "bob > slim-0"
