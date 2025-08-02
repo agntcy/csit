@@ -11,14 +11,14 @@ vars:
 
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.3.15" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.4.0" }}'
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.8" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
   IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.15" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.15" }}'
+  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.16" }}'
+  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.16" }}'
 
   AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
   AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
