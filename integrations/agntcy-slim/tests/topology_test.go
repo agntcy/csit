@@ -117,7 +117,9 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 				jobName := clientName
 				imageName := client.Image
-				envVars := map[string]string{}
+				envVars := map[string]string{
+					"PYTHONUNBUFFERED": "1",
+				}
 				//command := client.Cmd
 				args := client.Args
 				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset).WithEnvVars(envVars)

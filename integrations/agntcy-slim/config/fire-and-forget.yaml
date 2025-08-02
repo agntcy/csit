@@ -13,7 +13,7 @@ topology:
             connectedTo:
                 - "slim-2"
             image: ghcr.io/agntcy/slim/bindings-examples:latest                      
-            args: ["ff", "--message","hello","--iterations","100","--local", "org/ns/bob", "--remote", "org/ns/alice","--shared-secret","secret123"]
+            args: ["ff", "--message", "hello", "--iterations", "10", "--local", "org/ns/bob", "--remote", "org/ns/alice", "--shared-secret","secret123"]
     servers:
         "slim-0":
             spireMtls: false
