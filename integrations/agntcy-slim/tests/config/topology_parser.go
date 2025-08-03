@@ -21,6 +21,7 @@ type Client struct {
 	Image       string   `yaml:"image"`
 	Cmd         string   `yaml:"cmd"`
 	Args        []string `yaml:"args"`
+	AssertFor   string   `yaml:"assertFor"`
 }
 
 // Server represents a server configuration in the topology
