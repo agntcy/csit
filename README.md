@@ -2,6 +2,7 @@
 
 - [CSIT - Continuous System Integration Testing](#csit---continuous-system-integration-testing)
   - [Architecture](#architecture)
+  - [Tasks](#tasks)
 - [Integration tests](#integration-tests)
   - [Directory structure](#directory-structure)
   - [Running tests](#running-tests)
@@ -9,8 +10,8 @@
   - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
 - [Samples](#samples)
   - [Running tests](#running-tests-1)
-- [Updating the `agntcy/dir` testdata](#updating-the-agntcydir-testdata)
-- [Copyright Notice](#copyright-notice)
+  - [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
+  - [Copyright Notice](#copyright-notice)
 
 ## Architecture
 
@@ -99,13 +100,25 @@ task: Available tasks for this project:
 * integrations:directory:test:list:                       Directory agent list test
 * integrations:directory:test:networking:                 Directory agent networking test
 * integrations:directory:test:push:                       Directory agent push test
-* integrations:slim:build:agentic-apps:                Build agentic containers
-* integrations:slim:test-env:cleanup:                  Remove agent slim test env
-* integrations:slim:test-env:deploy:                   Deploy agntcy slim test env
-* integrations:slim:test:mcp-server:                   Test MCP over Slim
-* integrations:slim:test:mcp-server:slim-native:       Test Slim native MCP server
-* integrations:slim:test:mcp-server:mcp-proxy:         Test MCP server via MCP proxy
-* integrations:slim:test:sanity:                       Sanity slim test
+* integrations:slim:build:agentic-apps:                   Build agentic containers
+* integrations:slim:cert-manager:deploy:                  Deploy cert-manager
+* integrations:slim:cert-manager:remove:                  Remove cert-manager
+* integrations:slim:certificates:create:                  Create certificates
+* integrations:slim:spire:deploy:                         Deploy SPIRE server
+* integrations:slim:spire:remove:                         Remove SPIRE server
+* integrations:slim:test-env:cleanup:                     Remove agent slim test env
+* integrations:slim:test-env:cleanup:contoroller:         Remove slim controller test env
+* integrations:slim:test-env:cleanup:generated:           Undeploy agntcy slim test env for each values file in config/.generated
+* integrations:slim:test-env:deploy:                      Deploy agntcy slim test env
+* integrations:slim:test-env:deploy:controller:           Deploy slim controller
+* integrations:slim:test-env:deploy:generated:            Deploy agntcy slim test env for each values file in config/.generated
+* integrations:slim:test-env:generate:configs:            Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
+* integrations:slim:test:mcp-server:                      Test MCP over Slim
+* integrations:slim:test:mcp-server:mcp-proxy:            Test MCP server via MCP proxy
+* integrations:slim:test:mcp-server:slim-native:          Test Slim native MCP server
+* integrations:slim:test:sanity:                          Sanity slim test
+* integrations:slim:test:slimctl-download:                Download slimctl executable for current OS and architecture
+* integrations:slim:test:topology:                        Slim topology test
 * integrations:kind:create:                               Create kind cluster
 * integrations:kind:destroy:                              Destroy kind cluster
 * integrations:version:                                   Get version
