@@ -38,17 +38,7 @@ on:
         description: 'Skip slim tests'
         required: false
         default: true
-        type: boolean
-      skip_slim_spire_test:
-        description: 'Skip slim with SPIRE tests'
-        required: false
-        default: true
-        type: boolean
-      skip_slim_topology_test:
-        description: 'Skip slim topology tests'
-        required: false
-        default: true
-        type: boolean        
+        type: boolean      
       run_agentic_apps_test:
         description: 'Run agentic apps tests'
         required: false
@@ -146,7 +136,7 @@ jobs:
       #   shell: bash
 
   run-tests-slim-topology:
-    if: ${{ !inputs.skip_slim_topology_test }}
+    if: ${{ !inputs.skip_slim_test }}
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
@@ -196,7 +186,7 @@ jobs:
 
 
   run-tests-slim-spire:
-    if: ${{ !inputs.skip_slim_spire_test }}
+    if: ${{ !inputs.skip_slim_test }}
     needs: [ set-kind-version ]
     runs-on: ubuntu-latest
 
