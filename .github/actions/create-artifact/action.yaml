@@ -1,25 +1,25 @@
 name: Setup Environment
-description: setup environment with common tools/vars
+description: "Action to create an artifact from test reports and upload it to GitHub Actions."
 inputs:
   artifact-name:
-    description: 'Name of the artifact'
+    description: "Name of the artifact"
     required: false
-    default: 'test-results'
+    default: "test-results"
   path-to-archive:
-    description: 'The wildcard pattern to apply which files to be archived'
+    description: "The wildcard pattern to apply which files to be archived"
     required: false
-    default: './**/*report*.json'
+    default: "./**/*report*.json"
   compression-level:
-    description: 'Compression level of the artifact'
+    description: "Compression level of the artifact"
     required: false
-    default: '9'
+    default: "9"
   retention-days:
-    description: 'Retention days for the artifact'
+    description: "Retention days for the artifact"
     required: false
-    default: '30'
+    default: "30"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - uses: actions/upload-artifact@v4
       with:

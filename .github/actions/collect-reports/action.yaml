@@ -1,67 +1,62 @@
-name: 'Combine Workflow Artifacts'
-description: 'Downloads all artifacts from a workflow run, consolidates their contents, and uploads a single combined artifact.'
+name: "Combine Workflow Artifacts"
+description: "Downloads all artifacts from a workflow run, consolidates their contents, and uploads a single combined artifact."
 
 inputs:
   combined-artifact-name:
-    description: 'The name for the final combined artifact that will be uploaded.'
+    description: "The name for the final combined artifact that will be uploaded."
     required: false
-    default: 'all-combined-artifacts'
-  download-base-path:
-    description: 'The temporary base directory where individual artifacts will be downloaded by actions/download-artifact.'
-    required: false
-    default: 'downloaded-individual-artifacts'
-  combined-output-dir:
-    description: 'The temporary directory where the contents of all artifacts will be consolidated before zipping.'
-    required: false
-    default: 'combined-artifact-contents'
-  
+    default: "all-combined-artifacts"
 
 outputs:
   combined-artifact-path:
-    description: 'The path to the created combined artifact zip file on the runner. Useful for subsequent steps.'
-    value: ${{ steps.zip-combined.outputs.zip-file-path }} 
+    description: "The path to the created combined artifact zip file on the runner. Useful for subsequent steps."
+    value: ${{ steps.zip-combined.outputs.zip-file-path }}
 
 runs:
-  using: "composite" 
+  using: "composite"
   steps:
     - name: Download all individual artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ${{ inputs.download-base-path }}
+        path: downloaded-individual-artifacts
 
     - name: Prepare combined output directory
       shell: bash
       run: |
-        mkdir -p ${{ inputs.combined-output-dir }} # Create the directory for consolidated contents
+        mkdir -p combined-artifact-contents # Create the directory for consolidated contents
 
     - name: Consolidate contents from all downloaded artifacts
       shell: bash
       run: |
         # Loop through each subdirectory created by download-artifact (each represents an original artifact)
         # and copy its contents into the single combined output directory.
-        for dir in "${{ inputs.download-base-path }}"/*/; do
+        for dir in "downloaded-individual-artifacts"/*/; do
           if [ -d "$dir" ]; then
-            echo "Copying contents from $dir to ${{ inputs.combined-output-dir }}"
-            rsync -av --ignore-existing "$dir"/ "${{ inputs.combined-output-dir }}/"
+            echo "Copying contents from $dir to combined-artifact-contents"
+            rsync -av --ignore-existing "$dir"/ "combined-artifact-contents/"
           fi
         done
         echo "Contents of combined directory:"
-        ls -R ${{ inputs.combined-output-dir }} || true # List contents (optional, for debugging)
+        ls -R combined-artifact-contents || true # List contents (optional, for debugging)
+
+    - name: Check if artifacts were collected
+      shell: bash
+      run: |
+        # Check if the combined output directory exists and has content
+        if [ ! -d "combined-artifact-contents" ] || [ -z "$(ls -A "combined-artifact-contents")" ]; then
+          echo "::error::No artifacts were collected. Cancelling workflow."
+          exit 1
+        else
+          echo "Artifacts successfully collected. Proceeding with workflow."
+        fi
 
     - name: Create combined zip artifact
       id: zip-combined
       shell: bash
       run: |
         zip_file_name="${{ inputs.combined-artifact-name }}.zip"
-        # Check if the combined output directory exists and has content before zipping
-        if [ ! -d "${{ inputs.combined-output-dir }}" ] || [ -z "$(ls -A "${{ inputs.combined-output-dir }}")" ]; then
-          echo "Warning: Combined output directory '${{ inputs.combined-output-dir }}' is empty or does not exist. Creating an empty zip file."
-          touch "$zip_file_name" # Create an empty file to zip if no content
-          zip -j "$zip_file_name" "$zip_file_name" # Zip the empty file into an empty zip
-        else
-          # Zip the contents of the combined output directory
-          zip -r "$zip_file_name" "${{ inputs.combined-output-dir }}/"
-        fi
+        # Zip the contents of the combined output directory
+        zip -r "$zip_file_name" "combined-artifact-contents/"
         echo "Created $zip_file_name"
         # Set an output for the action, which can be accessed via ${{ steps.zip-combined.outputs.zip-file-path }}
         echo "zip-file-path=$zip_file_name" >> $GITHUB_OUTPUT
@@ -69,5 +64,5 @@ runs:
     - name: Upload combined artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.combined-artifact-name }} 
+        name: ${{ inputs.combined-artifact-name }}
         path: ${{ steps.zip-combined.outputs.zip-file-path }}

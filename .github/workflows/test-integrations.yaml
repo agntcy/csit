@@ -10,42 +10,47 @@ on:
   workflow_dispatch:
     inputs:
       kind_version:
-        description: 'Kind version'
+        description: "Kind version"
         required: false
-        default: '0.24.0'
+        default: "0.24.0"
       override_directory_image_tag:
-        description: 'Override Directory image tag'
+        description: "Override Directory image tag"
         required: false
-        default: ''
+        default: ""
       override_directory_chart_tag:
-        description: 'Override Directory chart tag'
+        description: "Override Directory chart tag"
         required: false
-        default: ''
+        default: ""
       override_slim_image_tag:
-        description: 'Override Slim image tag'
+        description: "Override Slim image tag"
         required: false
-        default: ''
+        default: ""
       override_slim_chart_tag:
-        description: 'Override Slim chart tag'
+        description: "Override Slim chart tag"
         required: false
-        default: ''
+        default: ""
       skip_directory_test:
-        description: 'Skip directory tests'
+        description: "Skip directory tests"
         required: false
         default: true
         type: boolean
       skip_slim_test:
-        description: 'Skip slim tests'
+        description: "Skip slim tests"
         required: false
         default: true
-        type: boolean      
+        type: boolean
+      skip_slim_spire_test:
+        description: "Skip slim with SPIRE tests"
+        required: false
+        default: true
+        type: boolean
       run_agentic_apps_test:
-        description: 'Run agentic apps tests'
+        description: "Run agentic apps tests"
         required: false
         default: false
         type: boolean
-      run_wfsm_test:                
-        description: 'Run WFSM tests'
+      run_wfsm_test:
+        description: "Run WFSM tests"
         required: false
         default: false
         type: boolean
@@ -62,7 +67,7 @@ jobs:
       - name: Set KinD version
         id: set-kind-version
         env:
-          KIND_VERSION: '0.24.0'
+          KIND_VERSION: "0.24.0"
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
@@ -73,15 +78,15 @@ jobs:
           echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
 
   run-tests-slim:
-    if:  ${{ !inputs.skip_slim_test }}
-    needs: [ set-kind-version ]
+    if: ${{ !inputs.skip_slim_test }}
+    needs: [set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'read'
-      attestations: 'read'
+      contents: "read"
+      id-token: "write"
+      packages: "read"
+      attestations: "read"
 
     steps:
       - name: Checkout code
@@ -110,8 +115,8 @@ jobs:
       - name: Deploy Slim
         uses: ./.github/actions/deploy-components
         with:
-          deploy-spire: 'true'
-          deploy-slim: 'true'
+          deploy-spire: "true"
+          deploy-slim: "true"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
 
@@ -137,14 +142,14 @@ jobs:
 
   run-tests-slim-topology:
     if: ${{ !inputs.skip_slim_test }}
-    needs: [ set-kind-version ]
+    needs: [set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'read'
-      attestations: 'read'
+      contents: "read"
+      id-token: "write"
+      packages: "read"
+      attestations: "read"
 
     steps:
       - name: Checkout code
@@ -173,33 +178,32 @@ jobs:
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
         with:
-          deploy-slim: 'false'
-          deploy-spire: 'false'
-          deploy-slim-topology: 'true'
-          slim-config: 'spire'
+          deploy-slim: "false"
+          deploy-spire: "false"
+          deploy-slim-topology: "true"
+          slim-config: "spire"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
 
       - name: Run slim topology test
         run: task integrations:slim:test:topology
-        shell: bash          
+        shell: bash
 
-
-      - name: Create artifact from sample test reports
+      - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: "slim-test-result"
 
   run-tests-slim-spire:
-    if: ${{ !inputs.skip_slim_test }}
-    needs: [ set-kind-version ]
+    if: ${{ !inputs.skip_slim_spire_test }}
+    needs: [set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'read'
-      attestations: 'read'
+      contents: "read"
+      id-token: "write"
+      packages: "read"
+      attestations: "read"
 
     steps:
       - name: Checkout code
@@ -228,9 +232,9 @@ jobs:
       - name: Deploy Slim with SPIRE
         uses: ./.github/actions/deploy-components
         with:
-          deploy-slim: 'true'
-          deploy-spire: 'true'
-          slim-config: 'spire'
+          deploy-slim: "true"
+          deploy-spire: "true"
+          slim-config: "spire"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
 
@@ -241,25 +245,25 @@ jobs:
           AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
           AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          SLIM_CONFIG: 'spire'
+          SLIM_CONFIG: "spire"
         run: task integrations:slim:test:sanity
         shell: bash
 
-      - name: Create artifact from sample test reports
+      - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: "slim-spire-test-result"
 
   run-tests-directory:
     if: ${{ !inputs.skip_directory_test }}
-    needs: [ set-kind-version ]
+    needs: [set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'read'
-      attestations: 'read'
+      contents: "read"
+      id-token: "write"
+      packages: "read"
+      attestations: "read"
 
     steps:
       - name: Checkout code
@@ -288,7 +292,7 @@ jobs:
       - name: Deploy Directory
         uses: ./.github/actions/deploy-components
         with:
-          deploy-directory: 'true'
+          deploy-directory: "true"
           directory-image-tag: ${{ inputs.override_directory_image_tag}}
           directory-chart-tag: ${{ inputs.override_directory_chart_tag }}
 
@@ -296,7 +300,7 @@ jobs:
         run: task integrations:directory:test
         shell: bash
 
-      - name: Create artifact from sample test reports
+      - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: "directory-test-result"
@@ -327,15 +331,15 @@ jobs:
         shell: bash
 
   run-tests-wfsm:
-    if: ${{ inputs.run_wfsm_test }}  
-    needs: [ set-kind-version ]
+    if: ${{ inputs.run_wfsm_test }}
+    needs: [set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'read'
-      attestations: 'read'
+      contents: "read"
+      id-token: "write"
+      packages: "read"
+      attestations: "read"
 
     steps:
       - name: Checkout code
@@ -364,9 +368,9 @@ jobs:
       - name: Deploy Directory
         uses: ./.github/actions/deploy-components
         with:
-          deploy-directory: 'true'
-          directory-image-tag: 'v0.2.3'
-          directory-chart-tag: 'v0.2.3'
+          deploy-directory: "true"
+          directory-image-tag: "v0.2.3"
+          directory-chart-tag: "v0.2.3"
 
       - name: Run Workflow Server Manger Test
         env:
@@ -374,7 +378,7 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           TEST_ENV_VAR: "anything"
-          DIRCTL_BIN_VERSION: 'v0.2.3'
+          DIRCTL_BIN_VERSION: "v0.2.3"
 
         run: |
           task integrations:directory:download:dirctl-bin
@@ -384,8 +388,22 @@ jobs:
 
   combine-all-artifacts:
     # Ensure this job runs only after all jobs that produce artifacts have completed
-    needs: [run-tests-slim, run-tests-slim-spire, run-tests-directory, run-agentic-apps, run-tests-wfsm]
-    if: always() && (needs.run-tests-slim.result == 'success' || needs.run-tests-slim.result == 'failure' || needs.run-tests-slim-spire.result == 'success' || needs.run-tests-slim-spire.result == 'failure' || needs.run-tests-directory.result == 'success' || needs.run-tests-directory.result == 'failure' || needs.run-agentic-apps.result == 'success' || needs.run-agentic-apps.result == 'failure' || needs.run-tests-wfsm.result == 'success' || needs.run-tests-wfsm.result == 'failure')
+    needs:
+      [
+        run-tests-slim,
+        run-tests-slim-spire,
+        run-tests-directory,
+        run-agentic-apps,
+        run-tests-wfsm,
+      ]
+    if: |
+      always() && (
+        contains(fromJSON('["success", "failure"]'), needs.run-tests-slim.result) ||
+        contains(fromJSON('["success", "failure"]'), needs.run-tests-slim-spire.result) ||
+        contains(fromJSON('["success", "failure"]'), needs.run-tests-directory.result) ||
+        contains(fromJSON('["success", "failure"]'), needs.run-agentic-apps.result) ||
+        contains(fromJSON('["success", "failure"]'), needs.run-tests-wfsm.result)
+      )
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository (required for local actions)
@@ -393,4 +411,4 @@ jobs:
       - name: Combine and upload all artifacts
         uses: ./.github/actions/collect-reports
         with:
-          combined-artifact-name: 'combined-test-reports'
+          combined-artifact-name: "combined-test-reports"
