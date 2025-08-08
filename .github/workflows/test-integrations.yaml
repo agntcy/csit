@@ -396,19 +396,15 @@ jobs:
         run-agentic-apps,
         run-tests-wfsm,
       ]
-    if: |
-      always() && (
-        contains(fromJSON('["success", "failure"]'), needs.run-tests-slim.result) ||
-        contains(fromJSON('["success", "failure"]'), needs.run-tests-slim-spire.result) ||
-        contains(fromJSON('["success", "failure"]'), needs.run-tests-directory.result) ||
-        contains(fromJSON('["success", "failure"]'), needs.run-agentic-apps.result) ||
-        contains(fromJSON('["success", "failure"]'), needs.run-tests-wfsm.result)
-      )
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository (required for local actions)
+        if: ${{ contains(join(needs.*.result, ','), 'success')}}
         uses: actions/checkout@v4
+
       - name: Combine and upload all artifacts
+        if: ${{ contains(join(needs.*.result, ','), 'success')}}
         uses: ./.github/actions/collect-reports
         with:
           combined-artifact-name: "combined-test-reports"
