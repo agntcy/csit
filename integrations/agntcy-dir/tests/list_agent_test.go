@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -16,22 +17,22 @@ import (
 	testrunner "github.com/agntcy/csit/integrations/testutils/runner"
 )
 
-var _ = ginkgo.Describe("Agntcy agent list tests", func() {
-	type agent struct {
+var _ = ginkgo.Describe("Agntcy record list tests", func() {
+	type record struct {
 		modelFile string
-		digest    string
+		cid       string
 	}
 
 	var (
 		dockerImage string
 		mountDest   string
 		mountString string
-		agents      []*agent
+		records     []*record
 		runner      testrunner.Runner
 	)
 
-	ginkgo.Context("agents push for listing", func() {
-		ginkgo.It("should push and publish agents", func() {
+	ginkgo.Context("record push for listing", func() {
+		ginkgo.It("should push and publish record", func() {
 			examplesDir := "../examples/"
 			testDataPath, err := filepath.Abs(filepath.Join(examplesDir, "dir/e2e/testdata/examples/"))
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -45,14 +46,14 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 			}
 
-			agents = append(agents, &agent{modelFile: filepath.Join(mountDest, "crewai.agent.json")})
-			agents = append(agents, &agent{modelFile: filepath.Join(mountDest, "langgraph.agent.json")})
-			agents = append(agents, &agent{modelFile: filepath.Join(mountDest, "llama-index.agent.json")})
+			records = append(records, &record{modelFile: filepath.Join(mountDest, "crewai.agent.json")})
+			records = append(records, &record{modelFile: filepath.Join(mountDest, "langgraph.agent.json")})
+			records = append(records, &record{modelFile: filepath.Join(mountDest, "llama-index.agent.json")})
 
-			for _, agent := range agents {
+			for _, record := range records {
 				dirctlArgs := []string{
 					"push",
-					agent.modelFile,
+					record.modelFile,
 					"--server-addr",
 					fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 				}
@@ -74,9 +75,7 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 
 				cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
 
-				sqlite_err := IsSQLitePushFailure(err)
-
-				if err != nil && !sqlite_err {
+				if err != nil {
 					exitErr, ok := err.(*exec.ExitError)
 					if ok {
 						err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
@@ -84,15 +83,20 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				}
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				var found bool
 
-				agent.digest = strings.Trim(cmdOutput, "\n")
-				_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "DIGEST: %v\n", agent.digest)
+				record.cid, found = strings.CutPrefix(cmdOutput, "Pushed record with CID: ")
+				gomega.Expect(found).To(gomega.BeTrue(), "Could not find CID prefix in dirctl output")
+
+				record.cid = strings.TrimSpace(record.cid)
+				_, err = fmt.Fprintf(ginkgo.GinkgoWriter, "CID: %v\n", record.cid)
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), cmdOutput)
 
 				dirctlArgs = []string{
+					"routing",
 					"publish",
-					agent.digest,
+					record.cid,
 					"--server-addr",
 					fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 				}
@@ -107,9 +111,11 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
+
+			time.Sleep(3 * time.Second) // NOTE: Wait for publication
 		})
 
-		ginkgo.DescribeTable("list agents using categories",
+		ginkgo.DescribeTable("list records using categories",
 			func(categories []string, expectFound bool) {
 
 				labels := []string{}
@@ -118,6 +124,7 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				}
 
 				dirctlArgs := []string{
+					"routing",
 					"list",
 					"--server-addr",
 					fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
@@ -140,11 +147,11 @@ var _ = ginkgo.Describe("Agntcy agent list tests", func() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				if expectFound {
-					for _, agent := range agents {
-						gomega.Expect(cmdOutput).To(gomega.ContainSubstring(agent.digest))
+					for _, record := range records {
+						gomega.Expect(cmdOutput).To(gomega.ContainSubstring(record.cid))
 					}
 				} else {
-					gomega.Expect(cmdOutput).To(gomega.BeEmpty())
+					gomega.Expect(cmdOutput).ToNot(gomega.BeEmpty())
 				}
 
 			},

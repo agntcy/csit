@@ -15,14 +15,14 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("Agntcy agent push tests", func() {
+var _ = ginkgo.Describe("Agntcy record push tests", func() {
 	var (
-		dockerImage    string
-		mountDest      string
-		mountString    string
-		agentModelFile string
-		digest         string
-		runner         testrunner.Runner
+		dockerImage     string
+		mountDest       string
+		mountString     string
+		recordModelFile string
+		cid             string
+		runner          testrunner.Runner
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -39,15 +39,15 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 		}
 
-		agentModelFile = filepath.Join(mountDest, "agent.json")
+		recordModelFile = filepath.Join(mountDest, "record_031.json")
 	})
 
-	ginkgo.Context("agent push and pull", func() {
-		ginkgo.It("should push an agent", func() {
+	ginkgo.Context("record push and pull", func() {
+		ginkgo.It("should push an record", func() {
 
 			dirctlArgs := []string{
 				"push",
-				agentModelFile,
+				recordModelFile,
 				"--server-addr",
 				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}
@@ -69,9 +69,7 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 
 			cmdOutput, err := runner.Run("dirctl", dirctlArgs...)
 
-			sqlite_err := IsSQLitePushFailure(err)
-
-			if err != nil && !sqlite_err {
+			if err != nil {
 				exitErr, ok := err.(*exec.ExitError)
 				if ok {
 					err = fmt.Errorf("%s, stderr:%s", exitErr.String(), string(exitErr.Stderr))
@@ -80,17 +78,22 @@ var _ = ginkgo.Describe("Agntcy agent push tests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			digest = strings.Trim(cmdOutput, "\n")
+			var found bool
+			cid, found = strings.CutPrefix(cmdOutput, "Pushed record with CID: ")
+
+			gomega.Expect(found).To(gomega.BeTrue(), "Could not find CID prefix in dirctl output")
+
+			cid = strings.TrimSpace(cid)
 		})
 
-		ginkgo.It("should pull an agent", func() {
+		ginkgo.It("should pull an record", func() {
 
-			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "digest: %s\n", digest)
+			_, err := fmt.Fprintf(ginkgo.GinkgoWriter, "cid: %s\n", cid)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			dirctlArgs := []string{
 				"pull",
-				digest,
+				cid,
 				"--server-addr",
 				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}

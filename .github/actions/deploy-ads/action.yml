@@ -8,11 +8,11 @@ inputs:
   directory-image-tag:
     description: 'Set slim container image version'
     required: false
-    default: 'v0.2.5'
+    default: 'v0.4.0'
   directory-chart-tag:
     description: 'Set slim chart version'
     required: false
-    default: 'v0.2.5'
+    default: 'v0.4.0'
   kind-cluster-name:
     description: 'Set kind cluster name where components are deployed'
     required: false
@@ -28,7 +28,7 @@ inputs:
   dirctl-bin-version:
     description: 'Version of dirctl binary'
     required: false
-    default: 'v0.2.1'
+    default: 'v0.4.0'
   network-namespace-prefix:
     description: 'Set cluster namespace where directory network are deployed'
     required: false
@@ -64,7 +64,6 @@ runs:
           --wait \
           --wait-for-jobs \
           --timeout "15m"
-
 
     - name: Set OS and Architecture variables
       if: ${{ inputs.deploy-dir-network == 'true' }}

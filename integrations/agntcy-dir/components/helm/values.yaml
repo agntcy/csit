@@ -1,0 +1,191 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+apiserver:
+  image:
+    repository: ghcr.io/agntcy/dir-apiserver
+    tag: v0.4.0
+    pullPolicy: IfNotPresent
+    pullSecrets:
+      - name: regcred
+
+  service:
+    type: NodePort
+
+  log_level: 'DEBUG'
+
+  # Server configuration
+  config:
+    # listen_address: "0.0.0.0:8888"
+    # healthcheck_address: "0.0.0.0:8889"
+
+    # Authentication settings (handles identity verification)
+    # Supports both X.509 (X.509-SVID) and JWT (JWT-SVID) authentication
+    authn:
+      # Enable authentication
+      enabled: false
+      # Authentication mode: "x509" or "jwt"
+      # - x509: Uses X.509-SVID from mutual TLS peer certificates
+      # - jwt: Uses JWT-SVID from Authorization header
+      mode: 'x509'
+      # SPIFFE Workload API socket path (injected by SPIRE agent)
+      socket_path: 'unix:///run/spire/agent-sockets/api.sock'
+      # Expected audiences for JWT validation (only used in JWT mode)
+      audiences:
+        - 'spiffe://example.org/dir-server'
+
+    # Authorization settings (handles access control policies)
+    # Requires authentication to be enabled first
+    authz:
+      # Enable authorization policies
+      enabled: false
+      # Trust domain for this Directory server
+      # Used to distinguish internal (same trust domain) vs external requests
+      trust_domain: 'example.org'
+
+    # Store settings for the storage backend.
+    store:
+      # Storage provider to use.
+      provider: 'oci'
+
+      # OCI-backed store
+      oci:
+        # Path to a local directory that will be to hold data instead of remote.
+        # If this is set to non-empty value, only local store will be used.
+        # local_dir: ""
+
+        # Cache directory to use for metadata.
+        # cache_dir: ""
+
+        # Registry address to connect to
+        # registry_address: 'dir-zot.dir-server.svc.cluster.local:5000'
+        # All data will be stored under this repo.
+        # Objects are pushed as tags, manifests, and blobs.
+        # repository_name: ""
+
+        # Auth credentials to use.
+        auth_config:
+          insecure: 'true'
+          access_token: access-token
+          refresh_token: refresh-token
+
+    # Routing settings for the peer-to-peer network.
+    routing:
+      # Address to use for routing
+      # listen_address: '/ipv4/0.0.0.0/tcp/5555'
+
+      # Path to private key file for peer ID.
+      # key_path: /tmp/agntcy-dir/node.privkey
+
+      # Nodes to use for bootstrapping of the DHT.
+      # We read initial routing tables here and get introduced
+      # to the network.
+      # bootstrap_peers:
+      #   - /ip4/1.1.1.1/tcp/1
+      #   - /ip4/1.1.1.1/tcp/2
+
+      # GossipSub configuration for efficient label announcements
+      # When enabled, labels are propagated via GossipSub mesh to ALL subscribed peers
+      # When disabled, falls back to DHT+Pull mechanism (higher bandwidth, limited reach)
+      # Default: true (recommended for production)
+      gossipsub:
+        enabled: true
+
+      refresh_interval: '1s'
+
+    # Sync configuration
+    sync:
+      # How frequently the scheduler checks for pending syncs
+      scheduler_interval: '1s'
+
+      # Maximum number of sync workers running concurrently
+      worker_count: 1
+
+      # Timeout for individual sync operations
+      worker_timeout: '10m'
+
+      # Registry monitor configuration
+      registry_monitor:
+        check_interval: '30s'
+
+      # Authentication configuration for sync operations
+      auth_config:
+        username: ''
+        password: ''
+
+    # Publication configuration
+    publication:
+      # How frequently the scheduler checks for pending publications
+      scheduler_interval: '1s'
+
+      # Maximum number of publication workers running concurrently
+      worker_count: 1
+
+      # Timeout for individual publication operations
+      worker_timeout: '30m'
+
+    # Events configuration
+    events:
+      # Channel buffer size per subscriber
+      # Larger buffers allow subscribers to fall behind temporarily without dropping events
+      # Default: 100
+      subscriber_buffer_size: 100
+
+      # Enable logging when events are dropped due to slow consumers
+      # Default: true
+      log_slow_consumers: true
+
+      # Enable debug logging of all published events (verbose in production)
+      # Default: false
+      log_published_events: false
+
+  # SPIRE configuration
+  spire:
+    enabled: false
+    trustDomain: example.org
+    federation: []
+      # # Config: https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterfederatedtrustdomain-crd.md
+      # - trustDomain: dir-cluster
+      #   bundleEndpointURL: https://0.0.0.0:8081
+      #   bundleEndpointProfile:
+      #     type: https_web
+
+  extraVolumeMounts: []
+
+  # Zot registry configuration (subchart)
+  zot:
+    extraVolumeMounts: []
+    extraVolumes: []
+
+    mountSecret: false
+    mountConfig: true
+    configFiles:
+      config.json: |-
+        {
+          "distSpecVersion": "1.1.1",
+          "storage": {
+            "rootDirectory": "/var/lib/registry"
+          },
+          "http": {
+            "address": "0.0.0.0",
+            "port": "5000"
+          },
+          "log": {
+            "level": "info"
+          },
+          "extensions": {
+            "search": {
+              "enable": true
+            },
+            "trust": {
+              "enable": true,
+              "cosign": true,
+              "notation": false
+            }
+          }
+        }
+
+    # Configure zot to use the config file from the shared mounted volume
+    extraArgs:
+      - 'serve'
+      - '/etc/zot/config.json'

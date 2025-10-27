@@ -12,8 +12,8 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.2.7" }}'
-  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.2.7" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.4.0" }}'
+  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.4.0" }}'
   DIRECTORY_NAMESPACE: '{{ .DIRECTORY_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
@@ -41,7 +41,7 @@ vars:
       else
         printf $DIRCTL_BIN_PATH
       fi
-  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.2.7" }}'
+  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.4.0" }}'
 
 tasks:
   k8s:port-forward:setup:
@@ -65,13 +65,31 @@ tasks:
 
   test-env:deploy:
     desc: Deploy Agntcy directory test env
+    vars:
+      HELM_VALUES: './components/helm/values.yaml'
+
+      # Generate credentials
+      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_PASSWORD:
+        sh: openssl rand -hex 16
+      HTPASSWD_AUTH_HEADER:
+        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
+      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_PASSWORD:
+        sh: openssl rand -hex 16
     cmds:
       - |
         helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
+          -f {{ .HELM_VALUES }} \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-          --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
+          --set apiserver.config.store.oci.registry_address="agntcy-dir-zot:5000" \
+          --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
+          --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
+          --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
+          --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
+          --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
           --namespace {{ .DIRECTORY_NAMESPACE }} \
           --create-namespace \
           --install \
@@ -88,21 +106,45 @@ tasks:
     desc: Deploy Directory network peers
     deps:
       - download:dirctl-bin
-    env:
-      DIRECTORY_LOGGER_LOG_LEVEL: ERROR
+    vars:
+      HELM_VALUES: './components/helm/values.yaml'
+
+      # Generate credentials
+      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_PASSWORD:
+        sh: openssl rand -hex 16
+      HTPASSWD_AUTH_HEADER:
+        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
+      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_PASSWORD:
+        sh: openssl rand -hex 16
     cmds:
       - |
-        test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
-        bootstrap_peerid=$({{ .DIRCTL_BIN_PATH }}/dirctl network info /tmp/node.privkey)
+        # Generate private key if it doesn't exist
+      - |
+        test -f /tmp/node.privkey || {{.DIRCTL_BIN_PATH}}/dirctl network init --output /tmp/node.privkey
+
+      # Generate the bootstrap peer ID and export it to the environment file
+      - |
+        bootstrap_peerid=$({{.DIRCTL_BIN_PATH}}/dirctl network info /tmp/node.privkey)
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
+
+      - |
         helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
-          --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-          --set apiserver.privKey="$(cat /tmp/node.privkey)" \
-          --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
+          -f {{ .HELM_VALUES }} \
           -f ./components/config/bootstrap.yaml \
+          --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+          --set apiserver.config.store.oci.registry_address="agntcy-dir-zot:5000" \
+          --set apiserver.config.routing.directory_api_address="agntcy-dir-apiserver.bootstrap.svc.cluster.local:8888" \
+          --set apiserver.privKey="$(cat /tmp/node.privkey)" \
+          --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
+          --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
+          --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
+          --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
+          --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
           --namespace bootstrap \
           --create-namespace \
           --install \
@@ -114,18 +156,40 @@ tasks:
     desc: Deploy Directory network peers
     deps:
       - test-env:bootstrap:deploy
+    vars:
+      HELM_VALUES_PATH: './components/helm/values.yaml'
+      # Generate credentials
+      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_PASSWORD:
+        sh: openssl rand -hex 16
+      HTPASSWD_AUTH_HEADER:
+        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
+      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_PASSWORD:
+        sh: openssl rand -hex 16
+
     cmds:
+      # Deploy the peer servers using Helm
       - for:
           matrix:
             PEER: ['peer1', 'peer2', 'peer3']
         cmd: |
           export $(cat .env)
+
           helm upgrade agntcy-dir \
-           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
+          oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
+            -f {{ .HELM_VALUES_PATH }} \
             --version {{ .DIRECTORY_CHART_TAG }} \
-            --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
+            --set apiserver.config.store.oci.registry_address="agntcy-dir-zot.{{ .ITEM.PEER }}.svc.cluster.local:5000" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
-            --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
+            --set apiserver.config.routing.directory_api_address="agntcy-dir-apiserver.{{ .ITEM.PEER }}.svc.cluster.local:8888" \
+            --set-json 'apiserver.extraVolumes=[{"name":"zot-config-storage","hostPath":{"path":"/opt/zot-config-{{ .ITEM.PEER }}","type":"DirectoryOrCreate"}}]' \
+            --set-json 'apiserver.zot.extraVolumes=[{"name":"zot-config-storage","hostPath":{"path":"/opt/zot-config-{{ .ITEM.PEER }}","type":"DirectoryOrCreate"}}]' \
+            --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
+            --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
+            --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
+            --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
+            --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
             --namespace "{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \

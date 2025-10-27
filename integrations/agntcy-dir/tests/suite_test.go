@@ -6,7 +6,6 @@ package tests
 import (
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -28,11 +27,3 @@ var _ = ginkgo.BeforeSuite(func() {
 		dirAPIHost = "host.docker.internal"
 	}
 })
-
-func IsSQLitePushFailure(err error) bool { // NOTE: upstream bug handler until search refactor
-	if err != nil && strings.Contains(err.Error(), "failed to add record to SQLite search database: constraint failed: UNIQUE constraint failed") {
-		return true
-	}
-
-	return false
-}
