@@ -267,11 +267,8 @@ jobs:
     # Ensure this job runs only after all jobs that produce artifacts have completed
     needs:
       [
-        run-tests-slim,
-        run-tests-slim-spire,
+        run-tests-slim-topology,
         run-tests-directory,
-        run-agentic-apps,
-        run-tests-wfsm,
       ]
     if: ${{ always() }}
     runs-on: ubuntu-latest
