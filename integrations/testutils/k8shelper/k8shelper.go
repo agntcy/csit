@@ -10,6 +10,7 @@ import (
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -21,27 +22,30 @@ type SecretVolume struct {
 }
 
 type k8sHelper struct {
-	clientset      kubernetes.Interface
-	name           string
-	namespace      string
-	imageName      string
-	envVars        map[string]string
-	command        []string
-	args           []string
-	containerPorts []int32
-	secretVolumes  []SecretVolume
+	clientset          kubernetes.Interface
+	dynamicClient      dynamic.Interface
+	name               string
+	namespace          string
+	imageName          string
+	envVars            map[string]string
+	command            []string
+	args               []string
+	containerPorts     []int32
+	secretVolumes      []SecretVolume
+	serviceAccountName string
 
 	volumes       []corev1.Volume
 	volumeMounts  []corev1.VolumeMount
 	initContainer corev1.Container
 }
 
-func NewK8sHelper(name, namespace, imageName string, c kubernetes.Interface) *k8sHelper {
+func NewK8sHelper(name, namespace, imageName string, c kubernetes.Interface, dynamicClient dynamic.Interface) *k8sHelper {
 	return &k8sHelper{
-		clientset: c,
-		name:      name,
-		namespace: namespace,
-		imageName: imageName,
+		clientset:     c,
+		dynamicClient: dynamicClient,
+		name:          name,
+		namespace:     namespace,
+		imageName:     imageName,
 	}
 }
 
@@ -53,6 +57,12 @@ func (k *k8sHelper) WithEnvVars(envVars map[string]string) *k8sHelper {
 
 func (k *k8sHelper) WithCommand(command []string) *k8sHelper {
 	k.command = command
+
+	return k
+}
+
+func (k *k8sHelper) WithServiceAccountName(name string) *k8sHelper {
+	k.serviceAccountName = name
 
 	return k
 }
@@ -102,4 +112,16 @@ func CreateK8sClientSet() (*kubernetes.Clientset, error) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to load kubeconfig")
 
 	return kubernetes.NewForConfig(config)
+}
+
+func CreateDynamicK8sClient() (*dynamic.DynamicClient, error) {
+	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load kubeconfig %w", err)
+	}
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to load kubeconfig")
+
+	// Create dynamic client for custom resources
+	return dynamic.NewForConfig(config)
 }

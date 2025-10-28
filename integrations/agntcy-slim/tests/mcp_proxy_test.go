@@ -12,6 +12,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
@@ -24,6 +25,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 		azure_openapi_api_key    string
 		azure_openapi_endpoint   string
 		clientset                kubernetes.Interface
+		dynamicClient            dynamic.Interface
 		namespace                string
 	)
 
@@ -41,6 +43,9 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 		clientset, err = k8shelper.CreateK8sClientSet()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
 
+		dynamicClient, err = k8shelper.CreateDynamicK8sClient()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
+
 		namespace = os.Getenv("NAMESPACE")
 	})
 
@@ -49,7 +54,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 		// The client can address the MCP server as if it was a normal agent.
 		ginkgo.BeforeAll(func() {
 			podName := "mcp-server"
-			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, mcpServerTimeImage, clientset)
+			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, mcpServerTimeImage, clientset, dynamicClient)
 
 			createdPod, err := k8sHelper.WithArgs([]string{
 				"--local-timezone",
@@ -73,7 +78,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 
 		ginkgo.It("Create Llamaindex time agent Job", func() {
 			jobName := "llamaindex-time-agent"
-			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, llamaindexTimeAgentImage, clientset)
+			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, llamaindexTimeAgentImage, clientset, dynamicClient)
 
 			createdJob, err := k8sHelper.WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
@@ -103,7 +108,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 		// The MCP server works on top of SSE and we can access it using the MCP proxy
 		ginkgo.BeforeAll(func() {
 			podName := "mcp-server-proxy"
-			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, mcpServerTimeImage, clientset)
+			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, mcpServerTimeImage, clientset, dynamicClient)
 
 			createdPod, err := k8sHelper.WithArgs([]string{
 				"--local-timezone",
@@ -140,7 +145,7 @@ var _ = ginkgo.Describe("MCP over Slim test", func() {
 
 		ginkgo.It("Create Llamaindex time agent Job", func() {
 			jobName := "llamaindex-time-agent"
-			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, llamaindexTimeAgentImage, clientset)
+			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, llamaindexTimeAgentImage, clientset, dynamicClient)
 
 			createdJob, err := k8sHelper.WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,

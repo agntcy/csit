@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -26,15 +25,14 @@ type Client struct {
 
 // Server represents a server configuration in the topology
 type Server struct {
-	Auth      Auth     `yaml:"auth"`
-	SpireMtls bool     `yaml:"spireMtls,omitempty"`
-	Routes    []string `yaml:"routes"`
+	Auth      Auth `yaml:"auth"`
+	SpireMtls bool `yaml:"spireMtls,omitempty"`
 }
 
 // Topology represents the topology configuration
 type Topology struct {
-	Clients map[string]Client `yaml:"clients"`
-	Servers map[string]Server `yaml:"servers"`
+	Clients  map[string]Client `yaml:"clients"`
+	Clusters map[string]Server `yaml:"clusters"`
 }
 
 // Config represents the root configuration structure
@@ -78,10 +76,10 @@ func (c *Config) GetClient(name string) (Client, bool) {
 	return client, exists
 }
 
-// GetServer returns a server by name
-func (c *Config) GetServer(name string) (Server, bool) {
-	server, exists := c.Topology.Servers[name]
-	return server, exists
+// GetCluster returns a cluster by name
+func (c *Config) GetCluster(name string) (Server, bool) {
+	cluster, exists := c.Topology.Clusters[name]
+	return cluster, exists
 }
 
 // ListClients returns a slice of all client names
@@ -93,35 +91,11 @@ func (c *Config) ListClients() []string {
 	return clients
 }
 
-// ListServers returns a slice of all server names
-func (c *Config) ListServers() []string {
-	servers := make([]string, 0, len(c.Topology.Servers))
-	for name := range c.Topology.Servers {
-		servers = append(servers, name)
+// ListClusters returns a slice of all cluster names
+func (c *Config) ListClusters() []string {
+	clusters := make([]string, 0, len(c.Topology.Clusters))
+	for name := range c.Topology.Clusters {
+		clusters = append(clusters, name)
 	}
-	return servers
-}
-
-func ParseRoute(route string) (string, string) {
-	// Assuming route is in the format "channelName > destinationServerName"
-	parts := strings.Split(route, ">")
-	if len(parts) != 2 {
-		return "", ""
-	}
-	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
-}
-
-func (c *Config) ValidateRoutes() error {
-	for serverName, server := range c.Topology.Servers {
-		for _, route := range server.Routes {
-			channelName, destServerName := ParseRoute(route)
-			if channelName == "" || destServerName == "" {
-				return fmt.Errorf("invalid route '%s' in server '%s'", route, serverName)
-			}
-			if _, exists := c.Topology.Servers[destServerName]; !exists {
-				return fmt.Errorf("destination server '%s' does not exist for route '%s'", destServerName, route)
-			}
-		}
-	}
-	return nil
+	return clusters
 }

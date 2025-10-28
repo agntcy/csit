@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	SlimMessagingPort            = "46357"
-	ServerConfigTemplatePath     = "config/server-config.tpl"
-	ServerConnConfigTemplatePath = "config/server-conn-config.tpl"
+	SlimMessagingPort        = "46357"
+	ServerConfigTemplatePath = "config/server-config.tpl"
 )
 
 // SpireConfig represents the spire configuration section
@@ -24,9 +23,9 @@ type SpireConfig struct {
 // ServerConfigData represents the data structure for the server-config.tpl template
 type ServerConfigData struct {
 	Spire                  SpireConfig `yaml:"spire"`
-	SlimHost               string      `yaml:"slimHost"`
 	SlimPort               string      `yaml:"slimPort"`
 	SlimControllerEndpoint string      `yaml:"slimControllerEndpoint"`
+	ClusterName            string      `yaml:"clusterName"`
 	ServiceName            string      `yaml:"serviceName"`
 }
 
@@ -53,37 +52,31 @@ func GenerateConfigFromTemplate(templatePath, outputPath string, data ServerConf
 	return nil
 }
 
-// GenerateServerConfigs generates server configs for each server in the topology
-func GenerateServerConfigs(topology *config.Config, slimControllerEndpoint string, outputDir string) error {
-	// Generate a config file for each server
-	for serverName, serverConfig := range topology.Topology.Servers {
+// GenerateClusterConfigs generates cluster configs for each cluster in the topology
+func GenerateClusterConfigs(topology *config.Config, slimControllerEndpoint string, outputDir string) error {
+	// Generate a config file for each cluster
+	for clusterName, clusterConfig := range topology.Topology.Clusters {
 		// Determine spire settings based on auth configuration
-		spireEnabled := serverConfig.SpireMtls || serverConfig.Auth.SpireJwt
+		spireEnabled := clusterConfig.SpireMtls || clusterConfig.Auth.SpireJwt
 
 		// Create template data
 		data := ServerConfigData{
 			Spire: SpireConfig{
 				Enabled: spireEnabled,
 			},
-			SlimHost:               fmt.Sprintf("agntcy-%s", serverName),
 			SlimPort:               SlimMessagingPort,
 			SlimControllerEndpoint: slimControllerEndpoint,
-			ServiceName:            serverName,
+			ClusterName:            clusterName,
+			ServiceName:            fmt.Sprintf("agntcy-%s-slim.%s.svc.cluster.local", clusterName, clusterName),
 		}
 
 		// Generate server config file
-		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.yaml", serverName))
+		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.yaml", clusterName))
 		if err := GenerateConfigFromTemplate(ServerConfigTemplatePath, outputPath, data); err != nil {
-			return fmt.Errorf("failed to generate config for server %s: %w", serverName, err)
+			return fmt.Errorf("failed to generate config for server %s: %w", clusterName, err)
 		}
 
-		// Generate connection config file
-		outputPath = filepath.Join(outputDir, fmt.Sprintf("%s-conn-config.json", serverName))
-		if err := GenerateConfigFromTemplate(ServerConnConfigTemplatePath, outputPath, data); err != nil {
-			return fmt.Errorf("failed to generate config for server %s: %w", serverName, err)
-		}
-
-		fmt.Printf("Generated config for server '%s' at: %s\n", serverName, outputPath)
+		fmt.Printf("Generated config for cluster '%s' at: %s\n", clusterName, outputPath)
 	}
 
 	return nil
@@ -105,7 +98,7 @@ func main() {
 	}
 
 	fmt.Println("Configuration loaded successfully!")
-	fmt.Printf("Found %d servers in topology\n", len(topology.Topology.Servers))
+	fmt.Printf("Found %d clusters in topology\n", len(topology.Topology.Clusters))
 
 	outputPath := "config/.gen"
 	// Create the output directory if it doesn't exist
@@ -113,10 +106,10 @@ func main() {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	// Generate server configs from topology
-	err = GenerateServerConfigs(topology, slimControllerEndpoint, outputPath)
+	// Generate cluster configs from topology
+	err = GenerateClusterConfigs(topology, slimControllerEndpoint, outputPath)
 	if err != nil {
-		log.Fatalf("Failed to generate server configs: %v", err)
+		log.Fatalf("Failed to generate cluster configs: %v", err)
 	}
 
 	fmt.Println("All configurations generated successfully!")

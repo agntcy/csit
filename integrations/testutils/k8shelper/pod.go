@@ -44,6 +44,10 @@ func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      k.name,
 			Namespace: k.namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/name":      "slim-client",
+				"app.kubernetes.io/component": k.name,
+			},
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -54,6 +58,10 @@ func (k *k8sHelper) CreatePod() (*corev1.Pod, error) {
 			},
 			RestartPolicy: corev1.RestartPolicyOnFailure,
 		},
+	}
+
+	if k.serviceAccountName != "" {
+		pod.Spec.ServiceAccountName = k.serviceAccountName
 	}
 
 	if k.secretVolumes != nil {

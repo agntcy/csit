@@ -1,0 +1,22 @@
+topology:
+    clients:
+        "alice":
+            spireMtls: true
+            connectedTo:
+                - "cluster-b"
+            image: ghcr.io/agntcy/slim/bindings-examples:0.6.0          
+            args: ["p2p", "--local", "org/ns/alice", "--shared-secret","secret123"]  
+            assertFor: "received: hello"                                        
+        "bob":
+            spireMtls: true
+            connectedTo:
+                - "cluster-a"
+            image: ghcr.io/agntcy/slim/bindings-examples:0.6.0                      
+            args: ["p2p", "--local", "org/ns/bob", "--remote", "org/ns/alice", "--shared-secret","secret123","--message","hello","--iterations","10"]
+            assertFor: "Sent message hello - 10/10"
+    clusters:
+        "cluster-a":
+            spireMtls: true
+            #daemonSet: false            
+        "cluster-b":
+            spireMtls: true        

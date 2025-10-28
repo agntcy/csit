@@ -116,6 +116,12 @@ runs:
         task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
+    - name: Deploy SPIRE
+      if: ${{ inputs.deploy-spire != 'false' }}      
+      shell: bash
+      run: |
+        task -d ./${{ inputs.checkout-path }} integrations:slim:spire:deploy          
+
     - name: Deploy SLIM topology
       if: ${{ inputs.deploy-slim-topology != 'false' }}      
       shell: bash
@@ -131,12 +137,6 @@ runs:
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
-
-    - name: Deploy SPIRE
-      if: ${{ inputs.deploy-spire != 'false' }}      
-      shell: bash
-      run: |
-        task -d ./${{ inputs.checkout-path }} integrations:slim:spire:deploy
 
     - name: Deploy Slim
       if: ${{ inputs.deploy-slim != 'false' }}

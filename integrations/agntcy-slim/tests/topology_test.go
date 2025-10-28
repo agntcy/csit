@@ -4,12 +4,10 @@
 package tests
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"os/exec"
 	"sort"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/agntcy/csit/integrations/agntcy-slim/tests/config"
@@ -45,7 +44,8 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		topologyConfig string
 		topology       *config.Topology
 		clientset      kubernetes.Interface
-		slimController string
+		dynamicClient  dynamic.Interface
+		//slimController string
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -55,17 +55,16 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		clientset, err = k8shelper.CreateK8sClientSet()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
 
+		dynamicClient, err = k8shelper.CreateDynamicK8sClient()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
+
 		namespace = os.Getenv("NAMESPACE")
 		slimctlPath = os.Getenv("SLIMCTL_PATH")
 		topologyConfig = os.Getenv("TOPOLOGY_CONFIG")
-		slimController = os.Getenv("SLIM_CONTROLLER_LOCAL_ENDPOINT")
+		//slimController = os.Getenv("SLIM_CONTROLLER_LOCAL_ENDPOINT")
 		// Parse the topology configuration
 		config, err := config.ParseTopology(topologyConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
-
-		// expect topology.ValidateRoutes() to not return an error
-		err = config.ValidateRoutes()
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to validate routes")
 
 		gomega.Expect(config).NotTo(gomega.BeNil(), "topology configuration should not be nil")
 		topology = &config.Topology
@@ -74,33 +73,6 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	ginkgo.Context("Slim topology test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
 			log.Print(slimctlPath)
-			// setup routes using the topology configuration
-
-			// wait for SLIM instances to start
-			time.Sleep(2000 * time.Millisecond)
-
-			for serverName, server := range topology.Servers {
-				for _, route := range server.Routes {
-					channelName, destServerName := config.ParseRoute(route)
-					log.Printf("Adding route on server %s for channel %s > %s", serverName, channelName, destServerName)
-
-					// add route using slimctl
-					var out bytes.Buffer
-					cmd := exec.Command(slimctlPath,
-						"route", "add", fmt.Sprintf("%s/0", channelName),
-						"via", fmt.Sprintf("../config/.gen/%s-conn-config.json", destServerName),
-						"--node-id", fmt.Sprintf("slim/%s", serverName),
-						"--server", slimController)
-					cmd.Stdout = &out
-					cmd.Stderr = &out
-
-					err := cmd.Run()
-					fmt.Println("Command output:", out.String())
-					gomega.Expect(err).To(gomega.Succeed())
-
-				}
-			}
-
 		})
 
 		ginkgo.It("Create SLIM client Pods", func() {
@@ -122,7 +94,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					"PYTHONUNBUFFERED": "1",
 				}
 				args := client.Args
-				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset).WithEnvVars(envVars)
+				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset, dynamicClient).WithEnvVars(envVars)
 
 				// expect client.ConnectedTo is not empty
 				gomega.Expect(len(client.ConnectedTo)).NotTo(gomega.BeZero(), "client %s must be connected to at least one server", clientName)
@@ -130,15 +102,30 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				if client.SpireMtls {
 					createdConfigMap, err := k8sHelper.CreateConfigMapFromFile("helper.conf", "../components/config/spire/helper.conf")
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdConfigMap)
-
 					// Register cleanup to run after all the spec is done
 					ginkgo.DeferCleanup(func(ctx context.Context) {
 						err := k8sHelper.CleanupConfigMap(ctx)
 						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
 					})
 
+					err = k8sHelper.CreateServiceAccount()
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create service account")
+					// Register cleanup to run after all the spec is done
+					ginkgo.DeferCleanup(func(ctx context.Context) {
+						err := k8sHelper.CleanupServiceAccount()
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete service account")
+					})
+
+					err = k8sHelper.CreateClusterSPIFFEID()
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create spiffee ID")
+					// Register cleanup to run after all the spec is done
+					ginkgo.DeferCleanup(func(ctx context.Context) {
+						err := k8sHelper.CleanupClusterSPIFFEID()
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete spiffee ID")
+					})
+
 					cfg := ClientConfig{
-						Endpoint: fmt.Sprintf("https://agntcy-%s:46357", client.ConnectedTo[0]),
+						Endpoint: fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0]),
 						TLS: TLSConfig{
 							InsecureSkipVerify: false,
 							CertFile:           "/svids/tls.crt",
@@ -149,11 +136,11 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args := append(args, "--config", string(cfgJSON))
+					args := append(args, "--slim", string(cfgJSON))
 					k8sHelper = k8sHelper.WithArgs(args).WithSpireHelper()
 
 				} else {
-					endpoint := fmt.Sprintf("http://agntcy-%s:46357", client.ConnectedTo[0])
+					endpoint := fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0])
 					cfg := ClientConfig{
 						Endpoint: endpoint,
 						TLS: TLSConfig{

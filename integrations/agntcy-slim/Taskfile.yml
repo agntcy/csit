@@ -10,15 +10,17 @@ vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 
   ## Image config
-  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.4.0" }}'
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'  
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.1.9" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
-  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "0.1.2" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "0.1.0" }}'
-  SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "http://slim-control:50052" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.6.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.6.0" }}'
+
+  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v0.6.0" }}'
+  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "0.6.0" }}'
+
+  SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
   SLIM_CONTROLLER_LOCAL_ENDPOINT: '{{ .SLIM_CONTROLLER_LOCAL_ENDPOINT | default "localhost:50051" }}'
   SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default "v0.2.1" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
@@ -39,9 +41,9 @@ vars:
 
   RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
 
-  SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire-server" }}'
+  SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/fire-and-forget.yaml" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
 
 tasks:
   k8s:port-forward:setup:
@@ -94,18 +96,19 @@ tasks:
           oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
           --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
           --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-          --namespace {{ .HELM_NAMESPACE }} \
+          -f ./config/controller-values.yaml \
+          --namespace "admin" \
           --create-namespace \
           --install \
           --wait \
           --wait-for-jobs \
           --timeout "15m"
 
-  test-env:cleanup:contoroller:
+  test-env:cleanup:controller:
     desc: Remove agent slim test env
     cmds:
       - task k8s:port-forward:controller:teardown
-      - helm delete --namespace {{ .HELM_NAMESPACE }} slim-controller
+      - helm delete --namespace "admin" slim-controller
 
   test-env:deploy:generated:
     desc: Deploy agntcy slim test env for each values file in config/.generated
@@ -119,7 +122,7 @@ tasks:
           --version {{ .SLIM_CHART_TAG }} \
           --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
           -f "$file" \
-          --namespace {{ .HELM_NAMESPACE }} \
+          --namespace $(basename "$file" .yaml) \
           --create-namespace \
           --install \
           --wait \
@@ -133,7 +136,7 @@ tasks:
     cmd: |
       #!/bin/sh
       for file in "./config/.gen"/*.yaml ;do
-        helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-$(basename "$file" .yaml) 
+        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml) 
         echo "Deleted agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
@@ -230,10 +233,10 @@ tasks:
 
   test:topology:
     desc: Slim topology test
-    deps:
-      - test:slimctl-download
+    # deps:
+    #   - test:slimctl-download
     cmds:
-      - task k8s:port-forward:controller:setup
+      # - task k8s:port-forward:controller:setup
       - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH=../{{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:mcp-server:

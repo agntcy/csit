@@ -11,6 +11,7 @@ import (
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
@@ -25,6 +26,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 		namespace              string
 		slimConfig             string
 		clientset              kubernetes.Interface
+		dynamicClient          dynamic.Interface
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -43,13 +45,16 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 		clientset, err = k8shelper.CreateK8sClientSet()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
 
+		dynamicClient, err = k8shelper.CreateDynamicK8sClient()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
+
 		namespace = os.Getenv("NAMESPACE")
 	})
 
 	ginkgo.Context("Slim sanity test", ginkgo.Ordered, func() {
 		ginkgo.BeforeAll(func() {
 			podName := "autogen-agent"
-			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset).WithEnvVars(
+			k8sHelper := k8shelper.NewK8sHelper(podName, namespace, autogenImage, clientset, dynamicClient).WithEnvVars(
 				map[string]string{
 					"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 					"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
@@ -127,7 +132,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 
 		ginkgo.It("Create langchain agent Job", func() {
 			jobName := "langchain-agent"
-			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, langchainImage, clientset).WithEnvVars(map[string]string{
+			k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, langchainImage, clientset, dynamicClient).WithEnvVars(map[string]string{
 				"AZURE_OPENAI_ENDPOINT": azure_openapi_endpoint,
 				"AZURE_OPENAI_API_KEY":  azure_openapi_api_key,
 			})

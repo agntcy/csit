@@ -77,69 +77,6 @@ jobs:
           echo "Set KinD version to: $KIND_VERSION"
           echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
 
-  run-tests-slim:
-    if: ${{ !inputs.skip_slim_test }}
-    needs: [set-kind-version]
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: "read"
-      id-token: "write"
-      packages: "read"
-      attestations: "read"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          python: true
-          go: false
-
-      - name: Setup K8S Tools
-        uses: ./.github/actions/setup-k8s
-        with:
-          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
-
-      - name: Deploy Slim
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-spire: "true"
-          deploy-slim: "true"
-          slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
-
-      - name: Run slim sanity tests
-        env:
-          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
-          AZURE_MODEL_VERSION: ${{ vars.AZURE_MODEL_VERSION }}
-          AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
-          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-        run: task integrations:slim:test:sanity
-        shell: bash
-
-      # - name: Run slim MCP integration tests
-      #   env:
-      #     AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
-      #     AZURE_MODEL_VERSION: ${{ vars.AZURE_MODEL_VERSION }}
-      #     AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
-      #     AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
-      #     AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-      #   run: task integrations:slim:test:mcp-server
-      #   shell: bash
-
   run-tests-slim-topology:
     if: ${{ !inputs.skip_slim_test }}
     needs: [set-kind-version]
@@ -179,7 +116,7 @@ jobs:
         uses: ./.github/actions/deploy-components
         with:
           deploy-slim: "false"
-          deploy-spire: "false"
+          deploy-spire: "true"
           deploy-slim-topology: "true"
           slim-config: "spire"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
@@ -193,66 +130,6 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: "slim-test-result"
-
-  run-tests-slim-spire:
-    if: ${{ !inputs.skip_slim_spire_test }}
-    needs: [set-kind-version]
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: "read"
-      id-token: "write"
-      packages: "read"
-      attestations: "read"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          python: true
-          go: false
-
-      - name: Setup K8S Tools
-        uses: ./.github/actions/setup-k8s
-        with:
-          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
-
-      - name: Deploy Slim with SPIRE
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-slim: "true"
-          deploy-spire: "true"
-          slim-config: "spire"
-          slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
-
-      - name: Run slim sanity tests (mtls with SPIRE)
-        env:
-          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
-          AZURE_MODEL_VERSION: ${{ vars.AZURE_MODEL_VERSION }}
-          AZURE_DEPLOYMENT_NAME: ${{ vars.AZURE_DEPLOYMENT_NAME }}
-          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          SLIM_CONFIG: "spire"
-        run: task integrations:slim:test:sanity
-        shell: bash
-
-      - name: Create artifact from integrations test reports
-        uses: ./.github/actions/create-artifact
-        with:
-          artifact-name: "slim-spire-test-result"
 
   run-tests-directory:
     if: ${{ !inputs.skip_directory_test }}
