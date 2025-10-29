@@ -4,10 +4,9 @@
 spire:
   enabled: {{ .Spire.Enabled }}
 
-serviceAccount:
-    name:
-
 slim:
+  daemonset: {{ .DeployAsDaemonSet }}
+  replicaCount: {{ .ReplicaCount }}
   overrideConfig:
     tracing:
       log_level: debug

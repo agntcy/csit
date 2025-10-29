@@ -27,6 +27,8 @@ type ServerConfigData struct {
 	SlimControllerEndpoint string      `yaml:"slimControllerEndpoint"`
 	ClusterName            string      `yaml:"clusterName"`
 	ServiceName            string      `yaml:"serviceName"`
+	DeployAsDaemonSet      bool        `yaml:"deployAsDaemonSet"`
+	ReplicaCount           int         `yaml:"replicaCount"`
 }
 
 // GenerateServerConfig generates a server configuration file from the template
@@ -59,6 +61,12 @@ func GenerateClusterConfigs(topology *config.Config, slimControllerEndpoint stri
 		// Determine spire settings based on auth configuration
 		spireEnabled := clusterConfig.SpireMtls || clusterConfig.Auth.SpireJwt
 
+		deployAsDaemonSet := clusterConfig.DeployAsDaemonSet
+		replicaCount := clusterConfig.ReplicaCount
+		if replicaCount == 0 {
+			replicaCount = 1
+		}
+
 		// Create template data
 		data := ServerConfigData{
 			Spire: SpireConfig{
@@ -68,6 +76,8 @@ func GenerateClusterConfigs(topology *config.Config, slimControllerEndpoint stri
 			SlimControllerEndpoint: slimControllerEndpoint,
 			ClusterName:            clusterName,
 			ServiceName:            fmt.Sprintf("agntcy-%s-slim.%s.svc.cluster.local", clusterName, clusterName),
+			DeployAsDaemonSet:      deployAsDaemonSet,
+			ReplicaCount:           replicaCount,
 		}
 
 		// Generate server config file

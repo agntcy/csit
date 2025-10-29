@@ -83,7 +83,7 @@ tasks:
           --wait-for-jobs \
           --timeout "15m"
 
-  test-env:generate:configs:
+  test-env:generate:cluster-configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
     cmd: |
       TOPOLOGY_CONFIG={{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_ENDPOINT={{ .SLIM_CONTROLLER_ENDPOINT }} go run ./tests/config/main/
@@ -110,10 +110,10 @@ tasks:
       - task k8s:port-forward:controller:teardown
       - helm delete --namespace "admin" slim-controller
 
-  test-env:deploy:generated:
+  test-env:deploy:clusters:
     desc: Deploy agntcy slim test env for each values file in config/.generated
     deps:
-      - test-env:generate:configs
+      - test-env:generate:cluster-configs
     cmd: |
       #!/bin/sh
       for file in "./config/.gen"/*.yaml ;do
@@ -131,7 +131,7 @@ tasks:
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
-  test-env:cleanup:generated:
+  test-env:cleanup:clusters:
     desc: Undeploy agntcy slim test env for each values file in config/.generated
     cmd: |
       #!/bin/sh

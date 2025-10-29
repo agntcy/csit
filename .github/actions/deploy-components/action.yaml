@@ -132,7 +132,7 @@ runs:
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
-        task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:generated \
+        task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:clusters \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \

@@ -17,6 +17,9 @@ topology:
     clusters:
         "cluster-a":
             spireMtls: true
-            #daemonSet: false            
+            #deployAsDaemonSet: false
+            replicaCount: 2             
         "cluster-b":
-            spireMtls: true        
+            spireMtls: true
+            #deployAsDaemonSet: false
+            replicaCount: 2

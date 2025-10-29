@@ -25,8 +25,10 @@ type Client struct {
 
 // Server represents a server configuration in the topology
 type Server struct {
-	Auth      Auth `yaml:"auth"`
-	SpireMtls bool `yaml:"spireMtls,omitempty"`
+	Auth              Auth `yaml:"auth"`
+	SpireMtls         bool `yaml:"spireMtls,omitempty"`
+	DeployAsDaemonSet bool `yaml:"deployAsDaemonSet,omitempty"`
+	ReplicaCount      int  `yaml:"replicaCount,omitempty"`
 }
 
 // Topology represents the topology configuration
