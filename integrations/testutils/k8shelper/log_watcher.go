@@ -47,7 +47,8 @@ func (k *k8sHelper) WatchLogsForString(searchString string) (*LogWatcher, error)
 
 		// Get pod logs with follow option
 		req := k.clientset.CoreV1().Pods(k.namespace).GetLogs(k.name, &corev1.PodLogOptions{
-			Follow: true,
+			Previous: false,
+			Follow:   true,
 		})
 
 		podLogs, err := req.Stream(ctx)

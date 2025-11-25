@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func (k *k8sHelper) WithSpireHelper() *k8sHelper {
+func (k *k8sHelper) WithSpire() *k8sHelper {
 	return k.WithVolumes(
 		[]corev1.Volume{
 			{
@@ -28,51 +28,16 @@ func (k *k8sHelper) WithSpireHelper() *k8sHelper {
 					},
 				},
 			},
+		},
+	).WithWithVolumeMounts(
+		[]corev1.VolumeMount{
 			{
-				Name: "svids-volume",
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: "config-volume",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: k.name,
-						},
-					},
-				},
+				Name:      "spire-agent-socket",
+				MountPath: "/tmp/spire-agent/public",
+				ReadOnly:  false,
 			},
 		},
-	).WithWithVolumeMounts([]corev1.VolumeMount{
-		{
-			Name:      "svids-volume",
-			MountPath: "/svids",
-		},
-	}).WithInitContainer(
-		corev1.Container{
-			Name:  "spiffe-helper",
-			Image: "ghcr.io/spiffe/spiffe-helper:0.10.0",
-			Args:  []string{"-config", "config/helper.conf"},
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "config-volume",
-					MountPath: "/config/helper.conf",
-					SubPath:   "helper.conf",
-				},
-				{
-					Name:      "spire-agent-socket",
-					MountPath: "/run/spire/agent-sockets",
-					ReadOnly:  false,
-				},
-				{
-					Name:      "svids-volume",
-					MountPath: "/svids",
-					ReadOnly:  false,
-				},
-			},
-		}).WithServiceAccountName(k.name)
+	).WithServiceAccountName(k.name)
 
 }
 

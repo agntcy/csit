@@ -156,7 +156,7 @@ func (k *k8sHelper) WaitForPodRunning(timeout time.Duration) error {
 	}
 	defer watch.Stop()
 
-	fmt.Println("Waiting for pod to running...")
+	fmt.Println("Waiting for pod to be running and all containers ready...")
 
 	for event := range watch.ResultChan() {
 		pod, ok := event.Object.(*corev1.Pod)
@@ -166,12 +166,36 @@ func (k *k8sHelper) WaitForPodRunning(timeout time.Duration) error {
 
 		fmt.Printf("Pod %s status: %s\n", pod.Name, pod.Status.Phase)
 
+		if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
+			return fmt.Errorf("pod ran to completion with phase: %s", pod.Status.Phase)
+		}
+
 		if pod.Status.Phase == corev1.PodRunning {
-			return nil
-		} else if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
-			return fmt.Errorf("pod ran to completion")
+			// Check if all containers are ready
+			allReady := true
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				fmt.Printf("Container %s ready: %t\n", containerStatus.Name, containerStatus.Ready)
+				if !containerStatus.Ready {
+					allReady = false
+					break
+				}
+			}
+
+			// Also check init containers if they exist
+			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+				fmt.Printf("Init container %s ready: %t\n", initContainerStatus.Name, initContainerStatus.Ready)
+				if !initContainerStatus.Ready {
+					allReady = false
+					break
+				}
+			}
+
+			if allReady {
+				fmt.Printf("Pod %s is running and all containers are ready\n", pod.Name)
+				return nil
+			}
 		}
 	}
 
-	return fmt.Errorf("watch closed before pod became running")
+	return fmt.Errorf("watch closed before pod became running with all containers ready")
 }

@@ -22,17 +22,65 @@ import (
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
 
+// TLS client configuration.
 type TLSConfig struct {
-	Insecure           bool   `json:"insecure,omitempty"`
-	InsecureSkipVerify bool   `json:"insecure_skip_verify,omitempty"`
-	CertFile           string `json:"cert_file,omitempty"`
-	KeyFile            string `json:"key_file,omitempty"`
-	CAFile             string `json:"ca_file,omitempty"`
+	// CA source configuration
+	CaSource *CaSource `json:"ca_source,omitempty"`
+	// If true, load system CA certificates pool in addition to the certificates
+	// configured in this struct.
+	IncludeSystemCACertsPool *bool `json:"include_system_ca_certs_pool,omitempty"`
+	// In gRPC and HTTP when set to true, this is used to disable the client transport security.
+	// (optional, default false)
+	Insecure *bool `json:"insecure,omitempty"`
+	// InsecureSkipVerify will enable TLS but not verify the server certificate.
+	InsecureSkipVerify *bool `json:"insecure_skip_verify,omitempty"`
+
+	// TLS source configuration
+	Source *TLSSource `json:"source,omitempty"`
+	// The TLS version to use. If not set, the default is "tls1.3".
+	// The value must be either "tls1.2" or "tls1.3".
+	// (optional)
+	TLSVersion *string `json:"tls_version,omitempty"`
+}
+
+// CA source configuration
+type CaSource struct {
+	Type string `json:"type"`
+	// For type "file"
+	Path *string `json:"path,omitempty"`
+	// For type "pem"
+	Data *string `json:"data,omitempty"`
+	// For type "spire"
+	JwtAudiences   *[]string `json:"jwt_audiences,omitempty"`
+	SocketPath     *string   `json:"socket_path,omitempty"`
+	TargetSpiffeID *string   `json:"target_spiffe_id,omitempty"`
+	TrustDomains   *[]string `json:"trust_domains,omitempty"`
+}
+
+// TLS source configuration
+type TLSSource struct {
+	Type string `json:"type"`
+	// For type "pem" or "file"
+	Cert *string `json:"cert,omitempty"`
+	Key  *string `json:"key,omitempty"`
+	// For type "spire"
+	JwtAudiences   *[]string `json:"jwt_audiences,omitempty"`
+	SocketPath     *string   `json:"socket_path,omitempty"`
+	TargetSpiffeID *string   `json:"target_spiffe_id,omitempty"`
+	TrustDomains   *[]string `json:"trust_domains,omitempty"`
 }
 
 type ClientConfig struct {
 	Endpoint string    `json:"endpoint"`
 	TLS      TLSConfig `json:"tls"`
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func strPtr(s string) *string {
+	return &s
 }
 
 // ...
@@ -100,15 +148,8 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				gomega.Expect(len(client.ConnectedTo)).NotTo(gomega.BeZero(), "client %s must be connected to at least one server", clientName)
 
 				if client.SpireMtls {
-					createdConfigMap, err := k8sHelper.CreateConfigMapFromFile("helper.conf", "../components/config/spire/helper.conf")
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdConfigMap)
-					// Register cleanup to run after all the spec is done
-					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupConfigMap(ctx)
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete config map")
-					})
 
-					err = k8sHelper.CreateServiceAccount()
+					err := k8sHelper.CreateServiceAccount()
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create service account")
 					// Register cleanup to run after all the spec is done
 					ginkgo.DeferCleanup(func(ctx context.Context) {
@@ -127,24 +168,29 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfg := ClientConfig{
 						Endpoint: fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0]),
 						TLS: TLSConfig{
-							InsecureSkipVerify: false,
-							CertFile:           "/svids/tls.crt",
-							KeyFile:            "/svids/tls.key",
-							CAFile:             "/svids/svid_bundle.pem",
+							Source: &TLSSource{
+								Type:       "spire",
+								SocketPath: strPtr("unix:/tmp/spire-agent/public/api.sock"),
+							},
+							CaSource: &CaSource{
+								Type:         "spire",
+								SocketPath:   strPtr("unix:/tmp/spire-agent/public/api.sock"),
+								TrustDomains: &[]string{"example.org"},
+							},
 						},
 					}
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
 					args := append(args, "--slim", string(cfgJSON))
-					k8sHelper = k8sHelper.WithArgs(args).WithSpireHelper()
+					k8sHelper = k8sHelper.WithArgs(args).WithSpire()
 
 				} else {
 					endpoint := fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0])
 					cfg := ClientConfig{
 						Endpoint: endpoint,
 						TLS: TLSConfig{
-							Insecure: true,
+							Insecure: boolPtr(true),
 						},
 					}
 					cfgJSON, err := json.Marshal(cfg)
@@ -161,7 +207,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 
-				time.Sleep(1000 * time.Millisecond) // wait for pod to be ready
+				time.Sleep(15 * time.Second) // wait for pod to be ready
 
 				if client.AssertFor != "" {
 					log.Printf("Starting log watcher for client %s with assertFor: %s", clientName, client.AssertFor)
@@ -179,10 +225,10 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				}
 
 				// Register cleanup to run after this spec completes
-				ginkgo.DeferCleanup(func(ctx context.Context) {
-					err := k8sHelper.CleanupPod(ctx)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
-				})
+				// ginkgo.DeferCleanup(func(ctx context.Context) {
+				// 	err := k8sHelper.CleanupPod(ctx)
+				// 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
+				// })
 
 			}
 

@@ -110,7 +110,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 			    	"key_file": "/svids/tls.key",
 			    	"ca_file": "/svids/svid_bundle.pem"
 				}}`,
-				}).WithSpireHelper()
+				}).WithSpire()
 			default:
 				ginkgo.Fail(fmt.Sprintf("Unknown SLIM_CONFIG value: %s", slimConfig))
 			}
@@ -193,7 +193,7 @@ var _ = ginkgo.Describe("Agntcy slim sanity test", func() {
 						"key_file": "/svids/tls.key",
 						"ca_file": "/svids/svid_bundle.pem"            
 					}}`,
-				}).WithSpireHelper()
+				}).WithSpire()
 
 			default:
 				ginkgo.Fail(fmt.Sprintf("Unknown SLIM_CONFIG value: %s", slimConfig))

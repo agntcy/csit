@@ -4,15 +4,35 @@ topology:
             spireMtls: true
             connectedTo:
                 - "cluster-b"
-            image: ghcr.io/agntcy/slim/bindings-examples:0.6.0          
-            args: ["p2p", "--local", "org/ns/alice", "--shared-secret","secret123"]  
+            image: ghcr.io/agntcy/slim/bindings-examples:0.7.0          
+            args: 
+              - p2p
+              - --local
+              - org/ns/alice
+              - --spire-socket-path
+              - unix:/tmp/spire-agent/public/api.sock
+              - --spire-jwt-audience
+              - slim-demo
             assertFor: "received: hello"                                        
         "bob":
             spireMtls: true
             connectedTo:
                 - "cluster-a"
-            image: ghcr.io/agntcy/slim/bindings-examples:0.6.0                      
-            args: ["p2p", "--local", "org/ns/bob", "--remote", "org/ns/alice", "--shared-secret","secret123","--message","hello","--iterations","10"]
+            image: ghcr.io/agntcy/slim/bindings-examples:0.7.0                      
+            args:
+              - p2p
+              - --local
+              - org/ns/bob
+              - --remote
+              - org/ns/alice
+              - --spire-socket-path
+              - unix:/tmp/spire-agent/public/api.sock
+              - --spire-jwt-audience
+              - slim-demo
+              - --message
+              - hello
+              - --iterations
+              - 10
             assertFor: "Sent message hello - 10/10"
     clusters:
         "cluster-a":
