@@ -4,7 +4,7 @@ topology:
             spireMtls: true
             connectedTo:
                 - "cluster-b"
-            image: ghcr.io/agntcy/slim/bindings-examples:0.7.0          
+            image: ghcr.io/agntcy/slim/bindings-examples:0.7.1          
             args: 
               - p2p
               - --local
@@ -18,7 +18,7 @@ topology:
             spireMtls: true
             connectedTo:
                 - "cluster-a"
-            image: ghcr.io/agntcy/slim/bindings-examples:0.7.0                      
+            image: ghcr.io/agntcy/slim/bindings-examples:0.7.1                      
             args:
               - p2p
               - --local
