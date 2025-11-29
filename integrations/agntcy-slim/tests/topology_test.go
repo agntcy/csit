@@ -207,7 +207,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
 
-				time.Sleep(15 * time.Second) // wait for pod to be ready
+				time.Sleep(30 * time.Second) // wait for pod to be ready
 
 				if client.AssertFor != "" {
 					log.Printf("Starting log watcher for client %s with assertFor: %s", clientName, client.AssertFor)
@@ -225,10 +225,10 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				}
 
 				// Register cleanup to run after this spec completes
-				// ginkgo.DeferCleanup(func(ctx context.Context) {
-				// 	err := k8sHelper.CleanupPod(ctx)
-				// 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
-				// })
+				ginkgo.DeferCleanup(func(ctx context.Context) {
+					err := k8sHelper.CleanupPod(ctx)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
+				})
 
 			}
 
