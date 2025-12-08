@@ -6,40 +6,40 @@ name: Deploy agntcy ADS components
 description: Deploy agntcy ADS components
 inputs:
   directory-image-tag:
-    description: 'Set slim container image version'
+    description: "Set slim container image version"
     required: false
-    default: 'v0.4.0'
+    default: "v0.5.6"
   directory-chart-tag:
-    description: 'Set slim chart version'
+    description: "Set slim chart version"
     required: false
-    default: 'v0.4.0'
+    default: "v0.5.6"
   kind-cluster-name:
-    description: 'Set kind cluster name where components are deployed'
+    description: "Set kind cluster name where components are deployed"
     required: false
-    default: 'agntcy-test'
+    default: "agntcy-test"
   kind-cluster-namespace:
-    description: 'Set cluster namespace where components are deployed'
+    description: "Set cluster namespace where components are deployed"
     required: false
-    default: 'default'
+    default: "default"
   deploy-dir-network:
-    description: 'Deploy directory network'
+    description: "Deploy directory network"
     required: false
-    default: 'false'
+    default: "false"
   dirctl-bin-version:
-    description: 'Version of dirctl binary'
+    description: "Version of dirctl binary"
     required: false
-    default: 'v0.4.0'
+    default: "v0.5.6"
   network-namespace-prefix:
-    description: 'Set cluster namespace where directory network are deployed'
+    description: "Set cluster namespace where directory network are deployed"
     required: false
-    default: 'network'
+    default: "network"
   network-size:
-    description: 'Number of directory network peers'
+    description: "Number of directory network peers"
     required: false
-    default: '3'
+    default: "3"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Create Kind Cluster
       uses: helm/kind-action@v1
@@ -98,36 +98,23 @@ runs:
         ARCH: ${{ steps.os_arch.outputs.arch }}
         OS: ${{ steps.os_arch.outputs.os }}
       run: |
-        cat <<EOF > /tmp/bootstrap.yaml
-          apiserver:
-            config:
-              # Routing settings for the peer-to-peer network.
-              routing:
-                # Address to use for routing
-                listen_address: '/ip4/0.0.0.0/tcp/8999'
-
-                # Path to private key file for peer ID.
-                key_path: /etc/agntcy/dir/node.privkey
-
-                # Nodes to use for bootstrapping of the DHT.
-                # We read initial routing tables here and get introduced
-                # to the network.
-                bootstrap_peers: []
-        EOF
         echo "downloading dirctl-${OS}-${ARCH} ..."
         gh release download ${DIRCTL_BIN_VERSION} --repo agntcy/dir --pattern "dirctl-${OS}-${ARCH}" --skip-existing --output /tmp/dirctl
         chmod +x /tmp/dirctl
-        test -f /tmp/node.privkey || openssl genpkey -algorithm ED25519 -out /tmp/node.privkey
+
+        test -f /tmp/node.privkey || /tmp/dirctl network init --output /tmp/node.privkey
+
         bootstrap_peerid=$(/tmp/dirctl network info /tmp/node.privkey)
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" >> $GITHUB_OUTPUT
+
         helm upgrade agntcy-dir \
           oci://ghcr.io/agntcy/dir/helm-charts/dir \
           --version $DIRECTORY_CHART_TAG \
           --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
-          --set apiserver.privKey="$(cat /tmp/node.privkey)" \
           --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
-          -f /tmp/bootstrap.yaml \
+          --set apiserver.secrets.privKey="$(cat /tmp/node.privkey)" \
+          -f ./integrations/agntcy-dir/components/config/bootstrap.yaml \
           --namespace "${NETWORK_NAMESPACE_PREFIX}-bootstrap" \
           --create-namespace \
           --install \

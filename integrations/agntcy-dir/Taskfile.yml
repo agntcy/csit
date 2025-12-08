@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: '3'
+version: "3"
 
 silent: true
 
@@ -12,8 +12,8 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.4.0" }}'
-  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.4.0" }}'
+  DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG | default "v0.5.6" }}'
+  DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG | default "v0.5.6" }}'
   DIRECTORY_NAMESPACE: '{{ .DIRECTORY_NAMESPACE | default "default" }}'
 
   REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
@@ -41,7 +41,7 @@ vars:
       else
         printf $DIRCTL_BIN_PATH
       fi
-  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.4.0" }}'
+  DIRCTL_BIN_VERSION: '{{ .DIRCTL_BIN_VERSION | default "v0.5.6" }}'
 
 tasks:
   k8s:port-forward:setup:
@@ -66,15 +66,15 @@ tasks:
   test-env:deploy:
     desc: Deploy Agntcy directory test env
     vars:
-      HELM_VALUES: './components/helm/values.yaml'
+      HELM_VALUES: "./components/helm/values.yaml"
 
       # Generate credentials
-      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_USERNAME: "apiserver"
       HTPASSWD_PASSWORD:
         sh: openssl rand -hex 16
       HTPASSWD_AUTH_HEADER:
         sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_USERNAME: "sync-user"
       HTPASSWD_SYNC_PASSWORD:
         sh: openssl rand -hex 16
     cmds:
@@ -107,15 +107,15 @@ tasks:
     deps:
       - download:dirctl-bin
     vars:
-      HELM_VALUES: './components/helm/values.yaml'
+      HELM_VALUES: "./components/helm/values.yaml"
 
       # Generate credentials
-      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_USERNAME: "apiserver"
       HTPASSWD_PASSWORD:
         sh: openssl rand -hex 16
       HTPASSWD_AUTH_HEADER:
         sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_USERNAME: "sync-user"
       HTPASSWD_SYNC_PASSWORD:
         sh: openssl rand -hex 16
     cmds:
@@ -157,14 +157,14 @@ tasks:
     deps:
       - test-env:bootstrap:deploy
     vars:
-      HELM_VALUES_PATH: './components/helm/values.yaml'
+      HELM_VALUES_PATH: "./components/helm/values.yaml"
       # Generate credentials
-      HTPASSWD_USERNAME: 'apiserver'
+      HTPASSWD_USERNAME: "apiserver"
       HTPASSWD_PASSWORD:
         sh: openssl rand -hex 16
       HTPASSWD_AUTH_HEADER:
         sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: 'sync-user'
+      HTPASSWD_SYNC_USERNAME: "sync-user"
       HTPASSWD_SYNC_PASSWORD:
         sh: openssl rand -hex 16
 
@@ -172,7 +172,7 @@ tasks:
       # Deploy the peer servers using Helm
       - for:
           matrix:
-            PEER: ['peer1', 'peer2', 'peer3']
+            PEER: ["peer1", "peer2", "peer3"]
         cmd: |
           export $(cat .env)
 
@@ -202,7 +202,7 @@ tasks:
     cmds:
       - for:
           matrix:
-            PEER: ['bootstrap', 'peer1', 'peer2', 'peer3']
+            PEER: ["bootstrap", "peer1", "peer2", "peer3"]
         cmd: |
           helm delete --namespace {{ .ITEM.PEER }} agntcy-dir
 

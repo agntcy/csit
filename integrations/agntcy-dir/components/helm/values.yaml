@@ -4,7 +4,7 @@
 apiserver:
   image:
     repository: ghcr.io/agntcy/dir-apiserver
-    tag: v0.4.0
+    tag: v0.5.6
     pullPolicy: IfNotPresent
     pullSecrets:
       - name: regcred
@@ -12,7 +12,7 @@ apiserver:
   service:
     type: NodePort
 
-  log_level: 'DEBUG'
+  log_level: "DEBUG"
 
   # Server configuration
   config:
@@ -27,12 +27,12 @@ apiserver:
       # Authentication mode: "x509" or "jwt"
       # - x509: Uses X.509-SVID from mutual TLS peer certificates
       # - jwt: Uses JWT-SVID from Authorization header
-      mode: 'x509'
+      mode: "x509"
       # SPIFFE Workload API socket path (injected by SPIRE agent)
-      socket_path: 'unix:///run/spire/agent-sockets/api.sock'
+      socket_path: "unix:///run/spire/agent-sockets/api.sock"
       # Expected audiences for JWT validation (only used in JWT mode)
       audiences:
-        - 'spiffe://example.org/dir-server'
+        - "spiffe://example.org/dir-server"
 
     # Authorization settings (handles access control policies)
     # Requires authentication to be enabled first
@@ -41,12 +41,12 @@ apiserver:
       enabled: false
       # Trust domain for this Directory server
       # Used to distinguish internal (same trust domain) vs external requests
-      trust_domain: 'example.org'
+      trust_domain: "example.org"
 
     # Store settings for the storage backend.
     store:
       # Storage provider to use.
-      provider: 'oci'
+      provider: "oci"
 
       # OCI-backed store
       oci:
@@ -65,7 +65,7 @@ apiserver:
 
         # Auth credentials to use.
         auth_config:
-          insecure: 'true'
+          insecure: "true"
           access_token: access-token
           refresh_token: refresh-token
 
@@ -91,38 +91,38 @@ apiserver:
       gossipsub:
         enabled: true
 
-      refresh_interval: '1s'
+      refresh_interval: "1s"
 
     # Sync configuration
     sync:
       # How frequently the scheduler checks for pending syncs
-      scheduler_interval: '1s'
+      scheduler_interval: "1s"
 
       # Maximum number of sync workers running concurrently
       worker_count: 1
 
       # Timeout for individual sync operations
-      worker_timeout: '10m'
+      worker_timeout: "10m"
 
       # Registry monitor configuration
       registry_monitor:
-        check_interval: '30s'
+        check_interval: "30s"
 
       # Authentication configuration for sync operations
       auth_config:
-        username: ''
-        password: ''
+        username: ""
+        password: ""
 
     # Publication configuration
     publication:
       # How frequently the scheduler checks for pending publications
-      scheduler_interval: '1s'
+      scheduler_interval: "1s"
 
       # Maximum number of publication workers running concurrently
       worker_count: 1
 
       # Timeout for individual publication operations
-      worker_timeout: '30m'
+      worker_timeout: "30m"
 
     # Events configuration
     events:
@@ -187,5 +187,5 @@ apiserver:
 
     # Configure zot to use the config file from the shared mounted volume
     extraArgs:
-      - 'serve'
-      - '/etc/zot/config.json'
+      - "serve"
+      - "/etc/zot/config.json"

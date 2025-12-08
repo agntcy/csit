@@ -6,10 +6,10 @@ apiserver:
     # Routing settings for the peer-to-peer network.
     routing:
       # Address to use for routing
-      listen_address: '/ip4/0.0.0.0/tcp/8999'
+      listen_address: "/ip4/0.0.0.0/tcp/8999"
 
       # Path to private key file for peer ID.
-      key_path: /etc/agntcy/dir/node.privkey
+      # key_path: /etc/agntcy/dir/node.privkey
 
       # Nodes to use for bootstrapping of the DHT.
       # We read initial routing tables here and get introduced
