@@ -15,3 +15,10 @@ apiserver:
       # We read initial routing tables here and get introduced
       # to the network.
       bootstrap_peers: []
+
+      # Directory API address to use for routing
+      directory_api_address: "agntcy-dir-apiserver.bootstrap.svc.cluster.local:8888"
+
+    store:
+      oci:
+        registry_address: "agntcy-dir-zot.bootstrap.svc.cluster.local:5000"

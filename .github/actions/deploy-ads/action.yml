@@ -141,6 +141,7 @@ runs:
             --version $DIRECTORY_CHART_TAG \
             --set apiserver.image.tag="${DIRECTORY_IMAGE_TAG}" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.${NETWORK_NAMESPACE_PREFIX}-bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOSTRAP_PEER_ID}" \
+            --set apiserver.config.routing.directory_api_address="agntcy-dir-apiserver.${NETWORK_NAMESPACE_PREFIX}-peer${i}.svc.cluster.local:8888" \
             --set apiserver.config.oci.registry_address="agntcy-dir-zot:5000" \
             --namespace "${NETWORK_NAMESPACE_PREFIX}-peer${i}" \
             --create-namespace \

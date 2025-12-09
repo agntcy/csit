@@ -63,33 +63,75 @@ tasks:
     cmds:
       - kill -9 $(ps aux | grep port-forward | grep agntcy-dir-apiserver | awk '{print $2}') || true
 
+  htpasswd-creds:generate:
+    desc: Generate htpasswd credentials and files for DIR deployment
+    vars:
+      HTPASSWD_USERNAME: '{{ .HTPASSWD_USERNAME | default "apiserver" }}'
+      HTPASSWD_SYNC_USERNAME: '{{ .HTPASSWD_SYNC_USERNAME | default "sync-user" }}'
+      CREDS_FILE: '{{ .CREDS_FILE | default "/tmp/dir-htpasswd-creds.env" }}'
+      HTPASSWD_FILE: '{{ .HTPASSWD_FILE | default "/tmp/dir-htpasswd" }}'
+    cmds:
+      - |
+        # Generate fresh passwords
+        HTPASSWD_PASSWORD="$(openssl rand -hex 16)"
+        HTPASSWD_SYNC_PASSWORD="$(openssl rand -hex 16)"
+
+        # Generate derived values
+        HTPASSWD_AUTH_HEADER="$(echo -n "{{ .HTPASSWD_USERNAME }}:${HTPASSWD_PASSWORD}" | base64)"
+        HTPASSWD_ADMIN="$(htpasswd -nbB "{{ .HTPASSWD_USERNAME }}" "${HTPASSWD_PASSWORD}" | sed 's/^{{ .HTPASSWD_USERNAME }}://')"
+        HTPASSWD_SYNC="$(htpasswd -nbB "{{ .HTPASSWD_SYNC_USERNAME }}" "${HTPASSWD_SYNC_PASSWORD}" | sed 's/^{{ .HTPASSWD_SYNC_USERNAME }}://')"
+
+        # Write credentials to env file (for helm --set commands)
+        cat > {{ .CREDS_FILE }} << EOF
+        export HTPASSWD_USERNAME="{{ .HTPASSWD_USERNAME }}"
+        export HTPASSWD_PASSWORD="${HTPASSWD_PASSWORD}"
+        export HTPASSWD_AUTH_HEADER="${HTPASSWD_AUTH_HEADER}"
+        export HTPASSWD_SYNC_USERNAME="{{ .HTPASSWD_SYNC_USERNAME }}"
+        export HTPASSWD_SYNC_PASSWORD="${HTPASSWD_SYNC_PASSWORD}"
+        EOF
+
+        # Write htpasswd file (for helm --set-file commands)
+        cat > {{ .HTPASSWD_FILE }} << EOF
+        {{ .HTPASSWD_USERNAME }}:${HTPASSWD_ADMIN}
+        {{ .HTPASSWD_SYNC_USERNAME }}:${HTPASSWD_SYNC}
+        EOF
+
+  htpasswd-creds:cleanup:
+    desc: Cleanup htpasswd credentials and files
+    vars:
+      CREDS_FILE: '{{ .CREDS_FILE | default "/tmp/dir-htpasswd-creds.env" }}'
+      HTPASSWD_FILE: '{{ .HTPASSWD_FILE | default "/tmp/dir-htpasswd" }}'
+    cmds:
+      - rm -f {{ .CREDS_FILE }}
+      - rm -f {{ .HTPASSWD_FILE }}
+
   test-env:deploy:
     desc: Deploy Agntcy directory test env
     vars:
       HELM_VALUES: "./components/helm/values.yaml"
-
-      # Generate credentials
-      HTPASSWD_USERNAME: "apiserver"
-      HTPASSWD_PASSWORD:
-        sh: openssl rand -hex 16
-      HTPASSWD_AUTH_HEADER:
-        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: "sync-user"
-      HTPASSWD_SYNC_PASSWORD:
-        sh: openssl rand -hex 16
     cmds:
+      # Generate credentials and htpasswd file (using defaults)
+      - task: htpasswd-creds:generate
+
+      # Cleanup credentials on exit (using defaults)
+      - defer:
+          task: htpasswd-creds:cleanup
+
       - |
+        source /tmp/dir-htpasswd-creds.env
+
         helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
           -f {{ .HELM_VALUES }} \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
           --set apiserver.config.store.oci.registry_address="agntcy-dir-zot:5000" \
-          --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
-          --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
-          --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
-          --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
-          --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
+          --set apiserver.secrets.ociAuth.username="${HTPASSWD_USERNAME}" \
+          --set apiserver.secrets.ociAuth.password="${HTPASSWD_PASSWORD}" \
+          --set apiserver.secrets.syncAuth.username="${HTPASSWD_SYNC_USERNAME}" \
+          --set apiserver.secrets.syncAuth.password="${HTPASSWD_SYNC_PASSWORD}" \
+          --set-file apiserver.zot.secretFiles.htpasswd="/tmp/dir-htpasswd" \
+          --set apiserver.zot.authHeader="${HTPASSWD_AUTH_HEADER}" \
           --namespace {{ .DIRECTORY_NAMESPACE }} \
           --create-namespace \
           --install \
@@ -108,19 +150,7 @@ tasks:
       - download:dirctl-bin
     vars:
       HELM_VALUES: "./components/helm/values.yaml"
-
-      # Generate credentials
-      HTPASSWD_USERNAME: "apiserver"
-      HTPASSWD_PASSWORD:
-        sh: openssl rand -hex 16
-      HTPASSWD_AUTH_HEADER:
-        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: "sync-user"
-      HTPASSWD_SYNC_PASSWORD:
-        sh: openssl rand -hex 16
     cmds:
-      - |
-        # Generate private key if it doesn't exist
       - |
         test -f /tmp/node.privkey || {{.DIRCTL_BIN_PATH}}/dirctl network init --output /tmp/node.privkey
 
@@ -130,21 +160,30 @@ tasks:
         echo "PEER ID: ${bootstrap_peerid}"
         echo BOOTSTRAP_PEER_ID="${bootstrap_peerid}" > .env
 
+      # Generate credentials and htpasswd file (using defaults)
+      - task: htpasswd-creds:generate
+
+      # Cleanup credentials on exit (using defaults)
+      - defer:
+          task: htpasswd-creds:cleanup
+
       - |
+        source /tmp/dir-htpasswd-creds.env
+
         helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
           --version {{ .DIRECTORY_CHART_TAG }} \
           -f {{ .HELM_VALUES }} \
           -f ./components/config/bootstrap.yaml \
           --set apiserver.image.tag="{{ .DIRECTORY_IMAGE_TAG }}" \
-          --set apiserver.config.store.oci.registry_address="agntcy-dir-zot:5000" \
-          --set apiserver.config.routing.directory_api_address="agntcy-dir-apiserver.bootstrap.svc.cluster.local:8888" \
-          --set apiserver.privKey="$(cat /tmp/node.privkey)" \
-          --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
-          --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
-          --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
-          --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
-          --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
+          --set apiserver.secrets.privKey="$(cat /tmp/node.privkey)" \
+          --set apiserver.config.routing.key_path="/tmp/node.privkey" \
+          --set-file apiserver.zot.secretFiles.htpasswd="/tmp/dir-htpasswd" \
+          --set apiserver.secrets.ociAuth.username="${HTPASSWD_USERNAME}" \
+          --set apiserver.secrets.ociAuth.password="${HTPASSWD_PASSWORD}" \
+          --set apiserver.secrets.syncAuth.username="${HTPASSWD_SYNC_USERNAME}" \
+          --set apiserver.secrets.syncAuth.password="${HTPASSWD_SYNC_PASSWORD}" \
+          --set apiserver.zot.authHeader="${HTPASSWD_AUTH_HEADER}" \
           --namespace bootstrap \
           --create-namespace \
           --install \
@@ -158,23 +197,22 @@ tasks:
       - test-env:bootstrap:deploy
     vars:
       HELM_VALUES_PATH: "./components/helm/values.yaml"
-      # Generate credentials
-      HTPASSWD_USERNAME: "apiserver"
-      HTPASSWD_PASSWORD:
-        sh: openssl rand -hex 16
-      HTPASSWD_AUTH_HEADER:
-        sh: echo -n "apiserver:{{ .HTPASSWD_PASSWORD }}" | base64
-      HTPASSWD_SYNC_USERNAME: "sync-user"
-      HTPASSWD_SYNC_PASSWORD:
-        sh: openssl rand -hex 16
-
     cmds:
+      # Generate credentials and htpasswd file (using defaults)
+      - task: htpasswd-creds:generate
+
+      # Cleanup credentials on exit (using defaults)
+      - defer:
+          task: htpasswd-creds:cleanup
+
       # Deploy the peer servers using Helm
       - for:
           matrix:
             PEER: ["peer1", "peer2", "peer3"]
         cmd: |
           export $(cat .env)
+
+          source /tmp/dir-htpasswd-creds.env
 
           helm upgrade agntcy-dir \
           oci://{{ .IMAGE_REPO }}/dir/helm-charts/dir \
@@ -183,13 +221,12 @@ tasks:
             --set apiserver.config.store.oci.registry_address="agntcy-dir-zot.{{ .ITEM.PEER }}.svc.cluster.local:5000" \
             --set apiserver.config.routing.bootstrap_peers[0]="/dns4/agntcy-dir-apiserver-routing.bootstrap.svc.cluster.local/tcp/8999/p2p/${BOOTSTRAP_PEER_ID}" \
             --set apiserver.config.routing.directory_api_address="agntcy-dir-apiserver.{{ .ITEM.PEER }}.svc.cluster.local:8888" \
-            --set-json 'apiserver.extraVolumes=[{"name":"zot-config-storage","hostPath":{"path":"/opt/zot-config-{{ .ITEM.PEER }}","type":"DirectoryOrCreate"}}]' \
-            --set-json 'apiserver.zot.extraVolumes=[{"name":"zot-config-storage","hostPath":{"path":"/opt/zot-config-{{ .ITEM.PEER }}","type":"DirectoryOrCreate"}}]' \
-            --set apiserver.config.store.oci.auth_config.username="{{ .HTPASSWD_USERNAME }}" \
-            --set apiserver.config.store.oci.auth_config.password="{{ .HTPASSWD_PASSWORD }}" \
-            --set apiserver.zot.authHeader="{{ .HTPASSWD_AUTH_HEADER }}" \
-            --set apiserver.config.sync.auth_config.username="{{ .HTPASSWD_SYNC_USERNAME }}" \
-            --set apiserver.config.sync.auth_config.password="{{ .HTPASSWD_SYNC_PASSWORD }}" \
+            --set apiserver.zot.authHeader="${HTPASSWD_AUTH_HEADER}" \
+            --set-file apiserver.zot.secretFiles.htpasswd="/tmp/dir-htpasswd" \
+            --set apiserver.secrets.ociAuth.username="${HTPASSWD_USERNAME}" \
+            --set apiserver.secrets.ociAuth.password="${HTPASSWD_PASSWORD}" \
+            --set apiserver.secrets.syncAuth.username="${HTPASSWD_SYNC_USERNAME}" \
+            --set apiserver.secrets.syncAuth.password="${HTPASSWD_SYNC_PASSWORD}" \
             --namespace "{{ .ITEM.PEER }}" \
             --create-namespace \
             --install \
