@@ -39,7 +39,7 @@ var _ = ginkgo.Describe("Agntcy record push tests", func() {
 			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 		}
 
-		recordModelFile = filepath.Join(mountDest, "record_031.json")
+		recordModelFile = filepath.Join(mountDest, "record_080.json")
 	})
 
 	ginkgo.Context("record push and pull", func() {

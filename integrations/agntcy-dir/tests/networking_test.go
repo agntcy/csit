@@ -42,7 +42,7 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 			mountString = fmt.Sprintf("%s:%s", testDataPath, mountDest)
 		}
 
-		recordModelFile = filepath.Join(mountDest, "record_031.json")
+		recordModelFile = filepath.Join(mountDest, "record_080.json")
 	})
 
 	ginkgo.Context("record push, publish and list from another peer", func() {
@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("Agntcy directory networking test", func() {
 				"routing",
 				"search",
 				"--locator",
-				"docker-image",
+				"docker_image",
 				"--server-addr",
 				fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
 			}

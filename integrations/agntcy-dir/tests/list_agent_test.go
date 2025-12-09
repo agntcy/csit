@@ -120,14 +120,14 @@ var _ = ginkgo.Describe("Agntcy record list tests", func() {
 
 				labels := []string{}
 				for _, category := range categories {
-					labels = append(labels, "/skills/"+category)
+					labels = append(labels, "--skill", category)
 				}
 
 				dirctlArgs := []string{
-					"routing",
-					"list",
 					"--server-addr",
 					fmt.Sprintf("%s:%d", dirAPIHost, dirAPIPort),
+					"routing",
+					"list",
 				}
 
 				dirctlArgs = append(dirctlArgs, labels...)
@@ -155,8 +155,8 @@ var _ = ginkgo.Describe("Agntcy record list tests", func() {
 				}
 
 			},
-			ginkgo.Entry("list with one label", []string{"Natural Language Processing"}, true),
-			ginkgo.Entry("list with two labes", []string{"Natural Language Processing", "Natural Language Processing"}, true), // NOTE: The samples jsons only contains one label
+			ginkgo.Entry("list with one label", []string{"natural_language_processing/natural_language_generation/text_completion"}, true),
+			ginkgo.Entry("list with two labes", []string{"natural_language_processing/natural_language_generation/text_completion", "natural_language_processing/analytical_reasoning/problem_solving"}, true),
 			ginkgo.Entry("list with non-existing label", []string{"Lorem ipsum dolor sit amet"}, false),
 		)
 	})
