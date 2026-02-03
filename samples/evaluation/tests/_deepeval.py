@@ -34,6 +34,7 @@ def eval():
             openai_api_version=openai_api_version,
             azure_deployment_name=azure_deployment_name,
             azure_model_version=azure_model_version,
+            openai_model_name=azure_model_version,
         )
     else:
         print("Set local model for evaluation")
