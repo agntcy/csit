@@ -8,7 +8,6 @@ from crewai import LLM, Agent, Crew, Task
 from crewai.project import crew
 from crewai.tools import BaseTool
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_openai import ChatOpenAI
 from openinference.instrumentation.crewai import CrewAIInstrumentor
 from openinference.instrumentation.langchain import LangChainInstrumentor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -62,8 +61,8 @@ if azure_openai_api_key is not None:
         api_version=openai_api_version,
     )
 else:
-    llm = ChatOpenAI(
-        model=local_model_name,
+    llm = LLM(
+        model="openai/" + local_model_name,
         base_url=local_base_url,
         api_key="NA",
     )

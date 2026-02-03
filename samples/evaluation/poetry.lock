@@ -200,31 +200,6 @@ files = [
 ]
 
 [[package]]
-name = "anthropic"
-version = "0.49.0"
-description = "The official Python library for the anthropic API"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "anthropic-0.49.0-py3-none-any.whl", hash = "sha256:bbc17ad4e7094988d2fa86b87753ded8dce12498f4b85fe5810f208f454a8375"},
-    {file = "anthropic-0.49.0.tar.gz", hash = "sha256:c09e885b0f674b9119b4f296d8508907f6cff0009bc20d5cf6b35936c40b4398"},
-]
-
-[package.dependencies]
-anyio = ">=3.5.0,<5"
-distro = ">=1.7.0,<2"
-httpx = ">=0.23.0,<1"
-jiter = ">=0.4.0,<1"
-pydantic = ">=1.9.0,<3"
-sniffio = "*"
-typing-extensions = ">=4.10,<5"
-
-[package.extras]
-bedrock = ["boto3 (>=1.28.57)", "botocore (>=1.31.57)"]
-vertex = ["google-auth (>=2,<3)"]
-
-[[package]]
 name = "anyio"
 version = "4.12.1"
 description = "High-level concurrency and networking framework on top of asyncio or Trio"
@@ -1194,19 +1169,18 @@ files = [
 
 [[package]]
 name = "deepeval"
-version = "2.6.7"
+version = "2.6.6"
 description = "The LLM Evaluation Framework"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "deepeval-2.6.7-py3-none-any.whl", hash = "sha256:22241137682f4d5d1d76f3c219e0266e0c94c04c266980ecee653b8fb9c710a7"},
-    {file = "deepeval-2.6.7.tar.gz", hash = "sha256:44d4f2e0684341d1093101d3016203bb8720790b46cfeaa0bd796d4de4999b2d"},
+    {file = "deepeval-2.6.6-py3-none-any.whl", hash = "sha256:8935887e03863bdd105f0fed66fd774efef94af5369bfb7ab217e542a897e754"},
+    {file = "deepeval-2.6.6.tar.gz", hash = "sha256:4e998b0ddcda19376a13f6558b67547ae8a6e6f4795e1ff27d6c3514e3c327c1"},
 ]
 
 [package.dependencies]
 aiohttp = "*"
-anthropic = ">=0.49.0,<0.50.0"
 black = "*"
 coverage = "*"
 grpcio = ">=1.67.1,<2.0.0"
@@ -8136,4 +8110,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "<3.13,>=3.10"
-content-hash = "0c7a2d112065a7ebcb77a8f6d9ec54b62767aca9a1af4fe071f911b5e6345378"
+content-hash = "ad969aa594c4c0732e92fef1c2f641aa4ab9971ad5c3cf43a144f0a5e5dbd0f8"
