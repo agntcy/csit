@@ -3,14 +3,14 @@ name = "research"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Zsolt Kacsándi", email = "zkacsand@cisco.com" }]
-requires-python = "<4.0,>=3.9"
+requires-python = "<4.0,>=3.10"
 readme = "README.md"
 
 dependencies = [
-    "langchain (>=0.3.21,<0.4.0)",
-    "langchain-ollama (>=0.2.3,<0.3.0)",
-    "langgraph (>=0.3.18,<0.4.0)",
-    "langchain-openai (>=0.3.9,<0.4.0)",
+    "langchain (>=1.2.8,<2.0.0)",
+    "langchain-ollama (>=1.0.1,<2.0.0)",
+    "langgraph (>=1.0.7,<2.0.0)",
+    "langchain-openai (>=1.1.7,<2.0.0)",
 ]
 
 [build-system]
