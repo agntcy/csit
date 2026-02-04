@@ -47,6 +47,10 @@ def main():
         model = os.environ.get("LOCAL_MODEL_NAME")
         url = os.environ.get("LOCAL_MODEL_BASE_URL")
 
+        if not url:
+            print("LOCAL_MODEL_BASE_URL environment variable is not set.")
+            return
+
         # Replace localhost with host.docker.internal
         url = url.replace("localhost", "host.docker.internal")
 
