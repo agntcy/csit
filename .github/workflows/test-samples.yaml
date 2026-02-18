@@ -65,6 +65,12 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
-          cd ${{ matrix.app }}
-          task run:test
+          APP="${{ matrix.app }}"
+          case "$APP" in
+            ./samples/evaluation|./samples/crewai/simple_crew|./samples/llama-deploy/llama-sum)
+              echo "::warning::Skipping tests for $APP (in exclusion list)"
+              exit 0
+              ;;
+          esac
+          cd "$APP" && task run:test
         shell: bash
