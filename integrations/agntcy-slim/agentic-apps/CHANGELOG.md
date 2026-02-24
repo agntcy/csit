@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.11](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.10...agentic-apps-v0.0.11) (2026-02-24)
+
+
+### Features
+
+* add slim connection config as param ([#121](https://github.com/agntcy/csit/issues/121)) ([f72a8c5](https://github.com/agntcy/csit/commit/f72a8c528129a30fb8c2010dd5dee65d2de3bec7))
+
+
+### Bug Fixes
+
+* adapt agentic apps to use latest slim-bindings lib ([#133](https://github.com/agntcy/csit/issues/133)) ([2ee93a6](https://github.com/agntcy/csit/commit/2ee93a69667b062276acdbdfb53b1d41f99888af))
+* add missing import to langchain agent ([#124](https://github.com/agntcy/csit/issues/124)) ([6909226](https://github.com/agntcy/csit/commit/690922651b5cbe84b99a45a05af132d089db48b5))
+
 ## [0.0.10](https://github.com/agntcy/csit/compare/agentic-apps-v0.0.9...agentic-apps-v0.0.10) (2025-06-04)
 
 
