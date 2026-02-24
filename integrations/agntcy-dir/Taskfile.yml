@@ -260,12 +260,6 @@ tasks:
       - docker pull {{.IMAGE_REPO}}/dir-ctl:{{.DIRECTORY_IMAGE_TAG}}
       - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 10m -timeout 10m -ginkgo.v -ginkgo.focus "agent compilation"
 
-  test:compile:samples:
-    desc: Agntcy compiler test in samples
-    cmds:
-      - docker pull {{.IMAGE_REPO}}/dir-ctl:{{.DIRECTORY_IMAGE_TAG}}
-      - REMOVE_CONTAINERS={{.REMOVE_CONTAINERS}} RUNNER_TYPE={{.RUNNER_TYPE}} PATH=$PATH:{{.DIRCTL_BIN_PATH}} IMAGE_REPO={{.IMAGE_REPO}} DIRECTORY_IMAGE_TAG={{.DIRECTORY_IMAGE_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 10m -timeout 10m -ginkgo.v -ginkgo.focus "Samples build test"
-
   test:push:
     desc: Directory agent push test
     cmds:

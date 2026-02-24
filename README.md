@@ -8,10 +8,8 @@
   - [Running tests](#running-tests)
   - [Running tests using GitHub actions](#running-tests-using-github-actions)
   - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
-- [Samples](#samples)
-  - [Running tests](#running-tests-1)
-  - [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
-  - [Copyright Notice](#copyright-notice)
+- [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
+- [Copyright Notice](#copyright-notice)
 
 ## Architecture
 
@@ -51,25 +49,7 @@ csit
 │   │   └── kind
 │   ├── Taskfile.yml                              # Tasks for integration tests
 │   └── testutils                                 # Go test utils
-├── samples                                       # Sample applications for testing
-│   ├── agents
-│   │   ├── docker-env-cli-stdout
-│   │   └── utils
-│   ├── autogen
-│   │   └── semantic-router
-│   ├── crewai
-│   │   └── simple_crew
-│   ├── evaluation
-│   │   ├── model
-│   │   └── tests
-│   ├── langgraph
-│   │   └── research
-│   ├── llama-deploy
-│   │   └── llama-sum
-│   ├── llama-index
-│   │   └── research
-│   └── Taskfile.yml                              # Tasks for Samples
-└── Taskfile.yml                                  # Repository level task definintions
+└── Taskfile.yml                                  # Repository level task definitions
 ```
 
 In the Taskfiles, all required tasks and steps are defined in a structured manner. Each CSIT component contains its necessary tasks within dedicated Taskfiles, with higher-level Taskfiles incorporating lower-level ones to efficiently leverage their defined tasks.
@@ -94,7 +74,6 @@ task: Available tasks for this project:
 * integrations:directory:test-env:deploy:                 Deploy Agntcy directory test env
 * integrations:directory:test-env:network:cleanup:        Remove Directory network peers
 * integrations:directory:test-env:network:deploy:         Deploy Directory network peers
-* integrations:directory:test:compile:samples:            Agntcy compiler test in samples
 * integrations:directory:test:compiler:                   Agntcy compiler test
 * integrations:directory:test:delete:                     Directory agent delete test
 * integrations:directory:test:list:                       Directory agent list test
@@ -122,18 +101,6 @@ task: Available tasks for this project:
 * integrations:kind:create:                               Create kind cluster
 * integrations:kind:destroy:                              Destroy kind cluster
 * integrations:version:                                   Get version
-* samples:agents:run:test:                                Run test
-* samples:autogen:kind:                                   Run app in kind
-* samples:autogen:lint:                                   Run lint with black
-* samples:autogen:lint-fix:                               Run lint and autofix with black
-* samples:autogen:run:test:                               Run tests
-* samples:crewai:run:crew:                                Run crew
-* samples:crewai:run:test:                                Run crew
-* samples:evaluation:run:crew:                            Run application main
-* samples:langgraph:run:test:                             Run tests
-* samples:llama-deploy:run:app:                           Run application main
-* samples:llama-deploy:run:test:                          Run tests
-* samples:llama-index:run:test:                           Run tests
 ```
 
 # Integration tests
@@ -299,64 +266,6 @@ git push origin add-new-test
 
 Go to the original repository on GitHub and submit a pull request from your branch.
 Provide a detailed description of what your test covers and any additional context needed for reviewers.
-
-# Samples
-
-The directory sturcture of the samples applications:
-
-```
-samples
-├── crewai
-│   └── simple_crew           # Agentic application example
-│       ├── agent.base.json   # Required agent base model
-│       ├── build.config.yml  # Required build configuration file
-│       ├── model.json        # Required model file
-│       └── Taskfile.yml      # Tasks for samples tests
-├── langgraph
-│   └── research              # Agentic application example
-│       ├── agent.base.json   # Required agent base model
-│       ├── build.config.yml  # Required build configuration file
-│       ├── model.json        # Required model file
-│       ├── Taskfile.yml      # Tasks for samples tests
-│       └── tests
-├── llama-index
-│   └── research              # Agentic application example
-│       ├── agent.base.json   # Required agent base model
-│       ├── build.config.yml  # Required build configuration file
-│       ├── model.json        # Required model file
-│       ├── Taskfile.yml      # Tasks for samples tests
-│       └── tests
-├── ....
-├── ....
-│  
-└── Taskfile.yml
-```
-
-The samples directory in the CSIT repository serves two primary purposes related to the testing of agentic applications:
-
-
-1. Compilation and Execution Verification: The agentic applications stored within the samples directory are subjected to sample tests. These tests are designed to run whenever changes are made to the agentic apps to ensure they compile correctly and are able to execute as expected.
-2. Base for Agent Directory Integration Test:
-The agentic applications in the samples directory also serve as the foundation for the agent model build and push test. This specific test checks for the presence of two required files: model.json and build.config.yaml. If these files are present within an agentic application, the integration agent model build and push testa are triggered. This test is crucial for validating the construction and verification of the agent model, ensuring that all necessary components are correctly configured and operational.
-
-## Running tests
-
-We can launch tests using taskfile locally or in GitHub actions.
-Running locally we need some tools to build the sample applications and run the tests.
-It requires the followings on local machine:
-  - [Taskfile](https://taskfile.dev/installation/)
-  - [Python 3.12.X](https://www.python.org/downloads/)
-  - [Poetry](https://python-poetry.org/docs/#installation)
-  - [Docker](https://docs.docker.com/get-started/get-docker/)
-  - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
-  - [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
-
-```bash
-task samples:<app-namel>:run:test
-or
-cd samples/[app-name]
-task run:test
-```
 
 ## Updating the agntcy/dir testdata
 

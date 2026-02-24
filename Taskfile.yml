@@ -17,11 +17,6 @@ includes:
       SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
       SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
 
-  samples:
-    taskfile: ./samples/Taskfile.yml
-    dir: ./samples
-    excludes: [default]
-
   benchmarks:
     taskfile: ./benchmarks/Taskfile.yml
     dir: ./benchmarks
