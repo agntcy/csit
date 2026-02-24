@@ -49,11 +49,6 @@ on:
         required: false
         default: false
         type: boolean
-      run_wfsm_test:
-        description: "Run WFSM tests"
-        required: false
-        default: false
-        type: boolean
 
   schedule:
     - cron: "0 4 * * *"
@@ -205,62 +200,6 @@ jobs:
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           TEST_ENV_VAR: "anything"
         run: task integrations:apps:run-marketing-campaign
-        shell: bash
-
-  run-tests-wfsm:
-    if: ${{ inputs.run_wfsm_test }}
-    needs: [set-kind-version]
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: "read"
-      id-token: "write"
-      packages: "read"
-      attestations: "read"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          python: true
-          go: false
-
-      - name: Setup K8S Tools
-        uses: ./.github/actions/setup-k8s
-        with:
-          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
-
-      - name: Deploy Directory
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-directory: "true"
-          directory-image-tag: "v0.2.3"
-          directory-chart-tag: "v0.2.3"
-
-      - name: Run Workflow Server Manger Test
-        env:
-          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          TEST_ENV_VAR: "anything"
-          DIRCTL_BIN_VERSION: "v0.2.3"
-
-        run: |
-          task integrations:directory:download:dirctl-bin
-          task integrations:wfsm:wfsm:test:e2e
-
         shell: bash
 
   combine-all-artifacts:
