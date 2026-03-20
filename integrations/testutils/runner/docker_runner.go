@@ -18,7 +18,9 @@ type dockerRunner struct {
 }
 
 var commandPaths = map[string]string{
-	"dirctl": "/dirctl",
+	"dirctl":         "/dirctl",
+	"slim-bench":     "./slim-bench",
+	"security-probe": "./security-probe",
 }
 
 func (r *dockerRunner) Run(command string, args ...string) (string, error) {

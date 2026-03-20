@@ -10,6 +10,11 @@ tasks:
   default:
     cmd: task -l
 
+  tools:build:
+    desc: Build helper tools for benchmarks
+    cmds:
+      - docker build -t slim-bench:local -f tools/slim-bench/Dockerfile ..
+
   test:
     desc: All Slim benchmark test
     cmds:
