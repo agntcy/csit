@@ -263,7 +263,7 @@ tasks:
       - bash ./run_suite.sh
 
   benchmark:ci:capacity:
-    desc: Run bounded CI-safe capacity sweeps for pub, request, and ping-pong
+    desc: Run bounded CI-safe capacity sweeps for pub, request, and ping-pong with 1 client at 16kB
     cmds:
       - task benchmark:capacity:pub-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
       - task benchmark:capacity:request-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2

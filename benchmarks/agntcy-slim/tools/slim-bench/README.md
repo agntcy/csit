@@ -49,8 +49,8 @@ task benchmarks:slim:benchmark:capacity:pub-16kb
 
 That task runs the fixed reproducible profile for:
 - mode: `pub`
-- clients: `10`
-- payload: `128B`
+- clients: `1`
+- payload: `16kB`
 - duration: `2s`
 - adaptive sweep start/max: `128000` -> `176000`
 - sweep growth factor: `1.125`
@@ -74,7 +74,7 @@ task benchmarks:slim:benchmark:ci:capacity
 
 The CI targets are intentionally smaller than the developer-facing defaults:
 - `benchmark:ci:suite-smoke` runs a `1s` single-client smoke matrix across `request`, `ping-pong`, and `pub`
-- `benchmark:ci:capacity` runs bounded `1s` adaptive sweeps for `pub`, `request`, and `ping-pong`
+- `benchmark:ci:capacity` runs bounded `5s` adaptive sweeps for `pub`, `request`, and `ping-pong` using `1` client at `16kB`
 - both targets are intended to be called directly from CI without shell preamble
 
 The GitHub Actions workflow uploads a single Markdown artifact per job so the result is directly readable:
@@ -120,8 +120,8 @@ You can also enable an exploratory adaptive capacity sweep that increases the co
 ```bash
 CAPACITY_SWEEP=1 \
 CAPACITY_SWEEP_MODES='pub' \
-CAPACITY_SWEEP_CLIENTS='10' \
-CAPACITY_SWEEP_SIZES='128 1024' \
+CAPACITY_SWEEP_CLIENTS='1' \
+CAPACITY_SWEEP_SIZES='16384' \
 CAPACITY_SWEEP_START_RATE='1000' \
 CAPACITY_SWEEP_GROWTH_FACTOR='2.0' \
 CAPACITY_SWEEP_PLATEAU_THRESHOLD='0.05' \
