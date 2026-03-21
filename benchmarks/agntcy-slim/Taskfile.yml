@@ -14,7 +14,7 @@ vars:
   BENCH_PUB_RATES: '{{ .BENCH_PUB_RATES | default "" }}'
   BENCH_DURATION: '{{ .BENCH_DURATION | default "5s" }}'
   BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
-  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default "v0.2.1" }}'
+  SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "pub" }}'
@@ -65,16 +65,30 @@ tasks:
         set -e
         SLIMCTL_ARCH=$(arch)
         SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        if [ "$SLIMCTL_ARCH" = "x86_64" ] && [ "$SLIMCTL_OS" = "linux" ]; then
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
           SLIMCTL_ARCH="amd64"
         fi
-        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH"
-        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/slimctl-{{ .SLIMCTL_VERSION }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH"
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH${SLIMCTL_ABI}"
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .SLIMCTL_RELEASE_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        echo "Downloading slimctl from $SLIMCTL_URL"
         TARGET_DIR=$(dirname {{ .SLIMCTL_PATH }})
         mkdir -p "$TARGET_DIR"
-        curl -L -o {{ .SLIMCTL_PATH }} "$SLIMCTL_URL"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .SLIMCTL_PATH }}
         chmod +x {{ .SLIMCTL_PATH }}
         echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
+        {{ .SLIMCTL_PATH }} version || true
 
   deps:slim-bindings-setup:
     desc: Install the native SLIM bindings library required by benchmark helpers
