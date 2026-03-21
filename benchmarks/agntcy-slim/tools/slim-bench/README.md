@@ -44,7 +44,7 @@ task benchmarks:slim:benchmark:suite \
 For the repeated adaptive knee test used in the recent capacity study, use:
 
 ```bash
-task benchmarks:slim:benchmark:capacity:pub-128b
+task benchmarks:slim:benchmark:capacity:pub-16kb
 ```
 
 That task runs the fixed reproducible profile for:
@@ -61,8 +61,8 @@ Additional reproducible workload-specific triggers:
 ```bash
 task benchmarks:slim:benchmark:request
 task benchmarks:slim:benchmark:ping-pong
-task benchmarks:slim:benchmark:capacity:request-16b
-task benchmarks:slim:benchmark:capacity:ping-pong-16b
+task benchmarks:slim:benchmark:capacity:request-16kb
+task benchmarks:slim:benchmark:capacity:ping-pong-16kb
 ```
 
 CI-oriented bounded triggers:

@@ -165,7 +165,7 @@ tasks:
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:pub-128b:
+  benchmark:capacity:pub-16kb:
     desc: Run the repeated adaptive pub capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
@@ -191,7 +191,7 @@ tasks:
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:request-16b:
+  benchmark:capacity:request-16kb:
     desc: Run the repeated adaptive request capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
@@ -218,7 +218,7 @@ tasks:
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:ping-pong-16b:
+  benchmark:capacity:ping-pong-16kb:
     desc: Run the repeated adaptive ping-pong capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
@@ -265,6 +265,6 @@ tasks:
   benchmark:ci:capacity:
     desc: Run bounded CI-safe capacity sweeps for pub, request, and ping-pong
     cmds:
-      - task benchmark:capacity:pub-128b CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
-      - task benchmark:capacity:request-16b REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
-      - task benchmark:capacity:ping-pong-16b PING_PONG_CAPACITY_DURATION=5s PING_PONG_CAPACITY_REPEATS=1 PING_PONG_CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:pub-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:request-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:ping-pong-16kb PING_PONG_CAPACITY_DURATION=5s PING_PONG_CAPACITY_REPEATS=1 PING_PONG_CAPACITY_SWEEP_REPEATS=2
