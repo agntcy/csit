@@ -587,7 +587,7 @@ func logModeSummary(mode string, rows []benchmarkRunResult) {
 
 func logCapacityCaseSummary(result capacitySweepCaseResult) {
 	err := writeProgressLine(
-		"CAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_rate=%d best_sink_mps=%.2f best_sender_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q",
+		"CAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_offered_rate=%d best_node_throughput_mps=%.2f best_sender_completed_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q",
 		result.Mode,
 		result.Clients,
 		result.Size,
@@ -879,7 +879,9 @@ func buildCapacitySweepSummarySection(results []capacitySweepCaseResult) string 
 	lines := []string{
 		"## Adaptive Capacity Sweep Summary",
 		"",
-		"| Mode | Clients | Payload | Best Rate | Best Sink msg/sec | Best Sender msg/sec | Node CPU % | Total CPU % | Steps | Stop Reason |",
+		"Each row is a separate fixed `(mode, clients, payload)` case. `Best Offered Rate` is the aggregate configured send rate for the whole node run, and `Best Observed Node Throughput` is the sink-observed total node throughput at the best step for that case.",
+		"",
+		"| Mode | Clients | Payload | Best Offered Rate | Best Observed Node Throughput | Best Sender Completed Throughput | Node CPU % | Total CPU % | Steps | Stop Reason |",
 		"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
 	}
 	for _, result := range sortCapacitySweepResults(results) {
@@ -906,6 +908,7 @@ func buildCapacitySweepTechnicalSection(cfg suiteConfig, results []capacitySweep
 		"## Adaptive Capacity Sweep",
 		"",
 		"This sweep increases the configured send rate geometrically and stops when sink throughput no longer improves by the configured threshold for the configured number of consecutive steps.",
+		"Results are reported separately for each fixed `(mode, clients, payload)` case. The reported rate is the aggregate offered load across all clients in that case, while sink throughput is the observed total node throughput.",
 		"",
 		fmt.Sprintf("- Modes: `%s`", cfg.CapacitySweepModesDisplay),
 		fmt.Sprintf("- Clients: `%s`", cfg.CapacitySweepClientsDisplay),
@@ -923,12 +926,12 @@ func buildCapacitySweepTechnicalSection(cfg suiteConfig, results []capacitySweep
 		lines = append(lines,
 			fmt.Sprintf("### %s Clients=%d Payload=%dB", strings.Title(result.Mode), result.Clients, result.Size),
 			"",
-			fmt.Sprintf("Effective capacity rate: `%d` msg/sec", result.BestRate),
-			fmt.Sprintf("Best sink throughput: `%s` msg/sec", formatFloat(result.BestSinkMeanMPS)),
-			fmt.Sprintf("Best sender throughput: `%s` msg/sec", formatFloat(result.BestSenderMeanMPS)),
+			fmt.Sprintf("Best offered aggregate rate: `%d` msg/sec", result.BestRate),
+			fmt.Sprintf("Best observed node throughput: `%s` msg/sec", formatFloat(result.BestSinkMeanMPS)),
+			fmt.Sprintf("Best sender-completed throughput: `%s` msg/sec", formatFloat(result.BestSenderMeanMPS)),
 			fmt.Sprintf("Stop reason: %s", result.StopReason),
 			"",
-			"| Step | Rate | Repeats | Sender Mean msg/sec | Sink Mean msg/sec | Sink Variance | Sink Gain % | Improved | Node CPU % | Total CPU % | Errors |",
+			"| Step | Offered Aggregate Rate | Repeats | Sender Mean msg/sec | Observed Node Throughput | Sink Variance | Sink Gain % | Improved | Node CPU % | Total CPU % | Errors |",
 			"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
 		)
 		for _, step := range result.Steps {
