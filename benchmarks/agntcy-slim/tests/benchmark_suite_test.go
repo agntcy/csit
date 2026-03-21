@@ -516,9 +516,8 @@ func executeBenchmarkRun(mode string, clients int, size int, rate int, repeat in
 }
 
 func logBenchmarkRunResult(result benchmarkRunResult) {
-	_, err := fmt.Fprintf(
-		os.Stdout,
-		"\nBENCHMARK_RESULT mode=%s clients=%d size=%d rate=%d repeat=%d sender_mps=%.2f sink_mps=%.2f sink_active_mps=%.2f sender_errors=%d sink_errors=%d node_cpu=%.2f total_cpu=%.2f\n",
+	err := writeProgressLine(
+		"BENCHMARK_RESULT mode=%s clients=%d size=%d rate=%d repeat=%d sender_mps=%.2f sink_mps=%.2f sink_active_mps=%.2f sender_errors=%d sink_errors=%d node_cpu=%.2f total_cpu=%.2f",
 		result.Mode,
 		result.Clients,
 		result.Size,
@@ -536,9 +535,8 @@ func logBenchmarkRunResult(result benchmarkRunResult) {
 }
 
 func logCapacitySweepStep(mode string, clients int, size int, step capacitySweepStepResult) {
-	_, err := fmt.Fprintf(
-		os.Stdout,
-		"\nCAPACITY_SWEEP_STEP mode=%s clients=%d size=%d step=%d rate=%d repeats=%d sender_mean_mps=%.2f sink_mean_mps=%.2f sink_gain_percent=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d improved=%t\n",
+	err := writeProgressLine(
+		"CAPACITY_SWEEP_STEP mode=%s clients=%d size=%d step=%d rate=%d repeats=%d sender_mean_mps=%.2f sink_mean_mps=%.2f sink_gain_percent=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d improved=%t",
 		mode,
 		clients,
 		size,
@@ -573,9 +571,8 @@ func logModeSummary(mode string, rows []benchmarkRunResult) {
 		caseKeys[key] = struct{}{}
 	}
 
-	_, err := fmt.Fprintf(
-		os.Stdout,
-		"\nMODE_SUMMARY mode=%s runs=%d cases=%d sender_mean_mps=%.2f sink_mean_mps=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d\n",
+	err := writeProgressLine(
+		"MODE_SUMMARY mode=%s runs=%d cases=%d sender_mean_mps=%.2f sink_mean_mps=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d",
 		mode,
 		len(rows),
 		len(caseKeys),
@@ -589,9 +586,8 @@ func logModeSummary(mode string, rows []benchmarkRunResult) {
 }
 
 func logCapacityCaseSummary(result capacitySweepCaseResult) {
-	_, err := fmt.Fprintf(
-		os.Stdout,
-		"\nCAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_rate=%d best_sink_mps=%.2f best_sender_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q\n",
+	err := writeProgressLine(
+		"CAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_rate=%d best_sink_mps=%.2f best_sender_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q",
 		result.Mode,
 		result.Clients,
 		result.Size,
@@ -604,6 +600,14 @@ func logCapacityCaseSummary(result capacitySweepCaseResult) {
 		result.StopReason,
 	)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func writeProgressLine(format string, args ...any) error {
+	line := fmt.Sprintf(format, args...)
+	if _, err := fmt.Fprintf(os.Stderr, "\n%s\n", line); err != nil {
+		return err
+	}
+	return nil
 }
 
 func writeResultsTSV(path string, results []benchmarkRunResult) {

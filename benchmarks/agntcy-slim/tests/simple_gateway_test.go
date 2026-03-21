@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -352,6 +353,13 @@ func readSessionCPUSeconds(session *gexec.Session) (float64, error) {
 }
 
 func readProcessCPUSeconds(pid int) (float64, error) {
+	if runtime.GOOS == "linux" {
+		seconds, err := readLinuxProcessCPUSeconds(pid)
+		if err == nil {
+			return seconds, nil
+		}
+	}
+
 	output, err := exec.Command("ps", "-o", "time=", "-p", strconv.Itoa(pid)).CombinedOutput()
 	if err != nil {
 		return 0, fmt.Errorf("read cpu time for pid %d: %w (%s)", pid, err, strings.TrimSpace(string(output)))
@@ -362,6 +370,56 @@ func readProcessCPUSeconds(pid int) (float64, error) {
 	}
 	lines := strings.Split(text, "\n")
 	return parsePSCPUTime(lines[len(lines)-1])
+}
+
+func readLinuxProcessCPUSeconds(pid int) (float64, error) {
+	statPath := fmt.Sprintf("/proc/%d/stat", pid)
+	content, err := os.ReadFile(statPath)
+	if err != nil {
+		return 0, fmt.Errorf("read %s: %w", statPath, err)
+	}
+
+	text := strings.TrimSpace(string(content))
+	commandEnd := strings.LastIndex(text, ")")
+	if commandEnd < 0 || commandEnd+2 >= len(text) {
+		return 0, fmt.Errorf("unexpected proc stat format for pid %d", pid)
+	}
+
+	fields := strings.Fields(text[commandEnd+2:])
+	if len(fields) < 13 {
+		return 0, fmt.Errorf("insufficient proc stat fields for pid %d", pid)
+	}
+
+	userTicks, err := strconv.ParseFloat(fields[11], 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse utime for pid %d: %w", pid, err)
+	}
+	systemTicks, err := strconv.ParseFloat(fields[12], 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse stime for pid %d: %w", pid, err)
+	}
+
+	clockTicksPerSecond, err := linuxClockTicksPerSecond()
+	if err != nil {
+		return 0, err
+	}
+	return (userTicks + systemTicks) / clockTicksPerSecond, nil
+}
+
+func linuxClockTicksPerSecond() (float64, error) {
+	output, err := exec.Command("getconf", "CLK_TCK").CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("read CLK_TCK: %w (%s)", err, strings.TrimSpace(string(output)))
+	}
+	value := strings.TrimSpace(string(output))
+	ticks, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse CLK_TCK %q: %w", value, err)
+	}
+	if ticks <= 0 {
+		return 0, fmt.Errorf("invalid CLK_TCK %q", value)
+	}
+	return ticks, nil
 }
 
 func parsePSCPUTime(value string) (float64, error) {

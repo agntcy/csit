@@ -44,7 +44,11 @@ jobs:
 
       - name: Run SLIM benchmark smoke suite
         shell: bash
-        run: task benchmarks:slim:benchmark:ci:suite-smoke
+        run: |
+          set -o pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          mkdir -p "$REPORT_DIR"
+          stdbuf -oL -eL task benchmarks:slim:benchmark:ci:suite-smoke 2>&1 | tee "$REPORT_DIR/ci-smoke.log"
 
       - name: Build smoke markdown artifact
         if: always()
@@ -62,6 +66,13 @@ jobs:
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
             echo
+
+            if [ -f "$REPORT_DIR/ci-smoke.log" ]; then
+              echo "## Live Progress Markers"
+              echo
+              grep -E 'BENCHMARK_RESULT|MODE_SUMMARY|CAPACITY_SWEEP_STEP|CAPACITY_CASE_SUMMARY' "$REPORT_DIR/ci-smoke.log" || true
+              echo
+            fi
 
             if [ -f "$REPORT_DIR/suite_summary.md" ]; then
               echo "## Suite Summary"
@@ -93,6 +104,11 @@ jobs:
             echo "- SHA: ${GITHUB_SHA}"
             echo
 
+            if [ -f "$REPORT_DIR/ci-smoke.log" ]; then
+              grep -E 'BENCHMARK_RESULT|MODE_SUMMARY|CAPACITY_SWEEP_STEP|CAPACITY_CASE_SUMMARY' "$REPORT_DIR/ci-smoke.log" | tail -n 20 || true
+              echo
+            fi
+
             if [ -f "$REPORT_DIR/suite_summary.md" ]; then
               sed -n '1,80p' "$REPORT_DIR/suite_summary.md"
               echo
@@ -104,7 +120,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slim-benchmark-smoke-report
-          path: benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke-report.md
+          path: |
+            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke-report.md
+            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke.log
           retention-days: 30
 
   slim-benchmark-capacity:
@@ -133,7 +151,11 @@ jobs:
 
       - name: Run SLIM benchmark capacity suite
         shell: bash
-        run: task benchmarks:slim:benchmark:ci:capacity
+        run: |
+          set -o pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          mkdir -p "$REPORT_DIR"
+          stdbuf -oL -eL task benchmarks:slim:benchmark:ci:capacity 2>&1 | tee "$REPORT_DIR/ci-capacity.log"
 
       - name: Build capacity markdown artifact
         if: always()
@@ -151,6 +173,13 @@ jobs:
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
             echo
+
+            if [ -f "$REPORT_DIR/ci-capacity.log" ]; then
+              echo "## Live Progress Markers"
+              echo
+              grep -E 'BENCHMARK_RESULT|MODE_SUMMARY|CAPACITY_SWEEP_STEP|CAPACITY_CASE_SUMMARY' "$REPORT_DIR/ci-capacity.log" || true
+              echo
+            fi
 
             if [ -f "$REPORT_DIR/suite_summary.md" ]; then
               echo "## Suite Summary"
@@ -189,6 +218,11 @@ jobs:
             echo "- SHA: ${GITHUB_SHA}"
             echo
 
+            if [ -f "$REPORT_DIR/ci-capacity.log" ]; then
+              grep -E 'BENCHMARK_RESULT|MODE_SUMMARY|CAPACITY_SWEEP_STEP|CAPACITY_CASE_SUMMARY' "$REPORT_DIR/ci-capacity.log" | tail -n 40 || true
+              echo
+            fi
+
             if [ -f "$REPORT_DIR/capacity_sweep.md" ]; then
               sed -n '1,120p' "$REPORT_DIR/capacity_sweep.md"
               echo
@@ -203,5 +237,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slim-benchmark-capacity-report
-          path: benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity-report.md
+          path: |
+            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity-report.md
+            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity.log
           retention-days: 30
