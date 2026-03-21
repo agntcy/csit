@@ -19,7 +19,7 @@ vars:
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "pub" }}'
   CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "1" }}'
-  CAPACITY_SIZES: '{{ .CAPACITY_SIZES | default "128" }}'
+  CAPACITY_SIZES: '{{ .CAPACITY_SIZES | default "16384" }}'
   CAPACITY_DURATION: '{{ .CAPACITY_DURATION | default "2s" }}'
   CAPACITY_REPEATS: '{{ .CAPACITY_REPEATS | default "1" }}'
   CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS | default "3" }}'
@@ -31,7 +31,7 @@ vars:
   CAPACITY_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS | default "4" }}'
 
   REQUEST_CAPACITY_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS | default "1" }}'
-  REQUEST_CAPACITY_SIZES: '{{ .REQUEST_CAPACITY_SIZES | default "128" }}'
+  REQUEST_CAPACITY_SIZES: '{{ .REQUEST_CAPACITY_SIZES | default "16384" }}'
   REQUEST_CAPACITY_DURATION: '{{ .REQUEST_CAPACITY_DURATION | default "2s" }}'
   REQUEST_CAPACITY_REPEATS: '{{ .REQUEST_CAPACITY_REPEATS | default "1" }}'
   REQUEST_CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS | default "3" }}'
@@ -43,7 +43,7 @@ vars:
   REQUEST_CAPACITY_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS | default "4" }}'
 
   PING_PONG_CAPACITY_CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS | default "1" }}'
-  PING_PONG_CAPACITY_SIZES: '{{ .PING_PONG_CAPACITY_SIZES | default "128" }}'
+  PING_PONG_CAPACITY_SIZES: '{{ .PING_PONG_CAPACITY_SIZES | default "16384" }}'
   PING_PONG_CAPACITY_DURATION: '{{ .PING_PONG_CAPACITY_DURATION | default "2s" }}'
   PING_PONG_CAPACITY_REPEATS: '{{ .PING_PONG_CAPACITY_REPEATS | default "1" }}'
   PING_PONG_CAPACITY_SWEEP_REPEATS: '{{ .PING_PONG_CAPACITY_SWEEP_REPEATS | default "3" }}'
@@ -166,7 +166,7 @@ tasks:
       - bash ./run_suite.sh
 
   benchmark:capacity:pub-128b:
-    desc: Run the repeated adaptive pub capacity sweep for 1 client at 128B
+    desc: Run the repeated adaptive pub capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
@@ -192,7 +192,7 @@ tasks:
       - bash ./run_suite.sh
 
   benchmark:capacity:request-16b:
-    desc: Run the repeated adaptive request capacity sweep for 1 client at 128B
+    desc: Run the repeated adaptive request capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
@@ -219,7 +219,7 @@ tasks:
       - bash ./run_suite.sh
 
   benchmark:capacity:ping-pong-16b:
-    desc: Run the repeated adaptive ping-pong capacity sweep for 1 client at 128B
+    desc: Run the repeated adaptive ping-pong capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
