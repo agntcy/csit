@@ -353,8 +353,11 @@ func runCapacitySweepCase(mode string, clients int, size int, cfg suiteConfig) c
 
 		if bestIndex >= 0 && current.SinkMeanMPS < bestSink {
 			caseResult.StopReason = fmt.Sprintf("sink throughput regressed at rate %d; effective capacity remains at best prior rate %d", current.Rate, caseResult.Steps[bestIndex].Rate)
+			logCapacitySweepStep(mode, clients, size, current)
 			break
 		}
+
+		logCapacitySweepStep(mode, clients, size, current)
 
 		if cfg.CapacitySweepMaxRate > 0 && rate >= cfg.CapacitySweepMaxRate {
 			caseResult.StopReason = fmt.Sprintf("reached configured max rate %d", cfg.CapacitySweepMaxRate)
@@ -479,7 +482,7 @@ func executeBenchmarkRun(mode string, clients int, size int, rate int, repeat in
 
 	gomega.Expect(session.ExitCode()).To(gomega.Equal(0), "rate-client failed for %s clients=%d size=%d rate=%d repeat=%d", mode, clients, size, rate, repeat)
 
-	return benchmarkRunResult{
+	result := benchmarkRunResult{
 		Mode:                     mode,
 		Clients:                  clients,
 		Size:                     size,
@@ -504,6 +507,49 @@ func executeBenchmarkRun(mode string, clients int, size int, rate int, repeat in
 		TotalCPUSeconds:          cpuUsage.TotalCPUSeconds,
 		TotalCPUPercent:          cpuUsage.TotalCPUPercent,
 	}
+	logBenchmarkRunResult(result)
+	return result
+}
+
+func logBenchmarkRunResult(result benchmarkRunResult) {
+	_, err := fmt.Fprintf(
+		os.Stdout,
+		"\nBENCHMARK_RESULT mode=%s clients=%d size=%d rate=%d repeat=%d sender_mps=%.2f sink_mps=%.2f sink_active_mps=%.2f sender_errors=%d sink_errors=%d node_cpu=%.2f total_cpu=%.2f\n",
+		result.Mode,
+		result.Clients,
+		result.Size,
+		result.Rate,
+		result.Repeat,
+		result.SenderMPS,
+		result.SinkReceiveMPS,
+		result.SinkActiveReceiveMPS,
+		result.SenderRuntimeErrors,
+		result.SinkErrors,
+		result.NodeCPUPercent,
+		result.TotalCPUPercent,
+	)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func logCapacitySweepStep(mode string, clients int, size int, step capacitySweepStepResult) {
+	_, err := fmt.Fprintf(
+		os.Stdout,
+		"\nCAPACITY_SWEEP_STEP mode=%s clients=%d size=%d step=%d rate=%d repeats=%d sender_mean_mps=%.2f sink_mean_mps=%.2f sink_gain_percent=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d improved=%t\n",
+		mode,
+		clients,
+		size,
+		step.Step,
+		step.Rate,
+		step.Repeats,
+		step.SenderMeanMPS,
+		step.SinkMeanMPS,
+		step.SinkGainPercent,
+		step.NodeMeanCPUPercent,
+		step.TotalMeanCPUPercent,
+		step.TotalErrors,
+		step.Improved,
+	)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
 func writeResultsTSV(path string, results []benchmarkRunResult) {
