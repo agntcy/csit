@@ -139,7 +139,7 @@ jobs:
           retention-days: 30
 
   slim-benchmark-capacity:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_capacity }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.run_capacity) }}
     runs-on: ubuntu-latest
 
     permissions:
