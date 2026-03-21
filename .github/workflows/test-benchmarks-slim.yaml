@@ -52,6 +52,7 @@ jobs:
         run: |
           REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
           OUTPUT_FILE="$REPORT_DIR/ci-smoke-report.md"
+          mkdir -p "$REPORT_DIR"
 
           {
             echo "# SLIM Benchmark CI Smoke Report"
@@ -140,6 +141,7 @@ jobs:
         run: |
           REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
           OUTPUT_FILE="$REPORT_DIR/ci-capacity-report.md"
+          mkdir -p "$REPORT_DIR"
 
           {
             echo "# SLIM Benchmark CI Capacity Report"

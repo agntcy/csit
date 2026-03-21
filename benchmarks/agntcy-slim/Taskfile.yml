@@ -76,6 +76,12 @@ tasks:
         chmod +x {{ .SLIMCTL_PATH }}
         echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
 
+  deps:slim-bindings-setup:
+    desc: Install the native SLIM bindings library required by benchmark helpers
+    dir: ./tools/slim-bench
+    cmds:
+      - go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup
+
   benchmark:local:cleanup:
     internal: true
     desc: Stop leftover local benchmark processes before a fresh run
@@ -101,6 +107,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: '{{ .BENCH_MODES }}'
       CLIENTS: '{{ .BENCH_CLIENTS }}'
@@ -117,6 +124,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: 'request'
       CLIENTS: '{{ .BENCH_CLIENTS }}'
@@ -132,6 +140,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: 'ping-pong'
       CLIENTS: '{{ .BENCH_CLIENTS }}'
@@ -147,6 +156,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: '{{ .CAPACITY_MODES }}'
       CLIENTS: '{{ .CAPACITY_CLIENTS }}'
@@ -172,6 +182,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: 'request'
       CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
@@ -198,6 +209,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: 'ping-pong'
       CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS }}'
@@ -224,6 +236,7 @@ tasks:
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
+      - deps:slim-bindings-setup
     env:
       MODES: 'request ping-pong pub'
       CLIENTS: '1'
