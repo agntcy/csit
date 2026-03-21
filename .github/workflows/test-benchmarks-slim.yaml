@@ -89,6 +89,19 @@ jobs:
             fi
           } > "$OUTPUT_FILE"
 
+      - name: Print smoke markdown report
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          OUTPUT_FILE="$REPORT_DIR/ci-smoke-report.md"
+
+          if [ -f "$OUTPUT_FILE" ]; then
+            echo "::group::SLIM Benchmark CI Smoke Report"
+            cat "$OUTPUT_FILE"
+            echo "::endgroup::"
+          fi
+
       - name: Publish smoke step summary
         if: always()
         shell: bash
@@ -202,6 +215,19 @@ jobs:
               echo
             fi
           } > "$OUTPUT_FILE"
+
+      - name: Print capacity markdown report
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          OUTPUT_FILE="$REPORT_DIR/ci-capacity-report.md"
+
+          if [ -f "$OUTPUT_FILE" ]; then
+            echo "::group::SLIM Benchmark CI Capacity Report"
+            cat "$OUTPUT_FILE"
+            echo "::endgroup::"
+          fi
 
       - name: Publish capacity step summary
         if: always()
