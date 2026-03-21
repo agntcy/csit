@@ -11,9 +11,17 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"text/template"
 	"time"
+
+	slim "github.com/agntcy/slim-bindings-go"
+)
+
+// Global constants
+const (
+	DefaultSharedSecret = "demo-shared-secret-min-32-chars!!"
 )
 
 // Config holds benchmark configuration
@@ -27,16 +35,19 @@ type Config struct {
 	OutputFile  string
 	ServerAddr  string
 	StartTime   time.Time
+	Dest        string
+	Secret      string
 }
 
 // ClientStats holds detailed stats for a single client
 type ClientStats struct {
-	ID        int
-	MsgCount  int64
-	BytesSent int64
-	Latencies []time.Duration
-	StartTime time.Time
-	EndTime   time.Time
+	ID         int
+	MsgCount   int64
+	BytesSent  int64
+	ErrorCount int64
+	Latencies  []time.Duration
+	StartTime  time.Time
+	EndTime    time.Time
 }
 
 // AggregateStats holds global stats for aggregation
@@ -56,6 +67,7 @@ type AggregateStats struct {
 	Mode          string
 	Clients       int
 	PayloadSize   int
+	ErrorCount    int64
 	// Input parameters for reporting
 	Config     Config
 	CpuUsedPct float64
@@ -82,6 +94,7 @@ const reportTemplate = `
 - **Actual Duration:** {{.Duration}}
 - **Throughput:** {{printf "%.2f" .MPS}} msg/sec (~{{printf "%.2f" .MBPS}} MB/sec)
 - **Est. CPU Usage:** {{printf "%.1f" .CpuUsedPct}}% (Process)
+- **Runtime Errors:** {{.ErrorCount}}
 
 ## Latency Statistics
 | Metric | Value |
@@ -109,7 +122,27 @@ func main() {
 		log.Fatal("Either --msgs or --duration must be set")
 	}
 
-	runBenchmark(config)
+	if err := validateConfig(config); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := runBenchmark(config); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func validateConfig(cfg Config) error {
+	switch cfg.Mode {
+	case "pub", "sub", "request", "ping-pong":
+	default:
+		return fmt.Errorf("unsupported mode %q", cfg.Mode)
+	}
+
+	if cfg.Dest != "" && cfg.Mode == "sub" {
+		return fmt.Errorf("sub mode is not implemented for live SLIM benchmarks")
+	}
+
+	return nil
 }
 
 func parseFlags() Config {
@@ -122,18 +155,31 @@ func parseFlags() Config {
 	flag.IntVar(&c.MsgCount, "msgs", 0, "Number of messages to publish (0 = run by duration)")
 	flag.IntVar(&c.PayloadSize, "size", 128, "Payload size in bytes")
 	flag.StringVar(&c.OutputFile, "output", "", "Path to output markdown report")
-	flag.StringVar(&c.ServerAddr, "server", "localhost:46357", "SLIM Data Plane Address")
+	flag.StringVar(&c.ServerAddr, "server", "http://localhost:46357", "SLIM Data Plane Address") // Note: http prefix for real client
+	flag.StringVar(&c.Dest, "dest", "", "Destination ID (org/namespace/app)")
+	flag.StringVar(&c.Secret, "secret", DefaultSharedSecret, "Shared secret for potential auth")
 	flag.Parse()
 
 	// Default duration if count not set
 	if c.MsgCount == 0 && c.Duration == 0 {
 		c.Duration = 5 * time.Second
 	}
+	// Verify dest is set if mode != simulation
+	if c.Dest == "" {
+		// Just warn or auto-generate for simulation?
+		// For now warn
+		fmt.Println("Warning: --dest not set. Will default to simulation if no connection.")
+	}
 	return c
 }
 
-func runBenchmark(cfg Config) {
+func runBenchmark(cfg Config) error {
 	fmt.Printf("Starting SLIM benchmark [mode=%s, clients=%d, size=%dB]\n", cfg.Mode, cfg.Clients, cfg.PayloadSize)
+
+	// Initialize SLIM if potentially needed
+	if cfg.ServerAddr != "" && cfg.Dest != "" {
+		slim.InitializeWithDefaults()
+	}
 
 	var wg sync.WaitGroup
 	results := make(chan ClientStats, cfg.Clients)
@@ -164,13 +210,67 @@ func runBenchmark(cfg Config) {
 	if cfg.OutputFile != "" {
 		writeMarkdownReport(cfg.OutputFile, agg)
 	}
+
+	if agg.ErrorCount > 0 {
+		return fmt.Errorf("benchmark completed with %d runtime errors", agg.ErrorCount)
+	}
+
+	return nil
 }
 
 func runClient(id int, cfg Config) ClientStats {
 	stats := ClientStats{
 		ID:        id,
 		StartTime: time.Now(),
-		Latencies: make([]time.Duration, 0, 10000),
+		Latencies: make([]time.Duration, 0, 100000), // Increased pre-alloc
+	}
+
+	var app *slim.App
+	var session *slim.Session
+	var err error
+
+	// If destination provided, use real SLIM client
+	if cfg.Dest != "" {
+		localID := fmt.Sprintf("agntcy/demo/client-%d", id)
+		// Connect App
+		var connID uint64
+		app, connID, err = createApp(localID, cfg.ServerAddr, cfg.Secret)
+		if err != nil {
+			log.Printf("Client %d failed to create app: %v", id, err)
+			stats.ErrorCount++
+			return stats
+		}
+		defer app.Destroy()
+
+		// Get Route to Dest
+		destName, err := nameFromString(cfg.Dest)
+		if err != nil {
+			log.Printf("Client %d failed to parse dest '%s': %v", id, cfg.Dest, err)
+			stats.ErrorCount++
+			return stats
+		}
+
+		if err := app.SetRouteAsync(destName, connID); err != nil {
+			log.Printf("Client %d failed to set route: %v", id, err)
+			stats.ErrorCount++
+			return stats
+		}
+
+		// Create Session
+		sConfig := slim.SessionConfig{
+			SessionType: slim.SessionTypePointToPoint,
+			EnableMls:   false, // Benchmark usually unencrypted for speed unless specified
+		}
+		session, err = app.CreateSessionAndWaitAsync(sConfig, destName)
+		if err != nil {
+			log.Printf("Client %d failed to create session: %v", id, err)
+			stats.ErrorCount++
+			return stats
+		}
+		defer app.DeleteSessionAndWaitAsync(session)
+
+		// Give sesion a moment
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Calculate msg limit per client if global count is set
@@ -184,15 +284,14 @@ func runClient(id int, cfg Config) ClientStats {
 	}
 
 	// Rate limiter setup (if applicable)
-	var limiter *time.Ticker
+	var clientRate float64
 	if cfg.Rate > 0 {
-		// Rate is total system rate, divide by clients
-		clientRate := cfg.Rate / cfg.Clients
+		// Rate is total system rate, divide by clients. Use elapsed-time pacing rather
+		// than a high-frequency ticker so high target rates are not capped by timer granularity.
+		clientRate = float64(cfg.Rate) / float64(cfg.Clients)
 		if clientRate < 1 {
 			clientRate = 1
 		}
-		limiter = time.NewTicker(time.Second / time.Duration(clientRate))
-		defer limiter.Stop()
 	}
 
 	// Simulation Loop
@@ -208,9 +307,26 @@ func runClient(id int, cfg Config) ClientStats {
 			break
 		}
 
-		// Rate Limiting
-		if limiter != nil {
-			<-limiter.C
+		// Rate limiting based on elapsed time avoids microsecond ticker overhead at high rates.
+		if clientRate > 0 {
+			for {
+				elapsed := time.Since(stats.StartTime)
+				allowedMessages := int64(elapsed.Seconds() * clientRate)
+				if allowedMessages > stats.MsgCount {
+					break
+				}
+
+				nextMessageAt := time.Duration(float64(stats.MsgCount+1) / clientRate * float64(time.Second))
+				wait := nextMessageAt - elapsed
+				if wait <= 0 {
+					break
+				}
+				if wait > time.Millisecond {
+					time.Sleep(time.Millisecond)
+				} else {
+					time.Sleep(wait)
+				}
+			}
 		}
 
 		// Execute Operation
@@ -218,14 +334,41 @@ func runClient(id int, cfg Config) ClientStats {
 
 		isRateLimited := cfg.Rate > 0
 
-		// Simulate Work based on Mode
-		switch cfg.Mode {
-		case "pub":
-			simulatePub(cfg.PayloadSize, isRateLimited)
-		case "sub":
-			simulateSub(cfg.PayloadSize)
-		case "request", "ping-pong":
-			simulateRequest(cfg.PayloadSize)
+		if session != nil {
+			// Real Benchmark
+			payload := make([]byte, cfg.PayloadSize) // Allocation inside loop mimics real usage overhead slightly, but safe.
+			// Optimized: Could alloc once.
+
+			if cfg.Mode == "pub" {
+				err := session.PublishAndWaitAsync(payload, nil, nil)
+				if err != nil {
+					log.Printf("Pub error: %v", err)
+					stats.ErrorCount++
+				}
+			} else if cfg.Mode == "request" || cfg.Mode == "ping-pong" {
+				err := session.PublishAndWaitAsync(payload, nil, nil)
+				if err != nil {
+					log.Printf("Req send error: %v", err)
+					stats.ErrorCount++
+				} else {
+					timeout := time.Second * 5
+					_, err := session.GetMessageAsync(&timeout)
+					if err != nil {
+						log.Printf("Req recv error: %v", err)
+						stats.ErrorCount++
+					}
+				}
+			}
+		} else {
+			// Simulate Work based on Mode
+			switch cfg.Mode {
+			case "pub":
+				simulatePub(cfg.PayloadSize, isRateLimited)
+			case "sub":
+				simulateSub(cfg.PayloadSize)
+			case "request", "ping-pong":
+				simulateRequest(cfg.PayloadSize)
+			}
 		}
 
 		// Record Stats
@@ -247,6 +390,48 @@ func runClient(id int, cfg Config) ClientStats {
 	// Show per-client progress line (like nats bench)
 	fmt.Printf("[%d] Finished: %d messages\n", id, stats.MsgCount)
 	return stats
+}
+
+func nameFromString(s string) (*slim.Name, error) {
+	parts := strings.Split(s, "/")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid name format: expected org/namespace/app, got %s", s)
+	}
+	return slim.NewName(parts[0], parts[1], parts[2]), nil
+}
+
+func createApp(localID, serverAddr, secret string) (*slim.App, uint64, error) {
+	// Parse the local identity string
+	appName, err := nameFromString(localID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("invalid local ID: %w", err)
+	}
+
+	// Create app with shared secret authentication
+	app, err := slim.GetGlobalService().CreateAppWithSecret(appName, secret)
+	if err != nil {
+		return nil, 0, fmt.Errorf("create app failed: %w", err)
+	}
+
+	// Connect to SLIM server
+	config := slim.NewInsecureClientConfig(serverAddr)
+	connID, err := slim.GetGlobalService().ConnectAsync(config)
+	if err != nil {
+		app.Destroy()
+		return nil, 0, fmt.Errorf("connect failed: %w", err)
+	}
+
+	// Forward subscription to next node (important for receiving replies if using session)
+	// Even for pub, establishing route back is good practice
+	// For point-to-point via session, subscription might be implicit or handled by session logic,
+	// but let's follow example.
+	err = app.SubscribeAsync(app.Name(), &connID)
+	if err != nil {
+		app.Destroy()
+		return nil, 0, fmt.Errorf("subscribe failed: %w", err)
+	}
+
+	return app, connID, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -302,12 +487,13 @@ func simulateRequest(size int) {
 // -----------------------------------------------------------------------------
 
 func aggregate(stats []ClientStats, duration time.Duration, cfg Config) AggregateStats {
-	var totalMsgs, totalBytes int64
+	var totalMsgs, totalBytes, totalErrors int64
 	var allLatencies []time.Duration
 
 	for _, s := range stats {
 		totalMsgs += s.MsgCount
 		totalBytes += s.BytesSent
+		totalErrors += s.ErrorCount
 		allLatencies = append(allLatencies, s.Latencies...)
 	}
 
@@ -320,6 +506,7 @@ func aggregate(stats []ClientStats, duration time.Duration, cfg Config) Aggregat
 		Clients:       cfg.Clients,
 		Mode:          cfg.Mode,
 		PayloadSize:   cfg.PayloadSize,
+		ErrorCount:    totalErrors,
 		Config:        cfg,
 		CpuUsedPct:    getSimulatedCPUUsage(float64(cfg.Clients), float64(totalMsgs)/duration.Seconds()),
 	}
@@ -358,6 +545,7 @@ func printConsoleReport(agg AggregateStats) {
 	fmt.Println("\nBenchmark Stats:")
 	fmt.Printf("  Throughput: %.0f msgs/sec ~ %.2f MB/sec\n", agg.MPS, agg.MBPS)
 	fmt.Printf("  Latencies:  [Min: %v | Mean: %v | Max: %v]\n", agg.Min, agg.Mean, agg.Max)
+	fmt.Printf("  Errors:     %d\n", agg.ErrorCount)
 	fmt.Println("----------------------------------------------------------------")
 }
 

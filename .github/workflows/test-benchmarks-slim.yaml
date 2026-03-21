@@ -1,0 +1,205 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-benchmarks-slim
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-benchmarks-slim.yaml'
+      - 'Taskfile.yml'
+      - 'benchmarks/Taskfile.yml'
+      - 'benchmarks/agntcy-slim/**'
+  workflow_dispatch:
+    inputs:
+      run_capacity:
+        description: 'Run bounded capacity sweeps in addition to the smoke suite'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  slim-benchmark-smoke:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Install slimctl
+        shell: bash
+        run: |
+          task benchmarks:slim:deps:slimctl-download SLIMCTL_PATH="$HOME/.local/bin/slimctl"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run SLIM benchmark smoke suite
+        shell: bash
+        run: task benchmarks:slim:benchmark:ci:suite-smoke
+
+      - name: Build smoke markdown artifact
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          OUTPUT_FILE="$REPORT_DIR/ci-smoke-report.md"
+
+          {
+            echo "# SLIM Benchmark CI Smoke Report"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Job: slim-benchmark-smoke"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            if [ -f "$REPORT_DIR/suite_summary.md" ]; then
+              echo "## Suite Summary"
+              echo
+              cat "$REPORT_DIR/suite_summary.md"
+              echo
+            fi
+
+            if [ -f "$REPORT_DIR/technical_report.md" ]; then
+              echo "## Technical Report"
+              echo
+              cat "$REPORT_DIR/technical_report.md"
+              echo
+            fi
+          } > "$OUTPUT_FILE"
+
+      - name: Publish smoke step summary
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+
+          {
+            echo "# SLIM Benchmark Smoke Summary"
+            echo
+            echo "- Artifact: ci-smoke-report.md"
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            if [ -f "$REPORT_DIR/suite_summary.md" ]; then
+              sed -n '1,80p' "$REPORT_DIR/suite_summary.md"
+              echo
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload smoke markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-benchmark-smoke-report
+          path: benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke-report.md
+          retention-days: 30
+
+  slim-benchmark-capacity:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_capacity }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Install slimctl
+        shell: bash
+        run: |
+          task benchmarks:slim:deps:slimctl-download SLIMCTL_PATH="$HOME/.local/bin/slimctl"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run SLIM benchmark capacity suite
+        shell: bash
+        run: task benchmarks:slim:benchmark:ci:capacity
+
+      - name: Build capacity markdown artifact
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          OUTPUT_FILE="$REPORT_DIR/ci-capacity-report.md"
+
+          {
+            echo "# SLIM Benchmark CI Capacity Report"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Job: slim-benchmark-capacity"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            if [ -f "$REPORT_DIR/suite_summary.md" ]; then
+              echo "## Suite Summary"
+              echo
+              cat "$REPORT_DIR/suite_summary.md"
+              echo
+            fi
+
+            if [ -f "$REPORT_DIR/technical_report.md" ]; then
+              echo "## Technical Report"
+              echo
+              cat "$REPORT_DIR/technical_report.md"
+              echo
+            fi
+
+            if [ -f "$REPORT_DIR/capacity_sweep.md" ]; then
+              echo "## Capacity Sweep"
+              echo
+              cat "$REPORT_DIR/capacity_sweep.md"
+              echo
+            fi
+          } > "$OUTPUT_FILE"
+
+      - name: Publish capacity step summary
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+
+          {
+            echo "# SLIM Benchmark Capacity Summary"
+            echo
+            echo "- Artifact: ci-capacity-report.md"
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            if [ -f "$REPORT_DIR/capacity_sweep.md" ]; then
+              sed -n '1,120p' "$REPORT_DIR/capacity_sweep.md"
+              echo
+            elif [ -f "$REPORT_DIR/suite_summary.md" ]; then
+              sed -n '1,80p' "$REPORT_DIR/suite_summary.md"
+              echo
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload capacity markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-benchmark-capacity-report
+          path: benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity-report.md
+          retention-days: 30

@@ -6,9 +6,85 @@ version: '3'
 
 silent: true
 
+vars:
+  BENCH_MODES: '{{ .BENCH_MODES | default "request ping-pong pub" }}'
+  BENCH_CLIENTS: '{{ .BENCH_CLIENTS | default "1 10 50" }}'
+  BENCH_SIZES: '{{ .BENCH_SIZES | default "16 128 1024 10240" }}'
+  BENCH_REQUEST_RATES: '{{ .BENCH_REQUEST_RATES | default "1000" }}'
+  BENCH_PUB_RATES: '{{ .BENCH_PUB_RATES | default "" }}'
+  BENCH_DURATION: '{{ .BENCH_DURATION | default "5s" }}'
+  BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
+  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default "v0.2.1" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+
+  CAPACITY_MODES: '{{ .CAPACITY_MODES | default "pub" }}'
+  CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "10" }}'
+  CAPACITY_SIZES: '{{ .CAPACITY_SIZES | default "128" }}'
+  CAPACITY_DURATION: '{{ .CAPACITY_DURATION | default "2s" }}'
+  CAPACITY_REPEATS: '{{ .CAPACITY_REPEATS | default "1" }}'
+  CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS | default "3" }}'
+  CAPACITY_START_RATE: '{{ .CAPACITY_START_RATE | default "128000" }}'
+  CAPACITY_MAX_RATE: '{{ .CAPACITY_MAX_RATE | default "176000" }}'
+  CAPACITY_GROWTH_FACTOR: '{{ .CAPACITY_GROWTH_FACTOR | default "1.125" }}'
+  CAPACITY_PLATEAU_THRESHOLD: '{{ .CAPACITY_PLATEAU_THRESHOLD | default "0.03" }}'
+  CAPACITY_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS | default "1" }}'
+  CAPACITY_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS | default "4" }}'
+
+  REQUEST_CAPACITY_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS | default "10" }}'
+  REQUEST_CAPACITY_SIZES: '{{ .REQUEST_CAPACITY_SIZES | default "16" }}'
+  REQUEST_CAPACITY_DURATION: '{{ .REQUEST_CAPACITY_DURATION | default "2s" }}'
+  REQUEST_CAPACITY_REPEATS: '{{ .REQUEST_CAPACITY_REPEATS | default "1" }}'
+  REQUEST_CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS | default "3" }}'
+  REQUEST_CAPACITY_START_RATE: '{{ .REQUEST_CAPACITY_START_RATE | default "1000" }}'
+  REQUEST_CAPACITY_MAX_RATE: '{{ .REQUEST_CAPACITY_MAX_RATE | default "8000" }}'
+  REQUEST_CAPACITY_GROWTH_FACTOR: '{{ .REQUEST_CAPACITY_GROWTH_FACTOR | default "2.0" }}'
+  REQUEST_CAPACITY_PLATEAU_THRESHOLD: '{{ .REQUEST_CAPACITY_PLATEAU_THRESHOLD | default "0.05" }}'
+  REQUEST_CAPACITY_PLATEAU_STEPS: '{{ .REQUEST_CAPACITY_PLATEAU_STEPS | default "1" }}'
+  REQUEST_CAPACITY_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS | default "4" }}'
+
+  PING_PONG_CAPACITY_CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS | default "10" }}'
+  PING_PONG_CAPACITY_SIZES: '{{ .PING_PONG_CAPACITY_SIZES | default "16" }}'
+  PING_PONG_CAPACITY_DURATION: '{{ .PING_PONG_CAPACITY_DURATION | default "2s" }}'
+  PING_PONG_CAPACITY_REPEATS: '{{ .PING_PONG_CAPACITY_REPEATS | default "1" }}'
+  PING_PONG_CAPACITY_SWEEP_REPEATS: '{{ .PING_PONG_CAPACITY_SWEEP_REPEATS | default "3" }}'
+  PING_PONG_CAPACITY_START_RATE: '{{ .PING_PONG_CAPACITY_START_RATE | default "1000" }}'
+  PING_PONG_CAPACITY_MAX_RATE: '{{ .PING_PONG_CAPACITY_MAX_RATE | default "8000" }}'
+  PING_PONG_CAPACITY_GROWTH_FACTOR: '{{ .PING_PONG_CAPACITY_GROWTH_FACTOR | default "2.0" }}'
+  PING_PONG_CAPACITY_PLATEAU_THRESHOLD: '{{ .PING_PONG_CAPACITY_PLATEAU_THRESHOLD | default "0.05" }}'
+  PING_PONG_CAPACITY_PLATEAU_STEPS: '{{ .PING_PONG_CAPACITY_PLATEAU_STEPS | default "1" }}'
+  PING_PONG_CAPACITY_MAX_STEPS: '{{ .PING_PONG_CAPACITY_MAX_STEPS | default "4" }}'
+
 tasks:
   default:
     cmd: task -l
+
+  deps:slimctl-download:
+    desc: Download slimctl executable for the current OS and architecture
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        if [ "$SLIMCTL_ARCH" = "x86_64" ] && [ "$SLIMCTL_OS" = "linux" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH"
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/slimctl-{{ .SLIMCTL_VERSION }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH"
+        TARGET_DIR=$(dirname {{ .SLIMCTL_PATH }})
+        mkdir -p "$TARGET_DIR"
+        curl -L -o {{ .SLIMCTL_PATH }} "$SLIMCTL_URL"
+        chmod +x {{ .SLIMCTL_PATH }}
+        echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
+
+  benchmark:local:cleanup:
+    internal: true
+    desc: Stop leftover local benchmark processes before a fresh run
+    dir: ./tools/slim-bench
+    cmds:
+      - pkill -f 'echo-client.*-local agntcy/demo/echo' 2>/dev/null || true
+      - pkill -f 'rate-client.*-local agntcy/demo/client' 2>/dev/null || true
+      - pkill -f 'slimctl slim start -c' 2>/dev/null || true
+      - pkill -9 slimctl 2>/dev/null || true
 
   tools:build:
     desc: Build helper tools for benchmarks
@@ -19,3 +95,149 @@ tasks:
     desc: All Slim benchmark test
     cmds:
       - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v --ginkgo.json-report=../../reports/test-report-agntcy-slim.json --ginkgo.junit-report=../../reports/test-report-agntcy-slim.xml
+
+  benchmark:suite:
+    desc: Run the local SLIM benchmark suite with reproducible defaults and optional overrides
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: '{{ .BENCH_MODES }}'
+      CLIENTS: '{{ .BENCH_CLIENTS }}'
+      SIZES: '{{ .BENCH_SIZES }}'
+      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
+      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
+      DURATION: '{{ .BENCH_DURATION }}'
+      REPEATS: '{{ .BENCH_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:request:
+    desc: Run a reproducible request-only benchmark suite profile
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: 'request'
+      CLIENTS: '{{ .BENCH_CLIENTS }}'
+      SIZES: '{{ .BENCH_SIZES }}'
+      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
+      DURATION: '{{ .BENCH_DURATION }}'
+      REPEATS: '{{ .BENCH_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:ping-pong:
+    desc: Run a reproducible ping-pong-only benchmark suite profile
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: 'ping-pong'
+      CLIENTS: '{{ .BENCH_CLIENTS }}'
+      SIZES: '{{ .BENCH_SIZES }}'
+      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
+      DURATION: '{{ .BENCH_DURATION }}'
+      REPEATS: '{{ .BENCH_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:capacity:pub-128b:
+    desc: Run the repeated adaptive pub capacity sweep for 10 clients at 128B
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: '{{ .CAPACITY_MODES }}'
+      CLIENTS: '{{ .CAPACITY_CLIENTS }}'
+      SIZES: '{{ .CAPACITY_SIZES }}'
+      DURATION: '{{ .CAPACITY_DURATION }}'
+      REPEATS: '{{ .CAPACITY_REPEATS }}'
+      CAPACITY_SWEEP: '1'
+      CAPACITY_SWEEP_MODES: '{{ .CAPACITY_MODES }}'
+      CAPACITY_SWEEP_CLIENTS: '{{ .CAPACITY_CLIENTS }}'
+      CAPACITY_SWEEP_SIZES: '{{ .CAPACITY_SIZES }}'
+      CAPACITY_SWEEP_START_RATE: '{{ .CAPACITY_START_RATE }}'
+      CAPACITY_SWEEP_MAX_RATE: '{{ .CAPACITY_MAX_RATE }}'
+      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .CAPACITY_GROWTH_FACTOR }}'
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .CAPACITY_PLATEAU_THRESHOLD }}'
+      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS }}'
+      CAPACITY_SWEEP_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS }}'
+      CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:capacity:request-16b:
+    desc: Run the repeated adaptive request capacity sweep for 10 clients at 16B
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: 'request'
+      CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
+      SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
+      REQUEST_RATES: '{{ .REQUEST_CAPACITY_START_RATE }}'
+      DURATION: '{{ .REQUEST_CAPACITY_DURATION }}'
+      REPEATS: '{{ .REQUEST_CAPACITY_REPEATS }}'
+      CAPACITY_SWEEP: '1'
+      CAPACITY_SWEEP_MODES: 'request'
+      CAPACITY_SWEEP_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
+      CAPACITY_SWEEP_SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
+      CAPACITY_SWEEP_START_RATE: '{{ .REQUEST_CAPACITY_START_RATE }}'
+      CAPACITY_SWEEP_MAX_RATE: '{{ .REQUEST_CAPACITY_MAX_RATE }}'
+      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .REQUEST_CAPACITY_GROWTH_FACTOR }}'
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .REQUEST_CAPACITY_PLATEAU_THRESHOLD }}'
+      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .REQUEST_CAPACITY_PLATEAU_STEPS }}'
+      CAPACITY_SWEEP_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS }}'
+      CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:capacity:ping-pong-16b:
+    desc: Run the repeated adaptive ping-pong capacity sweep for 10 clients at 16B
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: 'ping-pong'
+      CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS }}'
+      SIZES: '{{ .PING_PONG_CAPACITY_SIZES }}'
+      REQUEST_RATES: '{{ .PING_PONG_CAPACITY_START_RATE }}'
+      DURATION: '{{ .PING_PONG_CAPACITY_DURATION }}'
+      REPEATS: '{{ .PING_PONG_CAPACITY_REPEATS }}'
+      CAPACITY_SWEEP: '1'
+      CAPACITY_SWEEP_MODES: 'ping-pong'
+      CAPACITY_SWEEP_CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS }}'
+      CAPACITY_SWEEP_SIZES: '{{ .PING_PONG_CAPACITY_SIZES }}'
+      CAPACITY_SWEEP_START_RATE: '{{ .PING_PONG_CAPACITY_START_RATE }}'
+      CAPACITY_SWEEP_MAX_RATE: '{{ .PING_PONG_CAPACITY_MAX_RATE }}'
+      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .PING_PONG_CAPACITY_GROWTH_FACTOR }}'
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .PING_PONG_CAPACITY_PLATEAU_THRESHOLD }}'
+      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .PING_PONG_CAPACITY_PLATEAU_STEPS }}'
+      CAPACITY_SWEEP_MAX_STEPS: '{{ .PING_PONG_CAPACITY_MAX_STEPS }}'
+      CAPACITY_SWEEP_REPEATS: '{{ .PING_PONG_CAPACITY_SWEEP_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:ci:suite-smoke:
+    desc: Run a bounded CI-safe smoke suite across request, ping-pong, and pub
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+    env:
+      MODES: 'request ping-pong pub'
+      CLIENTS: '1'
+      SIZES: '16'
+      REQUEST_RATES: '100'
+      PUB_RATES: '1000'
+      DURATION: '1s'
+      REPEATS: '1'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:ci:capacity:
+    desc: Run bounded CI-safe capacity sweeps for pub, request, and ping-pong
+    cmds:
+      - task benchmark:capacity:pub-128b CAPACITY_DURATION=1s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:request-16b REQUEST_CAPACITY_DURATION=1s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:ping-pong-16b PING_PONG_CAPACITY_DURATION=1s PING_PONG_CAPACITY_REPEATS=1 PING_PONG_CAPACITY_SWEEP_REPEATS=2

@@ -1,0 +1,28 @@
+tracing:
+  log_level: info
+  display_thread_names: true
+  display_thread_ids: true
+
+runtime:
+  n_cores: 0
+  thread_name: "slim-local"
+  drain_timeout: 5s
+
+services:
+  slim/0:
+    node_id: "slim-local"
+    group_name: "bench"
+    dataplane:
+      servers:
+        - endpoint: "127.0.0.1:46357"
+          metadata:
+            local_endpoint: "127.0.0.1"
+            external_endpoint: "127.0.0.1:46357"
+            trust_domain: "example.org"
+          tls:
+            insecure: true
+    controller:
+      servers:
+        - endpoint: "127.0.0.1:46358"
+          tls:
+            insecure: true
