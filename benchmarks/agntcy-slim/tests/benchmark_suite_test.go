@@ -272,6 +272,7 @@ func loadSuiteConfig() suiteConfig {
 func runSuiteMatrix(cfg suiteConfig) []benchmarkRunResult {
 	results := make([]benchmarkRunResult, 0)
 	for _, mode := range cfg.Modes {
+		modeStart := len(results)
 		gomega.Expect(mode).To(gomega.Or(gomega.Equal("request"), gomega.Equal("ping-pong"), gomega.Equal("pub")))
 		for _, clients := range cfg.Clients {
 			for _, size := range cfg.Sizes {
@@ -301,6 +302,7 @@ func runSuiteMatrix(cfg suiteConfig) []benchmarkRunResult {
 				}
 			}
 		}
+		logModeSummary(mode, results[modeStart:])
 	}
 
 	return results
@@ -313,7 +315,9 @@ func runCapacitySweep(cfg suiteConfig) []capacitySweepCaseResult {
 		for _, clients := range cfg.CapacitySweepClients {
 			for _, size := range cfg.CapacitySweepSizes {
 				ginkgo.By(fmt.Sprintf("running adaptive capacity sweep %s clients=%d size=%d", mode, clients, size))
-				results = append(results, runCapacitySweepCase(mode, clients, size, cfg))
+				caseResult := runCapacitySweepCase(mode, clients, size, cfg)
+				logCapacityCaseSummary(caseResult)
+				results = append(results, caseResult)
 			}
 		}
 	}
@@ -548,6 +552,56 @@ func logCapacitySweepStep(mode string, clients int, size int, step capacitySweep
 		step.TotalMeanCPUPercent,
 		step.TotalErrors,
 		step.Improved,
+	)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func logModeSummary(mode string, rows []benchmarkRunResult) {
+	if len(rows) == 0 {
+		return
+	}
+
+	sender := computeSampleStats(senderMPSValues(rows))
+	sink := computeSampleStats(sinkMPSValues(rows))
+	nodeCPU := computeSampleStats(nodeCPUPercentValues(rows))
+	totalCPU := computeSampleStats(totalCPUPercentValues(rows))
+	totalErrors := int64(0)
+	caseKeys := make(map[string]struct{})
+	for _, row := range rows {
+		totalErrors += row.SenderRuntimeErrors + row.SinkErrors
+		key := fmt.Sprintf("%d/%d/%d", row.Clients, row.Size, row.Rate)
+		caseKeys[key] = struct{}{}
+	}
+
+	_, err := fmt.Fprintf(
+		os.Stdout,
+		"\nMODE_SUMMARY mode=%s runs=%d cases=%d sender_mean_mps=%.2f sink_mean_mps=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d\n",
+		mode,
+		len(rows),
+		len(caseKeys),
+		sender.Mean,
+		sink.Mean,
+		nodeCPU.Mean,
+		totalCPU.Mean,
+		totalErrors,
+	)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func logCapacityCaseSummary(result capacitySweepCaseResult) {
+	_, err := fmt.Fprintf(
+		os.Stdout,
+		"\nCAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_rate=%d best_sink_mps=%.2f best_sender_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q\n",
+		result.Mode,
+		result.Clients,
+		result.Size,
+		result.BestRate,
+		result.BestSinkMeanMPS,
+		result.BestSenderMeanMPS,
+		result.BestNodeCPUPercent,
+		result.BestTotalCPUPercent,
+		len(result.Steps),
+		result.StopReason,
 	)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
