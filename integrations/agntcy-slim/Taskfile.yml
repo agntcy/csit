@@ -10,7 +10,7 @@ vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 
   ## Image config
-  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'  
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
@@ -46,19 +46,6 @@ vars:
   TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
 
 tasks:
-  default:
-    cmd: task -l
-
-  tools:build:
-    desc: Build helper tools for integrations
-    cmds:
-      - docker build -t security-probe:local -f tools/security-probe/Dockerfile ..
-
-  test:
-    desc: Run all integration tests
-    cmds:
-      - go test -v ./tests -timeout 30m
-
   k8s:port-forward:setup:
     internal: true
     cmds:
@@ -149,7 +136,7 @@ tasks:
     cmd: |
       #!/bin/sh
       for file in "./config/.gen"/*.yaml ;do
-        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml)
+        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml) 
         echo "Deleted agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
@@ -228,13 +215,13 @@ tasks:
     desc: Download slimctl executable for current OS and architecture
     cmds:
       - |
-        set -e
+        set -e        
         SLIMCTL_ARCH=$(arch)
-        SLIMCTL_OS=$(echo $(uname -s) | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_OS=$(echo $(uname -s) | tr '[:upper:]' '[:lower:]')        
         # Map x86_64 to amd64 for Linux
         if [[ "$SLIMCTL_ARCH" == "x86_64" && "$SLIMCTL_OS" == "linux" ]]; then
           SLIMCTL_ARCH="amd64"
-        fi
+        fi      
         echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH"
         SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/slimctl-{{.SLIMCTL_VERSION}}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH"
         echo "Downloading slimctl from $SLIMCTL_URL"
