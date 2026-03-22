@@ -43,7 +43,7 @@ type counterSet struct {
 func main() {
 	local := flag.String("local", "agntcy/demo/echo", "Local ID in org/namespace/app format")
 	clients := flag.Int("clients", 1, "Number of receiver identities to keep active")
-	mode := flag.String("mode", "echo", "Responder mode: echo or sink")
+	mode := flag.String("mode", "echo", "Responder mode: echo, sink, or blackhole")
 	statsFile := flag.String("stats-file", "", "Path to write responder stats")
 	server := flag.String("server", "http://127.0.0.1:46357", "SLIM server endpoint")
 	secret := flag.String("shared-secret", defaultSharedSecret, "Shared secret")
@@ -52,8 +52,8 @@ func main() {
 	if *clients < 1 {
 		log.Fatal("clients must be >= 1")
 	}
-	if *mode != "echo" && *mode != "sink" {
-		log.Fatal("mode must be echo or sink")
+	if *mode != "echo" && *mode != "sink" && *mode != "blackhole" {
+		log.Fatal("mode must be echo, sink, or blackhole")
 	}
 
 	slim.InitializeWithDefaults()
@@ -154,15 +154,17 @@ func handleSession(app *slim.App, session *slim.Session, mode string, counters *
 			continue
 		}
 
-		counters.receivedMessages.Add(1)
-		counters.receivedBytes.Add(int64(len(msg.Payload)))
-		nowUnix := time.Now().UnixNano()
-		if counters.firstMessageUnix.Load() == 0 {
-			counters.firstMessageUnix.CompareAndSwap(0, nowUnix)
+		if mode != "blackhole" {
+			counters.receivedMessages.Add(1)
+			counters.receivedBytes.Add(int64(len(msg.Payload)))
+			nowUnix := time.Now().UnixNano()
+			if counters.firstMessageUnix.Load() == 0 {
+				counters.firstMessageUnix.CompareAndSwap(0, nowUnix)
+			}
+			counters.lastMessageUnix.Store(nowUnix)
+			sessionReceived++
+			sessionBytes += int64(len(msg.Payload))
 		}
-		counters.lastMessageUnix.Store(nowUnix)
-		sessionReceived++
-		sessionBytes += int64(len(msg.Payload))
 
 		if mode == "echo" {
 			replyPayload := append(append([]byte{}, echoAckPrefix...), msg.Payload...)

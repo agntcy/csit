@@ -132,11 +132,11 @@ func main() {
 }
 
 func validateConfig(cfg Config) error {
-	switch cfg.Mode {
-	case "pub", "sub", "request", "ping-pong":
-	default:
-		return fmt.Errorf("unsupported mode %q", cfg.Mode)
+	canonicalMode, err := canonicalBenchMode(cfg.Mode)
+	if err != nil {
+		return err
 	}
+	cfg.Mode = canonicalMode
 
 	if cfg.Dest != "" && cfg.Mode == "sub" {
 		return fmt.Errorf("sub mode is not implemented for live SLIM benchmarks")
@@ -148,7 +148,7 @@ func validateConfig(cfg Config) error {
 func parseFlags() Config {
 	c := Config{}
 	c.StartTime = time.Now()
-	flag.StringVar(&c.Mode, "mode", "pub", "Operation mode: pub | sub | request (ping-pong)")
+	flag.StringVar(&c.Mode, "mode", "fire-and-forget", "Operation mode: request-reply | fire-and-forget | write | sub")
 	flag.IntVar(&c.Clients, "clients", 1, "Number of concurrent clients")
 	flag.IntVar(&c.Rate, "rate", 0, "Messages per second limit (0 = unlimited)") // 0 means unthrottled
 	flag.DurationVar(&c.Duration, "duration", 0, "Test duration (e.g. 10s)")
@@ -159,6 +159,11 @@ func parseFlags() Config {
 	flag.StringVar(&c.Dest, "dest", "", "Destination ID (org/namespace/app)")
 	flag.StringVar(&c.Secret, "secret", DefaultSharedSecret, "Shared secret for potential auth")
 	flag.Parse()
+	canonicalMode, err := canonicalBenchMode(c.Mode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.Mode = canonicalMode
 
 	// Default duration if count not set
 	if c.MsgCount == 0 && c.Duration == 0 {
@@ -171,6 +176,21 @@ func parseFlags() Config {
 		fmt.Println("Warning: --dest not set. Will default to simulation if no connection.")
 	}
 	return c
+}
+
+func canonicalBenchMode(mode string) (string, error) {
+	switch strings.TrimSpace(strings.ToLower(mode)) {
+	case "request-reply":
+		return "request-reply", nil
+	case "fire-and-forget":
+		return "fire-and-forget", nil
+	case "write":
+		return "write", nil
+	case "sub":
+		return "sub", nil
+	default:
+		return "", fmt.Errorf("unsupported mode %q", mode)
+	}
 }
 
 func runBenchmark(cfg Config) error {
@@ -339,13 +359,13 @@ func runClient(id int, cfg Config) ClientStats {
 			payload := make([]byte, cfg.PayloadSize) // Allocation inside loop mimics real usage overhead slightly, but safe.
 			// Optimized: Could alloc once.
 
-			if cfg.Mode == "pub" {
+			if cfg.Mode == "fire-and-forget" || cfg.Mode == "write" {
 				err := session.PublishAndWaitAsync(payload, nil, nil)
 				if err != nil {
-					log.Printf("Pub error: %v", err)
+					log.Printf("send error: %v", err)
 					stats.ErrorCount++
 				}
-			} else if cfg.Mode == "request" || cfg.Mode == "ping-pong" {
+			} else if cfg.Mode == "request-reply" {
 				err := session.PublishAndWaitAsync(payload, nil, nil)
 				if err != nil {
 					log.Printf("Req send error: %v", err)
@@ -362,11 +382,11 @@ func runClient(id int, cfg Config) ClientStats {
 		} else {
 			// Simulate Work based on Mode
 			switch cfg.Mode {
-			case "pub":
+			case "fire-and-forget", "write":
 				simulatePub(cfg.PayloadSize, isRateLimited)
 			case "sub":
 				simulateSub(cfg.PayloadSize)
-			case "request", "ping-pong":
+			case "request-reply":
 				simulateRequest(cfg.PayloadSize)
 			}
 		}
@@ -422,7 +442,7 @@ func createApp(localID, serverAddr, secret string) (*slim.App, uint64, error) {
 	}
 
 	// Forward subscription to next node (important for receiving replies if using session)
-	// Even for pub, establishing route back is good practice
+	// Even for one-way modes, establishing route back is good practice
 	// For point-to-point via session, subscription might be implicit or handled by session logic,
 	// but let's follow example.
 	err = app.SubscribeAsync(app.Name(), &connID)

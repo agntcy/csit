@@ -250,7 +250,7 @@ jobs:
             fi
 
             if [ -f "$REPORT_DIR/capacity_sweep.md" ]; then
-              sed -n '1,120p' "$REPORT_DIR/capacity_sweep.md"
+              sed -n '1,220p' "$REPORT_DIR/capacity_sweep.md"
               echo
             elif [ -f "$REPORT_DIR/suite_summary.md" ]; then
               sed -n '1,80p' "$REPORT_DIR/suite_summary.md"

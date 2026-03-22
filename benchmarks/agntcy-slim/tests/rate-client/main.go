@@ -77,6 +77,19 @@ type aggregateStats struct {
 	Config        config
 }
 
+func canonicalClientMode(mode string) (string, error) {
+	switch strings.TrimSpace(strings.ToLower(mode)) {
+	case "request-reply":
+		return "request-reply", nil
+	case "fire-and-forget":
+		return "fire-and-forget", nil
+	case "write":
+		return "write", nil
+	default:
+		return "", fmt.Errorf("unsupported mode %q", mode)
+	}
+}
+
 const reportTemplate = `
 # SLIM Rate Client Report
 
@@ -222,7 +235,7 @@ func runClient(id int, cfg config, connID uint64) runStats {
 
 	payload := make([]byte, cfg.PayloadSize)
 	fmt.Printf("client=%d ready conn_id=%d app_id=%d\n", id, connID, app.Id())
-	if cfg.Mode != "pub" {
+	if cfg.Mode == "request-reply" {
 		if err := warmupSession(session, id); err != nil {
 			log.Printf("client %d warmup failed: %v", id, err)
 			stats.Errors++
@@ -241,7 +254,7 @@ func parseFlags() config {
 	flag.StringVar(&cfg.DestID, "dest", "agntcy/demo/echo", "Destination ID in org/namespace/app format")
 	flag.StringVar(&cfg.Server, "server", "http://127.0.0.1:46357", "SLIM server endpoint")
 	flag.StringVar(&cfg.Secret, "shared-secret", defaultSharedSecret, "Shared secret")
-	flag.StringVar(&cfg.Mode, "mode", "pub", "Send mode: pub, request, or ping-pong")
+	flag.StringVar(&cfg.Mode, "mode", "fire-and-forget", "Send mode: request-reply | fire-and-forget | write")
 	flag.IntVar(&cfg.Clients, "clients", 1, "Number of concurrent long-lived clients")
 	flag.BoolVar(&cfg.ShardDest, "dest-sharded", false, "Distribute client sessions across destination identities with numeric suffixes")
 	flag.IntVar(&cfg.MaxInFlight, "max-inflight", 1024, "Maximum number of outstanding async publishes per client in pub mode")
@@ -251,6 +264,11 @@ func parseFlags() config {
 	flag.DurationVar(&cfg.Duration, "duration", 5*time.Second, "Run duration when -msgs=0")
 	flag.StringVar(&cfg.OutputFile, "output", "", "Path to an output markdown report")
 	flag.Parse()
+	canonicalMode, err := canonicalClientMode(cfg.Mode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.Mode = canonicalMode
 	return cfg
 }
 
@@ -258,9 +276,11 @@ func validateConfig(cfg config) error {
 	if cfg.LocalID == "" || cfg.DestID == "" {
 		return fmt.Errorf("both -local and -dest must be set")
 	}
-	if cfg.Mode != "pub" && cfg.Mode != "request" && cfg.Mode != "ping-pong" {
-		return fmt.Errorf("unsupported mode %q", cfg.Mode)
+	canonicalMode, err := canonicalClientMode(cfg.Mode)
+	if err != nil {
+		return err
 	}
+	cfg.Mode = canonicalMode
 	if cfg.Clients < 1 {
 		return fmt.Errorf("clients must be >= 1")
 	}
@@ -273,7 +293,7 @@ func validateConfig(cfg config) error {
 	if cfg.Rate < 0 {
 		return fmt.Errorf("rate must be >= 0")
 	}
-	if cfg.Mode != "pub" && cfg.Rate == 0 {
+	if cfg.Mode == "request-reply" && cfg.Rate == 0 {
 		return fmt.Errorf("rate must be > 0 for %s mode", cfg.Mode)
 	}
 	if cfg.MsgCount == 0 && cfg.Duration <= 0 {
@@ -314,12 +334,8 @@ func sendSeries(session *slim.Session, payload []byte, cfg config, stats runStat
 
 		opStart := time.Now()
 		var err error
-		if cfg.Mode == "pub" {
-			err = session.PublishAndWait(payload, nil, nil)
-		} else {
-			err = session.PublishAndWait(payload, nil, nil)
-		}
-		if err == nil && (cfg.Mode == "request" || cfg.Mode == "ping-pong") {
+		err = session.PublishAndWait(payload, nil, nil)
+		if err == nil && cfg.Mode == "request-reply" {
 			err = awaitEchoReply(session, payload, 5*time.Second)
 		}
 

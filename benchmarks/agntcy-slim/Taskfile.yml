@@ -7,17 +7,18 @@ version: '3'
 silent: true
 
 vars:
-  BENCH_MODES: '{{ .BENCH_MODES | default "request ping-pong pub" }}'
+  BENCH_MODES: '{{ .BENCH_MODES | default "request-reply fire-and-forget write" }}'
   BENCH_CLIENTS: '{{ .BENCH_CLIENTS | default "1 10 50" }}'
   BENCH_SIZES: '{{ .BENCH_SIZES | default "16 128 1024 10240" }}'
   BENCH_REQUEST_RATES: '{{ .BENCH_REQUEST_RATES | default "1000" }}'
   BENCH_PUB_RATES: '{{ .BENCH_PUB_RATES | default "" }}'
+  BENCH_WRITE_RATES: '{{ .BENCH_WRITE_RATES | default "" }}'
   BENCH_DURATION: '{{ .BENCH_DURATION | default "5s" }}'
   BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
   SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
 
-  CAPACITY_MODES: '{{ .CAPACITY_MODES | default "pub" }}'
+  CAPACITY_MODES: '{{ .CAPACITY_MODES | default "fire-and-forget" }}'
   CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "1" }}'
   CAPACITY_SIZES: '{{ .CAPACITY_SIZES | default "16384" }}'
   CAPACITY_DURATION: '{{ .CAPACITY_DURATION | default "2s" }}'
@@ -53,6 +54,18 @@ vars:
   PING_PONG_CAPACITY_PLATEAU_THRESHOLD: '{{ .PING_PONG_CAPACITY_PLATEAU_THRESHOLD | default "0.05" }}'
   PING_PONG_CAPACITY_PLATEAU_STEPS: '{{ .PING_PONG_CAPACITY_PLATEAU_STEPS | default "1" }}'
   PING_PONG_CAPACITY_MAX_STEPS: '{{ .PING_PONG_CAPACITY_MAX_STEPS | default "4" }}'
+
+  WRITE_CAPACITY_CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS | default "1" }}'
+  WRITE_CAPACITY_SIZES: '{{ .WRITE_CAPACITY_SIZES | default "16384" }}'
+  WRITE_CAPACITY_DURATION: '{{ .WRITE_CAPACITY_DURATION | default "2s" }}'
+  WRITE_CAPACITY_REPEATS: '{{ .WRITE_CAPACITY_REPEATS | default "1" }}'
+  WRITE_CAPACITY_SWEEP_REPEATS: '{{ .WRITE_CAPACITY_SWEEP_REPEATS | default "3" }}'
+  WRITE_CAPACITY_START_RATE: '{{ .WRITE_CAPACITY_START_RATE | default "128000" }}'
+  WRITE_CAPACITY_MAX_RATE: '{{ .WRITE_CAPACITY_MAX_RATE | default "176000" }}'
+  WRITE_CAPACITY_GROWTH_FACTOR: '{{ .WRITE_CAPACITY_GROWTH_FACTOR | default "1.125" }}'
+  WRITE_CAPACITY_PLATEAU_THRESHOLD: '{{ .WRITE_CAPACITY_PLATEAU_THRESHOLD | default "0.03" }}'
+  WRITE_CAPACITY_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS | default "1" }}'
+  WRITE_CAPACITY_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS | default "4" }}'
 
 tasks:
   default:
@@ -128,45 +141,65 @@ tasks:
       SIZES: '{{ .BENCH_SIZES }}'
       REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
       PUB_RATES: '{{ .BENCH_PUB_RATES }}'
+      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:request:
-    desc: Run a reproducible request-only benchmark suite profile
+  benchmark:request-reply:
+    desc: Run a reproducible request-reply-only benchmark suite profile
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request'
+      MODES: 'request-reply'
       CLIENTS: '{{ .BENCH_CLIENTS }}'
       SIZES: '{{ .BENCH_SIZES }}'
       REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
+      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:ping-pong:
-    desc: Run a reproducible ping-pong-only benchmark suite profile
+  benchmark:fire-and-forget:
+    desc: Run a reproducible fire-and-forget-only benchmark suite profile
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'ping-pong'
+      MODES: 'fire-and-forget'
       CLIENTS: '{{ .BENCH_CLIENTS }}'
       SIZES: '{{ .BENCH_SIZES }}'
-      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
+      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
+      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:pub-16kb:
-    desc: Run the repeated adaptive pub capacity sweep for 1 client at 16kB
+  benchmark:write:
+    desc: Run a reproducible write-only benchmark suite profile with no responder
+    dir: ./tools/slim-bench
+    deps:
+      - benchmark:local:cleanup
+      - deps:slim-bindings-setup
+    env:
+      MODES: 'write'
+      CLIENTS: '{{ .BENCH_CLIENTS }}'
+      SIZES: '{{ .BENCH_SIZES }}'
+      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
+      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
+      DURATION: '{{ .BENCH_DURATION }}'
+      REPEATS: '{{ .BENCH_REPEATS }}'
+    cmds:
+      - bash ./run_suite.sh
+
+  benchmark:capacity:fire-and-forget-16kb:
+    desc: Run the repeated adaptive fire-and-forget capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
@@ -191,21 +224,21 @@ tasks:
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:request-16kb:
-    desc: Run the repeated adaptive request capacity sweep for 1 client at 16kB
+  benchmark:capacity:request-reply-16kb:
+    desc: Run the repeated adaptive request-reply capacity sweep for 1 client at 16kB
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request'
+      MODES: 'request-reply'
       CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
       SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
       REQUEST_RATES: '{{ .REQUEST_CAPACITY_START_RATE }}'
       DURATION: '{{ .REQUEST_CAPACITY_DURATION }}'
       REPEATS: '{{ .REQUEST_CAPACITY_REPEATS }}'
       CAPACITY_SWEEP: '1'
-      CAPACITY_SWEEP_MODES: 'request'
+      CAPACITY_SWEEP_MODES: 'request-reply'
       CAPACITY_SWEEP_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
       CAPACITY_SWEEP_SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
       CAPACITY_SWEEP_START_RATE: '{{ .REQUEST_CAPACITY_START_RATE }}'
@@ -218,41 +251,41 @@ tasks:
     cmds:
       - bash ./run_suite.sh
 
-  benchmark:capacity:ping-pong-16kb:
-    desc: Run the repeated adaptive ping-pong capacity sweep for 1 client at 16kB
+  benchmark:capacity:write-16kb:
+    desc: Run the repeated adaptive write capacity sweep for 1 client at 16kB with no responder
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'ping-pong'
-      CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS }}'
-      SIZES: '{{ .PING_PONG_CAPACITY_SIZES }}'
-      REQUEST_RATES: '{{ .PING_PONG_CAPACITY_START_RATE }}'
-      DURATION: '{{ .PING_PONG_CAPACITY_DURATION }}'
-      REPEATS: '{{ .PING_PONG_CAPACITY_REPEATS }}'
+      MODES: 'write'
+      CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS }}'
+      SIZES: '{{ .WRITE_CAPACITY_SIZES }}'
+      PUB_RATES: '{{ .WRITE_CAPACITY_START_RATE }}'
+      DURATION: '{{ .WRITE_CAPACITY_DURATION }}'
+      REPEATS: '{{ .WRITE_CAPACITY_REPEATS }}'
       CAPACITY_SWEEP: '1'
-      CAPACITY_SWEEP_MODES: 'ping-pong'
-      CAPACITY_SWEEP_CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS }}'
-      CAPACITY_SWEEP_SIZES: '{{ .PING_PONG_CAPACITY_SIZES }}'
-      CAPACITY_SWEEP_START_RATE: '{{ .PING_PONG_CAPACITY_START_RATE }}'
-      CAPACITY_SWEEP_MAX_RATE: '{{ .PING_PONG_CAPACITY_MAX_RATE }}'
-      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .PING_PONG_CAPACITY_GROWTH_FACTOR }}'
-      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .PING_PONG_CAPACITY_PLATEAU_THRESHOLD }}'
-      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .PING_PONG_CAPACITY_PLATEAU_STEPS }}'
-      CAPACITY_SWEEP_MAX_STEPS: '{{ .PING_PONG_CAPACITY_MAX_STEPS }}'
-      CAPACITY_SWEEP_REPEATS: '{{ .PING_PONG_CAPACITY_SWEEP_REPEATS }}'
+      CAPACITY_SWEEP_MODES: 'write'
+      CAPACITY_SWEEP_CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS }}'
+      CAPACITY_SWEEP_SIZES: '{{ .WRITE_CAPACITY_SIZES }}'
+      CAPACITY_SWEEP_START_RATE: '{{ .WRITE_CAPACITY_START_RATE }}'
+      CAPACITY_SWEEP_MAX_RATE: '{{ .WRITE_CAPACITY_MAX_RATE }}'
+      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .WRITE_CAPACITY_GROWTH_FACTOR }}'
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .WRITE_CAPACITY_PLATEAU_THRESHOLD }}'
+      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS }}'
+      CAPACITY_SWEEP_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS }}'
+      CAPACITY_SWEEP_REPEATS: '{{ .WRITE_CAPACITY_SWEEP_REPEATS }}'
     cmds:
       - bash ./run_suite.sh
 
   benchmark:ci:suite-smoke:
-    desc: Run a bounded CI-safe smoke suite across request, ping-pong, and pub
+    desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write
     dir: ./tools/slim-bench
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request ping-pong pub'
+      MODES: 'request-reply fire-and-forget write'
       CLIENTS: '1'
       SIZES: '16'
       REQUEST_RATES: '100'
@@ -263,8 +296,40 @@ tasks:
       - bash ./run_suite.sh
 
   benchmark:ci:capacity:
-    desc: Run bounded CI-safe capacity sweeps for pub, request, and ping-pong with 1 client at 16kB
+    desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB
+    dir: ./tools/slim-bench
     cmds:
-      - task benchmark:capacity:pub-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
-      - task benchmark:capacity:request-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
-      - task benchmark:capacity:ping-pong-16kb PING_PONG_CAPACITY_DURATION=5s PING_PONG_CAPACITY_REPEATS=1 PING_PONG_CAPACITY_SWEEP_REPEATS=2
+      - rm -f reports/capacity-fire-and-forget.md reports/capacity-request-reply.md reports/capacity-write.md
+      - task benchmark:capacity:fire-and-forget-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
+      - cp reports/capacity_sweep.md reports/capacity-fire-and-forget.md
+      - task benchmark:capacity:request-reply-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
+      - cp reports/capacity_sweep.md reports/capacity-request-reply.md
+      - task benchmark:capacity:write-16kb WRITE_CAPACITY_DURATION=5s WRITE_CAPACITY_REPEATS=1 WRITE_CAPACITY_SWEEP_REPEATS=2
+      - cp reports/capacity_sweep.md reports/capacity-write.md
+      - |
+        set -e
+        OUTPUT_FILE="reports/capacity_sweep.md"
+        {
+          echo "# SLIM Adaptive Capacity Sweep Report"
+          echo
+          echo "**Generated:** $(date '+%Y-%m-%d %H:%M:%S')"
+          echo
+          echo "This CI report combines the sink-backed capacity sweeps and the write capacity sweep into one markdown artifact."
+          echo
+          echo "## Sink-Backed Modes"
+          echo
+          if [ -f reports/capacity-fire-and-forget.md ]; then
+            sed -n '/^#### /,$p' reports/capacity-fire-and-forget.md
+            echo
+          fi
+          if [ -f reports/capacity-request-reply.md ]; then
+            sed -n '/^#### /,$p' reports/capacity-request-reply.md
+            echo
+          fi
+          echo "## Write Mode"
+          echo
+          if [ -f reports/capacity-write.md ]; then
+            sed -n '/^#### /,$p' reports/capacity-write.md
+            echo
+          fi
+        } > "$OUTPUT_FILE"

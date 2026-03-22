@@ -88,8 +88,10 @@ var _ = ginkgo.Describe("Benchmarking slim local", func() {
 		ginkgo.AddReportEntry(experiment.Name, experiment)
 
 		experiment.SampleDuration("slim test 1000 messages", func(_ int) {
+			stopEchoResponder()
+			startEchoResponder("sink", 1, "")
 			benchCmd := exec.Command(slimBenchPath,
-				"-mode", "pub",
+				"-mode", "fire-and-forget",
 				"-clients", "1",
 				"-msgs", "1000",
 				"-server", serverEndpoint,
@@ -98,15 +100,17 @@ var _ = ginkgo.Describe("Benchmarking slim local", func() {
 			benchSession, err := gexec.Start(benchCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Eventually(benchSession, 20*time.Second).Should(gexec.Exit(0))
+			stopEchoResponder()
+			startEchoResponder("echo", 1, "")
 		}, gmeasure.SamplingConfig{N: 1})
 	})
 
-	ginkgo.It("measures node peak pub capacity in msg/sec", func() {
+	ginkgo.It("measures node peak capacity in msg/sec", func() {
 		clientCount := envInt("SLIM_PEAK_CLIENTS", 10)
 		payloadSize := envInt("SLIM_PEAK_PAYLOAD_SIZE", 128)
 		duration := envDuration("SLIM_PEAK_DURATION", 3*time.Second)
-		peakMode := envString("SLIM_PEAK_MODE", "pub")
-		gomega.Expect(peakMode).To(gomega.Or(gomega.Equal("pub"), gomega.Equal("ping-pong"), gomega.Equal("request")))
+		peakMode := envString("SLIM_PEAK_MODE", "fire-and-forget")
+		gomega.Expect(peakMode).To(gomega.Or(gomega.Equal("fire-and-forget"), gomega.Equal("request-reply"), gomega.Equal("write")))
 
 		stopEchoResponder()
 
@@ -116,11 +120,19 @@ var _ = ginkgo.Describe("Benchmarking slim local", func() {
 		gomega.Expect(statsFile.Close()).To(gomega.Succeed())
 		defer os.Remove(statsPath)
 
-		responderMode := "sink"
-		if peakMode != "pub" {
+		responderMode := ""
+		if peakMode == "fire-and-forget" {
+			responderMode = "sink"
+		}
+		if peakMode == "request-reply" {
 			responderMode = "echo"
 		}
-		startEchoResponder(responderMode, clientCount, statsPath)
+		if peakMode == "write" {
+			responderMode = "blackhole"
+		}
+		if responderMode != "" {
+			startEchoResponder(responderMode, clientCount, statsPath)
+		}
 
 		reportPath := filepath.Join(buildDir, "peak-capacity-report.md")
 		benchCmd := exec.Command(
@@ -146,17 +158,18 @@ var _ = ginkgo.Describe("Benchmarking slim local", func() {
 		gomega.Expect(peakMPS).To(gomega.BeNumerically(">", 0))
 
 		time.Sleep(500 * time.Millisecond)
-		statsContent, err := os.ReadFile(statsPath)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		receivedMessages := extractStatsInt(string(statsContent), "received_messages")
-		sinkMPS := extractStatsFloat(string(statsContent), "active_receive_mps")
-		gomega.Expect(receivedMessages).To(gomega.BeNumerically(">", 0))
-		gomega.Expect(sinkMPS).To(gomega.BeNumerically(">", 0))
-
 		ginkgo.AddReportEntry("Node Peak Capacity Config", fmt.Sprintf("mode=%s clients=%d payload=%d duration=%s", peakMode, clientCount, payloadSize, duration))
 		ginkgo.AddReportEntry("Node Peak Capacity (msg/sec)", fmt.Sprintf("%.2f", peakMPS))
-		ginkgo.AddReportEntry("Node Peak Capacity Sink (msg/sec)", fmt.Sprintf("%.2f", sinkMPS))
-		ginkgo.AddReportEntry("Node Peak Capacity Sink Messages", receivedMessages)
+		if responderMode != "" {
+			statsContent, err := os.ReadFile(statsPath)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			receivedMessages := extractStatsInt(string(statsContent), "received_messages")
+			sinkMPS := extractStatsFloat(string(statsContent), "active_receive_mps")
+			gomega.Expect(receivedMessages).To(gomega.BeNumerically(">", 0))
+			gomega.Expect(sinkMPS).To(gomega.BeNumerically(">", 0))
+			ginkgo.AddReportEntry("Node Peak Capacity Sink (msg/sec)", fmt.Sprintf("%.2f", sinkMPS))
+			ginkgo.AddReportEntry("Node Peak Capacity Sink Messages", receivedMessages)
+		}
 	})
 })
 

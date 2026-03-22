@@ -3,6 +3,7 @@ module github.com/agntcy/csit/benchmarks
 go 1.24.1
 
 require (
+	gonum.org/v1/gonum v0.16.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 )
