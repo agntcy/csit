@@ -8,6 +8,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
+const confidenceIntervalAlpha = 0.05
+
 type sampleStats struct {
 	Count    int
 	Mean     float64
@@ -88,24 +90,33 @@ func computeSampleStats(values []float64) sampleStats {
 	}
 
 	mean := stat.Mean(values, nil)
+	if count == 1 {
+		return sampleStats{
+			Count:    1,
+			Mean:     mean,
+			Variance: 0,
+			StdDev:   0,
+			CILow:    mean,
+			CIHigh:   mean,
+		}
+	}
+
 	variance := 0.0
-	if count > 1 {
-		variance = stat.Variance(values, nil)
-	}
-	stddev := math.Sqrt(variance)
-	margin := 0.0
-	if count > 1 {
-		z975 := distuv.UnitNormal.Quantile(0.975)
-		margin = z975 * stddev / math.Sqrt(float64(count))
-	}
+	stddev := stat.StdDev(values, nil)
+	variance = stat.Variance(values, nil)
+	standardError := stddev / math.Sqrt(float64(count))
+	tDist := distuv.StudentsT{Mu: mean, Sigma: standardError, Nu: float64(count - 1)}
+	tailProbability := confidenceIntervalAlpha / 2
+	ciLow := tDist.Quantile(tailProbability)
+	ciHigh := tDist.Quantile(1 - tailProbability)
 
 	return sampleStats{
 		Count:    count,
 		Mean:     mean,
 		Variance: variance,
 		StdDev:   stddev,
-		CILow:    math.Max(0, mean-margin),
-		CIHigh:   mean + margin,
+		CILow:    math.Max(0, ciLow),
+		CIHigh:   ciHigh,
 	}
 }
 

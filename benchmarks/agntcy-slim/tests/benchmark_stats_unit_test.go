@@ -3,6 +3,8 @@ package tests
 import (
 	"math"
 	"testing"
+
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
 func TestComputeSampleStatsEmpty(t *testing.T) {
@@ -35,6 +37,14 @@ func TestComputeSampleStatsSampleVariance(t *testing.T) {
 	}
 	if math.Abs(stats.StdDev-math.Sqrt(1.6666666666666667)) > 1e-9 {
 		t.Fatalf("stddev = %f, want %f", stats.StdDev, math.Sqrt(1.6666666666666667))
+	}
+	t975 := distuv.StudentsT{Mu: 0, Sigma: 1, Nu: 3}.Quantile(1 - confidenceIntervalAlpha/2)
+	expectedMargin := t975 * math.Sqrt(1.6666666666666667) / math.Sqrt(4)
+	if math.Abs(stats.CILow-(2.5-expectedMargin)) > 1e-9 {
+		t.Fatalf("ci low = %f, want %f", stats.CILow, 2.5-expectedMargin)
+	}
+	if math.Abs(stats.CIHigh-(2.5+expectedMargin)) > 1e-9 {
+		t.Fatalf("ci high = %f, want %f", stats.CIHigh, 2.5+expectedMargin)
 	}
 	if stats.CILow > stats.Mean || stats.CIHigh < stats.Mean {
 		t.Fatalf("mean should be inside CI: %+v", stats)
