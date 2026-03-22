@@ -35,24 +35,35 @@ func runCapacitySweepCase(mode string, clients int, size int, cfg suiteConfig) c
 		Size:    size,
 		Steps:   make([]capacitySweepStepResult, 0, cfg.CapacitySweepMaxSteps),
 	}
-	bestObserved := -1.0
 	bestIndex := -1
 	plateauCount := 0
+	capacityLower := 0
+	capacityUpper := 0
+	regressionRate := 0
 
 	for step := 1; step <= cfg.CapacitySweepMaxSteps; step++ {
-		current := runCapacitySweepStep(mode, clients, size, rate, step, cfg)
-		if bestObserved > 0 {
-			current.ObservedGainPercent = 100 * (current.ObservedMeanMPS - bestObserved) / bestObserved
+		current := runCapacitySweepStep(mode, clients, size, rate, step, "coarse", cfg)
+		if bestIndex >= 0 {
+			best := caseResult.Steps[bestIndex]
+			if best.ObservedMeanMPS > 0 {
+				current.ObservedGainPercent = 100 * (current.ObservedMeanMPS - best.ObservedMeanMPS) / best.ObservedMeanMPS
+			}
 		}
-		if bestObserved <= 0 || current.ObservedMeanMPS > bestObserved*(1+cfg.CapacitySweepPlateauThreshold) {
+		if bestIndex < 0 || capacitySweepImproved(caseResult.Steps[bestIndex], current, cfg.CapacitySweepPlateauThreshold) {
 			current.Improved = true
-			bestObserved = current.ObservedMeanMPS
-			bestIndex = len(caseResult.Steps)
+			capacityLower = current.Rate
 			plateauCount = 0
 		} else {
+			capacityUpper = current.Rate
 			plateauCount++
+			if capacitySweepRegressed(caseResult.Steps[bestIndex], current, cfg.CapacitySweepPlateauThreshold) {
+				regressionRate = current.Rate
+			}
 		}
 		caseResult.Steps = append(caseResult.Steps, current)
+		if current.Improved {
+			bestIndex = len(caseResult.Steps) - 1
+		}
 
 		logCapacitySweepStep(mode, clients, size, current)
 
@@ -64,11 +75,7 @@ func runCapacitySweepCase(mode string, clients int, size int, cfg suiteConfig) c
 			break
 		}
 		if plateauCount >= cfg.CapacitySweepPlateauSteps {
-			if bestIndex >= 0 {
-				caseResult.StopReason = fmt.Sprintf("effective throughput plateaued for %d consecutive steps; best prior rate remained %d", cfg.CapacitySweepPlateauSteps, caseResult.Steps[bestIndex].Rate)
-			} else {
-				caseResult.StopReason = fmt.Sprintf("effective throughput plateaued for %d consecutive steps", cfg.CapacitySweepPlateauSteps)
-			}
+			caseResult.StopReason = buildCapacityStopReason(bestIndex, caseResult.Steps, capacityLower, capacityUpper, regressionRate, cfg.CapacitySweepPlateauSteps)
 			break
 		}
 		if step == cfg.CapacitySweepMaxSteps {
@@ -80,8 +87,24 @@ func runCapacitySweepCase(mode string, clients int, size int, cfg suiteConfig) c
 	}
 
 	if bestIndex >= 0 {
+		if capacityLower == 0 {
+			capacityLower = caseResult.Steps[bestIndex].Rate
+		}
+		if capacityUpper > capacityLower && cfg.CapacitySweepRefinementSteps > 0 {
+			bestIndex, capacityLower, capacityUpper = refineCapacitySweepCase(mode, clients, size, bestIndex, capacityLower, capacityUpper, &caseResult, cfg)
+			caseResult.StopReason = fmt.Sprintf("refinement narrowed the estimated capacity to offered rates %d through %d", capacityLower, capacityUpper)
+		}
+	}
+
+	if bestIndex >= 0 {
 		best := caseResult.Steps[bestIndex]
 		caseResult.BestRate = best.Rate
+		caseResult.CapacityRateLower = maxInt(capacityLower, best.Rate)
+		if capacityUpper > 0 {
+			caseResult.CapacityRateUpper = capacityUpper
+		} else {
+			caseResult.CapacityRateUpper = caseResult.CapacityRateLower
+		}
 		caseResult.BestObservedMeanMPS = best.ObservedMeanMPS
 		caseResult.BestObservedCILow = best.ObservedCILow
 		caseResult.BestObservedCIHigh = best.ObservedCIHigh
@@ -96,12 +119,16 @@ func runCapacitySweepCase(mode string, clients int, size int, cfg suiteConfig) c
 		caseResult.BestTotalCIHigh = best.TotalCIHigh
 	}
 	if caseResult.StopReason == "" {
-		caseResult.StopReason = "completed sweep"
+		if caseResult.CapacityRateUpper > caseResult.CapacityRateLower {
+			caseResult.StopReason = fmt.Sprintf("estimated capacity bracketed between offered rates %d and %d", caseResult.CapacityRateLower, caseResult.CapacityRateUpper)
+		} else {
+			caseResult.StopReason = "completed sweep"
+		}
 	}
 	return caseResult
 }
 
-func runCapacitySweepStep(mode string, clients int, size int, rate int, step int, cfg suiteConfig) capacitySweepStepResult {
+func runCapacitySweepStep(mode string, clients int, size int, rate int, step int, phase string, cfg suiteConfig) capacitySweepStepResult {
 	responderMode := modeResponderKind(mode)
 
 	stepRuns := make([]benchmarkRunResult, 0, cfg.CapacitySweepRepeats)
@@ -127,6 +154,7 @@ func runCapacitySweepStep(mode string, clients int, size int, rate int, step int
 	}
 
 	return capacitySweepStepResult{
+		Phase:               phase,
 		Step:                step,
 		Rate:                rate,
 		Repeats:             cfg.CapacitySweepRepeats,
@@ -148,6 +176,73 @@ func runCapacitySweepStep(mode string, clients int, size int, rate int, step int
 		TotalCIHigh:         totalCPU.CIHigh,
 		TotalErrors:         totalErrors,
 	}
+}
+
+func refineCapacitySweepCase(mode string, clients int, size int, bestIndex int, lower int, upper int, caseResult *capacitySweepCaseResult, cfg suiteConfig) (int, int, int) {
+	for refinement := 0; refinement < cfg.CapacitySweepRefinementSteps; refinement++ {
+		if upper-lower <= cfg.CapacitySweepMinRateDelta {
+			break
+		}
+		rate := midpointRate(lower, upper)
+		if rate <= lower || rate >= upper {
+			break
+		}
+		stepNumber := len(caseResult.Steps) + 1
+		current := runCapacitySweepStep(mode, clients, size, rate, stepNumber, "refine", cfg)
+		best := caseResult.Steps[bestIndex]
+		if best.ObservedMeanMPS > 0 {
+			current.ObservedGainPercent = 100 * (current.ObservedMeanMPS - best.ObservedMeanMPS) / best.ObservedMeanMPS
+		}
+		if capacitySweepImproved(best, current, cfg.CapacitySweepPlateauThreshold) {
+			current.Improved = true
+			lower = current.Rate
+			caseResult.Steps = append(caseResult.Steps, current)
+			bestIndex = len(caseResult.Steps) - 1
+		} else {
+			upper = current.Rate
+			caseResult.Steps = append(caseResult.Steps, current)
+		}
+		logCapacitySweepStep(mode, clients, size, current)
+	}
+	return bestIndex, lower, upper
+}
+
+func capacitySweepImproved(best capacitySweepStepResult, current capacitySweepStepResult, threshold float64) bool {
+	if best.ObservedMeanMPS <= 0 {
+		return current.ObservedMeanMPS > 0
+	}
+	return current.ObservedMeanMPS > best.ObservedMeanMPS*(1+threshold)
+}
+
+func capacitySweepRegressed(best capacitySweepStepResult, current capacitySweepStepResult, threshold float64) bool {
+	if best.ObservedMeanMPS <= 0 {
+		return false
+	}
+	return current.ObservedMeanMPS < best.ObservedMeanMPS*(1-threshold)
+}
+
+func midpointRate(lower int, upper int) int {
+	return lower + (upper-lower)/2
+}
+
+func buildCapacityStopReason(bestIndex int, steps []capacitySweepStepResult, lower int, upper int, regressionRate int, plateauSteps int) string {
+	if lower > 0 && upper > lower {
+		if regressionRate > 0 && bestIndex >= 0 {
+			return fmt.Sprintf("effective throughput regressed at rate %d; capacity is bracketed between offered rates %d and %d with best prior rate %d", regressionRate, lower, upper, steps[bestIndex].Rate)
+		}
+		return fmt.Sprintf("effective throughput plateaued for %d consecutive steps; capacity is bracketed between offered rates %d and %d", plateauSteps, lower, upper)
+	}
+	if bestIndex >= 0 {
+		return fmt.Sprintf("effective throughput plateaued for %d consecutive steps; best prior rate remained %d", plateauSteps, steps[bestIndex].Rate)
+	}
+	return fmt.Sprintf("effective throughput plateaued for %d consecutive steps", plateauSteps)
+}
+
+func maxInt(left int, right int) int {
+	if left > right {
+		return left
+	}
+	return right
 }
 
 func nextSweepRate(current int, growthFactor float64, maxRate int) int {

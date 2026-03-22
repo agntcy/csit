@@ -15,9 +15,12 @@ vars:
   BENCH_WRITE_RATES: '{{ .BENCH_WRITE_RATES | default "" }}'
   BENCH_DURATION: '{{ .BENCH_DURATION | default "5s" }}'
   BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
+  CI_BENCH_REPEATS: '{{ .CI_BENCH_REPEATS | default "25" }}'
   SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
   SLIM_BINDINGS_SETUP_VERSION: '{{ .SLIM_BINDINGS_SETUP_VERSION | default "v1.2.0" }}'
+  CI_CAPACITY_REPEATS: '{{ .CI_CAPACITY_REPEATS | default "25" }}'
+  CI_CAPACITY_SWEEP_REPEATS: '{{ .CI_CAPACITY_SWEEP_REPEATS | default "25" }}'
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "fire-and-forget" }}'
   CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "1" }}'
@@ -29,8 +32,10 @@ vars:
   CAPACITY_MAX_RATE: '{{ .CAPACITY_MAX_RATE | default "176000" }}'
   CAPACITY_GROWTH_FACTOR: '{{ .CAPACITY_GROWTH_FACTOR | default "1.125" }}'
   CAPACITY_PLATEAU_THRESHOLD: '{{ .CAPACITY_PLATEAU_THRESHOLD | default "0.03" }}'
-  CAPACITY_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS | default "1" }}'
-  CAPACITY_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS | default "4" }}'
+  CAPACITY_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS | default "2" }}'
+  CAPACITY_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS | default "6" }}'
+  CAPACITY_REFINEMENT_STEPS: '{{ .CAPACITY_REFINEMENT_STEPS | default "4" }}'
+  CAPACITY_MIN_RATE_DELTA: '{{ .CAPACITY_MIN_RATE_DELTA | default "1000" }}'
 
   REQUEST_CAPACITY_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS | default "1" }}'
   REQUEST_CAPACITY_SIZES: '{{ .REQUEST_CAPACITY_SIZES | default "16384" }}'
@@ -42,7 +47,9 @@ vars:
   REQUEST_CAPACITY_GROWTH_FACTOR: '{{ .REQUEST_CAPACITY_GROWTH_FACTOR | default "2.0" }}'
   REQUEST_CAPACITY_PLATEAU_THRESHOLD: '{{ .REQUEST_CAPACITY_PLATEAU_THRESHOLD | default "0.05" }}'
   REQUEST_CAPACITY_PLATEAU_STEPS: '{{ .REQUEST_CAPACITY_PLATEAU_STEPS | default "1" }}'
-  REQUEST_CAPACITY_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS | default "4" }}'
+  REQUEST_CAPACITY_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS | default "6" }}'
+  REQUEST_CAPACITY_REFINEMENT_STEPS: '{{ .REQUEST_CAPACITY_REFINEMENT_STEPS | default "4" }}'
+  REQUEST_CAPACITY_MIN_RATE_DELTA: '{{ .REQUEST_CAPACITY_MIN_RATE_DELTA | default "250" }}'
 
   PING_PONG_CAPACITY_CLIENTS: '{{ .PING_PONG_CAPACITY_CLIENTS | default "1" }}'
   PING_PONG_CAPACITY_SIZES: '{{ .PING_PONG_CAPACITY_SIZES | default "16384" }}'
@@ -65,8 +72,10 @@ vars:
   WRITE_CAPACITY_MAX_RATE: '{{ .WRITE_CAPACITY_MAX_RATE | default "176000" }}'
   WRITE_CAPACITY_GROWTH_FACTOR: '{{ .WRITE_CAPACITY_GROWTH_FACTOR | default "1.125" }}'
   WRITE_CAPACITY_PLATEAU_THRESHOLD: '{{ .WRITE_CAPACITY_PLATEAU_THRESHOLD | default "0.03" }}'
-  WRITE_CAPACITY_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS | default "1" }}'
-  WRITE_CAPACITY_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS | default "4" }}'
+  WRITE_CAPACITY_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS | default "2" }}'
+  WRITE_CAPACITY_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS | default "6" }}'
+  WRITE_CAPACITY_REFINEMENT_STEPS: '{{ .WRITE_CAPACITY_REFINEMENT_STEPS | default "4" }}'
+  WRITE_CAPACITY_MIN_RATE_DELTA: '{{ .WRITE_CAPACITY_MIN_RATE_DELTA | default "1000" }}'
 
 tasks:
   default:
@@ -225,6 +234,8 @@ tasks:
       CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS }}'
       CAPACITY_SWEEP_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS }}'
+      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .CAPACITY_REFINEMENT_STEPS }}'
+      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .CAPACITY_MIN_RATE_DELTA }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -252,6 +263,8 @@ tasks:
       CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .REQUEST_CAPACITY_PLATEAU_STEPS }}'
       CAPACITY_SWEEP_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS }}'
+      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .REQUEST_CAPACITY_REFINEMENT_STEPS }}'
+      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .REQUEST_CAPACITY_MIN_RATE_DELTA }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -279,11 +292,13 @@ tasks:
       CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS }}'
       CAPACITY_SWEEP_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .WRITE_CAPACITY_SWEEP_REPEATS }}'
+      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .WRITE_CAPACITY_REFINEMENT_STEPS }}'
+      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .WRITE_CAPACITY_MIN_RATE_DELTA }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
   benchmark:ci:suite-smoke:
-    desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write
+    desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write with statistically meaningful repeats
     dir: .
     deps:
       - benchmark:local:cleanup
@@ -295,20 +310,20 @@ tasks:
       REQUEST_RATES: '100'
       PUB_RATES: '1000'
       DURATION: '1s'
-      REPEATS: '3'
+      REPEATS: '{{ .CI_BENCH_REPEATS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
   benchmark:ci:capacity:
-    desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB
+    desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB and statistically meaningful repeats
     dir: .
     cmds:
       - rm -f reports/capacity-fire-and-forget.md reports/capacity-request-reply.md reports/capacity-write.md
-      - task benchmark:capacity:fire-and-forget-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:fire-and-forget-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-fire-and-forget.md
-      - task benchmark:capacity:request-reply-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS=1 REQUEST_CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:request-reply-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} REQUEST_CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-request-reply.md
-      - task benchmark:capacity:write-16kb WRITE_CAPACITY_DURATION=5s WRITE_CAPACITY_REPEATS=1 WRITE_CAPACITY_SWEEP_REPEATS=2
+      - task benchmark:capacity:write-16kb WRITE_CAPACITY_DURATION=5s WRITE_CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} WRITE_CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-write.md
       - |
         set -e

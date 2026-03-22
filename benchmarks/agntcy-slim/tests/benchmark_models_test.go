@@ -5,6 +5,7 @@ import "time"
 type suiteConfig struct {
 	OutputDir                     string
 	RawDir                        string
+	TemplateDir                   string
 	SummaryFile                   string
 	TechnicalReportFile           string
 	ResultsTSV                    string
@@ -38,6 +39,8 @@ type suiteConfig struct {
 	CapacitySweepPlateauSteps     int
 	CapacitySweepMaxSteps         int
 	CapacitySweepRepeats          int
+	CapacitySweepRefinementSteps  int
+	CapacitySweepMinRateDelta     int
 	CapacitySweepModesDisplay     string
 	CapacitySweepClientsDisplay   string
 	CapacitySweepSizesDisplay     string
@@ -51,6 +54,11 @@ type benchmarkRunResult struct {
 	Repeat                   int
 	SenderTotalMessages      int64
 	SenderMPS                float64
+	SenderMeanLatencyMS      float64
+	SenderP50LatencyMS       float64
+	SenderP90LatencyMS       float64
+	SenderP99LatencyMS       float64
+	SenderMaxLatencyMS       float64
 	SenderRuntimeErrors      int64
 	SenderDuration           string
 	SinkReceivedMessages     int64
@@ -83,6 +91,11 @@ type processCPUUsage struct {
 type senderReport struct {
 	TotalMessages  int64
 	ThroughputMPS  float64
+	MeanLatencyMS  float64
+	P50LatencyMS   float64
+	P90LatencyMS   float64
+	P99LatencyMS   float64
+	MaxLatencyMS   float64
 	RuntimeErrors  int64
 	ActualDuration string
 }
@@ -106,6 +119,7 @@ type sinkStats struct {
 }
 
 type capacitySweepStepResult struct {
+	Phase               string
 	Step                int
 	Rate                int
 	Repeats             int
@@ -135,6 +149,8 @@ type capacitySweepCaseResult struct {
 	Clients             int
 	Size                int
 	BestRate            int
+	CapacityRateLower   int
+	CapacityRateUpper   int
 	BestObservedMeanMPS float64
 	BestObservedCILow   float64
 	BestObservedCIHigh  float64

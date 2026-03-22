@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
           mkdir -p "$REPORT_DIR"
           stdbuf -oL -eL task benchmarks:slim:benchmark:ci:suite-smoke 2>&1 | tee "$REPORT_DIR/ci-smoke.log"
 
@@ -54,7 +54,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
           OUTPUT_FILE="$REPORT_DIR/ci-smoke-report.md"
           mkdir -p "$REPORT_DIR"
 
@@ -93,20 +93,24 @@ jobs:
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
-          OUTPUT_FILE="$REPORT_DIR/ci-smoke-report.md"
-
-          if [ -f "$OUTPUT_FILE" ]; then
-            echo "::group::SLIM Benchmark CI Smoke Report"
-            cat "$OUTPUT_FILE"
-            echo "::endgroup::"
-          fi
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          for report in \
+            "$REPORT_DIR/ci-smoke-report.md" \
+            "$REPORT_DIR/suite_summary.md" \
+            "$REPORT_DIR/technical_report.md"
+          do
+            if [ -f "$report" ]; then
+              echo "::group::$(basename "$report")"
+              cat "$report"
+              echo "::endgroup::"
+            fi
+          done
 
       - name: Publish smoke step summary
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
 
           {
             echo "# SLIM Benchmark Smoke Summary"
@@ -115,6 +119,15 @@ jobs:
             echo "- Workflow: ${GITHUB_WORKFLOW}"
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            echo "## Markdown Reports"
+            echo
+            for report in "$REPORT_DIR"/*.md; do
+              if [ -f "$report" ]; then
+                echo "- $(basename "$report")"
+              fi
+            done
             echo
 
             if [ -f "$REPORT_DIR/ci-smoke.log" ]; then
@@ -134,8 +147,8 @@ jobs:
         with:
           name: slim-benchmark-smoke-report
           path: |
-            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke-report.md
-            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-smoke.log
+            benchmarks/agntcy-slim/reports/*.md
+            benchmarks/agntcy-slim/reports/ci-smoke.log
           retention-days: 30
 
   slim-benchmark-capacity:
@@ -166,7 +179,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
           mkdir -p "$REPORT_DIR"
           stdbuf -oL -eL task benchmarks:slim:benchmark:ci:capacity 2>&1 | tee "$REPORT_DIR/ci-capacity.log"
 
@@ -174,7 +187,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
           OUTPUT_FILE="$REPORT_DIR/ci-capacity-report.md"
           mkdir -p "$REPORT_DIR"
 
@@ -220,20 +233,28 @@ jobs:
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
-          OUTPUT_FILE="$REPORT_DIR/ci-capacity-report.md"
-
-          if [ -f "$OUTPUT_FILE" ]; then
-            echo "::group::SLIM Benchmark CI Capacity Report"
-            cat "$OUTPUT_FILE"
-            echo "::endgroup::"
-          fi
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          for report in \
+            "$REPORT_DIR/ci-capacity-report.md" \
+            "$REPORT_DIR/suite_summary.md" \
+            "$REPORT_DIR/technical_report.md" \
+            "$REPORT_DIR/capacity_sweep.md" \
+            "$REPORT_DIR/capacity-fire-and-forget.md" \
+            "$REPORT_DIR/capacity-request-reply.md" \
+            "$REPORT_DIR/capacity-write.md"
+          do
+            if [ -f "$report" ]; then
+              echo "::group::$(basename "$report")"
+              cat "$report"
+              echo "::endgroup::"
+            fi
+          done
 
       - name: Publish capacity step summary
         if: always()
         shell: bash
         run: |
-          REPORT_DIR="benchmarks/agntcy-slim/tools/slim-bench/reports"
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
 
           {
             echo "# SLIM Benchmark Capacity Summary"
@@ -242,6 +263,15 @@ jobs:
             echo "- Workflow: ${GITHUB_WORKFLOW}"
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            echo "## Markdown Reports"
+            echo
+            for report in "$REPORT_DIR"/*.md; do
+              if [ -f "$report" ]; then
+                echo "- $(basename "$report")"
+              fi
+            done
             echo
 
             if [ -f "$REPORT_DIR/ci-capacity.log" ]; then
@@ -264,6 +294,6 @@ jobs:
         with:
           name: slim-benchmark-capacity-report
           path: |
-            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity-report.md
-            benchmarks/agntcy-slim/tools/slim-bench/reports/ci-capacity.log
+            benchmarks/agntcy-slim/reports/*.md
+            benchmarks/agntcy-slim/reports/ci-capacity.log
           retention-days: 30

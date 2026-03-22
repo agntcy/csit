@@ -61,6 +61,8 @@ var _ = ginkgo.Describe("SLIM Benchmark Suite Matrix", ginkgo.Label("benchmark-s
 func loadSuiteConfig() suiteConfig {
 	outputDir, err := filepath.Abs("../reports")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	templateDir, err := filepath.Abs("../templates")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	rawDir := filepath.Join(outputDir, "raw")
 	duration := envDuration("DURATION", 5*time.Second)
@@ -98,10 +100,13 @@ func loadSuiteConfig() suiteConfig {
 	capacitySweepPlateauSteps := envInt("CAPACITY_SWEEP_PLATEAU_STEPS", 2)
 	capacitySweepMaxSteps := envInt("CAPACITY_SWEEP_MAX_STEPS", 8)
 	capacitySweepRepeats := envInt("CAPACITY_SWEEP_REPEATS", 1)
+	capacitySweepRefinementSteps := envInt("CAPACITY_SWEEP_REFINEMENT_STEPS", 4)
+	capacitySweepMinRateDelta := envInt("CAPACITY_SWEEP_MIN_RATE_DELTA", 250)
 
 	return suiteConfig{
 		OutputDir:                     outputDir,
 		RawDir:                        rawDir,
+		TemplateDir:                   templateDir,
 		SummaryFile:                   filepath.Join(outputDir, "suite_summary.md"),
 		TechnicalReportFile:           filepath.Join(outputDir, "technical_report.md"),
 		ResultsTSV:                    filepath.Join(outputDir, "results.tsv"),
@@ -134,6 +139,8 @@ func loadSuiteConfig() suiteConfig {
 		CapacitySweepPlateauSteps:     capacitySweepPlateauSteps,
 		CapacitySweepMaxSteps:         capacitySweepMaxSteps,
 		CapacitySweepRepeats:          capacitySweepRepeats,
+		CapacitySweepRefinementSteps:  capacitySweepRefinementSteps,
+		CapacitySweepMinRateDelta:     capacitySweepMinRateDelta,
 		CapacitySweepModesDisplay:     strings.Join(capacitySweepModes, " "),
 		CapacitySweepClientsDisplay:   joinInts(capacitySweepClients),
 		CapacitySweepSizesDisplay:     joinInts(capacitySweepSizes),
@@ -228,6 +235,11 @@ func executeBenchmarkRun(mode string, clients int, size int, rate int, repeat in
 		Repeat:                   repeat,
 		SenderTotalMessages:      sender.TotalMessages,
 		SenderMPS:                sender.ThroughputMPS,
+		SenderMeanLatencyMS:      sender.MeanLatencyMS,
+		SenderP50LatencyMS:       sender.P50LatencyMS,
+		SenderP90LatencyMS:       sender.P90LatencyMS,
+		SenderP99LatencyMS:       sender.P99LatencyMS,
+		SenderMaxLatencyMS:       sender.MaxLatencyMS,
 		SenderRuntimeErrors:      sender.RuntimeErrors,
 		SenderDuration:           sender.ActualDuration,
 		SinkReceivedMessages:     sink.ReceivedMessages,
@@ -250,8 +262,8 @@ func executeBenchmarkRun(mode string, clients int, size int, rate int, repeat in
 }
 
 func logBenchmarkRunResult(result benchmarkRunResult) {
-	err := writeProgressLine(
-		"BENCHMARK_RESULT mode=%s clients=%d size=%d rate=%d repeat=%d sender_mps=%.2f observed_mps=%.2f sink_mps=%.2f sink_active_mps=%.2f sender_errors=%d sink_errors=%d node_cpu=%.2f total_cpu=%.2f",
+	format := "BENCHMARK_RESULT mode=%s clients=%d size=%d rate=%d repeat=%d sender_mps=%.2f observed_mps=%.2f sink_mps=%.2f sink_active_mps=%.2f sender_errors=%d sink_errors=%d node_cpu=%.2f total_cpu=%.2f"
+	args := []any{
 		result.Mode,
 		result.Clients,
 		result.Size,
@@ -265,16 +277,22 @@ func logBenchmarkRunResult(result benchmarkRunResult) {
 		result.SinkErrors,
 		result.NodeCPUPercent,
 		result.TotalCPUPercent,
-	)
+	}
+	if result.Mode == "request-reply" {
+		format += " mean_latency_ms=%.2f p50_latency_ms=%.2f p99_latency_ms=%.2f"
+		args = append(args, result.SenderMeanLatencyMS, result.SenderP50LatencyMS, result.SenderP99LatencyMS)
+	}
+	err := writeProgressLine(format, args...)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
 func logCapacitySweepStep(mode string, clients int, size int, step capacitySweepStepResult) {
 	err := writeProgressLine(
-		"CAPACITY_SWEEP_STEP mode=%s clients=%d size=%d step=%d rate=%d repeats=%d sender_mean_mps=%.2f observed_mean_mps=%.2f observed_gain_percent=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d improved=%t",
+		"CAPACITY_SWEEP_STEP mode=%s clients=%d size=%d phase=%s step=%d rate=%d repeats=%d sender_mean_mps=%.2f observed_mean_mps=%.2f observed_gain_percent=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d improved=%t",
 		mode,
 		clients,
 		size,
+		defaultIfEmpty(step.Phase, "coarse"),
 		step.Step,
 		step.Rate,
 		step.Repeats,
@@ -294,8 +312,6 @@ func logModeSummary(mode string, rows []benchmarkRunResult) {
 		return
 	}
 
-	sender := computeSampleStats(senderMPSValues(rows))
-	observed := computeSampleStats(observedMPSValues(rows))
 	nodeCPU := computeSampleStats(nodeCPUPercentValues(rows))
 	totalCPU := computeSampleStats(totalCPUPercentValues(rows))
 	totalErrors := int64(0)
@@ -306,27 +322,50 @@ func logModeSummary(mode string, rows []benchmarkRunResult) {
 		caseKeys[key] = struct{}{}
 	}
 
-	err := writeProgressLine(
-		"MODE_SUMMARY mode=%s runs=%d cases=%d sender_mean_mps=%.2f observed_mean_mps=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d",
-		mode,
-		len(rows),
-		len(caseKeys),
-		sender.Mean,
-		observed.Mean,
-		nodeCPU.Mean,
-		totalCPU.Mean,
-		totalErrors,
-	)
+	var err error
+	if mode == "request-reply" {
+		meanLatency := computeSampleStats(senderMeanLatencyMSValues(rows))
+		p50Latency := computeSampleStats(senderP50LatencyMSValues(rows))
+		p99Latency := computeSampleStats(senderP99LatencyMSValues(rows))
+		err = writeProgressLine(
+			"MODE_SUMMARY mode=%s runs=%d cases=%d mean_latency_ms=%.2f p50_latency_ms=%.2f p99_latency_ms=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d",
+			mode,
+			len(rows),
+			len(caseKeys),
+			meanLatency.Mean,
+			p50Latency.Mean,
+			p99Latency.Mean,
+			nodeCPU.Mean,
+			totalCPU.Mean,
+			totalErrors,
+		)
+	} else {
+		sender := computeSampleStats(senderMPSValues(rows))
+		observed := computeSampleStats(observedMPSValues(rows))
+		err = writeProgressLine(
+			"MODE_SUMMARY mode=%s runs=%d cases=%d sender_mean_mps=%.2f observed_mean_mps=%.2f node_cpu=%.2f total_cpu=%.2f total_errors=%d",
+			mode,
+			len(rows),
+			len(caseKeys),
+			sender.Mean,
+			observed.Mean,
+			nodeCPU.Mean,
+			totalCPU.Mean,
+			totalErrors,
+		)
+	}
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
 func logCapacityCaseSummary(result capacitySweepCaseResult) {
 	err := writeProgressLine(
-		"CAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_offered_rate=%d best_effective_throughput_mps=%.2f best_sender_completed_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q",
+		"CAPACITY_CASE_SUMMARY mode=%s clients=%d size=%d best_offered_rate=%d capacity_rate_lower=%d capacity_rate_upper=%d best_effective_throughput_mps=%.2f best_sender_completed_mps=%.2f best_node_cpu=%.2f best_total_cpu=%.2f steps=%d stop_reason=%q",
 		result.Mode,
 		result.Clients,
 		result.Size,
 		result.BestRate,
+		result.CapacityRateLower,
+		result.CapacityRateUpper,
 		result.BestObservedMeanMPS,
 		result.BestSenderMeanMPS,
 		result.BestNodeCPUPercent,
@@ -360,6 +399,11 @@ func writeResultsTSV(path string, results []benchmarkRunResult) {
 		"repeat",
 		"sender_total_messages",
 		"sender_mps",
+		"sender_mean_latency_ms",
+		"sender_p50_latency_ms",
+		"sender_p90_latency_ms",
+		"sender_p99_latency_ms",
+		"sender_max_latency_ms",
 		"sender_runtime_errors",
 		"sender_duration",
 		"sink_received_messages",
@@ -387,6 +431,11 @@ func writeResultsTSV(path string, results []benchmarkRunResult) {
 			strconv.Itoa(result.Repeat),
 			strconv.FormatInt(result.SenderTotalMessages, 10),
 			formatFloat(result.SenderMPS),
+			formatFloat(result.SenderMeanLatencyMS),
+			formatFloat(result.SenderP50LatencyMS),
+			formatFloat(result.SenderP90LatencyMS),
+			formatFloat(result.SenderP99LatencyMS),
+			formatFloat(result.SenderMaxLatencyMS),
 			strconv.FormatInt(result.SenderRuntimeErrors, 10),
 			result.SenderDuration,
 			strconv.FormatInt(result.SinkReceivedMessages, 10),
@@ -487,7 +536,7 @@ For each case, the report computes:
 - mean
 - sample variance
 - standard deviation
-- Gaussian 95%% confidence interval for the mean
+- Student's t 95%% confidence interval for the mean
 
 The sample variance is:
 
@@ -495,13 +544,13 @@ $$
 s^2 = \frac{1}{n-1} \sum_{i=1}^n (x_i - \bar{x})^2
 $$
 
-The Gaussian 95%% confidence interval is:
+The Student's t 95%% confidence interval is:
 
 $$
-\bar{x} \pm 1.96 \cdot \frac{s}{\sqrt{n}}
+\bar{x} \pm t_{1-\alpha/2, n-1} \cdot \frac{s}{\sqrt{n}}
 $$
 
-where $n = %d$ for each case in this report.
+where $\alpha = 0.05$ and $n = %d$ for each case in this report.
 `, repeats, duration, cpuFormula, repeats)
 }
 

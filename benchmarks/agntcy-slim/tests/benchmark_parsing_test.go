@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -16,6 +17,11 @@ func parseSenderReport(report string) senderReport {
 	return senderReport{
 		TotalMessages:  mustParseInt(extractMarkdownValue(lines, "- **Total Messages:** ")),
 		ThroughputMPS:  mustParseReportFloat(extractThroughputValue(lines)),
+		MeanLatencyMS:  mustParseDurationMS(extractLatencyTableValue(lines, "**Mean**")),
+		P50LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P50 (Median)**")),
+		P90LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P90**")),
+		P99LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P99**")),
+		MaxLatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**Max**")),
 		RuntimeErrors:  mustParseInt(extractMarkdownValue(lines, "- **Runtime Errors:** ")),
 		ActualDuration: extractMarkdownValue(lines, "- **Actual Duration:** "),
 	}
@@ -74,6 +80,20 @@ func extractThroughputValue(lines []string) string {
 	matches := re.FindStringSubmatch(value)
 	gomega.Expect(matches).To(gomega.HaveLen(2), "expected throughput line to contain msg/sec value")
 	return matches[1]
+}
+
+func extractLatencyTableValue(lines []string, metric string) string {
+	prefix := fmt.Sprintf("| %s |", metric)
+	for _, line := range lines {
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		parts := strings.Split(line, "|")
+		gomega.Expect(parts).To(gomega.HaveLen(4), "expected latency table row for %s", metric)
+		return strings.TrimSpace(parts[2])
+	}
+	ginkgo.Fail(fmt.Sprintf("missing latency metric %q", metric))
+	return ""
 }
 
 func envStringList(key string, defaults []string) []string {
@@ -146,6 +166,12 @@ func mustParseReportFloat(value string) float64 {
 	parsed, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "invalid float value %q", value)
 	return parsed
+}
+
+func mustParseDurationMS(value string) float64 {
+	parsed, err := time.ParseDuration(strings.TrimSpace(value))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "invalid duration value %q", value)
+	return parsed.Seconds() * 1000
 }
 
 func mustParseFloatWithDefault(value string, defaultValue float64) float64 {

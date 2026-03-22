@@ -80,10 +80,10 @@ task benchmarks:slim:benchmark:ci:suite-smoke
 task benchmarks:slim:benchmark:ci:capacity
 ```
 
-The CI targets are intentionally smaller than the developer-facing defaults:
+The CI targets are intentionally narrower than the developer-facing defaults, but they now use `25` repeats so the reported confidence intervals are based on statistically meaningful reruns:
 
-- `benchmark:ci:suite-smoke` runs a `1s` single-client smoke matrix across `request-reply`, `fire-and-forget`, and `write`
-- `benchmark:ci:capacity` runs bounded `5s` adaptive sweeps for `fire-and-forget`, `request-reply`, and `write` using `1` client at `16kB`
+- `benchmark:ci:suite-smoke` runs a `1s` single-client smoke matrix across `request-reply`, `fire-and-forget`, and `write` with `25` repeats per benchmark case
+- `benchmark:ci:capacity` runs bounded `5s` adaptive sweeps for `fire-and-forget`, `request-reply`, and `write` using `1` client at `16kB`, with `25` repeats for the top-level suite case and `25` repeats for each adaptive sweep step
 - both targets are intended to be called directly from CI without shell preamble
 
 The GitHub Actions workflow uploads a single Markdown artifact per job so the result is directly readable:

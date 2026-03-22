@@ -1,0 +1,52 @@
+# SLIM Benchmark Technical Report
+
+## Scope
+
+This report documents the repeated benchmark campaign executed by the Ginkgo benchmark suite against a local SLIM node. Each case in the suite matrix is rerun multiple times to estimate mean performance, sample variance, and confidence intervals.
+
+## Test Setup
+
+- Runtime: local SLIM node on `{{.Server}}`
+- Destination identity: `{{.Destination}}`
+- Sender: `tests/rate-client`
+- Sink / responder: `tests/echo-client` (used by request-reply and fire-and-forget; write mode runs without a responder)
+- Suite driver: Ginkgo spec in `benchmarks/agntcy-slim/tests/benchmark_suite_test.go`
+- Modes: `{{.Modes}}`
+- Client counts: `{{.Clients}}`
+- Payload sizes: `{{.Sizes}}` bytes
+- Request-reply rates: `{{.RequestRates}}` msg/sec
+- One-way rates: `{{.PubRates}}`
+- Write rates: `{{.WriteRates}}`
+- Duration per run: `{{.Duration}}`
+- Repeats per case: `{{.Repeats}}`
+- Adaptive capacity sweep enabled: `{{.CapacitySweepEnabled}}`
+
+{{.MeasurementSection}}
+
+## Test Types
+
+### Request-Reply
+
+Request-reply sends one message and waits for the echoed reply before sending the next. It measures paced round-trip behavior.
+
+### Fire-And-Forget
+
+Fire-and-forget sends one-way traffic to a sink responder. It measures end-to-end one-way delivery through the node without waiting for per-message replies.
+
+### Write
+
+Write measures how fast the sender can successfully write messages into the node without any sink or responder process. In this mode, sender-completed throughput is the primary metric.
+
+## Full Matrix
+
+{{.ModeSections}}
+{{if .HasCapacitySections}}
+{{.CapacitySections}}
+{{end}}
+## Result Interpretation
+
+- For request-reply, the primary metrics are sender-observed latency statistics, especially mean, p50, and p99 latency.
+- For fire-and-forget and write, the primary metrics are throughput statistics because those workloads are intended to characterize node write and forwarding capacity.
+- CPU percentages represent average process CPU utilization during the benchmark window for sender, responder, and node processes.
+- Confidence intervals estimate the uncertainty around the reported latency or throughput means under repeated execution.
+- For request-reply and fire-and-forget capacity sweeps, sink throughput remains the better end-to-end capacity indicator when it diverges from sender throughput.

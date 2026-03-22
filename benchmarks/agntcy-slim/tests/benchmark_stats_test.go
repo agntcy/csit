@@ -27,6 +27,30 @@ func senderMPSValues(rows []benchmarkRunResult) []float64 {
 	return values
 }
 
+func senderMeanLatencyMSValues(rows []benchmarkRunResult) []float64 {
+	values := make([]float64, 0, len(rows))
+	for _, row := range rows {
+		values = append(values, row.SenderMeanLatencyMS)
+	}
+	return values
+}
+
+func senderP50LatencyMSValues(rows []benchmarkRunResult) []float64 {
+	values := make([]float64, 0, len(rows))
+	for _, row := range rows {
+		values = append(values, row.SenderP50LatencyMS)
+	}
+	return values
+}
+
+func senderP99LatencyMSValues(rows []benchmarkRunResult) []float64 {
+	values := make([]float64, 0, len(rows))
+	for _, row := range rows {
+		values = append(values, row.SenderP99LatencyMS)
+	}
+	return values
+}
+
 func observedMPSValues(rows []benchmarkRunResult) []float64 {
 	values := make([]float64, 0, len(rows))
 	for _, row := range rows {

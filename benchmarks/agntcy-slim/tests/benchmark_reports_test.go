@@ -1,125 +1,95 @@
 package tests
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/onsi/gomega"
 )
 
 func writeSuiteSummary(cfg suiteConfig, results []benchmarkRunResult, capacitySweepResults []capacitySweepCaseResult) {
-	header := []string{
-		"# SLIM Benchmark Statistical Summary",
-		"",
-		fmt.Sprintf("**Generated:** %s", time.Now().Format("2006-01-02 15:04:05")),
-		"",
-		fmt.Sprintf("**Server:** %s", serverEndpoint),
-		fmt.Sprintf("**Destination:** %s", cfg.Destination),
-		fmt.Sprintf("**Modes:** %s", cfg.ModesDisplay),
-		fmt.Sprintf("**Clients:** %s", cfg.ClientsDisplay),
-		fmt.Sprintf("**Sizes:** %s", cfg.SizesDisplay),
-		fmt.Sprintf("**Request-Reply Rates:** %s", cfg.RequestRatesDisplay),
-		fmt.Sprintf("**One-Way Rates:** %s", cfg.PubRatesDisplay),
-		fmt.Sprintf("**Write Rates:** %s", cfg.WriteRatesDisplay),
-		fmt.Sprintf("**Duration Per Run:** %s", cfg.DurationDisplay),
-		fmt.Sprintf("**Repeats Per Case:** %d", cfg.Repeats),
-		"",
-		"This summary reports mean, sample variance, and Gaussian 95% confidence intervals over repeated executions of each benchmark case.",
-		"",
-	}
-
 	sections := buildModeSections(results)
 	if len(capacitySweepResults) > 0 {
 		sections = append(sections, buildCapacitySweepSummarySection(capacitySweepResults))
 	}
-	content := strings.Join(append(header, sections...), "\n")
+	content := renderReportTemplate(filepath.Join(cfg.TemplateDir, "suite_summary.md.tmpl"), map[string]any{
+		"Generated":           time.Now().Format("2006-01-02 15:04:05"),
+		"Server":              serverEndpoint,
+		"Destination":         cfg.Destination,
+		"Modes":               cfg.ModesDisplay,
+		"Clients":             cfg.ClientsDisplay,
+		"Sizes":               cfg.SizesDisplay,
+		"RequestRates":        cfg.RequestRatesDisplay,
+		"PubRates":            cfg.PubRatesDisplay,
+		"WriteRates":          cfg.WriteRatesDisplay,
+		"Duration":            cfg.DurationDisplay,
+		"Repeats":             cfg.Repeats,
+		"ModeSections":        strings.Join(sections, "\n"),
+		"HasCapacitySections": len(capacitySweepResults) > 0,
+	})
 	gomega.Expect(os.WriteFile(cfg.SummaryFile, []byte(content), 0644)).To(gomega.Succeed())
 }
 
 func writeTechnicalReport(cfg suiteConfig, results []benchmarkRunResult, capacitySweepResults []capacitySweepCaseResult) {
 	sections := buildModeSections(results)
-	parts := []string{
-		"# SLIM Benchmark Technical Report",
-		"",
-		"## Scope",
-		"",
-		"This report documents the repeated benchmark campaign executed by the Ginkgo benchmark suite against a local SLIM node. Each case in the suite matrix is rerun multiple times to estimate mean performance, sample variance, and Gaussian confidence intervals.",
-		"",
-		"## Test Setup",
-		"",
-		fmt.Sprintf("- Runtime: local SLIM node on `%s`", serverEndpoint),
-		fmt.Sprintf("- Destination identity: `%s`", cfg.Destination),
-		"- Sender: `tests/rate-client`",
-		"- Sink / responder: `tests/echo-client` (used by request-reply and fire-and-forget; write mode runs without a responder)",
-		"- Suite driver: Ginkgo spec in `benchmarks/agntcy-slim/tests/benchmark_suite_test.go`",
-		fmt.Sprintf("- Modes: `%s`", cfg.ModesDisplay),
-		fmt.Sprintf("- Client counts: `%s`", cfg.ClientsDisplay),
-		fmt.Sprintf("- Payload sizes: `%s` bytes", cfg.SizesDisplay),
-		fmt.Sprintf("- Request-reply rates: `%s` msg/sec", cfg.RequestRatesDisplay),
-		fmt.Sprintf("- One-way rates: `%s`", cfg.PubRatesDisplay),
-		fmt.Sprintf("- Write rates: `%s`", cfg.WriteRatesDisplay),
-		fmt.Sprintf("- Duration per run: `%s`", cfg.DurationDisplay),
-		fmt.Sprintf("- Repeats per case: `%d`", cfg.Repeats),
-		fmt.Sprintf("- Adaptive capacity sweep enabled: `%t`", cfg.CapacitySweepEnabled),
-		"",
-		buildMeasurementSection(cfg.DurationDisplay, cfg.Repeats),
-		"",
-		"## Test Types",
-		"",
-		"### Request-Reply",
-		"",
-		"Request-reply sends one message and waits for the echoed reply before sending the next. It measures paced round-trip behavior.",
-		"",
-		"### Fire-And-Forget",
-		"",
-		"Fire-and-forget sends one-way traffic to a sink responder. It measures end-to-end one-way delivery through the node without waiting for per-message replies.",
-		"",
-		"### Write",
-		"",
-		"Write measures how fast the sender can successfully write messages into the node without any sink or responder process. In this mode, sender-completed throughput is the primary metric.",
-		"",
-		"## Full Matrix",
-		"",
-	}
-	parts = append(parts, sections...)
+	parts := []string{strings.Join(sections, "\n")}
 	if len(capacitySweepResults) > 0 {
 		parts = append(parts, buildCapacitySweepTechnicalSection(cfg, capacitySweepResults))
 	}
-	parts = append(parts,
-		"## Result Interpretation",
-		"",
-		"- Sender mean msg/sec represents what the sender completed from its own perspective.",
-		"- Observed mean msg/sec represents the sink-observed node throughput for request-reply and fire-and-forget, and the sender-completed write throughput for write mode.",
-		"- CPU percentages represent average process CPU utilization during the benchmark window for sender, responder, and node processes.",
-		"- Confidence intervals estimate the uncertainty around the mean for each case under repeated execution.",
-		"- For request-reply and fire-and-forget, sink throughput remains the better end-to-end capacity indicator when it diverges from sender throughput.",
-	)
-	gomega.Expect(os.WriteFile(cfg.TechnicalReportFile, []byte(strings.Join(parts, "\n")), 0644)).To(gomega.Succeed())
+	content := renderReportTemplate(filepath.Join(cfg.TemplateDir, "technical_report.md.tmpl"), map[string]any{
+		"Server":               serverEndpoint,
+		"Destination":          cfg.Destination,
+		"Modes":                cfg.ModesDisplay,
+		"Clients":              cfg.ClientsDisplay,
+		"Sizes":                cfg.SizesDisplay,
+		"RequestRates":         cfg.RequestRatesDisplay,
+		"PubRates":             cfg.PubRatesDisplay,
+		"WriteRates":           cfg.WriteRatesDisplay,
+		"Duration":             cfg.DurationDisplay,
+		"Repeats":              cfg.Repeats,
+		"CapacitySweepEnabled": cfg.CapacitySweepEnabled,
+		"MeasurementSection":   buildMeasurementSection(cfg.DurationDisplay, cfg.Repeats),
+		"ModeSections":         strings.Join(sections, "\n"),
+		"CapacitySections":     strings.Join(parts[1:], "\n"),
+		"HasCapacitySections":  len(capacitySweepResults) > 0,
+	})
+	gomega.Expect(os.WriteFile(cfg.TechnicalReportFile, []byte(content), 0644)).To(gomega.Succeed())
 }
 
 func writeCapacitySweepReport(cfg suiteConfig, results []capacitySweepCaseResult) {
-	parts := []string{
-		"# SLIM Adaptive Capacity Sweep Report",
-		"",
-		fmt.Sprintf("**Generated:** %s", time.Now().Format("2006-01-02 15:04:05")),
-		"",
-		fmt.Sprintf("**Modes:** %s", cfg.CapacitySweepModesDisplay),
-		fmt.Sprintf("**Clients:** %s", cfg.CapacitySweepClientsDisplay),
-		fmt.Sprintf("**Sizes:** %s", cfg.CapacitySweepSizesDisplay),
-		fmt.Sprintf("**Start Rate:** %d", cfg.CapacitySweepStartRate),
-		fmt.Sprintf("**Max Rate:** %d", cfg.CapacitySweepMaxRate),
-		fmt.Sprintf("**Growth Factor:** %.2f", cfg.CapacitySweepGrowthFactor),
-		fmt.Sprintf("**Plateau Threshold:** %.2f%%", 100*cfg.CapacitySweepPlateauThreshold),
-		fmt.Sprintf("**Plateau Steps:** %d", cfg.CapacitySweepPlateauSteps),
-		fmt.Sprintf("**Max Steps:** %d", cfg.CapacitySweepMaxSteps),
-		fmt.Sprintf("**Repeats Per Sweep Step:** %d", cfg.CapacitySweepRepeats),
-		"",
-		buildCapacitySweepTechnicalSection(cfg, results),
-	}
-	gomega.Expect(os.WriteFile(cfg.CapacitySweepFile, []byte(strings.Join(parts, "\n")), 0644)).To(gomega.Succeed())
+	content := renderReportTemplate(filepath.Join(cfg.TemplateDir, "capacity_sweep.md.tmpl"), map[string]any{
+		"Generated":             time.Now().Format("2006-01-02 15:04:05"),
+		"Modes":                 cfg.CapacitySweepModesDisplay,
+		"Clients":               cfg.CapacitySweepClientsDisplay,
+		"Sizes":                 cfg.CapacitySweepSizesDisplay,
+		"StartRate":             cfg.CapacitySweepStartRate,
+		"MaxRate":               cfg.CapacitySweepMaxRate,
+		"GrowthFactor":          fmt.Sprintf("%.2f", cfg.CapacitySweepGrowthFactor),
+		"PlateauThreshold":      fmt.Sprintf("%.2f%%", 100*cfg.CapacitySweepPlateauThreshold),
+		"PlateauSteps":          cfg.CapacitySweepPlateauSteps,
+		"MaxSteps":              cfg.CapacitySweepMaxSteps,
+		"RepeatsPerSweepStep":   cfg.CapacitySweepRepeats,
+		"CapacitySweepSections": buildCapacitySweepTechnicalSection(cfg, results),
+	})
+	gomega.Expect(os.WriteFile(cfg.CapacitySweepFile, []byte(content), 0644)).To(gomega.Succeed())
+}
+
+func renderReportTemplate(path string, data any) string {
+	tmplContent, err := os.ReadFile(path)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	tmpl, err := template.New(filepath.Base(path)).Parse(string(tmplContent))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	buffer := &bytes.Buffer{}
+	gomega.Expect(tmpl.Execute(buffer, data)).To(gomega.Succeed())
+	return strings.TrimSpace(buffer.String()) + "\n"
 }
 
 func buildModeSections(results []benchmarkRunResult) []string {
@@ -140,6 +110,13 @@ func buildModeSections(results []benchmarkRunResult) []string {
 }
 
 func buildModeTable(rows []benchmarkRunResult, mode string) string {
+	if mode == "request-reply" {
+		return buildRequestReplyLatencyTable(rows, mode)
+	}
+	return buildThroughputModeTable(rows, mode)
+}
+
+func buildThroughputModeTable(rows []benchmarkRunResult, mode string) string {
 	type caseKey struct {
 		Clients int
 		Size    int
@@ -217,6 +194,80 @@ func buildModeTable(rows []benchmarkRunResult, mode string) string {
 	return strings.Join(lines, "\n")
 }
 
+func buildRequestReplyLatencyTable(rows []benchmarkRunResult, mode string) string {
+	type caseKey struct {
+		Clients int
+		Size    int
+		Rate    int
+	}
+
+	grouped := map[caseKey][]benchmarkRunResult{}
+	for _, row := range rows {
+		key := caseKey{Clients: row.Clients, Size: row.Size, Rate: row.Rate}
+		grouped[key] = append(grouped[key], row)
+	}
+
+	keys := make([]caseKey, 0, len(grouped))
+	for key := range grouped {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i int, j int) bool {
+		if keys[i].Clients != keys[j].Clients {
+			return keys[i].Clients < keys[j].Clients
+		}
+		if keys[i].Size != keys[j].Size {
+			return keys[i].Size < keys[j].Size
+		}
+		return keys[i].Rate < keys[j].Rate
+	})
+
+	lines := []string{
+		fmt.Sprintf("### %s Results", modeDisplayTitle(mode)),
+		"",
+		"Request-reply prioritizes latency statistics. The configured rate is retained as load context, but the primary reported metrics are mean, p50, and p99 latency.",
+		"",
+		"| Clients | Payload | Rate | Repeats | Mean Latency ms | Mean Latency Variance | Mean Latency 95% CI | P50 Latency ms | P50 Latency 95% CI | P99 Latency ms | P99 Latency 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Total Errors |",
+		"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+	}
+
+	for _, key := range keys {
+		caseRows := grouped[key]
+		meanLatency := computeSampleStats(senderMeanLatencyMSValues(caseRows))
+		p50Latency := computeSampleStats(senderP50LatencyMSValues(caseRows))
+		p99Latency := computeSampleStats(senderP99LatencyMSValues(caseRows))
+		senderCPU := computeSampleStats(senderCPUPercentValues(caseRows))
+		nodeCPU := computeSampleStats(nodeCPUPercentValues(caseRows))
+		totalCPU := computeSampleStats(totalCPUPercentValues(caseRows))
+		totalErrors := int64(0)
+		for _, row := range caseRows {
+			totalErrors += row.SenderRuntimeErrors + row.SinkErrors
+		}
+		lines = append(lines, fmt.Sprintf(
+			"| %d | %dB | %d | %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %d |",
+			key.Clients,
+			key.Size,
+			key.Rate,
+			len(caseRows),
+			formatFloat(meanLatency.Mean),
+			formatFloat(meanLatency.Variance),
+			formatCI(meanLatency),
+			formatFloat(p50Latency.Mean),
+			formatCI(p50Latency),
+			formatFloat(p99Latency.Mean),
+			formatCI(p99Latency),
+			formatFloat(senderCPU.Mean),
+			formatCI(senderCPU),
+			formatFloat(nodeCPU.Mean),
+			formatCI(nodeCPU),
+			formatFloat(totalCPU.Mean),
+			formatCI(totalCPU),
+			totalErrors,
+		))
+	}
+	lines = append(lines, "")
+	return strings.Join(lines, "\n")
+}
+
 func buildCapacitySweepSummarySection(results []capacitySweepCaseResult) string {
 	sinkBacked := make([]capacitySweepCaseResult, 0)
 	writeOnly := make([]capacitySweepCaseResult, 0)
@@ -231,24 +282,26 @@ func buildCapacitySweepSummarySection(results []capacitySweepCaseResult) string 
 	lines := []string{
 		"## Adaptive Capacity Sweep Summary",
 		"",
-		"Each row is a separate fixed `(mode, clients, payload)` case. `Best Offered Rate` is the aggregate configured send rate for the whole node run. Sink-backed modes report node-observed throughput, while write mode is reported separately using sender-completed throughput.",
+		"Each row is a separate fixed `(mode, clients, payload)` case. `Best Offered Rate` is the aggregate configured send rate for the best measured throughput point. `Capacity Offered Interval` brackets the offered-rate range where the node appears saturated after the coarse sweep and refinement pass. Sink-backed modes report node-observed throughput, while write mode is reported separately using sender-completed throughput.",
 		"",
 	}
 	if len(sinkBacked) > 0 {
 		lines = append(lines,
 			"### Sink-Backed Modes",
 			"",
-			"| Mode | Clients | Payload | Best Offered Rate | Best Observed Node Throughput | Observed 95% CI | Best Sender Completed Throughput | Sender 95% CI | Node CPU % | Node CPU 95% CI | Total CPU % | Total CPU 95% CI | Steps | Stop Reason |",
-			"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+			"| Mode | Clients | Payload | Best Offered Rate | Capacity Offered Interval | Best Observed Node Throughput | Observed 95% CI | Best Sender Completed Throughput | Sender 95% CI | Node CPU % | Node CPU 95% CI | Total CPU % | Total CPU 95% CI | Steps | Stop Reason |",
+			"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
 		)
 	}
 	for _, result := range sinkBacked {
 		lines = append(lines, fmt.Sprintf(
-			"| %s | %d | %dB | %d | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %d | %s |",
+			"| %s | %d | %dB | %d | [%d, %d] | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %d | %s |",
 			result.Mode,
 			result.Clients,
 			result.Size,
 			result.BestRate,
+			result.CapacityRateLower,
+			result.CapacityRateUpper,
 			formatFloat(result.BestObservedMeanMPS),
 			formatFloat(result.BestObservedCILow),
 			formatFloat(result.BestObservedCIHigh),
@@ -270,17 +323,19 @@ func buildCapacitySweepSummarySection(results []capacitySweepCaseResult) string 
 			"",
 			"### Write Mode",
 			"",
-			"| Mode | Clients | Payload | Best Offered Rate | Best Sender Write Throughput | Throughput 95% CI | Node CPU % | Node CPU 95% CI | Total CPU % | Total CPU 95% CI | Steps | Stop Reason |",
-			"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+			"| Mode | Clients | Payload | Best Offered Rate | Capacity Offered Interval | Best Sender Write Throughput | Throughput 95% CI | Node CPU % | Node CPU 95% CI | Total CPU % | Total CPU 95% CI | Steps | Stop Reason |",
+			"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
 		)
 	}
 	for _, result := range writeOnly {
 		lines = append(lines, fmt.Sprintf(
-			"| %s | %d | %dB | %d | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %d | %s |",
+			"| %s | %d | %dB | %d | [%d, %d] | %s | [%s, %s] | %s | [%s, %s] | %s | [%s, %s] | %d | %s |",
 			result.Mode,
 			result.Clients,
 			result.Size,
 			result.BestRate,
+			result.CapacityRateLower,
+			result.CapacityRateUpper,
 			formatFloat(result.BestObservedMeanMPS),
 			formatFloat(result.BestObservedCILow),
 			formatFloat(result.BestObservedCIHigh),
@@ -302,7 +357,7 @@ func buildCapacitySweepTechnicalSection(cfg suiteConfig, results []capacitySweep
 	lines := []string{
 		"## Adaptive Capacity Sweep",
 		"",
-		"This sweep increases the configured send rate geometrically and stops when the mode-specific effective throughput no longer improves by the configured threshold for the configured number of consecutive steps.",
+		"This sweep first increases the configured send rate geometrically to find the saturation region, then performs midpoint refinement to narrow the offered-rate interval that saturates the node.",
 		"Results are reported separately for each fixed `(mode, clients, payload)` case. The reported rate is the aggregate offered load across all clients in that case. For request-reply and fire-and-forget, effective throughput is sink-observed total node throughput. For write mode, effective throughput is sender-completed write throughput because no responder is running.",
 		"",
 		fmt.Sprintf("- Modes: `%s`", cfg.CapacitySweepModesDisplay),
@@ -315,6 +370,8 @@ func buildCapacitySweepTechnicalSection(cfg suiteConfig, results []capacitySweep
 		fmt.Sprintf("- Plateau steps: `%d`", cfg.CapacitySweepPlateauSteps),
 		fmt.Sprintf("- Max steps: `%d`", cfg.CapacitySweepMaxSteps),
 		fmt.Sprintf("- Repeats per sweep step: `%d`", cfg.CapacitySweepRepeats),
+		fmt.Sprintf("- Refinement steps after coarse sweep: `%d`", cfg.CapacitySweepRefinementSteps),
+		fmt.Sprintf("- Minimum offered-rate interval after refinement: `%d` msg/sec", cfg.CapacitySweepMinRateDelta),
 		"",
 	}
 
@@ -329,19 +386,21 @@ func buildCapacitySweepTechnicalSection(cfg suiteConfig, results []capacitySweep
 				fmt.Sprintf("#### %s Clients=%d Payload=%dB", modeDisplayTitle(result.Mode), result.Clients, result.Size),
 				"",
 				fmt.Sprintf("Best offered aggregate rate: `%d` msg/sec", result.BestRate),
+				fmt.Sprintf("Estimated capacity offered-rate interval: `[%d, %d]` msg/sec", result.CapacityRateLower, result.CapacityRateUpper),
 				fmt.Sprintf("Best %s: `%s` msg/sec with 95%% CI [%s, %s]", strings.ToLower(throughputLabel), formatFloat(result.BestObservedMeanMPS), formatFloat(result.BestObservedCILow), formatFloat(result.BestObservedCIHigh)),
 				fmt.Sprintf("Best sender-completed throughput: `%s` msg/sec with 95%% CI [%s, %s]", formatFloat(result.BestSenderMeanMPS), formatFloat(result.BestSenderCILow), formatFloat(result.BestSenderCIHigh)),
 				fmt.Sprintf("Best node CPU: `%s` %% with 95%% CI [%s, %s]", formatFloat(result.BestNodeCPUPercent), formatFloat(result.BestNodeCILow), formatFloat(result.BestNodeCIHigh)),
 				fmt.Sprintf("Best total CPU: `%s` %% with 95%% CI [%s, %s]", formatFloat(result.BestTotalCPUPercent), formatFloat(result.BestTotalCILow), formatFloat(result.BestTotalCIHigh)),
 				fmt.Sprintf("Stop reason: %s", result.StopReason),
 				"",
-				fmt.Sprintf("| Step | Offered Aggregate Rate | Repeats | Sender Mean msg/sec | Sender 95%% CI | %s | %s 95%% CI | Observed Variance | Observed Gain %% | Improved | Node CPU %% | Node CPU 95%% CI | Total CPU %% | Total CPU 95%% CI | Errors |", throughputLabel, throughputLabel),
-				"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+				fmt.Sprintf("| Step | Phase | Offered Aggregate Rate | Repeats | Sender Mean msg/sec | Sender 95%% CI | %s | %s 95%% CI | Observed Variance | Observed Gain %% | Improved | Node CPU %% | Node CPU 95%% CI | Total CPU %% | Total CPU 95%% CI | Errors |", throughputLabel, throughputLabel),
+				"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
 			)
 			for _, step := range result.Steps {
 				lines = append(lines, fmt.Sprintf(
-					"| %d | %d | %d | %s | [%s, %s] | %s | [%s, %s] | %s | %s | %t | %s | [%s, %s] | %s | [%s, %s] | %d |",
+					"| %d | %s | %d | %d | %s | [%s, %s] | %s | [%s, %s] | %s | %s | %t | %s | [%s, %s] | %s | [%s, %s] | %d |",
 					step.Step,
+					defaultIfEmpty(step.Phase, "coarse"),
 					step.Rate,
 					step.Repeats,
 					formatFloat(step.SenderMeanMPS),
