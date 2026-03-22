@@ -59,7 +59,7 @@ var _ = ginkgo.Describe("SLIM Benchmark Suite Matrix", ginkgo.Label("benchmark-s
 })
 
 func loadSuiteConfig() suiteConfig {
-	outputDir, err := filepath.Abs("../tools/slim-bench/reports")
+	outputDir, err := filepath.Abs("../reports")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	rawDir := filepath.Join(outputDir, "raw")

@@ -17,6 +17,7 @@ vars:
   BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
   SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+  SLIM_BINDINGS_SETUP_VERSION: '{{ .SLIM_BINDINGS_SETUP_VERSION | default "v1.2.0" }}'
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "fire-and-forget" }}'
   CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "1" }}'
@@ -105,24 +106,27 @@ tasks:
 
   deps:slim-bindings-setup:
     desc: Install the native SLIM bindings library required by benchmark helpers
-    dir: ./tools/slim-bench
+    dir: .
     cmds:
-      - go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup
+      - |
+        set -e
+        CACHE_DIR="$HOME/go/.cgo-cache/slim-bindings"
+        if [ -d "$CACHE_DIR" ] && find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' | grep -q .; then
+          echo "Using existing SLIM bindings in $CACHE_DIR"
+          find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' -print
+          exit 0
+        fi
+        go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup@{{ .SLIM_BINDINGS_SETUP_VERSION }}
 
   benchmark:local:cleanup:
     internal: true
     desc: Stop leftover local benchmark processes before a fresh run
-    dir: ./tools/slim-bench
+    dir: .
     cmds:
       - pkill -f 'echo-client.*-local agntcy/demo/echo' 2>/dev/null || true
       - pkill -f 'rate-client.*-local agntcy/demo/client' 2>/dev/null || true
       - pkill -f 'slimctl slim start -c' 2>/dev/null || true
       - pkill -9 slimctl 2>/dev/null || true
-
-  tools:build:
-    desc: Build helper tools for benchmarks
-    cmds:
-      - docker build -t slim-bench:local -f tools/slim-bench/Dockerfile ..
 
   test:
     desc: All Slim benchmark test
@@ -131,7 +135,7 @@ tasks:
 
   benchmark:suite:
     desc: Run the local SLIM benchmark suite with reproducible defaults and optional overrides
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -145,11 +149,11 @@ tasks:
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:request-reply:
     desc: Run a reproducible request-reply-only benchmark suite profile
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -162,11 +166,11 @@ tasks:
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:fire-and-forget:
     desc: Run a reproducible fire-and-forget-only benchmark suite profile
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -179,11 +183,11 @@ tasks:
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:write:
     desc: Run a reproducible write-only benchmark suite profile with no responder
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -196,11 +200,11 @@ tasks:
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:capacity:fire-and-forget-16kb:
     desc: Run the repeated adaptive fire-and-forget capacity sweep for 1 client at 16kB
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -222,11 +226,11 @@ tasks:
       CAPACITY_SWEEP_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:capacity:request-reply-16kb:
     desc: Run the repeated adaptive request-reply capacity sweep for 1 client at 16kB
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -249,11 +253,11 @@ tasks:
       CAPACITY_SWEEP_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:capacity:write-16kb:
     desc: Run the repeated adaptive write capacity sweep for 1 client at 16kB with no responder
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -276,11 +280,11 @@ tasks:
       CAPACITY_SWEEP_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS }}'
       CAPACITY_SWEEP_REPEATS: '{{ .WRITE_CAPACITY_SWEEP_REPEATS }}'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:ci:suite-smoke:
     desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write
-    dir: ./tools/slim-bench
+    dir: .
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
@@ -293,11 +297,11 @@ tasks:
       DURATION: '1s'
       REPEATS: '3'
     cmds:
-      - bash ./run_suite.sh
+      - bash ./scripts/run_suite.sh
 
   benchmark:ci:capacity:
     desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB
-    dir: ./tools/slim-bench
+    dir: .
     cmds:
       - rm -f reports/capacity-fire-and-forget.md reports/capacity-request-reply.md reports/capacity-write.md
       - task benchmark:capacity:fire-and-forget-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS=1 CAPACITY_SWEEP_REPEATS=2

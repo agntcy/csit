@@ -24,7 +24,6 @@ import (
 
 var (
 	buildDir       string
-	slimBenchPath  string
 	rateClientPath string
 	echoClientPath string
 	slimSession    *gexec.Session
@@ -38,23 +37,13 @@ var _ = ginkgo.BeforeSuite(func() {
 	buildDir, err = os.MkdirTemp("", "slim-bench-tests-*")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// Build slim-bench manually to support nested modules
-	absToolDir, err := filepath.Abs("../tools/slim-bench")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	slimBenchPath = filepath.Join(buildDir, "slim-bench")
-	cmd := exec.Command("go", "build", "-o", slimBenchPath, ".")
-	cmd.Dir = absToolDir
-	output, err := cmd.CombinedOutput()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to build slim-bench: %s", string(output))
-
 	absEchoDir, err := filepath.Abs("./echo-client")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	echoClientPath = filepath.Join(buildDir, "echo-client")
 	echoCmd := exec.Command("go", "build", "-o", echoClientPath, ".")
 	echoCmd.Dir = absEchoDir
-	output, err = echoCmd.CombinedOutput()
+	output, err := echoCmd.CombinedOutput()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to build echo-client: %s", string(output))
 
 	absRateClientDir, err := filepath.Abs("./rate-client")
@@ -90,10 +79,11 @@ var _ = ginkgo.Describe("Benchmarking slim local", func() {
 		experiment.SampleDuration("slim test 1000 messages", func(_ int) {
 			stopEchoResponder()
 			startEchoResponder("sink", 1, "")
-			benchCmd := exec.Command(slimBenchPath,
+			benchCmd := exec.Command(rateClientPath,
 				"-mode", "fire-and-forget",
 				"-clients", "1",
 				"-msgs", "1000",
+				"-local", "agntcy/demo/client",
 				"-server", serverEndpoint,
 				"-dest", "agntcy/demo/echo",
 			)

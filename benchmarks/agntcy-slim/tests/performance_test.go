@@ -34,10 +34,11 @@ var _ = ginkgo.Describe("SLIM Performance Benchmarks", func() {
 				stopEchoResponder()
 				startEchoResponder("echo", 1, "")
 				cmd := exec.Command(
-					slimBenchPath,
+					rateClientPath,
 					"-mode", "request-reply",
 					"-msgs", "10",
 					"-rate", "10",
+					"-local", "agntcy/demo/client",
 					"-server", serverEndpoint,
 					"-dest", "agntcy/demo/echo",
 				)
@@ -55,9 +56,10 @@ var _ = ginkgo.Describe("SLIM Performance Benchmarks", func() {
 				stopEchoResponder()
 				startEchoResponder("blackhole", 1, "")
 				cmd := exec.Command(
-					slimBenchPath,
+					rateClientPath,
 					"-mode", "write",
 					"-msgs", "100",
+					"-local", "agntcy/demo/client",
 					"-server", serverEndpoint,
 					"-dest", "agntcy/demo/echo",
 				)
@@ -75,10 +77,11 @@ var _ = ginkgo.Describe("SLIM Performance Benchmarks", func() {
 				stopEchoResponder()
 				startEchoResponder("sink", 1, "")
 				cmd := exec.Command(
-					slimBenchPath,
+					rateClientPath,
 					"-mode", "fire-and-forget",
 					"-msgs", "100",
 					"-rate", "100",
+					"-local", "agntcy/demo/client",
 					"-server", serverEndpoint,
 					"-dest", "agntcy/demo/echo",
 				)
@@ -92,16 +95,17 @@ var _ = ginkgo.Describe("SLIM Performance Benchmarks", func() {
 	ginkgo.Context("Unsupported Live Modes", func() {
 		ginkgo.It("rejects sub mode against a live SLIM node", func() {
 			cmd := exec.Command(
-				slimBenchPath,
+				rateClientPath,
 				"-mode", "sub",
 				"-msgs", "10",
+				"-local", "agntcy/demo/client",
 				"-server", serverEndpoint,
 				"-dest", "agntcy/demo/echo",
 			)
 			session, err := gexec.Start(cmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Eventually(session, 10*time.Second).Should(gexec.Exit(1))
-			gomega.Eventually(session.Err, 5*time.Second).Should(gbytes.Say("sub mode is not implemented for live SLIM benchmarks"))
+			gomega.Eventually(session.Err, 5*time.Second).Should(gbytes.Say("unsupported mode \"sub\""))
 		})
 	})
 })
