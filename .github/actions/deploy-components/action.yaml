@@ -37,6 +37,22 @@ inputs:
     description: 'Set slim chart version'
     required: false
     default: ''
+  slim-controller-image-tag:
+    description: 'Set slim controller container image version'
+    required: false
+    default: ''
+  preload-slim-images:
+    description: 'Load prebuilt slim images into kind'
+    required: false
+    default: 'false'
+  slim-node-image:
+    description: 'Full slim node image reference to load into kind'
+    required: false
+    default: ''
+  slim-controller-image:
+    description: 'Full slim controller image reference to load into kind'
+    required: false
+    default: ''
   deploy-directory:
     description: 'Deploy directory to a kind cluster'
     required: false
@@ -116,6 +132,20 @@ runs:
         task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
+    - name: Load prebuilt slim images into kind
+      if: ${{ inputs.preload-slim-images != 'false' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [ -z "${{ inputs.slim-node-image }}" ] || [ -z "${{ inputs.slim-controller-image }}" ]; then
+          echo "Both slim-node-image and slim-controller-image are required when preload-slim-images is enabled."
+          exit 1
+        fi
+
+        kind load docker-image "${{ inputs.slim-node-image }}" --name "${{ inputs.kind-cluster-name }}"
+        kind load docker-image "${{ inputs.slim-controller-image }}" --name "${{ inputs.kind-cluster-name }}"
+
     - name: Deploy SPIRE
       if: ${{ inputs.deploy-spire != 'false' }}      
       shell: bash
@@ -128,12 +158,14 @@ runs:
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:controller \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
+          SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:clusters \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
+          SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
