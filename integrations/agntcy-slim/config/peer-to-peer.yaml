@@ -6,7 +6,7 @@ topology:
                 - "cluster-b"
             image: ghcr.io/agntcy/slim/bindings-examples:0.7.1          
             args: 
-              - p2p
+              - slim-bindings-p2p
               - --local
               - org/ns/alice
               - --spire-socket-path
@@ -20,7 +20,7 @@ topology:
                 - "cluster-a"
             image: ghcr.io/agntcy/slim/bindings-examples:0.7.1                      
             args:
-              - p2p
+              - slim-bindings-p2p
               - --local
               - org/ns/bob
               - --remote

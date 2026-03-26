@@ -182,7 +182,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args := append(args, "--slim", string(cfgJSON))
+					args := append(args, "--slim-config", string(cfgJSON))
 					k8sHelper = k8sHelper.WithArgs(args).WithSpire()
 
 				} else {
@@ -196,7 +196,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args = append(args, "--slim", string(cfgJSON))
+					args = append(args, "--slim-config", string(cfgJSON))
 					k8sHelper = k8sHelper.WithArgs(args)
 				}
 
