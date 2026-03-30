@@ -147,7 +147,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64 \
             --load \
-            --tag "ghcr.io/agntcy/slim/slim:${SLIM_TAG}" \
+            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
             --file slim-src/data-plane/Dockerfile \
             slim-src
 
@@ -166,7 +166,7 @@ jobs:
           deploy-slim-topology: "true"
           slim-config: "spire"
           preload-slim-images: ${{ inputs.override_slim_image_tag == '' }}
-          slim-node-image: ghcr.io/agntcy/slim/slim:${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          slim-node-image: ghcr.io/agntcy/slim:${{ steps.resolve-slim-tags.outputs.slim_tag }}
           slim-controller-image: ghcr.io/agntcy/slim/control-plane:${{ steps.resolve-slim-tags.outputs.controller_tag }}
           slim-image-tag: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           slim-controller-image-tag: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
