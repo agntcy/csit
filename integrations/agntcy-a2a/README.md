@@ -11,6 +11,8 @@ The initial slice covers a self-contained Rust and Go JSON-RPC smoke matrix:
 
 The fixtures are intentionally small and deterministic so the suite can run the same way locally and in CI without depending on sibling SDK checkouts.
 
+Each scenario is tagged with a dedicated Ginkgo label and exposed through a matching Task target so the full matrix and each individual leg can be run independently.
+
 ## Matrix
 
 | Label | Scenario | Component task | Repository task |
@@ -20,7 +22,7 @@ The fixtures are intentionally small and deterministic so the suite can run the 
 | `rust-go` | Rust client -> Go server | `task test:rust-go:jsonrpc:rust-go` | `task integrations:a2a:test:rust-go:jsonrpc:rust-go` |
 | `rust-rust` | Rust client -> Rust server | `task test:rust-go:jsonrpc:rust-rust` | `task integrations:a2a:test:rust-go:jsonrpc:rust-rust` |
 
-## Running The Suite
+## Running the Suite
 
 From `integrations/agntcy-a2a/`:
 
@@ -33,6 +35,8 @@ task test:rust-go:jsonrpc:rust-go
 task test:rust-go:jsonrpc:rust-rust
 ```
 
+`task test` is an alias for the full `task test:rust-go:jsonrpc` matrix run.
+
 From the repository root:
 
 ```sh
@@ -44,4 +48,6 @@ task integrations:a2a:test:rust-go:jsonrpc:rust-go
 task integrations:a2a:test:rust-go:jsonrpc:rust-rust
 ```
 
-Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The full-matrix task emits `report-agntcy-a2a.{json,xml}`, and the per-case tasks emit scenario-specific report names.
+`task integrations:a2a:test` is the repository-level alias for the same full matrix run.
+
+Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The full-matrix task emits `report-agntcy-a2a.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
