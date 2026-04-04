@@ -15,8 +15,53 @@ tasks:
   test:rust-go:jsonrpc:
     desc: Rust and Go JSON-RPC interoperability smoke test
     cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          REPORT_NAME: report-agntcy-a2a
+
+  test:rust-go:jsonrpc:go-go:
+    desc: Go client to Go server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: go-go
+          REPORT_NAME: report-agntcy-a2a-go-go
+
+  test:rust-go:jsonrpc:go-rust:
+    desc: Go client to Rust server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: go-rust
+          REPORT_NAME: report-agntcy-a2a-go-rust
+
+  test:rust-go:jsonrpc:rust-go:
+    desc: Rust client to Go server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rust-go
+          REPORT_NAME: report-agntcy-a2a-rust-go
+
+  test:rust-go:jsonrpc:rust-rust:
+    desc: Rust client to Rust server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rust-rust
+          REPORT_NAME: report-agntcy-a2a-rust-rust
+
+  test:rust-go:jsonrpc:run:
+    internal: true
+    cmds:
       - mkdir -p ./reports
-      - cd tests && go test . -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 20m -timeout 20m -ginkgo.v --ginkgo.json-report=../reports/report-agntcy-a2a.json --ginkgo.junit-report=../reports/report-agntcy-a2a.xml
+      - >
+        cd tests &&
+        go test . -v -failfast -test.v -test.paniconexit0
+        -ginkgo.timeout 20m -timeout 20m -ginkgo.v
+        {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}}
+        --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json
+        --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
 
   default:
     cmd: task -l

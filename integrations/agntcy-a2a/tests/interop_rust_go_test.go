@@ -357,7 +357,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 		}
 	})
 
-	ginkgo.It("lets the Go client call the Go fixture", func(ctx ginkgo.SpecContext) {
+	ginkgo.It("lets the Go client call the Go fixture", ginkgo.Label("go-go"), func(ctx ginkgo.SpecContext) {
 		requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 		defer cancel()
 
@@ -373,7 +373,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 		gomega.Expect(streamText).To(gomega.Equal("go server received: ping"))
 	})
 
-	ginkgo.It("lets the Go client call the Rust fixture", func(ctx ginkgo.SpecContext) {
+	ginkgo.It("lets the Go client call the Rust fixture", ginkgo.Label("go-rust"), func(ctx ginkgo.SpecContext) {
 		requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 		defer cancel()
 
@@ -389,7 +389,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 		gomega.Expect(streamText).To(gomega.Equal("rust server received: ping"))
 	})
 
-	ginkgo.It("lets the Rust client call the Go fixture", func(ctx ginkgo.SpecContext) {
+	ginkgo.It("lets the Rust client call the Go fixture", ginkgo.Label("rust-go"), func(ctx ginkgo.SpecContext) {
 		requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 		defer cancel()
 
@@ -397,7 +397,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 	})
 
-	ginkgo.It("lets the Rust client call the Rust fixture", func(ctx ginkgo.SpecContext) {
+	ginkgo.It("lets the Rust client call the Rust fixture", ginkgo.Label("rust-rust"), func(ctx ginkgo.SpecContext) {
 		requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 		defer cancel()
 
