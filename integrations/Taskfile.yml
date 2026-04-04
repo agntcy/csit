@@ -7,6 +7,11 @@ version: '3'
 silent: true
 
 includes:
+  a2a:
+    taskfile: ./agntcy-a2a/Taskfile.yml
+    dir: ./agntcy-a2a
+    excludes: [ default ]
+
   slim:
     taskfile: ./agntcy-slim/Taskfile.yml
     dir: ./agntcy-slim
