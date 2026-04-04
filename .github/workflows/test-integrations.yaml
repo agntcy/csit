@@ -44,6 +44,11 @@ on:
         required: false
         default: true
         type: boolean
+      skip_a2a_test:
+        description: "Skip A2A Rust-Go interoperability tests"
+        required: false
+        default: false
+        type: boolean
       run_agentic_apps_test:
         description: "Run agentic apps tests"
         required: false
@@ -177,6 +182,38 @@ jobs:
         with:
           artifact-name: "directory-test-result"
 
+  run-tests-a2a:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_a2a_test }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: "read"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+          go-version: "1.24.4"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run A2A interoperability tests
+        run: task integrations:a2a:test:rust-go:jsonrpc
+        shell: bash
+
+      - name: Create artifact from integrations test reports
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: "a2a-rust-go-test-result"
+          path-to-archive: "./integrations/agntcy-a2a/reports/*"
+
   run-agentic-apps:
     if: ${{ inputs.run_agentic_apps_test }}
     runs-on: ubuntu-latest
@@ -208,6 +245,7 @@ jobs:
       [
         run-tests-slim-topology,
         run-tests-directory,
+        run-tests-a2a,
       ]
     if: ${{ always() }}
     runs-on: ubuntu-latest
