@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "agntcy-a2a"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34f2df4ac201606e523996a81451de09fcd0e64cd99adce17bbc6675df80cd44"
+checksum = "042c4a30365eb47860f3202259b174f1ddefe5206331f364d6072daf106d9d38"
 dependencies = [
  "base64",
  "chrono",
@@ -17,23 +17,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "agntcy-a2a-client"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dea81781417ec53efef6249b8bd76fb88d4c5f3078247cf28d7af95365bc41cf"
+dependencies = [
+ "agntcy-a2a",
+ "async-trait",
+ "bytes",
+ "futures",
+ "pin-project-lite",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "agntcy-a2a-csit-fixtures"
 version = "0.1.0"
 dependencies = [
  "agntcy-a2a",
+ "agntcy-a2a-client",
  "agntcy-a2a-server",
  "axum",
  "futures",
- "reqwest",
- "serde_json",
  "tokio",
 ]
 
 [[package]]
 name = "agntcy-a2a-server"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4d959fc430280d643ba5b365770d494a8561c160aa90770205d90a487ecb4dc"
+checksum = "20b154eaf616b336d9dcf5a7c7c8ff42a7da1c3f0ebee72e19216ed06245d54f"
 dependencies = [
  "agntcy-a2a",
  "async-trait",

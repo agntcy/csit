@@ -2,25 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::env;
+use std::sync::Arc;
 
 use a2a::*;
-use axum::extract::State;
-use axum::response::IntoResponse;
-use axum::routing::{get, post};
-use axum::{Json, Router};
+use a2a_server::{DefaultRequestHandler, InMemoryTaskStore, StaticAgentCard};
+use axum::Router;
 use futures::stream::{self, BoxStream};
-use serde_json::Value;
 use tokio::net::TcpListener;
 
-const METHOD_SEND_MESSAGE: &str = "SendMessage";
-const METHOD_SEND_STREAMING_MESSAGE: &str = "SendStreamingMessage";
-const LEGACY_METHOD_SEND_MESSAGE: &str = "message.send";
-const LEGACY_METHOD_SEND_STREAMING_MESSAGE: &str = "message.stream";
-
-#[derive(Clone)]
-struct AppState {
-    card: AgentCard,
-}
+struct InteropExecutor;
 
 fn first_text(message: Option<&Message>) -> String {
     message
@@ -58,73 +48,30 @@ fn build_agent_card(port: u16) -> AgentCard {
     }
 }
 
-fn build_response_message(request: &SendMessageRequest) -> Message {
+fn build_response_message(request: Option<&Message>) -> Message {
     Message::new(
         Role::Agent,
         vec![Part::text(format!(
             "rust server received: {}",
-            first_text(Some(&request.message))
+            first_text(request)
         ))],
     )
 }
 
-fn error_response(id: JsonRpcId, error: A2AError) -> Json<JsonRpcResponse> {
-    Json(JsonRpcResponse::error(id, error.to_jsonrpc_error()))
-}
-
-async fn handle_agent_card(State(state): State<AppState>) -> Json<AgentCard> {
-    Json(state.card)
-}
-
-async fn handle_jsonrpc(
-    State(_state): State<AppState>,
-    Json(request): Json<JsonRpcRequest>,
-) -> impl IntoResponse {
-    let id = request.id.clone();
-    let raw_params = request.params.unwrap_or(Value::Null);
-
-    if request.jsonrpc != "2.0" {
-        return error_response(id, A2AError::invalid_request("invalid jsonrpc version"))
-            .into_response();
+impl a2a_server::AgentExecutor for InteropExecutor {
+    fn execute(
+        &self,
+        ctx: a2a_server::ExecutorContext,
+    ) -> BoxStream<'static, Result<StreamResponse, A2AError>> {
+        let response = StreamResponse::Message(build_response_message(ctx.message.as_ref()));
+        Box::pin(stream::once(async move { Ok(response) }))
     }
 
-    match request.method.as_str() {
-        METHOD_SEND_MESSAGE | LEGACY_METHOD_SEND_MESSAGE => {
-            match serde_json::from_value::<SendMessageRequest>(raw_params) {
-                Ok(request) => {
-                    let response = StreamResponse::Message(build_response_message(&request));
-                    let value = serde_json::to_value(response)
-                        .map_err(|error| A2AError::internal(error.to_string()));
-
-                    match value {
-                        Ok(value) => Json(JsonRpcResponse::success(id, value)).into_response(),
-                        Err(error) => error_response(id, error).into_response(),
-                    }
-                }
-                Err(error) => error_response(
-                    id,
-                    A2AError::invalid_request(format!("invalid params: {error}")),
-                )
-                .into_response(),
-            }
-        }
-        METHOD_SEND_STREAMING_MESSAGE | LEGACY_METHOD_SEND_STREAMING_MESSAGE => {
-            match serde_json::from_value::<SendMessageRequest>(raw_params) {
-                Ok(request) => {
-                    let response = StreamResponse::Message(build_response_message(&request));
-                    let stream: BoxStream<'static, Result<StreamResponse, A2AError>> =
-                        Box::pin(stream::once(async move { Ok(response) }));
-                    a2a_server::sse::sse_jsonrpc_stream(id, stream).into_response()
-                }
-                Err(error) => error_response(
-                    id,
-                    A2AError::invalid_request(format!("invalid params: {error}")),
-                )
-                .into_response(),
-            }
-        }
-        "" => error_response(id, A2AError::invalid_request("method is required")).into_response(),
-        _ => error_response(id, A2AError::method_not_found(&request.method)).into_response(),
+    fn cancel(
+        &self,
+        _ctx: a2a_server::ExecutorContext,
+    ) -> BoxStream<'static, Result<StreamResponse, A2AError>> {
+        Box::pin(stream::empty())
     }
 }
 
@@ -144,15 +91,15 @@ fn parse_port() -> u16 {
 #[tokio::main]
 async fn main() {
     let port = parse_port();
-    let state = AppState {
-        card: build_agent_card(port),
-    };
+    let handler = Arc::new(DefaultRequestHandler::new(
+        InteropExecutor,
+        InMemoryTaskStore::new(),
+    ));
+    let card_producer = Arc::new(StaticAgentCard::new(build_agent_card(port)));
 
     let app = Router::new()
-        .route("/rpc", post(handle_jsonrpc))
-        .route("/jsonrpc", post(handle_jsonrpc))
-        .route("/.well-known/agent-card.json", get(handle_agent_card))
-        .with_state(state);
+        .nest("/rpc", a2a_server::jsonrpc::jsonrpc_router(handler))
+        .merge(a2a_server::agent_card::agent_card_router(card_producer));
 
     let listener = TcpListener::bind(("127.0.0.1", port))
         .await
