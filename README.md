@@ -6,6 +6,7 @@
 - [Integration tests](#integration-tests)
   - [Directory structure](#directory-structure)
   - [Running tests](#running-tests)
+  - [A2A interoperability smoke tests](#a2a-interoperability-smoke-tests)
   - [Running tests using GitHub actions](#running-tests-using-github-actions)
   - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
 - [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
@@ -31,6 +32,10 @@ csit
 │   ├── go.sum
 │   └── Taskfile.yml
 ├── integrations                                  # Integration tests
+│   ├── agntcy-a2a                                 # Integration tests for Rust/Go A2A interoperability
+│   │   ├── fixtures
+│   │   ├── Taskfile.yml                          # Tasks for A2A interoperability tests
+│   │   └── tests
 │   ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
 │   │   ├── agentic-apps
 │   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
@@ -63,6 +68,12 @@ The following tasks are defined:
 task: Available tasks for this project:
 * benchmarks:directory:test:                              All ADS benchmark test
 * benchmarks:slim:test:                                All Slim benchmark test
+* integrations:a2a:test:                                 All A2A interoperability tests
+* integrations:a2a:test:rust-go:jsonrpc:                 Rust and Go JSON-RPC interoperability smoke test
+* integrations:a2a:test:rust-go:jsonrpc:go-go:           Go client to Go server JSON-RPC interoperability test
+* integrations:a2a:test:rust-go:jsonrpc:go-rust:         Go client to Rust server JSON-RPC interoperability test
+* integrations:a2a:test:rust-go:jsonrpc:rust-go:         Rust client to Go server JSON-RPC interoperability test
+* integrations:a2a:test:rust-go:jsonrpc:rust-rust:       Rust client to Rust server JSON-RPC interoperability test
 * integrations:apps:download:wfsm-bin:                    Get wfsm binary from GitHub
 * integrations:apps:get-marketing-campaign-cfgs:          Populate marketing campaign config file
 * integrations:apps:init-submodules:                      Initialize submodules
@@ -136,9 +147,12 @@ environment, deploying the components that will be tested, and running the tests
 ## Running tests
 
 We can launch tests using taskfile locally or in GitHub actions.
-Running locally we need to create a test cluster and deploy the test env on
-it before running the tests.
-It requires the following tools to be installed on local machine:
+Some suites are self-contained and run directly on the host, while others need
+a Kubernetes-based test environment.
+
+Suites that deploy components on Kubernetes require creating a test cluster and
+deploying the test environment before running the tests.
+They require the following tools to be installed on the local machine:
   - [Taskfile](https://taskfile.dev/installation/)
   - [Go](https://go.dev/doc/install)
   - [Docker](https://docs.docker.com/get-started/get-docker/)
@@ -161,6 +175,34 @@ After we finish the tests we can destroy the test cluster
 ```bash
 task integratons:kind:destroy
 ```
+
+## A2A interoperability smoke tests
+
+The `integrations/agntcy-a2a` suite is self-contained and does not require a
+Kind cluster, Helm, or repository sibling checkouts. It builds and runs small
+Go and Rust JSON-RPC fixtures locally to exercise this matrix:
+
+- Go client -> Go server
+- Go client -> Rust server
+- Rust client -> Go server
+- Rust client -> Rust server
+
+To run it from the repository root you need:
+
+- [Taskfile](https://taskfile.dev/installation/)
+- [Go](https://go.dev/doc/install)
+- [Rust and Cargo](https://www.rust-lang.org/tools/install)
+
+```bash
+task integrations:a2a:test
+task integrations:a2a:test:rust-go:jsonrpc
+task integrations:a2a:test:rust-go:jsonrpc:go-go
+task integrations:a2a:test:rust-go:jsonrpc:go-rust
+task integrations:a2a:test:rust-go:jsonrpc:rust-go
+task integrations:a2a:test:rust-go:jsonrpc:rust-rust
+```
+
+The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`.
 
 
 ## Running tests using GitHub actions
