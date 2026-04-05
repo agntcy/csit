@@ -6,12 +6,12 @@ The current slice covers Rust and Go across the released JSON-RPC, HTTP+JSON, an
 
 JSON-RPC and HTTP+JSON are green across the full 4-leg Rust/Go matrix.
 
-gRPC currently has two passing same-SDK legs plus two explicit incompatibility checks:
+gRPC now has three passing legs plus one remaining documented incompatibility:
 
 - Go client -> Go server passes with the Go SDK's native bare `host:port` gRPC endpoint form
+- Rust client -> Go server passes because the released Rust gRPC client now accepts bare endpoints advertised in the Go card
 - Rust client -> Rust server passes with the Rust SDK's native `http://host:port` gRPC endpoint form
-- Go client -> Rust server documents that the released Go gRPC client rejects scheme-prefixed endpoints advertised in the Rust card
-- Rust client -> Go server documents that the released Rust gRPC client rejects the bare endpoint advertised in the Go card
+- Go client -> Rust server still documents that the released Go gRPC client rejects scheme-prefixed endpoints advertised in the Rust card
 
 Each leg validates the same reusable behavior:
 
@@ -41,7 +41,7 @@ The gRPC legs follow the same agent-card discovery path as the other transports:
 | HTTP+JSON | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:rest:rust-rust` | `task integrations:a2a:test:rust-go:rest:rust-rust` |
 | gRPC | `go-go` | Go client -> Go server | Pass | `task test:rust-go:grpc:go-go` | `task integrations:a2a:test:rust-go:grpc:go-go` |
 | gRPC | `go-rust` | Go client -> Rust server | Incompatibility documented | `task test:rust-go:grpc:go-rust` | `task integrations:a2a:test:rust-go:grpc:go-rust` |
-| gRPC | `rust-go` | Rust client -> Go server | Incompatibility documented | `task test:rust-go:grpc:rust-go` | `task integrations:a2a:test:rust-go:grpc:rust-go` |
+| gRPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:grpc:rust-go` | `task integrations:a2a:test:rust-go:grpc:rust-go` |
 | gRPC | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:grpc:rust-rust` | `task integrations:a2a:test:rust-go:grpc:rust-rust` |
 
 ## Running the Suite

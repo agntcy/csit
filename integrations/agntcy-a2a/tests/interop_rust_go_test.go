@@ -787,7 +787,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("too many colons in address")))
 		})
 
-		ginkgo.It("documents the Rust client gRPC endpoint mismatch against the Go fixture", ginkgo.Label("grpc", "rust-go"), func(ctx ginkgo.SpecContext) {
+		ginkgo.It("lets the Rust client call the Go fixture over gRPC", ginkgo.Label("grpc", "rust-go"), func(ctx ginkgo.SpecContext) {
 			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 			defer cancel()
 
@@ -795,9 +795,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 				expectPushUnsupported: true,
 				expectedPushErrorCode: unsupportedOpCode,
 			})
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(output).To(gomega.ContainSubstring("client creation failed"))
-			gomega.Expect(output).To(gomega.ContainSubstring("gRPC connect error"))
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
 
 		ginkgo.It("lets the Rust client call the Rust fixture over gRPC", ginkgo.Label("grpc", "rust-rust"), func(ctx ginkgo.SpecContext) {
