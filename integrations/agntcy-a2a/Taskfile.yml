@@ -10,21 +10,45 @@ tasks:
   test:
     desc: All A2A interoperability tests
     cmds:
-      - task: test:rust-go:jsonrpc
+      - task: test:rust-go
+
+  test:rust-go:
+    desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          REPORT_NAME: report-agntcy-a2a
 
   test:rust-go:jsonrpc:
-    desc: Rust and Go JSON-RPC interoperability smoke test
+    desc: Rust and Go JSON-RPC interoperability matrix
     cmds:
       - task: test:rust-go:jsonrpc:run
         vars:
-          REPORT_NAME: report-agntcy-a2a
+          LABEL_FILTER: jsonrpc
+          REPORT_NAME: report-agntcy-a2a-jsonrpc
+
+  test:rust-go:rest:
+    desc: Rust and Go HTTP+JSON interoperability matrix
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rest
+          REPORT_NAME: report-agntcy-a2a-rest
+
+  test:rust-go:grpc:
+    desc: Rust and Go gRPC interoperability matrix
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: grpc
+          REPORT_NAME: report-agntcy-a2a-grpc
 
   test:rust-go:jsonrpc:go-go:
     desc: Go client to Go server JSON-RPC interoperability test
     cmds:
       - task: test:rust-go:jsonrpc:run
         vars:
-          LABEL_FILTER: go-go
+          LABEL_FILTER: jsonrpc && go-go
           REPORT_NAME: report-agntcy-a2a-go-go
 
   test:rust-go:jsonrpc:go-rust:
@@ -32,7 +56,7 @@ tasks:
     cmds:
       - task: test:rust-go:jsonrpc:run
         vars:
-          LABEL_FILTER: go-rust
+          LABEL_FILTER: jsonrpc && go-rust
           REPORT_NAME: report-agntcy-a2a-go-rust
 
   test:rust-go:jsonrpc:rust-go:
@@ -40,7 +64,7 @@ tasks:
     cmds:
       - task: test:rust-go:jsonrpc:run
         vars:
-          LABEL_FILTER: rust-go
+          LABEL_FILTER: jsonrpc && rust-go
           REPORT_NAME: report-agntcy-a2a-rust-go
 
   test:rust-go:jsonrpc:rust-rust:
@@ -48,8 +72,72 @@ tasks:
     cmds:
       - task: test:rust-go:jsonrpc:run
         vars:
-          LABEL_FILTER: rust-rust
+          LABEL_FILTER: jsonrpc && rust-rust
           REPORT_NAME: report-agntcy-a2a-rust-rust
+
+  test:rust-go:rest:go-go:
+    desc: Go client to Go server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rest && go-go
+          REPORT_NAME: report-agntcy-a2a-rest-go-go
+
+  test:rust-go:rest:go-rust:
+    desc: Go client to Rust server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rest && go-rust
+          REPORT_NAME: report-agntcy-a2a-rest-go-rust
+
+  test:rust-go:rest:rust-go:
+    desc: Rust client to Go server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rest && rust-go
+          REPORT_NAME: report-agntcy-a2a-rest-rust-go
+
+  test:rust-go:rest:rust-rust:
+    desc: Rust client to Rust server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: rest && rust-rust
+          REPORT_NAME: report-agntcy-a2a-rest-rust-rust
+
+  test:rust-go:grpc:go-go:
+    desc: Go client to Go server gRPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: grpc && go-go
+          REPORT_NAME: report-agntcy-a2a-grpc-go-go
+
+  test:rust-go:grpc:go-rust:
+    desc: Go client to Rust server gRPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: grpc && go-rust
+          REPORT_NAME: report-agntcy-a2a-grpc-go-rust
+
+  test:rust-go:grpc:rust-go:
+    desc: Rust client to Go server gRPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: grpc && rust-go
+          REPORT_NAME: report-agntcy-a2a-grpc-rust-go
+
+  test:rust-go:grpc:rust-rust:
+    desc: Rust client to Rust server gRPC interoperability test
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: grpc && rust-rust
+          REPORT_NAME: report-agntcy-a2a-grpc-rust-rust
 
   test:rust-go:jsonrpc:run:
     internal: true
@@ -62,6 +150,14 @@ tasks:
         {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}}
         --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json
         --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
+
+  test:rust-go:run:
+    internal: true
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
   default:
     cmd: task -l

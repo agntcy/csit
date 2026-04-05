@@ -205,7 +205,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run A2A interoperability tests
-        run: task integrations:a2a:test:rust-go:jsonrpc
+        run: task integrations:a2a:test:rust-go
         shell: bash
 
       - name: Create artifact from integrations test reports
