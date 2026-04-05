@@ -776,15 +776,43 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			goClientAssertLifecycle(requestCtx, client, "go")
 		})
 
-		ginkgo.It("documents the Go client gRPC endpoint mismatch against the Rust fixture", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
+		ginkgo.It("documents the remaining Go client list_tasks mismatch against the Rust fixture over gRPC", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
 			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 			defer cancel()
 
 			client, err := newGoClient(requestCtx, rustGRPCFixtureURL)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			_, err = goClientUnaryText(requestCtx, client)
-			gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("too many colons in address")))
+			unaryText, err := goClientUnaryText(requestCtx, client)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(unaryText).To(gomega.Equal(expectedServerText("rust", requestText)))
+
+			streamText, err := goClientStreamingText(requestCtx, client)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
+
+			completedTask, err := goClientSendTask(requestCtx, client, requestText, false)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(completedTask.ContextID).NotTo(gomega.BeEmpty())
+			gomega.Expect(completedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
+
+			completedText, err := taskStatusText(completedTask)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(completedText).To(gomega.Equal(expectedServerText("rust", requestText)))
+			assertTaskHistoryPayload(completedTask, requestText, "completed task history")
+
+			fetchedTask, err := client.GetTask(requestCtx, &a2a.GetTaskRequest{ID: completedTask.ID})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(fetchedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
+
+			fetchedText, err := taskStatusText(fetchedTask)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(fetchedText).To(gomega.Equal(expectedServerText("rust", requestText)))
+			assertTaskHistoryPayload(fetchedTask, requestText, "fetched task history")
+
+			listedTasks, err := client.ListTasks(requestCtx, &a2a.ListTasksRequest{ContextID: completedTask.ContextID})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(listedTasks.Tasks).To(gomega.BeEmpty())
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over gRPC", ginkgo.Label("grpc", "rust-go"), func(ctx ginkgo.SpecContext) {

@@ -6,12 +6,12 @@ The current slice covers Rust and Go across the released JSON-RPC, HTTP+JSON, an
 
 JSON-RPC and HTTP+JSON are green across the full 4-leg Rust/Go matrix.
 
-gRPC now has three passing legs plus one remaining documented incompatibility:
+gRPC still has three passing legs plus one remaining documented incompatibility after the released Rust agent-card endpoint fix:
 
 - Go client -> Go server passes with the Go SDK's native bare `host:port` gRPC endpoint form
-- Rust client -> Go server passes because the released Rust gRPC client now accepts bare endpoints advertised in the Go card
-- Rust client -> Rust server passes with the Rust SDK's native `http://host:port` gRPC endpoint form
-- Go client -> Rust server still documents that the released Go gRPC client rejects scheme-prefixed endpoints advertised in the Rust card
+- Rust client -> Go server passes because the released Rust gRPC client accepts bare endpoints advertised in the Go card
+- Rust client -> Rust server passes with the released Rust SDK's published gRPC endpoint form
+- Go client -> Rust server now clears transport discovery plus unary and streaming exchange, but `ListTasks` still returns an empty task list against the Rust gRPC server
 
 Each leg validates the same reusable behavior:
 

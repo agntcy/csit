@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "agntcy-a2a"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "042c4a30365eb47860f3202259b174f1ddefe5206331f364d6072daf106d9d38"
+checksum = "1be0b586d63f3f6ca6c19f6d45c174413371bab9a68a25bf8167938791779f0e"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -18,9 +18,9 @@ dependencies = [
 
 [[package]]
 name = "agntcy-a2a-client"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4874ed7c7560ff9a05060959faf9ad6a3cf72dd4e4dd16fa8b73c6508092820c"
+checksum = "835adcc768160d90a000002fa0d21e446b0954f3975b7f0f4692804ab50a6220"
 dependencies = [
  "agntcy-a2a",
  "agntcy-a2a-pb",
@@ -56,9 +56,9 @@ dependencies = [
 
 [[package]]
 name = "agntcy-a2a-grpc"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e5be1c28f0fdb5077d62c6989d10add6700e4e1f9d9802bef614ee21c0a2b59"
+checksum = "13607a0a45247a9d37b24100b228fd190bd3b28a54f6cf3dedd949b3053a4c8c"
 dependencies = [
  "agntcy-a2a",
  "agntcy-a2a-client",
@@ -75,9 +75,9 @@ dependencies = [
 
 [[package]]
 name = "agntcy-a2a-pb"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b9d24ed1284ea39632a36b901c610833190aabf5061dd8dc2d084e299e1ad8"
+checksum = "c1711a80877ac77ac5b784d05e3aba18a1a98bf86949ceb2991fd723d15cec6b"
 dependencies = [
  "agntcy-a2a",
  "chrono",
@@ -95,9 +95,9 @@ dependencies = [
 
 [[package]]
 name = "agntcy-a2a-server"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fbaaad421df1b96f3ff368518f040d29943edbaddc01d0312de72cd08c1fa7e"
+checksum = "059edc51da36774c3ea627e63037b77ab69295c70a93d17e4b9498dc748ec758"
 dependencies = [
  "agntcy-a2a",
  "agntcy-a2a-pb",
