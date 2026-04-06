@@ -52,6 +52,7 @@ const (
 
 type rustProbeOptions struct {
 	expectSubscribeUnsupported bool
+	expectPushSupported        bool
 	expectPushUnsupported      bool
 	relaxedErrorChecks         bool
 	expectedPushErrorCode      int
@@ -403,6 +404,57 @@ func expectedCancelText(serverPrefix string) string {
 	return fmt.Sprintf("%s server canceled task", serverPrefix)
 }
 
+func newInteropPushConfig() *a2a.PushConfig {
+	return &a2a.PushConfig{
+		ID:    "interop-config",
+		URL:   "https://example.invalid/webhook",
+		Token: "interop-token",
+		Auth: &a2a.PushAuthInfo{
+			Scheme:      "Bearer",
+			Credentials: "interop-credential",
+		},
+	}
+}
+
+func assertTaskPushConfig(config *a2a.TaskPushConfig, taskID a2a.TaskID, expected *a2a.PushConfig, kind string) {
+	gomega.Expect(config).NotTo(gomega.BeNil(), kind)
+	gomega.Expect(config.TaskID).To(gomega.Equal(taskID), kind)
+	gomega.Expect(config.Config).To(gomega.Equal(*expected), kind)
+}
+
+func goClientAssertPushLifecycle(ctx context.Context, client *a2aclient.Client, taskID a2a.TaskID) {
+	pushConfig := newInteropPushConfig()
+
+	createdConfig, err := client.CreateTaskPushConfig(ctx, &a2a.CreateTaskPushConfigRequest{
+		TaskID: taskID,
+		Config: *pushConfig,
+	})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	assertTaskPushConfig(createdConfig, taskID, pushConfig, "created push config")
+
+	fetchedConfig, err := client.GetTaskPushConfig(ctx, &a2a.GetTaskPushConfigRequest{
+		TaskID: taskID,
+		ID:     pushConfig.ID,
+	})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	assertTaskPushConfig(fetchedConfig, taskID, pushConfig, "fetched push config")
+
+	listedConfigs, err := client.ListTaskPushConfigs(ctx, &a2a.ListTaskPushConfigRequest{TaskID: taskID})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(listedConfigs).To(gomega.HaveLen(1))
+	assertTaskPushConfig(listedConfigs[0], taskID, pushConfig, "listed push config")
+
+	err = client.DeleteTaskPushConfig(ctx, &a2a.DeleteTaskPushConfigRequest{
+		TaskID: taskID,
+		ID:     pushConfig.ID,
+	})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	listedConfigs, err = client.ListTaskPushConfigs(ctx, &a2a.ListTaskPushConfigRequest{TaskID: taskID})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(listedConfigs).To(gomega.BeEmpty())
+}
+
 func taskStatusText(task *a2a.Task) (string, error) {
 	if task == nil || task.Status.Message == nil {
 		return "", errors.New("task status did not include a message")
@@ -475,7 +527,7 @@ func goClientStreamingText(ctx context.Context, client *a2aclient.Client) (strin
 	return "", errors.New("stream completed without a message event")
 }
 
-func goClientAssertLifecycle(ctx context.Context, client *a2aclient.Client, serverPrefix string) {
+func goClientAssertLifecycle(ctx context.Context, client *a2aclient.Client, serverPrefix string, expectPushSupported bool) {
 	completedTask, err := goClientSendTask(ctx, client, requestText, false)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(completedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
@@ -498,6 +550,10 @@ func goClientAssertLifecycle(ctx context.Context, client *a2aclient.Client, serv
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(listedTasks.Tasks).NotTo(gomega.BeEmpty())
 	gomega.Expect(listedTasks.Tasks).To(gomega.ContainElement(gomega.HaveField("ID", completedTask.ID)))
+
+	if expectPushSupported {
+		goClientAssertPushLifecycle(ctx, client, completedTask.ID)
+	}
 
 	pendingTask, err := goClientSendTask(ctx, client, pendingRequestText, true)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -545,6 +601,9 @@ func runRustProbe(
 	}
 	if options.expectSubscribeUnsupported {
 		args = append(args, "--expect-subscribe-unsupported")
+	}
+	if options.expectPushSupported {
+		args = append(args, "--expect-push-supported")
 	}
 	if options.expectPushUnsupported {
 		args = append(args, "--expect-push-unsupported")
@@ -653,7 +712,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go")
+			goClientAssertLifecycle(requestCtx, client, "go", false)
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture", ginkgo.Label("jsonrpc", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -671,7 +730,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "rust")
+			goClientAssertLifecycle(requestCtx, client, "rust", false)
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture", ginkgo.Label("jsonrpc", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -690,8 +749,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, rustJSONRPCFixtureURL, "rust", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
@@ -713,7 +771,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go")
+			goClientAssertLifecycle(requestCtx, client, "go", false)
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture over REST", ginkgo.Label("rest", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -731,7 +789,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "rust")
+			goClientAssertLifecycle(requestCtx, client, "rust", false)
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over REST", ginkgo.Label("rest", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -750,8 +808,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, rustRESTFixtureURL, "rust", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
@@ -773,10 +830,10 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go")
+			goClientAssertLifecycle(requestCtx, client, "go", false)
 		})
 
-		ginkgo.It("documents the remaining Go client list_tasks mismatch against the Rust fixture over gRPC", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
+		ginkgo.It("lets the Go client call the Rust fixture over gRPC", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
 			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 			defer cancel()
 
@@ -791,28 +848,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
-			completedTask, err := goClientSendTask(requestCtx, client, requestText, false)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(completedTask.ContextID).NotTo(gomega.BeEmpty())
-			gomega.Expect(completedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
-
-			completedText, err := taskStatusText(completedTask)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(completedText).To(gomega.Equal(expectedServerText("rust", requestText)))
-			assertTaskHistoryPayload(completedTask, requestText, "completed task history")
-
-			fetchedTask, err := client.GetTask(requestCtx, &a2a.GetTaskRequest{ID: completedTask.ID})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(fetchedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
-
-			fetchedText, err := taskStatusText(fetchedTask)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(fetchedText).To(gomega.Equal(expectedServerText("rust", requestText)))
-			assertTaskHistoryPayload(fetchedTask, requestText, "fetched task history")
-
-			listedTasks, err := client.ListTasks(requestCtx, &a2a.ListTasksRequest{ContextID: completedTask.ContextID})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(listedTasks.Tasks).To(gomega.BeEmpty())
+			goClientAssertLifecycle(requestCtx, client, "rust", true)
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over gRPC", ginkgo.Label("grpc", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -831,8 +867,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, rustGRPCFixtureURL, "rust", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: unsupportedOpCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})

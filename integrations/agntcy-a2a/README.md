@@ -4,21 +4,20 @@ This component hosts cross-SDK A2A interoperability checks.
 
 The current slice covers Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings.
 
-JSON-RPC and HTTP+JSON are green across the full 4-leg Rust/Go matrix.
+All 12 Rust/Go client-server legs in the current core lifecycle matrix are green across JSON-RPC, HTTP+JSON, and gRPC.
 
-gRPC still has three passing legs plus one remaining documented incompatibility after the released Rust agent-card endpoint fix:
+The released Rust fixture now exposes push-config CRUD. CSIT validates that path from the Rust client across all three transports and from the Go client on the gRPC `go-rust` leg.
 
-- Go client -> Go server passes with the Go SDK's native bare `host:port` gRPC endpoint form
-- Rust client -> Go server passes because the released Rust gRPC client accepts bare endpoints advertised in the Go card
-- Rust client -> Rust server passes with the released Rust SDK's published gRPC endpoint form
-- Go client -> Rust server now clears transport discovery plus unary and streaming exchange, but `ListTasks` still returns an empty task list against the Rust gRPC server
+Go client -> Rust server push-config creation over JSON-RPC and HTTP+JSON still has a request-shape mismatch, so those two transports remain outside the promoted push-config coverage.
 
-Each leg validates the same reusable behavior:
+The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
+
+Across the matrix, the scenarios validate the same core interoperability behavior:
 
 - unary and streaming `SendMessage`
 - lifecycle methods across `GetTask`, `ListTasks`, and `CancelTask`
 - negative-path error semantics for missing and non-cancelable tasks
-- unsupported push-notification behavior
+- successful push-config CRUD on the promoted Rust-server paths and unsupported push-config errors against the Go fixture where exercised
 - preservation of a mixed text plus structured-data request payload and message metadata through task history
 
 The fixtures are intentionally small and deterministic so the suite can run the same way locally and in CI without depending on sibling SDK checkouts.
@@ -40,7 +39,7 @@ The gRPC legs follow the same agent-card discovery path as the other transports:
 | HTTP+JSON | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:rest:rust-go` | `task integrations:a2a:test:rust-go:rest:rust-go` |
 | HTTP+JSON | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:rest:rust-rust` | `task integrations:a2a:test:rust-go:rest:rust-rust` |
 | gRPC | `go-go` | Go client -> Go server | Pass | `task test:rust-go:grpc:go-go` | `task integrations:a2a:test:rust-go:grpc:go-go` |
-| gRPC | `go-rust` | Go client -> Rust server | Incompatibility documented | `task test:rust-go:grpc:go-rust` | `task integrations:a2a:test:rust-go:grpc:go-rust` |
+| gRPC | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:grpc:go-rust` | `task integrations:a2a:test:rust-go:grpc:go-rust` |
 | gRPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:grpc:rust-go` | `task integrations:a2a:test:rust-go:grpc:rust-go` |
 | gRPC | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:grpc:rust-rust` | `task integrations:a2a:test:rust-go:grpc:rust-rust` |
 

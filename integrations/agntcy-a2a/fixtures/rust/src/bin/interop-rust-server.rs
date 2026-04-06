@@ -7,7 +7,9 @@ use std::sync::Arc;
 use a2a::*;
 use a2a_grpc::GrpcHandler;
 use a2a_pb::proto::a2a_service_server::A2aServiceServer;
-use a2a_server::{DefaultRequestHandler, InMemoryTaskStore, StaticAgentCard};
+use a2a_server::{
+    DefaultRequestHandler, InMemoryPushConfigStore, InMemoryTaskStore, StaticAgentCard,
+};
 use axum::Router;
 use futures::stream::{self, BoxStream};
 use tokio::net::TcpListener;
@@ -84,7 +86,7 @@ fn build_agent_card(
         supported_interfaces: vec![AgentInterface::new(interface_url, binding)],
         capabilities: AgentCapabilities {
             streaming: Some(true),
-            push_notifications: Some(false),
+            push_notifications: Some(true),
             extensions: None,
             extended_agent_card: None,
         },
@@ -221,10 +223,10 @@ fn parse_args() -> (u16, TransportProtocol, Option<u16>) {
 #[tokio::main]
 async fn main() {
     let (port, protocol, grpc_port) = parse_args();
-    let handler = Arc::new(DefaultRequestHandler::new(
-        InteropExecutor,
-        InMemoryTaskStore::new(),
-    ));
+    let handler = Arc::new(
+        DefaultRequestHandler::new(InteropExecutor, InMemoryTaskStore::new())
+            .with_push_config_store(InMemoryPushConfigStore::new()),
+    );
     let card_producer = Arc::new(StaticAgentCard::new(build_agent_card(
         port, protocol, grpc_port,
     )));

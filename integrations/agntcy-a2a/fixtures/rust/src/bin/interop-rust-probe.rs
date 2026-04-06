@@ -24,6 +24,7 @@ struct Args {
     card_url: String,
     server_prefix: String,
     expect_subscribe_unsupported: bool,
+    expect_push_supported: bool,
     expect_push_unsupported: bool,
     relaxed_error_checks: bool,
     expected_push_error_code: i32,
@@ -34,6 +35,7 @@ fn parse_args() -> Result<Args, String> {
     let mut card_url = None;
     let mut server_prefix = None;
     let mut expect_subscribe_unsupported = false;
+    let mut expect_push_supported = false;
     let mut expect_push_unsupported = false;
     let mut relaxed_error_checks = false;
     let mut expected_push_error_code = a2a::error_code::PUSH_NOTIFICATION_NOT_SUPPORTED;
@@ -55,6 +57,9 @@ fn parse_args() -> Result<Args, String> {
             "--expect-subscribe-unsupported" => {
                 expect_subscribe_unsupported = true;
             }
+            "--expect-push-supported" => {
+                expect_push_supported = true;
+            }
             "--expect-push-unsupported" => {
                 expect_push_unsupported = true;
             }
@@ -75,10 +80,18 @@ fn parse_args() -> Result<Args, String> {
         }
     }
 
+    if expect_push_supported && expect_push_unsupported {
+        return Err(
+            "--expect-push-supported and --expect-push-unsupported are mutually exclusive"
+                .to_string(),
+        );
+    }
+
     Ok(Args {
         card_url: card_url.ok_or_else(|| "missing --card-url".to_string())?,
         server_prefix: server_prefix.ok_or_else(|| "missing --server-prefix".to_string())?,
         expect_subscribe_unsupported,
+        expect_push_supported,
         expect_push_unsupported,
         relaxed_error_checks,
         expected_push_error_code,
@@ -136,6 +149,29 @@ fn assert_failed<T>(result: Result<T, A2AError>, kind: &str) -> Result<(), Strin
         Ok(_) => Err(format!("expected {kind} to fail, but it succeeded")),
         Err(_) => Ok(()),
     }
+}
+
+fn assert_push_config(
+    actual: &TaskPushNotificationConfig,
+    task_id: &str,
+    expected: &PushNotificationConfig,
+    kind: &str,
+) -> Result<(), String> {
+    if actual.task_id != task_id {
+        return Err(format!(
+            "unexpected {kind} task id: got {:?}, want {:?}",
+            actual.task_id, task_id
+        ));
+    }
+
+    if actual.config != *expected {
+        return Err(format!(
+            "unexpected {kind} push config: got {:?}, want {:?}",
+            actual.config, expected
+        ));
+    }
+
+    Ok(())
 }
 
 async fn assert_stream_error_code(
@@ -616,6 +652,93 @@ async fn run(args: Args) -> Result<(), String> {
                 args.expected_push_error_code,
                 "delete_push_config",
             )?;
+        }
+    } else if args.expect_push_supported {
+        let push_config = PushNotificationConfig {
+            url: "https://example.invalid/webhook".to_string(),
+            id: Some("interop-config".to_string()),
+            token: Some("interop-token".to_string()),
+            authentication: Some(AuthenticationInfo {
+                scheme: "Bearer".to_string(),
+                credentials: Some("interop-credential".to_string()),
+            }),
+        };
+
+        let created_push_config = client
+            .create_push_config(&CreateTaskPushNotificationConfigRequest {
+                task_id: completed_task.id.clone(),
+                config: push_config.clone(),
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("create_push_config failed: {error}"))?;
+        assert_push_config(
+            &created_push_config,
+            &completed_task.id,
+            &push_config,
+            "create_push_config",
+        )?;
+
+        let fetched_push_config = client
+            .get_push_config(&GetTaskPushNotificationConfigRequest {
+                task_id: completed_task.id.clone(),
+                id: "interop-config".to_string(),
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("get_push_config failed: {error}"))?;
+        assert_push_config(
+            &fetched_push_config,
+            &completed_task.id,
+            &push_config,
+            "get_push_config",
+        )?;
+
+        let listed_push_configs = client
+            .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                task_id: completed_task.id.clone(),
+                page_size: None,
+                page_token: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("list_push_configs failed: {error}"))?;
+        if listed_push_configs.configs.len() != 1 {
+            return Err(format!(
+                "unexpected list_push_configs result count: got {}, want 1",
+                listed_push_configs.configs.len()
+            ));
+        }
+        assert_push_config(
+            &listed_push_configs.configs[0],
+            &completed_task.id,
+            &push_config,
+            "list_push_configs",
+        )?;
+
+        client
+            .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
+                task_id: completed_task.id.clone(),
+                id: "interop-config".to_string(),
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("delete_push_config failed: {error}"))?;
+
+        let listed_after_delete = client
+            .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                task_id: completed_task.id.clone(),
+                page_size: None,
+                page_token: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("list_push_configs after delete failed: {error}"))?;
+        if !listed_after_delete.configs.is_empty() {
+            return Err(format!(
+                "expected list_push_configs after delete to be empty, got {:?}",
+                listed_after_delete.configs
+            ));
         }
     }
 
