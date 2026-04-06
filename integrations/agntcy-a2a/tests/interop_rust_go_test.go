@@ -38,8 +38,6 @@ const (
 	requestDataScope     = "interop"
 	requestMetadataKey   = "csit"
 	requestMetadataValue = "multipart"
-	pushUnsupportedCode  = -32003
-	unsupportedOpCode    = -32004
 )
 
 type transportProtocol string
@@ -712,7 +710,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go", false)
+			goClientAssertLifecycle(requestCtx, client, "go", true)
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture", ginkgo.Label("jsonrpc", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -738,8 +736,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, goJSONRPCFixtureURL, "go", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
@@ -771,7 +768,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go", false)
+			goClientAssertLifecycle(requestCtx, client, "go", true)
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture over REST", ginkgo.Label("rest", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -797,8 +794,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, goRESTFixtureURL, "go", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
@@ -830,7 +826,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "go", false)
+			goClientAssertLifecycle(requestCtx, client, "go", true)
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture over gRPC", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -856,8 +852,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			defer cancel()
 
 			output, err := runRustProbe(requestCtx, binaries, goGRPCFixtureURL, "go", rustProbeOptions{
-				expectPushUnsupported: true,
-				expectedPushErrorCode: unsupportedOpCode,
+				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})

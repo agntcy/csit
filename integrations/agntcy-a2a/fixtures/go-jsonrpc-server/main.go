@@ -4,17 +4,22 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"iter"
 	"log"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	a2agrpc "github.com/a2aproject/a2a-go/v2/a2agrpc/v1"
 	"github.com/a2aproject/a2a-go/v2/a2asrv"
+	"github.com/a2aproject/a2a-go/v2/a2asrv/push"
 	"github.com/a2aproject/a2a-go/v2/a2asrv/taskstore"
 	"google.golang.org/grpc"
 )
@@ -126,7 +131,10 @@ func agentCard(cardPort int, protocol transportProtocol, grpcPort int) *a2a.Agen
 		SupportedInterfaces: []*a2a.AgentInterface{
 			iface,
 		},
-		Capabilities:       a2a.AgentCapabilities{Streaming: true},
+		Capabilities: a2a.AgentCapabilities{
+			Streaming:         true,
+			PushNotifications: true,
+		},
 		DefaultInputModes:  []string{"text/plain"},
 		DefaultOutputModes: []string{"text/plain"},
 	}
@@ -143,6 +151,37 @@ func serveGRPC(listener net.Listener, handler a2asrv.RequestHandler) error {
 	server := grpc.NewServer()
 	grpcHandler.RegisterWith(server)
 	return server.Serve(listener)
+}
+
+func wrapRESTPushCreateCompat(base http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !strings.HasSuffix(r.URL.Path, "/pushNotificationConfigs") {
+			base.ServeHTTP(w, r)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		_ = r.Body.Close()
+
+		var nested struct {
+			TaskID string          `json:"taskId"`
+			Config json.RawMessage `json:"config"`
+		}
+
+		if err := json.Unmarshal(body, &nested); err == nil && len(nested.Config) > 0 {
+			body = nested.Config
+		}
+
+		r.Body = io.NopCloser(bytes.NewReader(body))
+		r.ContentLength = int64(len(body))
+		r.Header.Set("Content-Length", fmt.Sprintf("%d", len(body)))
+
+		base.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -163,6 +202,7 @@ func main() {
 				return "csit-user", nil
 			},
 		})),
+		a2asrv.WithPushNotifications(push.NewInMemoryStore(), push.NewHTTPPushSender(nil)),
 	)
 
 	if protocol == transportProtocolGRPC {
@@ -209,7 +249,7 @@ func main() {
 		mux.Handle("/rpc", a2asrv.NewJSONRPCHandler(handler))
 		log.Printf("go jsonrpc fixture listening on http://127.0.0.1:%d", *port)
 	case transportProtocolREST:
-		mux.Handle("/", a2asrv.NewRESTHandler(handler))
+		mux.Handle("/", wrapRESTPushCreateCompat(a2asrv.NewRESTHandler(handler)))
 		log.Printf("go rest fixture listening on http://127.0.0.1:%d", *port)
 	}
 	mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewStaticAgentCardHandler(agentCard(*port, protocol, *grpcPort)))

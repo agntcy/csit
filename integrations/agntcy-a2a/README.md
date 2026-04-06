@@ -6,16 +6,14 @@ The current slice covers Rust and Go across the released JSON-RPC, HTTP+JSON, an
 
 All 12 Rust/Go client-server legs in the current core lifecycle matrix are green across JSON-RPC, HTTP+JSON, and gRPC.
 
-The released Rust fixture now exposes push-config CRUD. CSIT validates that path from the Rust client across all three transports and from the Go client against Rust-server targets across JSON-RPC, HTTP+JSON, and gRPC.
-
-The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
+The Go and Rust fixtures now expose push-config CRUD. CSIT validates that path from both clients against both server targets across JSON-RPC, HTTP+JSON, and gRPC.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
 - unary and streaming `SendMessage`
 - lifecycle methods across `GetTask`, `ListTasks`, and `CancelTask`
 - negative-path error semantics for missing and non-cancelable tasks
-- successful push-config CRUD on the Rust-server paths across all three transports and unsupported push-config errors against the Go fixture where exercised
+- successful push-config CRUD on both server paths across all three transports
 - preservation of a mixed text plus structured-data request payload and message metadata through task history
 
 The fixtures are intentionally small and deterministic so the suite can run the same way locally and in CI without depending on sibling SDK checkouts.
