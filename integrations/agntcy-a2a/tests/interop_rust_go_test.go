@@ -730,7 +730,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "rust", false)
+			goClientAssertLifecycle(requestCtx, client, "rust", true)
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture", ginkgo.Label("jsonrpc", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -789,7 +789,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
-			goClientAssertLifecycle(requestCtx, client, "rust", false)
+			goClientAssertLifecycle(requestCtx, client, "rust", true)
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over REST", ginkgo.Label("rest", "rust-go"), func(ctx ginkgo.SpecContext) {
