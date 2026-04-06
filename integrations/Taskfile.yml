@@ -59,5 +59,90 @@ tasks:
     cmds:
       - git describe --tags --match "v*" | cut -c 2-
 
+  test:a2a:
+    desc: All A2A interoperability tests
+    cmds:
+      - task: a2a:test
+
+  test:a2a:rust-go:
+    desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
+    cmds:
+      - task: a2a:test:rust-go
+
+  test:a2a:rust-go:jsonrpc:
+    desc: Rust and Go JSON-RPC interoperability matrix
+    cmds:
+      - task: a2a:test:rust-go:jsonrpc
+
+  test:a2a:rust-go:rest:
+    desc: Rust and Go HTTP+JSON interoperability matrix
+    cmds:
+      - task: a2a:test:rust-go:rest
+
+  test:a2a:rust-go:grpc:
+    desc: Rust and Go gRPC interoperability matrix
+    cmds:
+      - task: a2a:test:rust-go:grpc
+
+  test:a2a:rust-go:jsonrpc:go-go:
+    desc: Go client to Go server JSON-RPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:jsonrpc:go-go
+
+  test:a2a:rust-go:jsonrpc:go-rust:
+    desc: Go client to Rust server JSON-RPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:jsonrpc:go-rust
+
+  test:a2a:rust-go:jsonrpc:rust-go:
+    desc: Rust client to Go server JSON-RPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:jsonrpc:rust-go
+
+  test:a2a:rust-go:jsonrpc:rust-rust:
+    desc: Rust client to Rust server JSON-RPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:jsonrpc:rust-rust
+
+  test:a2a:rust-go:rest:go-go:
+    desc: Go client to Go server HTTP+JSON interoperability test
+    cmds:
+      - task: a2a:test:rust-go:rest:go-go
+
+  test:a2a:rust-go:rest:go-rust:
+    desc: Go client to Rust server HTTP+JSON interoperability test
+    cmds:
+      - task: a2a:test:rust-go:rest:go-rust
+
+  test:a2a:rust-go:rest:rust-go:
+    desc: Rust client to Go server HTTP+JSON interoperability test
+    cmds:
+      - task: a2a:test:rust-go:rest:rust-go
+
+  test:a2a:rust-go:rest:rust-rust:
+    desc: Rust client to Rust server HTTP+JSON interoperability test
+    cmds:
+      - task: a2a:test:rust-go:rest:rust-rust
+
+  test:a2a:rust-go:grpc:go-go:
+    desc: Go client to Go server gRPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:grpc:go-go
+
+  test:a2a:rust-go:grpc:go-rust:
+    desc: Go client to Rust server gRPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:grpc:go-rust
+
+  test:a2a:rust-go:grpc:rust-go:
+    desc: Rust client to Go server gRPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:grpc:rust-go
+
+  test:a2a:rust-go:grpc:rust-rust:
+    desc: Rust client to Rust server gRPC interoperability test
+    cmds:
+      - task: a2a:test:rust-go:grpc:rust-rust
+
   default:
     cmd: task -l
