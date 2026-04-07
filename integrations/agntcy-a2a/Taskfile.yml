@@ -18,6 +18,7 @@ tasks:
     cmds:
       - task: test:rust-go:run
         vars:
+          LABEL_FILTER: suite-rust-go
           REPORT_NAME: report-agntcy-a2a
 
   test:rust-dotnet:
@@ -111,7 +112,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: jsonrpc
+          LABEL_FILTER: suite-rust-go && jsonrpc
           REPORT_NAME: report-agntcy-a2a-jsonrpc
 
   test:rust-go:rest:
@@ -119,7 +120,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: rest
+          LABEL_FILTER: suite-rust-go && rest
           REPORT_NAME: report-agntcy-a2a-rest
 
   test:rust-go:grpc:
@@ -127,7 +128,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: grpc
+          LABEL_FILTER: suite-rust-go && grpc
           REPORT_NAME: report-agntcy-a2a-grpc
 
   test:rust-go:jsonrpc:go-go:
@@ -135,7 +136,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: jsonrpc && go-go
+          LABEL_FILTER: suite-rust-go && jsonrpc && go-go
           REPORT_NAME: report-agntcy-a2a-go-go
 
   test:rust-go:jsonrpc:go-rust:
@@ -143,7 +144,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: jsonrpc && go-rust
+          LABEL_FILTER: suite-rust-go && jsonrpc && go-rust
           REPORT_NAME: report-agntcy-a2a-go-rust
 
   test:rust-go:jsonrpc:rust-go:
@@ -151,7 +152,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: jsonrpc && rust-go
+          LABEL_FILTER: suite-rust-go && jsonrpc && rust-go
           REPORT_NAME: report-agntcy-a2a-rust-go
 
   test:rust-go:jsonrpc:rust-rust:
@@ -159,7 +160,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: jsonrpc && rust-rust
+          LABEL_FILTER: suite-rust-go && jsonrpc && rust-rust
           REPORT_NAME: report-agntcy-a2a-rust-rust
 
   test:rust-go:rest:go-go:
@@ -167,7 +168,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: rest && go-go
+          LABEL_FILTER: suite-rust-go && rest && go-go
           REPORT_NAME: report-agntcy-a2a-rest-go-go
 
   test:rust-go:rest:go-rust:
@@ -175,7 +176,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: rest && go-rust
+          LABEL_FILTER: suite-rust-go && rest && go-rust
           REPORT_NAME: report-agntcy-a2a-rest-go-rust
 
   test:rust-go:rest:rust-go:
@@ -183,7 +184,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: rest && rust-go
+          LABEL_FILTER: suite-rust-go && rest && rust-go
           REPORT_NAME: report-agntcy-a2a-rest-rust-go
 
   test:rust-go:rest:rust-rust:
@@ -191,7 +192,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: rest && rust-rust
+          LABEL_FILTER: suite-rust-go && rest && rust-rust
           REPORT_NAME: report-agntcy-a2a-rest-rust-rust
 
   test:rust-go:grpc:go-go:
@@ -199,7 +200,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: grpc && go-go
+          LABEL_FILTER: suite-rust-go && grpc && go-go
           REPORT_NAME: report-agntcy-a2a-grpc-go-go
 
   test:rust-go:grpc:go-rust:
@@ -207,7 +208,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: grpc && go-rust
+          LABEL_FILTER: suite-rust-go && grpc && go-rust
           REPORT_NAME: report-agntcy-a2a-grpc-go-rust
 
   test:rust-go:grpc:rust-go:
@@ -215,7 +216,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: grpc && rust-go
+          LABEL_FILTER: suite-rust-go && grpc && rust-go
           REPORT_NAME: report-agntcy-a2a-grpc-rust-go
 
   test:rust-go:grpc:rust-rust:
@@ -223,7 +224,7 @@ tasks:
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: grpc && rust-rust
+          LABEL_FILTER: suite-rust-go && grpc && rust-rust
           REPORT_NAME: report-agntcy-a2a-grpc-rust-rust
 
   test:interop:run:

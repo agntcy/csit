@@ -630,7 +630,7 @@ func runRustProbe(
 	return string(output), nil
 }
 
-var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, ginkgo.Label("suite-rust-go"), func() {
 	var (
 		binaries              fixtureBinaries
 		goJSONRPCFixture      *fixtureProcess
