@@ -28,16 +28,28 @@ import (
 )
 
 const (
-	fixtureReadyTimeout  = 20 * time.Second
-	probeTimeout         = 2 * time.Minute
-	buildTimeout         = 3 * time.Minute
-	stopTimeout          = 5 * time.Second
-	requestText          = "ping"
-	pendingRequestText   = "pending"
-	requestDataKind      = "structured"
-	requestDataScope     = "interop"
-	requestMetadataKey   = "csit"
-	requestMetadataValue = "multipart"
+	fixtureReadyTimeout          = 20 * time.Second
+	probeTimeout                 = 2 * time.Minute
+	buildTimeout                 = 3 * time.Minute
+	stopTimeout                  = 5 * time.Second
+	requestText                  = "ping"
+	pendingRequestText           = "pending"
+	messageOnlyRequestText       = "message-only"
+	taskFailureRequestText       = "task-failure"
+	multiTurnStartRequestText    = "multi-turn start"
+	multiTurnContinueRequestText = "multi-turn continue"
+	streamingRequestText         = "streaming"
+	longRunningRequestText       = "long-running"
+	dataTypesRequestText         = "data-types"
+	requestDataKind              = "structured"
+	requestDataScope             = "interop"
+	requestMetadataKey           = "csit"
+	requestMetadataValue         = "multipart"
+)
+
+var (
+	extendedCardSchemeID = a2a.SecuritySchemeName("bearer_token")
+	expectedSkillIDs     = []string{"message-only", "task-lifecycle", "task-failure", "task-cancel", "multi-turn", "streaming", "long-running", "data-types"}
 )
 
 type transportProtocol string
@@ -344,6 +356,10 @@ func newGoClient(ctx context.Context, baseURL string) (*a2aclient.Client, error)
 }
 
 func newInteropRequest(text string, returnImmediately bool) *a2a.SendMessageRequest {
+	return newInteropRequestWithIDs(text, returnImmediately, "", "")
+}
+
+func newInteropRequestWithIDs(text string, returnImmediately bool, taskID a2a.TaskID, contextID string) *a2a.SendMessageRequest {
 	message := a2a.NewMessage(
 		a2a.MessageRoleUser,
 		a2a.NewTextPart(text),
@@ -352,6 +368,12 @@ func newInteropRequest(text string, returnImmediately bool) *a2a.SendMessageRequ
 			"scope": requestDataScope,
 		}),
 	)
+	if taskID != "" {
+		message.TaskID = taskID
+	}
+	if contextID != "" {
+		message.ContextID = contextID
+	}
 	message.Metadata = map[string]any{
 		requestMetadataKey: requestMetadataValue,
 	}
@@ -380,8 +402,14 @@ func assertMessageInteropPayload(message *a2a.Message, expectedText string, kind
 }
 
 func assertTaskHistoryPayload(task *a2a.Task, expectedText string, kind string) {
-	gomega.Expect(task.History).To(gomega.HaveLen(1), kind)
-	assertMessageInteropPayload(task.History[0], expectedText, kind)
+	assertTaskHistoryPayloads(task, []string{expectedText}, kind)
+}
+
+func assertTaskHistoryPayloads(task *a2a.Task, expectedTexts []string, kind string) {
+	gomega.Expect(task.History).To(gomega.HaveLen(len(expectedTexts)), kind)
+	for index, expectedText := range expectedTexts {
+		assertMessageInteropPayload(task.History[index], expectedText, kind)
+	}
 }
 
 func firstMessageText(message *a2a.Message) (string, error) {
@@ -480,8 +508,26 @@ func eventText(event a2a.Event) (string, bool, error) {
 	}
 }
 
+func firstArtifactText(artifact *a2a.Artifact) (string, error) {
+	if artifact == nil {
+		return "", errors.New("artifact was nil")
+	}
+
+	for _, part := range artifact.Parts {
+		if text := part.Text(); text != "" {
+			return text, nil
+		}
+	}
+
+	return "", errors.New("artifact did not include a text part")
+}
+
+func goClientSendResult(ctx context.Context, client *a2aclient.Client, text string, returnImmediately bool, taskID a2a.TaskID, contextID string) (a2a.SendMessageResult, error) {
+	return client.SendMessage(ctx, newInteropRequestWithIDs(text, returnImmediately, taskID, contextID))
+}
+
 func goClientSendTask(ctx context.Context, client *a2aclient.Client, text string, returnImmediately bool) (*a2a.Task, error) {
-	result, err := client.SendMessage(ctx, newInteropRequest(text, returnImmediately))
+	result, err := goClientSendResult(ctx, client, text, returnImmediately, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -492,6 +538,20 @@ func goClientSendTask(ctx context.Context, client *a2aclient.Client, text string
 	}
 
 	return task, nil
+}
+
+func goClientSendMessage(ctx context.Context, client *a2aclient.Client, text string) (*a2a.Message, error) {
+	result, err := goClientSendResult(ctx, client, text, false, "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	message, ok := result.(*a2a.Message)
+	if !ok {
+		return nil, fmt.Errorf("unexpected unary response type %T", result)
+	}
+
+	return message, nil
 }
 
 func goClientUnaryText(ctx context.Context, client *a2aclient.Client) (string, error) {
@@ -582,6 +642,141 @@ func goClientAssertLifecycle(ctx context.Context, client *a2aclient.Client, serv
 
 	_, err = client.CancelTask(ctx, &a2a.CancelTaskRequest{ID: completedTask.ID})
 	gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("cancel")))
+}
+
+func goClientWaitForTaskState(ctx context.Context, client *a2aclient.Client, taskID a2a.TaskID, expectedState a2a.TaskState) *a2a.Task {
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		task, err := client.GetTask(ctx, &a2a.GetTaskRequest{ID: taskID})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		if task.Status.State == expectedState {
+			return task
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	ginkgo.Fail(fmt.Sprintf("timed out waiting for task %s to reach state %s", taskID, expectedState))
+	return nil
+}
+
+func assertDataTypesTask(task *a2a.Task, kind string) {
+	gomega.Expect(task.Artifacts).To(gomega.HaveLen(1), kind)
+	artifact := task.Artifacts[0]
+	gomega.Expect(artifact.Parts).To(gomega.HaveLen(3), kind)
+	gomega.Expect(artifact.Parts[0].Text()).To(gomega.Equal("structured summary"), kind)
+	dataPart, ok := artifact.Parts[1].Data().(map[string]any)
+	gomega.Expect(ok).To(gomega.BeTrue(), kind)
+	gomega.Expect(dataPart).To(gomega.HaveKeyWithValue("kind", "report"), kind)
+	gomega.Expect(dataPart).To(gomega.HaveKeyWithValue("items", float64(2)), kind)
+	gomega.Expect(string(artifact.Parts[2].URL())).To(gomega.Equal("https://example.invalid/diagram.svg"), kind)
+	gomega.Expect(artifact.Parts[2].MediaType).To(gomega.Equal("image/svg+xml"), kind)
+}
+
+func assertExtendedCardMetadata(card *a2a.AgentCard, kind string) {
+	gomega.Expect(card).NotTo(gomega.BeNil(), kind)
+	gomega.Expect(card.Capabilities.ExtendedAgentCard).To(gomega.BeTrue(), kind)
+	gomega.Expect(card.Description).To(gomega.ContainSubstring("(extended)"), kind)
+
+	scheme, ok := card.SecuritySchemes[extendedCardSchemeID]
+	gomega.Expect(ok).To(gomega.BeTrue(), kind)
+	httpScheme, ok := scheme.(a2a.HTTPAuthSecurityScheme)
+	gomega.Expect(ok).To(gomega.BeTrue(), kind)
+	gomega.Expect(httpScheme.Scheme).To(gomega.Equal("Bearer"), kind)
+
+	for _, expectedSkill := range expectedSkillIDs {
+		gomega.Expect(card.Skills).To(gomega.ContainElement(gomega.HaveField("ID", expectedSkill)), kind)
+	}
+}
+
+func goClientAssertScenarioParity(ctx context.Context, client *a2aclient.Client, serverPrefix string) {
+	messageOnly, err := goClientSendMessage(ctx, client, messageOnlyRequestText)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	messageText, err := firstMessageText(messageOnly)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(messageText).To(gomega.Equal(fmt.Sprintf("%s server message-only response", serverPrefix)))
+
+	failedTask, err := goClientSendTask(ctx, client, taskFailureRequestText, false)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(failedTask.Status.State).To(gomega.Equal(a2a.TaskStateFailed))
+	failedText, err := taskStatusText(failedTask)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(failedText).To(gomega.Equal(fmt.Sprintf("%s server failed task", serverPrefix)))
+
+	inputRequiredTask, err := goClientSendTask(ctx, client, multiTurnStartRequestText, false)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(inputRequiredTask.Status.State).To(gomega.Equal(a2a.TaskStateInputRequired))
+	inputRequiredText, err := taskStatusText(inputRequiredTask)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(inputRequiredText).To(gomega.Equal(fmt.Sprintf("%s server needs more input", serverPrefix)))
+	assertTaskHistoryPayload(inputRequiredTask, multiTurnStartRequestText, "multi-turn start")
+
+	continuedResult, err := goClientSendResult(ctx, client, multiTurnContinueRequestText, false, inputRequiredTask.ID, inputRequiredTask.ContextID)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	continuedTask, ok := continuedResult.(*a2a.Task)
+	gomega.Expect(ok).To(gomega.BeTrue())
+	gomega.Expect(continuedTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
+	continuedText, err := taskStatusText(continuedTask)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(continuedText).To(gomega.Equal(fmt.Sprintf("%s server multi-turn completed", serverPrefix)))
+	assertTaskHistoryPayloads(continuedTask, []string{multiTurnStartRequestText, multiTurnContinueRequestText}, "multi-turn continuation")
+
+	streamingChunks := []string{}
+	sawStreamingStart := false
+	sawStreamingComplete := false
+	sawAppend := false
+	for event, err := range client.SendStreamingMessage(ctx, newInteropRequest(streamingRequestText, false)) {
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		switch value := event.(type) {
+		case *a2a.Task:
+			sawStreamingStart = true
+			gomega.Expect(value.Status.State).To(gomega.Equal(a2a.TaskStateWorking))
+			text, textErr := taskStatusText(value)
+			gomega.Expect(textErr).NotTo(gomega.HaveOccurred())
+			gomega.Expect(text).To(gomega.Equal(fmt.Sprintf("%s server streaming started", serverPrefix)))
+		case *a2a.TaskArtifactUpdateEvent:
+			text, textErr := firstArtifactText(value.Artifact)
+			gomega.Expect(textErr).NotTo(gomega.HaveOccurred())
+			streamingChunks = append(streamingChunks, text)
+			if value.Append {
+				sawAppend = true
+			}
+		case *a2a.TaskStatusUpdateEvent:
+			sawStreamingComplete = true
+			gomega.Expect(value.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
+			text, textErr := firstMessageText(value.Status.Message)
+			gomega.Expect(textErr).NotTo(gomega.HaveOccurred())
+			gomega.Expect(text).To(gomega.Equal(fmt.Sprintf("%s server streaming complete", serverPrefix)))
+		default:
+			ginkgo.Fail(fmt.Sprintf("unexpected streaming scenario event type %T", event))
+		}
+	}
+	gomega.Expect(sawStreamingStart).To(gomega.BeTrue())
+	gomega.Expect(sawStreamingComplete).To(gomega.BeTrue())
+	gomega.Expect(sawAppend).To(gomega.BeTrue())
+	gomega.Expect(streamingChunks).To(gomega.Equal([]string{"streaming chunk 1", "streaming chunk 2"}))
+
+	longRunningTask, err := goClientSendTask(ctx, client, longRunningRequestText, true)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(longRunningTask.Status.State).To(gomega.Equal(a2a.TaskStateWorking))
+	longRunningText, err := taskStatusText(longRunningTask)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(longRunningText).To(gomega.Equal(fmt.Sprintf("%s server long-running started", serverPrefix)))
+	longRunningCompleted := goClientWaitForTaskState(ctx, client, longRunningTask.ID, a2a.TaskStateCompleted)
+	longRunningCompletedText, err := taskStatusText(longRunningCompleted)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(longRunningCompletedText).To(gomega.Equal(fmt.Sprintf("%s server long-running complete", serverPrefix)))
+
+	dataTypesTask, err := goClientSendTask(ctx, client, dataTypesRequestText, false)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(dataTypesTask.Status.State).To(gomega.Equal(a2a.TaskStateCompleted))
+	dataTypesText, err := taskStatusText(dataTypesTask)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(dataTypesText).To(gomega.Equal(fmt.Sprintf("%s server data-types ready", serverPrefix)))
+	assertDataTypesTask(dataTypesTask, "data-types")
+
+	extendedCard, err := client.GetExtendedAgentCard(ctx, &a2a.GetExtendedAgentCardRequest{})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	assertExtendedCardMetadata(extendedCard, "extended-card")
 }
 
 func runRustProbe(
@@ -711,6 +906,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "go", true)
+			goClientAssertScenarioParity(requestCtx, client, "go")
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture", ginkgo.Label("jsonrpc", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -729,6 +925,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "rust", true)
+			goClientAssertScenarioParity(requestCtx, client, "rust")
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture", ginkgo.Label("jsonrpc", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -769,6 +966,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "go", true)
+			goClientAssertScenarioParity(requestCtx, client, "go")
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture over REST", ginkgo.Label("rest", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -787,6 +985,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "rust", true)
+			goClientAssertScenarioParity(requestCtx, client, "rust")
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over REST", ginkgo.Label("rest", "rust-go"), func(ctx ginkgo.SpecContext) {
@@ -827,6 +1026,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("go", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "go", true)
+			goClientAssertScenarioParity(requestCtx, client, "go")
 		})
 
 		ginkgo.It("lets the Go client call the Rust fixture over gRPC", ginkgo.Label("grpc", "go-rust"), func(ctx ginkgo.SpecContext) {
@@ -845,6 +1045,7 @@ var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, gink
 			gomega.Expect(streamText).To(gomega.Equal(expectedServerText("rust", requestText)))
 
 			goClientAssertLifecycle(requestCtx, client, "rust", true)
+			goClientAssertScenarioParity(requestCtx, client, "rust")
 		})
 
 		ginkgo.It("lets the Rust client call the Go fixture over gRPC", ginkgo.Label("grpc", "rust-go"), func(ctx ginkgo.SpecContext) {

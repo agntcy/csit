@@ -4,6 +4,7 @@
 use std::env;
 use std::process;
 use std::sync::Arc;
+use std::time::Duration;
 
 use a2a::*;
 use a2a_client::A2AClientFactory;
@@ -12,13 +13,32 @@ use a2a_grpc::GrpcTransportFactory;
 use futures::StreamExt;
 use futures::stream::BoxStream;
 use serde_json::{Value, json};
+use tokio::time::sleep;
 
 const REQUEST_TEXT: &str = "ping";
 const PENDING_REQUEST_TEXT: &str = "pending";
+const MESSAGE_ONLY_REQUEST_TEXT: &str = "message-only";
+const TASK_FAILURE_REQUEST_TEXT: &str = "task-failure";
+const MULTI_TURN_START_REQUEST_TEXT: &str = "multi-turn start";
+const MULTI_TURN_CONTINUE_REQUEST_TEXT: &str = "multi-turn continue";
+const STREAMING_REQUEST_TEXT: &str = "streaming";
+const LONG_RUNNING_REQUEST_TEXT: &str = "long-running";
+const DATA_TYPES_REQUEST_TEXT: &str = "data-types";
 const REQUEST_DATA_KIND: &str = "structured";
 const REQUEST_DATA_SCOPE: &str = "interop";
 const REQUEST_METADATA_KEY: &str = "csit";
 const REQUEST_METADATA_VALUE: &str = "multipart";
+const EXTENDED_CARD_SCHEME_ID: &str = "bearer_token";
+const EXPECTED_SKILL_IDS: &[&str] = &[
+    "message-only",
+    "task-lifecycle",
+    "task-failure",
+    "task-cancel",
+    "multi-turn",
+    "streaming",
+    "long-running",
+    "data-types",
+];
 
 struct Args {
     card_url: String,
@@ -209,7 +229,20 @@ fn expected_cancel_text(server_prefix: &str) -> String {
     format!("{server_prefix} server canceled task")
 }
 
+fn expected_scenario_text(server_prefix: &str, suffix: &str) -> String {
+    format!("{server_prefix} server {suffix}")
+}
+
 fn request_with_payload(text: &str, return_immediately: bool) -> SendMessageRequest {
+    request_with_payload_ids(text, return_immediately, None, None)
+}
+
+fn request_with_payload_ids(
+    text: &str,
+    return_immediately: bool,
+    task_id: Option<String>,
+    context_id: Option<String>,
+) -> SendMessageRequest {
     let mut message = Message::new(
         Role::User,
         vec![
@@ -220,6 +253,8 @@ fn request_with_payload(text: &str, return_immediately: bool) -> SendMessageRequ
             })),
         ],
     );
+    message.task_id = task_id;
+    message.context_id = context_id;
     message.metadata = Some(std::collections::HashMap::from([(
         REQUEST_METADATA_KEY.to_string(),
         json!(REQUEST_METADATA_VALUE),
@@ -253,6 +288,13 @@ fn task_from_response(response: SendMessageResponse, kind: &str) -> Result<Task,
     }
 }
 
+fn message_from_response(response: SendMessageResponse, kind: &str) -> Result<Message, String> {
+    match response {
+        SendMessageResponse::Task(_) => Err(format!("unexpected {kind} response type: Task")),
+        SendMessageResponse::Message(message) => Ok(message),
+    }
+}
+
 fn stream_response_text(response: StreamResponse) -> Result<Option<String>, String> {
     match response {
         StreamResponse::Message(message) => first_text(&message).map(Some),
@@ -264,18 +306,10 @@ fn stream_response_text(response: StreamResponse) -> Result<Option<String>, Stri
     }
 }
 
-fn assert_task_history(task: &Task, expected_text: &str, kind: &str) -> Result<(), String> {
-    let history = task
-        .history
-        .as_ref()
-        .ok_or_else(|| format!("{kind} task did not include history"))?;
-    let message = history
-        .last()
-        .ok_or_else(|| format!("{kind} task history was empty"))?;
-
+fn assert_message_payload(message: &Message, expected_text: &str, kind: &str) -> Result<(), String> {
     if message.parts.len() != 2 {
         return Err(format!(
-            "{kind} task history had {} parts, want 2",
+            "{kind} message had {} parts, want 2",
             message.parts.len()
         ));
     }
@@ -287,43 +321,193 @@ fn assert_task_history(task: &Task, expected_text: &str, kind: &str) -> Result<(
         PartContent::Data(value) => value,
         _ => {
             return Err(format!(
-                "{kind} task history second part was not a structured data part"
+                "{kind} message second part was not a structured data part"
             ));
         }
     };
     let kind_value = part_data
         .get("kind")
         .and_then(Value::as_str)
-        .ok_or_else(|| format!("{kind} task history data part was missing kind"))?;
+        .ok_or_else(|| format!("{kind} message data part was missing kind"))?;
     let scope_value = part_data
         .get("scope")
         .and_then(Value::as_str)
-        .ok_or_else(|| format!("{kind} task history data part was missing scope"))?;
+        .ok_or_else(|| format!("{kind} message data part was missing scope"))?;
 
     if kind_value != REQUEST_DATA_KIND || scope_value != REQUEST_DATA_SCOPE {
         return Err(format!(
-            "{kind} task history data part mismatch: got kind={kind_value:?} scope={scope_value:?}"
+            "{kind} message data part mismatch: got kind={kind_value:?} scope={scope_value:?}"
         ));
     }
 
     let metadata = message
         .metadata
         .as_ref()
-        .ok_or_else(|| format!("{kind} task history message was missing metadata"))?;
+        .ok_or_else(|| format!("{kind} message was missing metadata"))?;
     let metadata_value = metadata
         .get(REQUEST_METADATA_KEY)
         .and_then(Value::as_str)
-        .ok_or_else(|| {
-            format!("{kind} task history metadata was missing {REQUEST_METADATA_KEY}")
-        })?;
+        .ok_or_else(|| format!("{kind} message metadata was missing {REQUEST_METADATA_KEY}"))?;
 
     if metadata_value != REQUEST_METADATA_VALUE {
         return Err(format!(
-            "{kind} task history metadata mismatch: got {metadata_value:?}, want {REQUEST_METADATA_VALUE:?}"
+            "{kind} message metadata mismatch: got {metadata_value:?}, want {REQUEST_METADATA_VALUE:?}"
         ));
     }
 
     Ok(())
+}
+
+fn assert_task_history(task: &Task, expected_text: &str, kind: &str) -> Result<(), String> {
+    assert_task_history_entries(task, &[expected_text], kind)
+}
+
+fn assert_task_history_entries(task: &Task, expected_texts: &[&str], kind: &str) -> Result<(), String> {
+    let history = task
+        .history
+        .as_ref()
+        .ok_or_else(|| format!("{kind} task did not include history"))?;
+    if history.len() != expected_texts.len() {
+        return Err(format!(
+            "{kind} task history length mismatch: got {}, want {}",
+            history.len(),
+            expected_texts.len()
+        ));
+    }
+
+    for (message, expected_text) in history.iter().zip(expected_texts.iter()) {
+        assert_message_payload(message, expected_text, kind)?;
+    }
+
+    Ok(())
+}
+
+fn first_artifact_text(artifact: &Artifact) -> Result<String, String> {
+    artifact
+        .parts
+        .iter()
+        .find_map(Part::as_text)
+        .map(ToString::to_string)
+        .ok_or_else(|| "artifact contained no text parts".to_string())
+}
+
+fn assert_data_types_task(task: &Task, kind: &str) -> Result<(), String> {
+    let artifacts = task
+        .artifacts
+        .as_ref()
+        .ok_or_else(|| format!("{kind} task did not include artifacts"))?;
+    if artifacts.len() != 1 {
+        return Err(format!(
+            "{kind} task artifact count mismatch: got {}, want 1",
+            artifacts.len()
+        ));
+    }
+
+    let artifact = &artifacts[0];
+    if artifact.parts.len() != 3 {
+        return Err(format!(
+            "{kind} artifact part count mismatch: got {}, want 3",
+            artifact.parts.len()
+        ));
+    }
+
+    assert_text(first_artifact_text(artifact)?, "structured summary", kind)?;
+
+    match &artifact.parts[1].content {
+        PartContent::Data(value) => {
+            if value.get("kind").and_then(Value::as_str) != Some("report") {
+                return Err(format!("{kind} data-types artifact was missing kind=report"));
+            }
+            let items_matches = value
+                .get("items")
+                .map(|items| {
+                    items.as_i64() == Some(2)
+                        || items.as_u64() == Some(2)
+                        || items.as_f64() == Some(2.0)
+                })
+                .unwrap_or(false);
+            if !items_matches {
+                return Err(format!("{kind} data-types artifact was missing items=2"));
+            }
+        }
+        _ => return Err(format!("{kind} data-types artifact second part was not data")),
+    }
+
+    match &artifact.parts[2].content {
+        PartContent::Url(url) => {
+            if url != "https://example.invalid/diagram.svg" {
+                return Err(format!("{kind} data-types artifact URL mismatch: got {url:?}"));
+            }
+        }
+        _ => return Err(format!("{kind} data-types artifact third part was not a URL")),
+    }
+
+    if artifact.parts[2].media_type.as_deref() != Some("image/svg+xml") {
+        return Err(format!("{kind} data-types artifact media type mismatch"));
+    }
+    if artifact.parts[2].filename.as_deref() != Some("diagram.svg") {
+        return Err(format!("{kind} data-types artifact filename mismatch"));
+    }
+
+    Ok(())
+}
+
+fn assert_extended_card_metadata(card: &AgentCard, kind: &str) -> Result<(), String> {
+    if card.capabilities.extended_agent_card != Some(true) {
+        return Err(format!("{kind} card did not advertise extendedAgentCard support"));
+    }
+    if !card.description.contains("(extended)") {
+        return Err(format!("{kind} card did not include extended description metadata"));
+    }
+
+    if let Some(schemes) = card.security_schemes.as_ref() {
+        let scheme = schemes
+            .get(EXTENDED_CARD_SCHEME_ID)
+            .ok_or_else(|| format!("{kind} card did not include {EXTENDED_CARD_SCHEME_ID}"))?;
+
+        match scheme {
+            SecurityScheme::HttpAuth(http) => {
+                if http.scheme != "Bearer" {
+                    return Err(format!("{kind} bearer scheme mismatch: got {:?}", http.scheme));
+                }
+            }
+            _ => return Err(format!("{kind} card security scheme was not HTTP auth")),
+        }
+    }
+
+    for expected_skill in EXPECTED_SKILL_IDS {
+        if !card.skills.iter().any(|skill| skill.id == *expected_skill) {
+            return Err(format!("{kind} card was missing skill {expected_skill}"));
+        }
+    }
+
+    Ok(())
+}
+
+async fn wait_for_task_state(
+    client: &a2a_client::client::A2AClient,
+    task_id: &str,
+    expected_state: TaskState,
+    kind: &str,
+) -> Result<Task, String> {
+    for _ in 0..40 {
+        let task = client
+            .get_task(&GetTaskRequest {
+                id: task_id.to_string(),
+                history_length: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("{kind} get_task failed: {error}"))?;
+
+        if task.status.state == expected_state {
+            return Ok(task);
+        }
+
+        sleep(Duration::from_millis(50)).await;
+    }
+
+    Err(format!("timed out waiting for {kind} to reach state {expected_state:?}"))
 }
 
 #[tokio::main]
@@ -363,6 +547,15 @@ async fn run(args: Args) -> Result<(), String> {
     let expected_ping_text = expected_response_text(&args.server_prefix, REQUEST_TEXT);
     let expected_pending_text = expected_response_text(&args.server_prefix, PENDING_REQUEST_TEXT);
     let expected_cancel_text = expected_cancel_text(&args.server_prefix);
+    let expected_message_only_text = expected_scenario_text(&args.server_prefix, "message-only response");
+    let expected_failed_text = expected_scenario_text(&args.server_prefix, "failed task");
+    let expected_input_required_text = expected_scenario_text(&args.server_prefix, "needs more input");
+    let expected_multi_turn_complete_text = expected_scenario_text(&args.server_prefix, "multi-turn completed");
+    let expected_streaming_start_text = expected_scenario_text(&args.server_prefix, "streaming started");
+    let expected_streaming_complete_text = expected_scenario_text(&args.server_prefix, "streaming complete");
+    let expected_long_running_start_text = expected_scenario_text(&args.server_prefix, "long-running started");
+    let expected_long_running_complete_text = expected_scenario_text(&args.server_prefix, "long-running complete");
+    let expected_data_types_text = expected_scenario_text(&args.server_prefix, "data-types ready");
 
     let request = request_with_payload(REQUEST_TEXT, false);
 
@@ -741,6 +934,172 @@ async fn run(args: Args) -> Result<(), String> {
             ));
         }
     }
+
+    let message_only = message_from_response(
+        client
+            .send_message(&request_with_payload(MESSAGE_ONLY_REQUEST_TEXT, false))
+            .await
+            .map_err(|error| format!("message-only request failed: {error}"))?,
+        "message-only",
+    )?;
+    assert_text(
+        first_text(&message_only)?,
+        &expected_message_only_text,
+        "message-only",
+    )?;
+
+    let failed_task = task_from_response(
+        client
+            .send_message(&request_with_payload(TASK_FAILURE_REQUEST_TEXT, false))
+            .await
+            .map_err(|error| format!("task-failure request failed: {error}"))?,
+        "task-failure",
+    )?;
+    assert_state(&failed_task.status.state, TaskState::Failed, "task-failure")?;
+    assert_text(task_text(&failed_task)?, &expected_failed_text, "task-failure")?;
+
+    let input_required_task = task_from_response(
+        client
+            .send_message(&request_with_payload(MULTI_TURN_START_REQUEST_TEXT, false))
+            .await
+            .map_err(|error| format!("multi-turn start failed: {error}"))?,
+        "multi-turn start",
+    )?;
+    assert_state(
+        &input_required_task.status.state,
+        TaskState::InputRequired,
+        "multi-turn start",
+    )?;
+    assert_text(
+        task_text(&input_required_task)?,
+        &expected_input_required_text,
+        "multi-turn start",
+    )?;
+    assert_task_history(&input_required_task, MULTI_TURN_START_REQUEST_TEXT, "multi-turn start")?;
+
+    let multi_turn_completed = task_from_response(
+        client
+            .send_message(&request_with_payload_ids(
+                MULTI_TURN_CONTINUE_REQUEST_TEXT,
+                false,
+                Some(input_required_task.id.clone()),
+                Some(input_required_task.context_id.clone()),
+            ))
+            .await
+            .map_err(|error| format!("multi-turn continuation failed: {error}"))?,
+        "multi-turn continuation",
+    )?;
+    assert_state(
+        &multi_turn_completed.status.state,
+        TaskState::Completed,
+        "multi-turn continuation",
+    )?;
+    assert_text(
+        task_text(&multi_turn_completed)?,
+        &expected_multi_turn_complete_text,
+        "multi-turn continuation",
+    )?;
+    assert_task_history_entries(
+        &multi_turn_completed,
+        &[MULTI_TURN_START_REQUEST_TEXT, MULTI_TURN_CONTINUE_REQUEST_TEXT],
+        "multi-turn continuation",
+    )?;
+
+    let mut scenario_stream = client
+        .send_streaming_message(&request_with_payload(STREAMING_REQUEST_TEXT, false))
+        .await
+        .map_err(|error| format!("streaming scenario request failed: {error}"))?;
+    let mut streaming_chunks = Vec::new();
+    let mut saw_append = false;
+    let mut saw_stream_start = false;
+    let mut saw_stream_complete = false;
+    while let Some(event) = scenario_stream.next().await {
+        let event = event.map_err(|error| format!("streaming scenario event failed: {error}"))?;
+        match event {
+            StreamResponse::Task(task) => {
+                saw_stream_start = true;
+                assert_state(&task.status.state, TaskState::Working, "streaming scenario task")?;
+                assert_text(task_text(&task)?, &expected_streaming_start_text, "streaming scenario task")?;
+            }
+            StreamResponse::ArtifactUpdate(update) => {
+                streaming_chunks.push(first_artifact_text(&update.artifact)?);
+                if update.append == Some(true) {
+                    saw_append = true;
+                }
+            }
+            StreamResponse::StatusUpdate(update) => {
+                assert_state(&update.status.state, TaskState::Completed, "streaming scenario status")?;
+                assert_text(
+                    first_text(update.status.message.as_ref().ok_or_else(|| "streaming scenario completion was missing a message".to_string())?)?,
+                    &expected_streaming_complete_text,
+                    "streaming scenario status",
+                )?;
+                saw_stream_complete = true;
+            }
+            StreamResponse::Message(_) => return Err("streaming scenario yielded an unexpected message event".to_string()),
+        }
+    }
+    if !saw_stream_start || !saw_stream_complete {
+        return Err("streaming scenario did not emit the expected task/status events".to_string());
+    }
+    if streaming_chunks != vec!["streaming chunk 1".to_string(), "streaming chunk 2".to_string()] {
+        return Err(format!("streaming scenario artifact chunks mismatch: got {streaming_chunks:?}"));
+    }
+    if !saw_append {
+        return Err("streaming scenario did not emit an append artifact update".to_string());
+    }
+
+    let long_running_task = task_from_response(
+        client
+            .send_message(&request_with_payload(LONG_RUNNING_REQUEST_TEXT, true))
+            .await
+            .map_err(|error| format!("long-running request failed: {error}"))?,
+        "long-running",
+    )?;
+    let long_running_completed = match long_running_task.status.state {
+        TaskState::Working => {
+            assert_text(
+                task_text(&long_running_task)?,
+                &expected_long_running_start_text,
+                "long-running",
+            )?;
+            wait_for_task_state(
+                &client,
+                &long_running_task.id,
+                TaskState::Completed,
+                "long-running",
+            )
+            .await?
+        }
+        TaskState::Completed => long_running_task,
+        ref other => {
+            return Err(format!(
+                "unexpected long-running task state: got {other:?}, want Working or Completed"
+            ));
+        }
+    };
+    assert_text(
+        task_text(&long_running_completed)?,
+        &expected_long_running_complete_text,
+        "long-running completion",
+    )?;
+
+    let data_types_task = task_from_response(
+        client
+            .send_message(&request_with_payload(DATA_TYPES_REQUEST_TEXT, false))
+            .await
+            .map_err(|error| format!("data-types request failed: {error}"))?,
+        "data-types",
+    )?;
+    assert_state(&data_types_task.status.state, TaskState::Completed, "data-types")?;
+    assert_text(task_text(&data_types_task)?, &expected_data_types_text, "data-types")?;
+    assert_data_types_task(&data_types_task, "data-types")?;
+
+    let extended_card = client
+        .get_extended_agent_card(&GetExtendedAgentCardRequest { tenant: None })
+        .await
+        .map_err(|error| format!("get_extended_agent_card failed: {error}"))?;
+    assert_extended_card_metadata(&extended_card, "extended-card")?;
 
     let protocol = card
         .supported_interfaces

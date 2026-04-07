@@ -16,10 +16,29 @@ internal static class Program
 {
     private const string RequestText = "ping";
     private const string PendingRequestText = "pending";
+    private const string MessageOnlyRequestText = "message-only";
+    private const string TaskFailureRequestText = "task-failure";
+    private const string MultiTurnStartRequestText = "multi-turn start";
+    private const string MultiTurnContinueRequestText = "multi-turn continue";
+    private const string StreamingRequestText = "streaming";
+    private const string LongRunningRequestText = "long-running";
+    private const string DataTypesRequestText = "data-types";
     private const string RequestDataKind = "structured";
     private const string RequestDataScope = "interop";
     private const string RequestMetadataKey = "csit";
     private const string RequestMetadataValue = "multipart";
+    private const string ExtendedCardSchemeId = "bearer_token";
+    private static readonly string[] ExpectedSkillIds =
+    [
+        "message-only",
+        "task-lifecycle",
+        "task-failure",
+        "task-cancel",
+        "multi-turn",
+        "streaming",
+        "long-running",
+        "data-types",
+    ];
 
     public static async Task<int> Main(string[] args)
     {
@@ -56,6 +75,15 @@ internal static class Program
         var expectedPingText = ExpectedResponseText(options.ServerPrefix, RequestText);
         var expectedPendingText = ExpectedResponseText(options.ServerPrefix, PendingRequestText);
         var expectedCancelText = ExpectedCancelText(options.ServerPrefix);
+        var expectedMessageOnlyText = ExpectedScenarioText(options.ServerPrefix, "message-only response");
+        var expectedFailedText = ExpectedScenarioText(options.ServerPrefix, "failed task");
+        var expectedInputRequiredText = ExpectedScenarioText(options.ServerPrefix, "needs more input");
+        var expectedMultiTurnCompleteText = ExpectedScenarioText(options.ServerPrefix, "multi-turn completed");
+        var expectedStreamingStartText = ExpectedScenarioText(options.ServerPrefix, "streaming started");
+        var expectedStreamingCompleteText = ExpectedScenarioText(options.ServerPrefix, "streaming complete");
+        var expectedLongRunningStartText = ExpectedScenarioText(options.ServerPrefix, "long-running started");
+        var expectedLongRunningCompleteText = ExpectedScenarioText(options.ServerPrefix, "long-running complete");
+        var expectedDataTypesText = ExpectedScenarioText(options.ServerPrefix, "data-types ready");
 
         var request = BuildRequest(RequestText, false);
 
@@ -228,11 +256,109 @@ internal static class Program
             }
         }
 
+        var messageOnly = MessageFromResponse(
+            await SendMessageAsync(client, card, BuildRequest(MessageOnlyRequestText, false), false).ConfigureAwait(false),
+            "message-only");
+        AssertText(FirstText(messageOnly), expectedMessageOnlyText, "message-only");
+
+        var failedTask = TaskFromResponse(
+            await SendMessageAsync(client, card, BuildRequest(TaskFailureRequestText, false), false).ConfigureAwait(false),
+            "task-failure");
+        AssertState(failedTask.Status.State, TaskState.Failed, "task-failure");
+        AssertText(TaskText(failedTask), expectedFailedText, "task-failure");
+
+        var inputRequiredTask = TaskFromResponse(
+            await SendMessageAsync(client, card, BuildRequest(MultiTurnStartRequestText, false), false).ConfigureAwait(false),
+            "multi-turn start");
+        AssertState(inputRequiredTask.Status.State, TaskState.InputRequired, "multi-turn start");
+        AssertText(TaskText(inputRequiredTask), expectedInputRequiredText, "multi-turn start");
+        AssertTaskHistory(inputRequiredTask, MultiTurnStartRequestText, "multi-turn start");
+
+        var multiTurnCompleted = TaskFromResponse(
+            await SendMessageAsync(
+                client,
+                card,
+                BuildRequest(MultiTurnContinueRequestText, false, inputRequiredTask.Id, inputRequiredTask.ContextId),
+                false).ConfigureAwait(false),
+            "multi-turn continuation");
+        AssertState(multiTurnCompleted.Status.State, TaskState.Completed, "multi-turn continuation");
+        AssertText(TaskText(multiTurnCompleted), expectedMultiTurnCompleteText, "multi-turn continuation");
+        AssertTaskHistoryEntries(multiTurnCompleted, [MultiTurnStartRequestText, MultiTurnContinueRequestText], "multi-turn continuation");
+
+        var sawStreamingStart = false;
+        var sawStreamingComplete = false;
+        var sawAppend = false;
+        var streamingChunks = new List<string>();
+        await foreach (var response in SendStreamingMessageAsync(client, card, BuildRequest(StreamingRequestText, false)).ConfigureAwait(false))
+        {
+            switch (response.PayloadCase)
+            {
+                case StreamResponseCase.Task:
+                    sawStreamingStart = true;
+                    AssertState(response.Task!.Status.State, TaskState.Working, "streaming scenario task");
+                    AssertText(TaskText(response.Task), expectedStreamingStartText, "streaming scenario task");
+                    break;
+                case StreamResponseCase.ArtifactUpdate:
+                    streamingChunks.Add(FirstArtifactText(response.ArtifactUpdate!.Artifact));
+                    if (response.ArtifactUpdate.Append)
+                    {
+                        sawAppend = true;
+                    }
+                    break;
+                case StreamResponseCase.StatusUpdate:
+                    sawStreamingComplete = true;
+                    AssertState(response.StatusUpdate!.Status.State, TaskState.Completed, "streaming scenario status");
+                    AssertText(FirstText(response.StatusUpdate.Status.Message!), expectedStreamingCompleteText, "streaming scenario status");
+                    break;
+                case StreamResponseCase.Message:
+                    throw new InvalidOperationException("streaming scenario yielded an unexpected message event");
+                default:
+                    throw new InvalidOperationException($"unexpected streaming scenario payload case {response.PayloadCase}");
+            }
+        }
+        if (!sawStreamingStart || !sawStreamingComplete)
+        {
+            throw new InvalidOperationException("streaming scenario did not emit the expected task/status events");
+        }
+        if (streamingChunks.Count != 2 || streamingChunks[0] != "streaming chunk 1" || streamingChunks[1] != "streaming chunk 2")
+        {
+            throw new InvalidOperationException($"streaming scenario artifact chunks mismatch: got [{string.Join(", ", streamingChunks)}]");
+        }
+        if (!sawAppend)
+        {
+            throw new InvalidOperationException("streaming scenario did not emit an append artifact update");
+        }
+
+        var longRunningTask = TaskFromResponse(
+            await SendMessageAsync(client, card, BuildRequest(LongRunningRequestText, true), true).ConfigureAwait(false),
+            "long-running");
+        var longRunningCompleted = longRunningTask.Status.State switch
+        {
+            TaskState.Working => await WaitForTaskStateAsync(client, card, longRunningTask.Id, TaskState.Completed, "long-running").ConfigureAwait(false),
+            TaskState.Completed => longRunningTask,
+            _ => throw new InvalidOperationException($"unexpected long-running task state: got {longRunningTask.Status.State}, want Working or Completed"),
+        };
+        if (longRunningTask.Status.State == TaskState.Working)
+        {
+            AssertText(TaskText(longRunningTask), expectedLongRunningStartText, "long-running");
+        }
+        AssertText(TaskText(longRunningCompleted), expectedLongRunningCompleteText, "long-running completion");
+
+        var dataTypesTask = TaskFromResponse(
+            await SendMessageAsync(client, card, BuildRequest(DataTypesRequestText, false), false).ConfigureAwait(false),
+            "data-types");
+        AssertState(dataTypesTask.Status.State, TaskState.Completed, "data-types");
+        AssertText(TaskText(dataTypesTask), expectedDataTypesText, "data-types");
+        AssertDataTypesTask(dataTypesTask, "data-types");
+
+        var extendedCard = await GetExtendedAgentCardAsync(client, card).ConfigureAwait(false);
+        AssertExtendedCardMetadata(extendedCard, "extended-card");
+
         var protocol = card.SupportedInterfaces.FirstOrDefault()?.ProtocolBinding ?? "unknown";
         Console.WriteLine($"validated {options.ServerPrefix} {protocol} lifecycle against {options.CardUrl}");
     }
 
-    private static SendMessageRequest BuildRequest(string text, bool returnImmediately)
+    private static SendMessageRequest BuildRequest(string text, bool returnImmediately, string? taskId = null, string? contextId = null)
     {
         return new SendMessageRequest
         {
@@ -240,6 +366,8 @@ internal static class Program
             {
                 Role = Role.User,
                 MessageId = Guid.NewGuid().ToString("N"),
+                TaskId = taskId,
+                ContextId = contextId,
                 Parts =
                 [
                     Part.FromText(text),
@@ -409,6 +537,16 @@ internal static class Program
         }
 
         throw new InvalidOperationException($"agent card did not advertise a supported interface: {agentInterface.ProtocolBinding}");
+    }
+
+    private static async Task<AgentCard> GetExtendedAgentCardAsync(IA2AClient? client, AgentCard card)
+    {
+        if (UsesJsonRpcCompat(card))
+        {
+            return await client!.GetExtendedAgentCardAsync(new GetExtendedAgentCardRequest()).ConfigureAwait(false);
+        }
+
+        return await GetRestAsync<AgentCard>(card, "/extendedAgentCard").ConfigureAwait(false);
     }
 
     private static CompatibleTaskPushNotificationConfig ToCompatibleTaskPushNotificationConfig(TaskPushNotificationConfig config)
@@ -873,9 +1011,17 @@ internal static class Program
     private static string ExpectedCancelText(string serverPrefix) =>
         $"{serverPrefix} server canceled task";
 
+    private static string ExpectedScenarioText(string serverPrefix, string suffix) =>
+        $"{serverPrefix} server {suffix}";
+
     private static AgentTask TaskFromResponse(SendMessageResponse response, string kind)
     {
         return response.Task ?? throw new InvalidOperationException($"unexpected {kind} response type: Message");
+    }
+
+    private static Message MessageFromResponse(SendMessageResponse response, string kind)
+    {
+        return response.Message ?? throw new InvalidOperationException($"unexpected {kind} response type: Task");
     }
 
     private static string TaskText(AgentTask task)
@@ -909,14 +1055,25 @@ internal static class Program
 
     private static void AssertTaskHistory(AgentTask task, string expectedText, string kind)
     {
-        if (task.History is null || task.History.Count != 1)
+        AssertTaskHistoryEntries(task, [expectedText], kind);
+    }
+
+    private static void AssertTaskHistoryEntries(AgentTask task, IReadOnlyList<string> expectedTexts, string kind)
+    {
+        if (task.History is null || task.History.Count != expectedTexts.Count)
         {
-            throw new InvalidOperationException($"{kind} task did not include a single history entry");
+            throw new InvalidOperationException($"{kind} task history length mismatch: got {task.History?.Count ?? 0}, want {expectedTexts.Count}");
         }
 
-        var message = task.History[0];
-        AssertText(FirstText(message), expectedText, kind);
+        foreach (var (message, expectedText) in task.History.Zip(expectedTexts))
+        {
+            AssertMessagePayload(message, expectedText, kind);
+        }
+    }
 
+    private static void AssertMessagePayload(Message message, string expectedText, string kind)
+    {
+        AssertText(FirstText(message), expectedText, kind);
         if (message.Parts.Count != 2)
         {
             throw new InvalidOperationException($"{kind} task history had {message.Parts.Count} parts, want 2");
@@ -938,6 +1095,101 @@ internal static class Program
         if (!string.Equals(metadataValue.GetString(), RequestMetadataValue, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"{kind} task history metadata mismatch: got '{metadataValue.GetString()}', want '{RequestMetadataValue}'");
+        }
+    }
+
+    private static async Task<AgentTask> WaitForTaskStateAsync(IA2AClient? client, AgentCard card, string taskId, TaskState expectedState, string kind)
+    {
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            var task = await GetTaskAsync(client, card, new GetTaskRequest { Id = taskId }).ConfigureAwait(false);
+            if (task.Status.State == expectedState)
+            {
+                return task;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
+        }
+
+        throw new InvalidOperationException($"timed out waiting for {kind} to reach state {expectedState}");
+    }
+
+    private static string FirstArtifactText(Artifact artifact)
+    {
+        var part = artifact.Parts.FirstOrDefault(value => value.Text is not null);
+        return part?.Text ?? throw new InvalidOperationException("artifact contained no text parts");
+    }
+
+    private static void AssertDataTypesTask(AgentTask task, string kind)
+    {
+        if (task.Artifacts is null || task.Artifacts.Count != 1)
+        {
+            throw new InvalidOperationException($"{kind} task artifact count mismatch: got {task.Artifacts?.Count ?? 0}, want 1");
+        }
+
+        var artifact = task.Artifacts[0];
+        if (artifact.Parts.Count != 3)
+        {
+            throw new InvalidOperationException($"{kind} artifact part count mismatch: got {artifact.Parts.Count}, want 3");
+        }
+
+        AssertText(artifact.Parts[0].Text ?? string.Empty, "structured summary", kind);
+
+        var data = artifact.Parts[1].Data
+            ?? throw new InvalidOperationException($"{kind} data-types artifact second part was not data");
+        var items = data.GetProperty("items");
+        var itemsMatches = (items.TryGetInt32(out var itemsInt) && itemsInt == 2)
+            || (items.TryGetInt64(out var itemsLong) && itemsLong == 2)
+            || (items.TryGetDouble(out var itemsDouble) && Math.Abs(itemsDouble - 2.0) < double.Epsilon);
+        if (data.ValueKind != JsonValueKind.Object
+            || data.GetProperty("kind").GetString() != "report"
+            || !itemsMatches)
+        {
+            throw new InvalidOperationException($"{kind} data-types artifact data payload mismatch");
+        }
+
+        if (!string.Equals(artifact.Parts[2].Url, "https://example.invalid/diagram.svg", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{kind} data-types artifact URL mismatch");
+        }
+        if (!string.Equals(artifact.Parts[2].MediaType, "image/svg+xml", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{kind} data-types artifact media type mismatch");
+        }
+        if (!string.Equals(artifact.Parts[2].Filename, "diagram.svg", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{kind} data-types artifact filename mismatch");
+        }
+    }
+
+    private static void AssertExtendedCardMetadata(AgentCard card, string kind)
+    {
+        if (card.Capabilities.ExtendedAgentCard != true)
+        {
+            throw new InvalidOperationException($"{kind} card did not advertise extendedAgentCard support");
+        }
+        if (!card.Description.Contains("(extended)", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{kind} card did not include extended description metadata");
+        }
+        if (card.SecuritySchemes is not null && card.SecuritySchemes.Count > 0)
+        {
+            if (!card.SecuritySchemes.TryGetValue(ExtendedCardSchemeId, out var securityScheme))
+            {
+                throw new InvalidOperationException($"{kind} card did not include {ExtendedCardSchemeId}");
+            }
+            if (securityScheme.HttpAuthSecurityScheme?.Scheme is not "Bearer")
+            {
+                throw new InvalidOperationException($"{kind} card bearer scheme mismatch");
+            }
+        }
+
+        foreach (var expectedSkill in ExpectedSkillIds)
+        {
+            if (!card.Skills.Any(skill => string.Equals(skill.Id, expectedSkill, StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException($"{kind} card was missing skill {expectedSkill}");
+            }
         }
     }
 

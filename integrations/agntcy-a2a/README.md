@@ -8,12 +8,19 @@ All 12 Rust/Go client-server legs in the current core lifecycle matrix are green
 
 The Go and Rust fixtures now expose push-config CRUD. CSIT validates that path from both clients against both server targets across JSON-RPC, HTTP+JSON, and gRPC.
 
-The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and runs exactly 8 specs: 4 JSON-RPC legs (`dotnet-dotnet`, `dotnet-rust`, `rust-dotnet`, `rust-rust-dotnet`) plus the same 4 legs over HTTP+JSON. Each of those specs exercises unary and streaming `SendMessage`, `GetTask`, `ListTasks`, `CancelTask`, the missing-task and non-cancelable-task error paths, and preservation of mixed text plus structured-data content through task history. Push-config is covered in this slice as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. This slice does not cover gRPC. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
+The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and runs exactly 8 specs: 4 JSON-RPC legs (`dotnet-dotnet`, `dotnet-rust`, `rust-dotnet`, `rust-rust-dotnet`) plus the same 4 legs over HTTP+JSON. Each of those specs now exercises the original lifecycle slice plus the richer scenario-parity slice: message-only responses, failed tasks, multi-turn input-required continuations, long-running completions, artifact-rich streaming updates, structured text/data/URL artifacts, extended-agent-card discovery, and preservation of mixed text plus structured-data content through task history. Push-config is covered in this slice as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. This slice does not cover gRPC. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
 - unary and streaming `SendMessage`
+- message-only responses without task creation
 - lifecycle methods across `GetTask`, `ListTasks`, and `CancelTask`
+- failed-task responses
+- multi-turn `TASK_STATE_INPUT_REQUIRED` continuations
+- long-running completion after non-blocking sends
+- artifact-rich streaming updates
+- structured text + data + URL artifact payloads
+- extended-agent-card discovery and skill metadata
 - negative-path error semantics for missing and non-cancelable tasks
 - successful push-config CRUD on both server paths across all three transports
 - preservation of a mixed text plus structured-data request payload and message metadata through task history
@@ -61,13 +68,23 @@ Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this
 | --- | --- | --- |
 | Unary `SendMessage` | ✅ | ✅ |
 | Streaming `SendMessage` | ✅ | ✅ |
+| Message-only response path | ✅ | ✅ |
 | `GetTask`, `ListTasks`, and `CancelTask` lifecycle | ✅ | ✅ |
+| Failed-task response path | ✅ | ✅ |
+| Multi-turn input-required continuation | ✅ | ✅ |
+| Long-running completion after non-blocking send | ✅ | ✅ |
+| Artifact-rich streaming updates | ✅ | ✅ |
+| Structured text + data + URL artifact payloads | ✅ | ✅ |
+| Extended-agent-card discovery | ✅ | ✅ |
+| Extended-card security-scheme metadata | ✅ | ✅ |
 | Missing-task and non-cancelable-task errors | ✅ | ✅ |
 | Mixed text + structured-data payload preserved through task history | ✅ | ✅ |
 | Push-config CRUD against Rust-server targets | ✅ | ✅ |
 | Unsupported push-config response against non-Rust server targets | ✅ | ✅ |
 
 For Rust/.NET, the uncovered cells are the current gRPC gap. For push-config, a ✅ means the suite verifies the expected behavior for that leg: CRUD succeeds on Rust-server targets and the current unsupported error is returned on Go-server or .NET-server targets.
+
+For the .NET-owned fixture specifically, the public and extended cards currently omit `securitySchemes` because the released Rust resolver used by this CSIT slice does not yet accept the .NET SDK's null-filled union encoding for that field. The overall suites still validate bearer-token security metadata against the Rust and Go fixtures.
 
 ## Running the Suite
 

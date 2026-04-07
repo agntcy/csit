@@ -86,10 +86,13 @@ internal static class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.WebHost.UseUrls(baseUrl);
 
-        var agentCard = InteropAgent.BuildAgentCard(baseUrl, options.Protocol);
+        var agentCard = InteropAgent.BuildAgentCard(baseUrl, options.Protocol, extended: false);
         builder.Services.AddA2AAgent<InteropAgent>(agentCard);
 
         var app = builder.Build();
+        var requestHandler = new ExtendedCardRequestHandler(
+            app.Services.GetRequiredService<IA2ARequestHandler>(),
+            InteropAgent.BuildAgentCard(baseUrl, options.Protocol, extended: true));
         if (UsesJsonRpc(options.Protocol))
         {
             app.Use(async (context, next) =>
@@ -124,17 +127,17 @@ internal static class Program
 
         if (UsesJsonRpc(options.Protocol))
         {
-            app.MapA2A("/rpc");
+            app.MapA2A(requestHandler, "/rpc");
         }
         else
         {
-            var requestHandler = app.Services.GetRequiredService<IA2ARequestHandler>();
-
             app.MapGet("/rest/card", () => Results.Ok(agentCard));
             app.MapPost("/rest/message:send", (SendMessageRequest request, CancellationToken ct) =>
                 HandleRestAsync(() => requestHandler.SendMessageAsync(request, ct)));
             app.MapPost("/rest/message:stream", (HttpContext context, SendMessageRequest request, CancellationToken ct) =>
                 StreamRestAsync(context, requestHandler.SendStreamingMessageAsync(request, ct), ct));
+            app.MapGet("/rest/extendedAgentCard", (CancellationToken ct) =>
+                HandleRestAsync(() => requestHandler.GetExtendedAgentCardAsync(new GetExtendedAgentCardRequest(), ct)));
             app.MapGet("/rest/tasks/{id}", (string id, int? historyLength, CancellationToken ct) =>
                 HandleRestAsync(() => requestHandler.GetTaskAsync(new GetTaskRequest
                 {
@@ -319,28 +322,54 @@ internal static class Program
 internal sealed class InteropAgent : IAgentHandler
 {
     private const string PendingRequestText = "pending";
+    private const string MessageOnlyRequestText = "message-only";
+    private const string TaskFailureRequestText = "task-failure";
+    private const string MultiTurnStartRequestText = "multi-turn start";
+    private const string MultiTurnContinueRequestText = "multi-turn continue";
+    private const string StreamingRequestText = "streaming";
+    private const string LongRunningRequestText = "long-running";
+    private const string DataTypesRequestText = "data-types";
 
-    public Task ExecuteAsync(RequestContext context, AgentEventQueue eventQueue, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(RequestContext context, AgentEventQueue eventQueue, CancellationToken cancellationToken)
     {
-        var responseText = $"dotnet server received: {context.UserText ?? string.Empty}";
-        var state = string.Equals(context.UserText, PendingRequestText, StringComparison.Ordinal)
-            ? TaskState.Working
-            : TaskState.Completed;
-
-        var task = new AgentTask
+        switch (context.UserText)
         {
-            Id = context.TaskId,
-            ContextId = context.ContextId,
-            History = [context.Message],
-            Status = new AgentTaskStatus
-            {
-                State = state,
-                Timestamp = DateTimeOffset.UtcNow,
-                Message = BuildStatusMessage(context, responseText),
-            },
-        };
-
-        return eventQueue.EnqueueTaskAsync(task, cancellationToken).AsTask();
+            case MessageOnlyRequestText:
+                await eventQueue.EnqueueMessageAsync(BuildMessage(context, "dotnet server message-only response"), cancellationToken).ConfigureAwait(false);
+                return;
+            case TaskFailureRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.Failed, "dotnet server failed task"), cancellationToken).ConfigureAwait(false);
+                return;
+            case MultiTurnStartRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.InputRequired, "dotnet server needs more input"), cancellationToken).ConfigureAwait(false);
+                return;
+            case MultiTurnContinueRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.Completed, "dotnet server multi-turn completed"), cancellationToken).ConfigureAwait(false);
+                return;
+            case StreamingRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.Working, "dotnet server streaming started"), cancellationToken).ConfigureAwait(false);
+                await eventQueue.EnqueueArtifactUpdateAsync(BuildArtifactUpdate(context, "streaming-artifact", [Part.FromText("streaming chunk 1")]), cancellationToken).ConfigureAwait(false);
+                await eventQueue.EnqueueArtifactUpdateAsync(BuildArtifactUpdate(context, "streaming-artifact", [Part.FromText("streaming chunk 2")], append: true, lastChunk: true), cancellationToken).ConfigureAwait(false);
+                await eventQueue.EnqueueStatusUpdateAsync(BuildStatusUpdate(context, TaskState.Completed, "dotnet server streaming complete"), cancellationToken).ConfigureAwait(false);
+                return;
+            case LongRunningRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.Working, "dotnet server long-running started"), cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+                await eventQueue.EnqueueStatusUpdateAsync(BuildStatusUpdate(context, TaskState.Working, "dotnet server long-running progress"), cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+                await eventQueue.EnqueueStatusUpdateAsync(BuildStatusUpdate(context, TaskState.Completed, "dotnet server long-running complete"), cancellationToken).ConfigureAwait(false);
+                return;
+            case DataTypesRequestText:
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, TaskState.Completed, "dotnet server data-types ready", [BuildDataTypesArtifact()]), cancellationToken).ConfigureAwait(false);
+                return;
+            default:
+                var responseText = $"dotnet server received: {context.UserText ?? string.Empty}";
+                var state = string.Equals(context.UserText, PendingRequestText, StringComparison.Ordinal)
+                    ? TaskState.Working
+                    : TaskState.Completed;
+                await eventQueue.EnqueueTaskAsync(BuildTask(context, state, responseText), cancellationToken).ConfigureAwait(false);
+                return;
+        }
     }
 
     public Task CancelAsync(RequestContext context, AgentEventQueue eventQueue, CancellationToken cancellationToken)
@@ -353,21 +382,23 @@ internal sealed class InteropAgent : IAgentHandler
             {
                 State = TaskState.Canceled,
                 Timestamp = DateTimeOffset.UtcNow,
-                Message = BuildStatusMessage(context, "dotnet server canceled task"),
+                Message = BuildMessage(context, "dotnet server canceled task"),
             },
         };
 
         return eventQueue.EnqueueStatusUpdateAsync(update, cancellationToken).AsTask();
     }
 
-    public static AgentCard BuildAgentCard(string baseUrl, string protocol)
+    public static AgentCard BuildAgentCard(string baseUrl, string protocol, bool extended)
     {
         var usesRest = string.Equals(protocol, "rest", StringComparison.OrdinalIgnoreCase);
 
         return new AgentCard
         {
             Name = usesRest ? "CSIT DotNet HTTP+JSON Agent" : "CSIT DotNet JSON-RPC Agent",
-            Description = "DotNet interoperability fixture for CSIT",
+            Description = extended
+                ? "DotNet interoperability fixture for CSIT (extended)"
+                : "DotNet interoperability fixture for CSIT",
             Version = "1.0.0-preview",
             SupportedInterfaces =
             [
@@ -382,14 +413,103 @@ internal sealed class InteropAgent : IAgentHandler
             {
                 Streaming = true,
                 PushNotifications = false,
+                ExtendedAgentCard = true,
             },
             DefaultInputModes = ["text/plain"],
             DefaultOutputModes = ["text/plain"],
-            Skills = [],
+            Skills =
+            [
+                BuildSkill("message-only", "Returns a message response without creating a task."),
+                BuildSkill("task-lifecycle", "Creates, lists, fetches, and cancels tasks."),
+                BuildSkill("task-failure", "Returns a failed task response."),
+                BuildSkill("task-cancel", "Creates a cancelable working task."),
+                BuildSkill("multi-turn", "Requests more input before completing the task."),
+                BuildSkill("streaming", "Streams task and artifact updates."),
+                BuildSkill("long-running", "Returns early and completes asynchronously."),
+                BuildSkill("data-types", "Produces text, structured data, and URL parts."),
+            ],
         };
     }
 
-    private static Message BuildStatusMessage(RequestContext context, string text) =>
+    private static AgentSkill BuildSkill(string id, string description) =>
+        new()
+        {
+            Id = id,
+            Name = id,
+            Description = description,
+            Tags = ["csit", "scenario-parity"],
+        };
+
+    private static List<Message> BuildHistory(RequestContext context)
+    {
+        var history = context.Task?.History is { Count: > 0 }
+            ? [.. context.Task.History]
+            : new List<Message>();
+        if (history.Count == 0 || !string.Equals(history[^1].MessageId, context.Message.MessageId, StringComparison.Ordinal))
+        {
+            history.Add(context.Message);
+        }
+        return history;
+    }
+
+    private static AgentTask BuildTask(RequestContext context, TaskState state, string text, List<Artifact>? artifacts = null) =>
+        new()
+        {
+            Id = context.TaskId,
+            ContextId = context.ContextId,
+            History = BuildHistory(context),
+            Artifacts = artifacts,
+            Status = new AgentTaskStatus
+            {
+                State = state,
+                Timestamp = DateTimeOffset.UtcNow,
+                Message = BuildMessage(context, text),
+            },
+        };
+
+    private static TaskStatusUpdateEvent BuildStatusUpdate(RequestContext context, TaskState state, string text) =>
+        new()
+        {
+            TaskId = context.TaskId,
+            ContextId = context.ContextId,
+            Status = new AgentTaskStatus
+            {
+                State = state,
+                Timestamp = DateTimeOffset.UtcNow,
+                Message = BuildMessage(context, text),
+            },
+        };
+
+    private static TaskArtifactUpdateEvent BuildArtifactUpdate(RequestContext context, string artifactId, List<Part> parts, bool append = false, bool lastChunk = false) =>
+        new()
+        {
+            TaskId = context.TaskId,
+            ContextId = context.ContextId,
+            Append = append,
+            LastChunk = lastChunk,
+            Artifact = new Artifact
+            {
+                ArtifactId = artifactId,
+                Name = artifactId,
+                Parts = parts,
+            },
+        };
+
+    private static Artifact BuildDataTypesArtifact() =>
+        new()
+        {
+            ArtifactId = Guid.NewGuid().ToString("N"),
+            Name = "data-types-artifact",
+            Description = "Mixed content artifact for scenario parity",
+            Parts =
+            [
+                Part.FromText("structured summary"),
+                Part.FromData(JsonSerializer.SerializeToElement(new { kind = "report", items = 2 })),
+                Part.FromUrl("https://example.invalid/diagram.svg", "image/svg+xml", "diagram.svg"),
+            ],
+        };
+
+    private static Message BuildMessage(RequestContext context, string text) =>
         new()
         {
             Role = Role.Agent,
@@ -398,6 +518,51 @@ internal sealed class InteropAgent : IAgentHandler
             TaskId = context.TaskId,
             Parts = [Part.FromText(text)],
         };
+}
+
+internal sealed class ExtendedCardRequestHandler : IA2ARequestHandler
+{
+    private readonly IA2ARequestHandler _inner;
+    private readonly AgentCard _extendedCard;
+
+    public ExtendedCardRequestHandler(IA2ARequestHandler inner, AgentCard extendedCard)
+    {
+        _inner = inner;
+        _extendedCard = extendedCard;
+    }
+
+    public Task<SendMessageResponse> SendMessageAsync(SendMessageRequest request, CancellationToken cancellationToken = default) =>
+        _inner.SendMessageAsync(request, cancellationToken);
+
+    public IAsyncEnumerable<StreamResponse> SendStreamingMessageAsync(SendMessageRequest request, CancellationToken cancellationToken = default) =>
+        _inner.SendStreamingMessageAsync(request, cancellationToken);
+
+    public Task<AgentTask> GetTaskAsync(GetTaskRequest request, CancellationToken cancellationToken = default) =>
+        _inner.GetTaskAsync(request, cancellationToken);
+
+    public Task<ListTasksResponse> ListTasksAsync(ListTasksRequest request, CancellationToken cancellationToken = default) =>
+        _inner.ListTasksAsync(request, cancellationToken);
+
+    public Task<AgentTask> CancelTaskAsync(CancelTaskRequest request, CancellationToken cancellationToken = default) =>
+        _inner.CancelTaskAsync(request, cancellationToken);
+
+    public IAsyncEnumerable<StreamResponse> SubscribeToTaskAsync(SubscribeToTaskRequest request, CancellationToken cancellationToken = default) =>
+        _inner.SubscribeToTaskAsync(request, cancellationToken);
+
+    public Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(CreateTaskPushNotificationConfigRequest request, CancellationToken cancellationToken = default) =>
+        _inner.CreateTaskPushNotificationConfigAsync(request, cancellationToken);
+
+    public Task<ListTaskPushNotificationConfigResponse> ListTaskPushNotificationConfigAsync(ListTaskPushNotificationConfigRequest request, CancellationToken cancellationToken = default) =>
+        _inner.ListTaskPushNotificationConfigAsync(request, cancellationToken);
+
+    public Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(GetTaskPushNotificationConfigRequest request, CancellationToken cancellationToken = default) =>
+        _inner.GetTaskPushNotificationConfigAsync(request, cancellationToken);
+
+    public Task DeleteTaskPushNotificationConfigAsync(DeleteTaskPushNotificationConfigRequest request, CancellationToken cancellationToken = default) =>
+        _inner.DeleteTaskPushNotificationConfigAsync(request, cancellationToken);
+
+    public Task<AgentCard> GetExtendedAgentCardAsync(GetExtendedAgentCardRequest request, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_extendedCard);
 }
 
 internal sealed class ServerOptions
