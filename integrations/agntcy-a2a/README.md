@@ -10,7 +10,7 @@ The released Rust fixture now exposes push-config CRUD. CSIT validates that path
 
 The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
 
-The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and currently validates JSON-RPC plus HTTP+JSON end to end. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
+The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and runs exactly 8 specs: 4 JSON-RPC legs (`dotnet-dotnet`, `dotnet-rust`, `rust-dotnet`, `rust-rust-dotnet`) plus the same 4 legs over HTTP+JSON. Each of those specs exercises unary and streaming `SendMessage`, `GetTask`, `ListTasks`, `CancelTask`, the missing-task and non-cancelable-task error paths, and preservation of mixed text plus structured-data content through task history. Push-config is covered in this slice as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. This slice does not cover gRPC. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
@@ -30,28 +30,46 @@ The Rust/.NET slice currently requires a local `dotnet` CLI for the .NET 8 SDK b
 
 ## Matrix
 
-| Transport | Label | Scenario | Current outcome | Component task | Repository task |
-| --- | --- | --- | --- | --- | --- |
-| JSON-RPC | `go-go` | Go client -> Go server | Pass | `task test:rust-go:jsonrpc:go-go` | `task integrations:a2a:test:rust-go:jsonrpc:go-go` |
-| JSON-RPC | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:jsonrpc:go-rust` | `task integrations:a2a:test:rust-go:jsonrpc:go-rust` |
-| JSON-RPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:jsonrpc:rust-go` | `task integrations:a2a:test:rust-go:jsonrpc:rust-go` |
-| JSON-RPC | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:jsonrpc:rust-rust` | `task integrations:a2a:test:rust-go:jsonrpc:rust-rust` |
-| JSON-RPC | `dotnet-dotnet` | .NET client -> .NET server | Pass | `task test:rust-dotnet:jsonrpc:dotnet-dotnet` | `task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-dotnet` |
-| JSON-RPC | `dotnet-rust` | .NET client -> Rust server | Pass | `task test:rust-dotnet:jsonrpc:dotnet-rust` | `task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-rust` |
-| JSON-RPC | `rust-dotnet` | Rust client -> .NET server | Pass | `task test:rust-dotnet:jsonrpc:rust-dotnet` | `task integrations:a2a:test:rust-dotnet:jsonrpc:rust-dotnet` |
-| JSON-RPC | `rust-rust-dotnet` | Rust client -> Rust server | Pass | `task test:rust-dotnet:jsonrpc:rust-rust` | `task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust` |
-| HTTP+JSON | `go-go` | Go client -> Go server | Pass | `task test:rust-go:rest:go-go` | `task integrations:a2a:test:rust-go:rest:go-go` |
-| HTTP+JSON | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:rest:go-rust` | `task integrations:a2a:test:rust-go:rest:go-rust` |
-| HTTP+JSON | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:rest:rust-go` | `task integrations:a2a:test:rust-go:rest:rust-go` |
-| HTTP+JSON | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:rest:rust-rust` | `task integrations:a2a:test:rust-go:rest:rust-rust` |
-| HTTP+JSON | `dotnet-dotnet` | .NET client -> .NET server | Pass | `task test:rust-dotnet:rest:dotnet-dotnet` | `task integrations:a2a:test:rust-dotnet:rest:dotnet-dotnet` |
-| HTTP+JSON | `dotnet-rust` | .NET client -> Rust server | Pass | `task test:rust-dotnet:rest:dotnet-rust` | `task integrations:a2a:test:rust-dotnet:rest:dotnet-rust` |
-| HTTP+JSON | `rust-dotnet` | Rust client -> .NET server | Pass | `task test:rust-dotnet:rest:rust-dotnet` | `task integrations:a2a:test:rust-dotnet:rest:rust-dotnet` |
-| HTTP+JSON | `rust-rust-dotnet` | Rust client -> Rust server | Pass | `task test:rust-dotnet:rest:rust-rust` | `task integrations:a2a:test:rust-dotnet:rest:rust-rust` |
-| gRPC | `go-go` | Go client -> Go server | Pass | `task test:rust-go:grpc:go-go` | `task integrations:a2a:test:rust-go:grpc:go-go` |
-| gRPC | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:grpc:go-rust` | `task integrations:a2a:test:rust-go:grpc:go-rust` |
-| gRPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:grpc:rust-go` | `task integrations:a2a:test:rust-go:grpc:rust-go` |
-| gRPC | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:grpc:rust-rust` | `task integrations:a2a:test:rust-go:grpc:rust-rust` |
+Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this suite.
+
+### SDK Pair Coverage
+
+| SDK pair | JSON-RPC | HTTP+JSON | gRPC |
+| --- | --- | --- | --- |
+| Rust/Go | ✅ | ✅ | ✅ |
+| Rust/.NET | ✅ | ✅ | ❌ |
+
+### Rust/Go Leg Coverage
+
+| Client -> Server | JSON-RPC | HTTP+JSON | gRPC |
+| --- | --- | --- | --- |
+| Go -> Go | ✅ | ✅ | ✅ |
+| Go -> Rust | ✅ | ✅ | ✅ |
+| Rust -> Go | ✅ | ✅ | ✅ |
+| Rust -> Rust | ✅ | ✅ | ✅ |
+
+### Rust/.NET Leg Coverage
+
+| Client -> Server | JSON-RPC | HTTP+JSON | gRPC |
+| --- | --- | --- | --- |
+| .NET -> .NET | ✅ | ✅ | ❌ |
+| .NET -> Rust | ✅ | ✅ | ❌ |
+| Rust -> .NET | ✅ | ✅ | ❌ |
+| Rust -> Rust (Rust/.NET slice) | ✅ | ✅ | ❌ |
+
+### Behavior Coverage
+
+| Behavior | Rust/Go | Rust/.NET |
+| --- | --- | --- |
+| Unary `SendMessage` | ✅ | ✅ |
+| Streaming `SendMessage` | ✅ | ✅ |
+| `GetTask`, `ListTasks`, and `CancelTask` lifecycle | ✅ | ✅ |
+| Missing-task and non-cancelable-task errors | ✅ | ✅ |
+| Mixed text + structured-data payload preserved through task history | ✅ | ✅ |
+| Push-config CRUD against Rust-server targets | ✅ | ✅ |
+| Unsupported push-config response against non-Rust server targets | ✅ | ✅ |
+
+For Rust/.NET, the uncovered cells are the current gRPC gap. For push-config, a ✅ means the suite verifies the expected behavior for that leg: CRUD succeeds on Rust-server targets and the current unsupported error is returned on Go-server or .NET-server targets.
 
 ## Running the Suite
 
@@ -135,4 +153,4 @@ task integrations:a2a:test:rust-dotnet:rest:rust-dotnet
 task integrations:a2a:test:rust-dotnet:rest:rust-rust
 ```
 
-Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The full transport matrix emits `report-agntcy-a2a.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, and `report-agntcy-a2a-grpc.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
+Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, and `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
