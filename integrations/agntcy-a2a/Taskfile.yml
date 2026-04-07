@@ -21,9 +21,10 @@ tasks:
           REPORT_NAME: report-agntcy-a2a
 
   test:rust-dotnet:
-    desc: Rust and .NET interoperability test matrix for the current JSON-RPC slice
+    desc: Rust and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
     cmds:
       - task: test:rust-dotnet:jsonrpc
+      - task: test:rust-dotnet:rest
 
   test:rust-dotnet:jsonrpc:
     desc: Rust and .NET JSON-RPC interoperability matrix
@@ -64,6 +65,46 @@ tasks:
         vars:
           LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-rust
+
+  test:rust-dotnet:rest:
+    desc: Rust and .NET HTTP+JSON interoperability matrix
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && rest
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest
+
+  test:rust-dotnet:rest:dotnet-dotnet:
+    desc: .NET client to .NET server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && rest && dotnet-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-dotnet-dotnet
+
+  test:rust-dotnet:rest:dotnet-rust:
+    desc: .NET client to Rust server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && rest && dotnet-rust
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-dotnet-rust
+
+  test:rust-dotnet:rest:rust-dotnet:
+    desc: Rust client to .NET server HTTP+JSON interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && rest && rust-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-dotnet
+
+  test:rust-dotnet:rest:rust-rust:
+    desc: Rust client to Rust server HTTP+JSON interoperability test for the Rust-.NET slice
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && rest && rust-rust-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-rust
 
   test:rust-go:jsonrpc:
     desc: Rust and Go JSON-RPC interoperability matrix

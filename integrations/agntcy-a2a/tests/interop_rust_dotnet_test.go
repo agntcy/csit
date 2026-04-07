@@ -139,10 +139,6 @@ func startDotNetFixture(
 	port int,
 	protocol transportProtocol,
 ) (*fixtureProcess, string, error) {
-	if protocol != transportJSONRPC {
-		return nil, "", fmt.Errorf("unsupported .NET fixture protocol: %s", protocol)
-	}
-
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	process, err := startFixtureProcess(
 		fmt.Sprintf("dotnet-%s-server", protocol),
@@ -205,8 +201,12 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, fu
 		binaries                rustDotNetFixtureBinaries
 		dotnetJSONRPCFixture    *fixtureProcess
 		rustJSONRPCFixture      *fixtureProcess
+		dotnetRESTFixture       *fixtureProcess
+		rustRESTFixture         *fixtureProcess
 		dotnetJSONRPCFixtureURL string
 		rustJSONRPCFixtureURL   string
+		dotnetRESTFixtureURL    string
+		rustRESTFixtureURL      string
 	)
 
 	ginkgo.BeforeAll(func() {
@@ -224,9 +224,25 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, fu
 			rustProbe:  binaries.rustProbe,
 		}, findFreePort(), transportJSONRPC)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		dotnetRESTFixture, dotnetRESTFixtureURL, err = startDotNetFixture(binaries, findFreePort(), transportREST)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		rustRESTFixture, rustRESTFixtureURL, err = startRustFixture(fixtureBinaries{
+			tempDir:    binaries.tempDir,
+			rustServer: binaries.rustServer,
+			rustProbe:  binaries.rustProbe,
+		}, findFreePort(), transportREST)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
+		if rustRESTFixture != nil {
+			gomega.Expect(rustRESTFixture.stop()).To(gomega.Succeed(), rustRESTFixture.logs.String())
+		}
+		if dotnetRESTFixture != nil {
+			gomega.Expect(dotnetRESTFixture.stop()).To(gomega.Succeed(), dotnetRESTFixture.logs.String())
+		}
 		if rustJSONRPCFixture != nil {
 			gomega.Expect(rustJSONRPCFixture.stop()).To(gomega.Succeed(), rustJSONRPCFixture.logs.String())
 		}
@@ -284,6 +300,58 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, fu
 				rustServer: binaries.rustServer,
 				rustProbe:  binaries.rustProbe,
 			}, rustJSONRPCFixtureURL, "rust", rustProbeOptions{
+				expectPushSupported: true,
+			})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+		})
+	})
+
+	ginkgo.Context("HTTP+JSON transport", func() {
+		ginkgo.It("lets the .NET client call the .NET fixture over REST", ginkgo.Label("suite-rust-dotnet", "rest", "dotnet-dotnet"), func(ctx ginkgo.SpecContext) {
+			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
+			defer cancel()
+
+			output, err := runDotNetProbe(requestCtx, binaries, dotnetRESTFixtureURL, "dotnet", dotNetProbeOptions{
+				expectPushUnsupported: true,
+				expectedPushErrorCode: dotNetPushUnsupportedCode,
+			})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+		})
+
+		ginkgo.It("lets the .NET client call the Rust fixture over REST", ginkgo.Label("suite-rust-dotnet", "rest", "dotnet-rust"), func(ctx ginkgo.SpecContext) {
+			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
+			defer cancel()
+
+			output, err := runDotNetProbe(requestCtx, binaries, rustRESTFixtureURL, "rust", dotNetProbeOptions{
+				expectPushSupported: true,
+			})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+		})
+
+		ginkgo.It("lets the Rust client call the .NET fixture over REST", ginkgo.Label("suite-rust-dotnet", "rest", "rust-dotnet"), func(ctx ginkgo.SpecContext) {
+			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
+			defer cancel()
+
+			output, err := runRustProbe(requestCtx, fixtureBinaries{
+				tempDir:    binaries.tempDir,
+				rustServer: binaries.rustServer,
+				rustProbe:  binaries.rustProbe,
+			}, dotnetRESTFixtureURL, "dotnet", rustProbeOptions{
+				expectPushUnsupported: true,
+				expectedPushErrorCode: dotNetPushUnsupportedCode,
+			})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+		})
+
+		ginkgo.It("lets the Rust client call the Rust fixture over REST", ginkgo.Label("suite-rust-dotnet", "rest", "rust-rust-dotnet"), func(ctx ginkgo.SpecContext) {
+			requestCtx, cancel := context.WithTimeout(ctx, probeTimeout)
+			defer cancel()
+
+			output, err := runRustProbe(requestCtx, fixtureBinaries{
+				tempDir:    binaries.tempDir,
+				rustServer: binaries.rustServer,
+				rustProbe:  binaries.rustProbe,
+			}, rustRESTFixtureURL, "rust", rustProbeOptions{
 				expectPushSupported: true,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)

@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.ServerSentEvents;
+using System.Runtime.CompilerServices;
 using A2A;
 
 namespace InteropProbe;
@@ -26,7 +31,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine(error.Message);
+            Console.Error.WriteLine(error);
             return 2;
         }
 
@@ -37,7 +42,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine(error.Message);
+            Console.Error.WriteLine(error);
             return 1;
         }
     }
@@ -61,7 +66,7 @@ internal static class Program
         AssertText(TaskText(completedTask), expectedPingText, "unary");
         AssertTaskHistory(completedTask, RequestText, "unary");
 
-        var fetchedTask = await client.GetTaskAsync(new GetTaskRequest
+        var fetchedTask = await GetTaskAsync(client, card, new GetTaskRequest
         {
             Id = completedTask.Id,
             HistoryLength = 1,
@@ -70,7 +75,7 @@ internal static class Program
         AssertText(TaskText(fetchedTask), expectedPingText, "get_task");
         AssertTaskHistory(fetchedTask, RequestText, "get_task");
 
-        var listedTasks = await ListTasksAsync(card, new ListTasksRequest
+        var listedTasks = await ListTasksAsync(client, card, new ListTasksRequest
         {
             ContextId = completedTask.ContextId,
         }).ConfigureAwait(false);
@@ -79,7 +84,7 @@ internal static class Program
             throw new InvalidOperationException($"list_tasks did not include expected task {completedTask.Id}");
         }
 
-        var streamingText = await ReadStreamingTextAsync(client.SendStreamingMessageAsync(request)).ConfigureAwait(false);
+        var streamingText = await ReadStreamingTextAsync(SendStreamingMessageAsync(client, card, request)).ConfigureAwait(false);
         AssertText(streamingText, expectedPingText, "streaming");
 
         var pendingTask = TaskFromResponse(
@@ -88,14 +93,14 @@ internal static class Program
         AssertState(pendingTask.Status.State, TaskState.Working, "pending unary");
         AssertText(TaskText(pendingTask), expectedPendingText, "pending unary");
 
-        var canceledTask = await client.CancelTaskAsync(new CancelTaskRequest
+        var canceledTask = await CancelTaskAsync(client, card, new CancelTaskRequest
         {
             Id = pendingTask.Id,
         }).ConfigureAwait(false);
         AssertState(canceledTask.Status.State, TaskState.Canceled, "cancel_task");
         AssertText(TaskText(canceledTask), expectedCancelText, "cancel_task");
 
-        var fetchedCanceledTask = await client.GetTaskAsync(new GetTaskRequest
+        var fetchedCanceledTask = await GetTaskAsync(client, card, new GetTaskRequest
         {
             Id = pendingTask.Id,
         }).ConfigureAwait(false);
@@ -104,13 +109,13 @@ internal static class Program
 
         if (options.RelaxedErrorChecks)
         {
-            await ExpectFailureAsync(() => client.GetTaskAsync(new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), "get missing task").ConfigureAwait(false);
-            await ExpectFailureAsync(() => client.CancelTaskAsync(new CancelTaskRequest { Id = completedTask.Id }), "cancel completed task").ConfigureAwait(false);
+            await ExpectFailureAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), "get missing task").ConfigureAwait(false);
+            await ExpectFailureAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), "cancel completed task").ConfigureAwait(false);
         }
         else
         {
-            await ExpectA2AErrorAsync(() => client.GetTaskAsync(new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), A2AErrorCode.TaskNotFound, "get missing task").ConfigureAwait(false);
-            await ExpectA2AErrorAsync(() => client.CancelTaskAsync(new CancelTaskRequest { Id = completedTask.Id }), A2AErrorCode.TaskNotCancelable, "cancel completed task").ConfigureAwait(false);
+            await ExpectA2AErrorAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), A2AErrorCode.TaskNotFound, "get missing task").ConfigureAwait(false);
+            await ExpectA2AErrorAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), A2AErrorCode.TaskNotCancelable, "cancel completed task").ConfigureAwait(false);
         }
 
         if (options.ExpectPushUnsupported)
@@ -123,22 +128,22 @@ internal static class Program
 
             if (options.RelaxedErrorChecks)
             {
-                await ExpectFailureAsync(() => client.CreateTaskPushNotificationConfigAsync(new CreateTaskPushNotificationConfigRequest
+                await ExpectFailureAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     ConfigId = "interop-config",
                     Config = pushConfig,
                 }), "create_push_config").ConfigureAwait(false);
-                await ExpectFailureAsync(() => client.GetTaskPushNotificationConfigAsync(new GetTaskPushNotificationConfigRequest
+                await ExpectFailureAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
                 }), "get_push_config").ConfigureAwait(false);
-                await ExpectFailureAsync(() => client.ListTaskPushNotificationConfigAsync(new ListTaskPushNotificationConfigRequest
+                await ExpectFailureAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                 }), "list_push_configs").ConfigureAwait(false);
-                await ExpectFailureAsync(() => client.DeleteTaskPushNotificationConfigAsync(new DeleteTaskPushNotificationConfigRequest
+                await ExpectFailureAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
@@ -146,22 +151,22 @@ internal static class Program
             }
             else
             {
-                await ExpectA2AErrorAsync(() => client.CreateTaskPushNotificationConfigAsync(new CreateTaskPushNotificationConfigRequest
+                await ExpectA2AErrorAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     ConfigId = "interop-config",
                     Config = pushConfig,
                 }), options.ExpectedPushErrorCode, "create_push_config").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => client.GetTaskPushNotificationConfigAsync(new GetTaskPushNotificationConfigRequest
+                await ExpectA2AErrorAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
                 }), options.ExpectedPushErrorCode, "get_push_config").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => client.ListTaskPushNotificationConfigAsync(new ListTaskPushNotificationConfigRequest
+                await ExpectA2AErrorAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                 }), options.ExpectedPushErrorCode, "list_push_configs").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => client.DeleteTaskPushNotificationConfigAsync(new DeleteTaskPushNotificationConfigRequest
+                await ExpectA2AErrorAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
@@ -182,7 +187,7 @@ internal static class Program
                 },
             };
 
-            var createdConfig = await CreateTaskPushNotificationConfigAsync(card, new CreateTaskPushNotificationConfigRequest
+            var createdConfig = await CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
             {
                 TaskId = completedTask.Id,
                 ConfigId = "interop-config",
@@ -190,14 +195,14 @@ internal static class Program
             }).ConfigureAwait(false);
             AssertPushConfig(createdConfig, completedTask.Id, pushConfig, "create_push_config");
 
-            var fetchedConfig = await GetTaskPushNotificationConfigAsync(card, new GetTaskPushNotificationConfigRequest
+            var fetchedConfig = await GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
             {
                 TaskId = completedTask.Id,
                 Id = "interop-config",
             }).ConfigureAwait(false);
             AssertPushConfig(fetchedConfig, completedTask.Id, pushConfig, "get_push_config");
 
-            var listedConfigs = await ListTaskPushNotificationConfigAsync(card, new ListTaskPushNotificationConfigRequest
+            var listedConfigs = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
             {
                 TaskId = completedTask.Id,
             }).ConfigureAwait(false);
@@ -207,13 +212,13 @@ internal static class Program
             }
             AssertPushConfig(listedConfigs[0], completedTask.Id, pushConfig, "list_push_configs");
 
-            await DeleteTaskPushNotificationConfigAsync(card, new DeleteTaskPushNotificationConfigRequest
+            await DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
             {
                 TaskId = completedTask.Id,
                 Id = "interop-config",
             }).ConfigureAwait(false);
 
-            var listedAfterDelete = await ListTaskPushNotificationConfigAsync(card, new ListTaskPushNotificationConfigRequest
+            var listedAfterDelete = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
             {
                 TaskId = completedTask.Id,
             }).ConfigureAwait(false);
@@ -252,14 +257,19 @@ internal static class Program
     }
 
     private static async Task<SendMessageResponse> SendMessageAsync(
-        IA2AClient client,
+        IA2AClient? client,
         AgentCard card,
         SendMessageRequest request,
         bool returnImmediately)
     {
+        if (!UsesJsonRpcCompat(card))
+        {
+            return await PostRestAsync<JsonNode, SendMessageResponse>(card, "/message:send", BuildRestSendMessagePayload(request)).ConfigureAwait(false);
+        }
+
         if (!returnImmediately)
         {
-            return await client.SendMessageAsync(request).ConfigureAwait(false);
+            return await client!.SendMessageAsync(request).ConfigureAwait(false);
         }
 
         var payload = new
@@ -274,59 +284,493 @@ internal static class Program
         return await SendJsonRpcAsync<SendMessageResponse>(card, "SendMessage", payload).ConfigureAwait(false);
     }
 
-    private static async Task<List<AgentTask>> ListTasksAsync(AgentCard card, ListTasksRequest request)
+    private static JsonNode BuildRestSendMessagePayload(SendMessageRequest request)
     {
-        var response = await SendJsonRpcAsync<CompatibleListTasksResponse>(card, "ListTasks", request).ConfigureAwait(false);
-        return response.Tasks;
+        var payload = JsonSerializer.SerializeToNode(request, A2AJsonUtilities.DefaultOptions) as JsonObject
+            ?? throw new InvalidOperationException("failed to serialize REST send message request");
+
+        RemoveNullProperties(payload);
+
+        if (payload["configuration"] is JsonObject configuration
+            && configuration.TryGetPropertyValue("blocking", out var blockingNode)
+            && blockingNode is not null)
+        {
+            configuration["returnImmediately"] = !blockingNode.GetValue<bool>();
+            configuration.Remove("blocking");
+        }
+
+        return payload;
     }
 
-    private static Task<CompatibleTaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(
+    private static async Task<List<AgentTask>> ListTasksAsync(IA2AClient? client, AgentCard card, ListTasksRequest request)
+    {
+        if (!UsesJsonRpcCompat(card))
+        {
+            var restResponse = await GetRestAsync<ListTasksResponse>(card, BuildListTasksPath(request)).ConfigureAwait(false);
+            return restResponse.Tasks;
+        }
+
+        var rpcResponse = await SendJsonRpcAsync<CompatibleListTasksResponse>(card, "ListTasks", request).ConfigureAwait(false);
+        return rpcResponse.Tasks;
+    }
+
+    private static async Task<CompatibleTaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(
+        IA2AClient? client,
         AgentCard card,
         CreateTaskPushNotificationConfigRequest request)
     {
-        return SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "CreateTaskPushNotificationConfig", request);
+        if (!UsesJsonRpcCompat(card))
+        {
+            return ToCompatibleTaskPushNotificationConfig(
+                await PostRestAsync<PushNotificationConfig, TaskPushNotificationConfig>(
+                    card,
+                    $"/tasks/{Uri.EscapeDataString(request.TaskId)}/pushNotificationConfigs",
+                    request.Config).ConfigureAwait(false));
+        }
+
+        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "CreateTaskPushNotificationConfig", request).ConfigureAwait(false);
     }
 
-    private static Task<CompatibleTaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(
+    private static async Task<CompatibleTaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(
+        IA2AClient? client,
         AgentCard card,
         GetTaskPushNotificationConfigRequest request)
     {
-        return SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "GetTaskPushNotificationConfig", request);
+        if (!UsesJsonRpcCompat(card))
+        {
+            return ToCompatibleTaskPushNotificationConfig(
+                await GetRestAsync<TaskPushNotificationConfig>(
+                    card,
+                    $"/tasks/{Uri.EscapeDataString(request.TaskId)}/pushNotificationConfigs/{Uri.EscapeDataString(request.Id)}").ConfigureAwait(false));
+        }
+
+        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "GetTaskPushNotificationConfig", request).ConfigureAwait(false);
     }
 
     private static async Task<List<CompatibleTaskPushNotificationConfig>> ListTaskPushNotificationConfigAsync(
+        IA2AClient? client,
         AgentCard card,
         ListTaskPushNotificationConfigRequest request)
     {
-        var response = await SendJsonRpcAsync<JsonElement>(
+        if (!UsesJsonRpcCompat(card))
+        {
+            var restResponse = await GetRestAsync<ListTaskPushNotificationConfigResponse>(
+                card,
+                BuildListPushConfigsPath(request)).ConfigureAwait(false);
+            return (restResponse.Configs ?? []).Select(ToCompatibleTaskPushNotificationConfig).ToList();
+        }
+
+        var rpcResponse = await SendJsonRpcAsync<JsonElement>(
             card,
             "ListTaskPushNotificationConfigs",
             request).ConfigureAwait(false);
 
-        return response.ValueKind switch
+        return rpcResponse.ValueKind switch
         {
             JsonValueKind.Array => JsonSerializer.Deserialize<List<CompatibleTaskPushNotificationConfig>>(
-                response.GetRawText(),
+                rpcResponse.GetRawText(),
                 A2AJsonUtilities.DefaultOptions) ?? [],
             JsonValueKind.Object => JsonSerializer.Deserialize<CompatibleListTaskPushNotificationConfigResponse>(
-                response.GetRawText(),
+                rpcResponse.GetRawText(),
                 A2AJsonUtilities.DefaultOptions)?.Configs ?? [],
             _ => throw new InvalidOperationException("unexpected list push config JSON-RPC result shape"),
         };
     }
 
     private static async Task DeleteTaskPushNotificationConfigAsync(
+        IA2AClient? client,
         AgentCard card,
         DeleteTaskPushNotificationConfigRequest request)
     {
+        if (!UsesJsonRpcCompat(card))
+        {
+            await SendRestAsync(
+                HttpMethod.Delete,
+                card,
+                $"/tasks/{Uri.EscapeDataString(request.TaskId)}/pushNotificationConfigs/{Uri.EscapeDataString(request.Id)}").ConfigureAwait(false);
+            return;
+        }
+
         await SendJsonRpcWithoutResultAsync(card, "DeleteTaskPushNotificationConfig", request).ConfigureAwait(false);
     }
 
-    private static IA2AClient CreateClient(AgentCard card)
+    private static IA2AClient? CreateClient(AgentCard card)
     {
-        var jsonRpcInterface = GetJsonRpcInterface(card);
+        var agentInterface = GetPrimaryInterface(card);
 
-        return new A2AClient(new Uri(jsonRpcInterface.Url));
+        if (string.Equals(agentInterface.ProtocolBinding, "JSONRPC", StringComparison.OrdinalIgnoreCase))
+        {
+            return new A2AClient(new Uri(agentInterface.Url));
+        }
+
+        if (string.Equals(agentInterface.ProtocolBinding, "HTTP+JSON", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        throw new InvalidOperationException($"agent card did not advertise a supported interface: {agentInterface.ProtocolBinding}");
+    }
+
+    private static CompatibleTaskPushNotificationConfig ToCompatibleTaskPushNotificationConfig(TaskPushNotificationConfig config)
+    {
+        return new CompatibleTaskPushNotificationConfig
+        {
+            TaskId = config.TaskId,
+            Config = config.PushNotificationConfig,
+        };
+    }
+
+    private static async Task<AgentTask> GetTaskAsync(IA2AClient? client, AgentCard card, GetTaskRequest request)
+    {
+        if (UsesJsonRpcCompat(card))
+        {
+            return await client!.GetTaskAsync(request).ConfigureAwait(false);
+        }
+
+        return await GetRestAsync<AgentTask>(card, BuildGetTaskPath(request)).ConfigureAwait(false);
+    }
+
+    private static async Task<AgentTask> CancelTaskAsync(IA2AClient? client, AgentCard card, CancelTaskRequest request)
+    {
+        if (UsesJsonRpcCompat(card))
+        {
+            return await client!.CancelTaskAsync(request).ConfigureAwait(false);
+        }
+
+        var path = $"/tasks/{Uri.EscapeDataString(request.Id)}:cancel";
+        return request.Metadata is null
+            ? await PostRestEmptyAsync<AgentTask>(card, path).ConfigureAwait(false)
+            : await PostRestAsync<object, AgentTask>(card, path, new { metadata = request.Metadata }).ConfigureAwait(false);
+    }
+
+    private static IAsyncEnumerable<StreamResponse> SendStreamingMessageAsync(IA2AClient? client, AgentCard card, SendMessageRequest request)
+    {
+        if (UsesJsonRpcCompat(card))
+        {
+            return client!.SendStreamingMessageAsync(request);
+        }
+
+        return PostRestStreamingAsync(card, "/message:stream", request);
+    }
+
+    private static string BuildGetTaskPath(GetTaskRequest request)
+    {
+        return $"/tasks/{Uri.EscapeDataString(request.Id)}{BuildQueryString(("historyLength", request.HistoryLength?.ToString(System.Globalization.CultureInfo.InvariantCulture)))}";
+    }
+
+    private static string BuildListTasksPath(ListTasksRequest request)
+    {
+        return "/tasks" + BuildQueryString(
+            ("contextId", request.ContextId),
+            ("status", request.Status?.ToString()),
+            ("pageSize", request.PageSize?.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("pageToken", request.PageToken),
+            ("historyLength", request.HistoryLength?.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static string BuildListPushConfigsPath(ListTaskPushNotificationConfigRequest request)
+    {
+        return $"/tasks/{Uri.EscapeDataString(request.TaskId)}/pushNotificationConfigs" + BuildQueryString(
+            ("pageSize", request.PageSize?.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("pageToken", request.PageToken));
+    }
+
+    private static async Task<TResult> GetRestAsync<TResult>(AgentCard card, string path)
+    {
+        using var httpClient = new HttpClient();
+        using var request = CreateRestRequest(HttpMethod.Get, card, path);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        await EnsureRestSuccessOrThrowA2AExceptionAsync(response).ConfigureAwait(false);
+
+        return await ReadRestResponseAsync<TResult>(response.Content, path).ConfigureAwait(false);
+    }
+
+    private static async Task<TResult> PostRestAsync<TBody, TResult>(AgentCard card, string path, TBody body)
+    {
+        using var httpClient = new HttpClient();
+        using var request = CreateRestRequest(HttpMethod.Post, card, path);
+        request.Content = new StringContent(JsonSerializer.Serialize(body, A2AJsonUtilities.DefaultOptions), Encoding.UTF8, "application/json");
+
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        await EnsureRestSuccessOrThrowA2AExceptionAsync(response).ConfigureAwait(false);
+
+        return await ReadRestResponseAsync<TResult>(response.Content, path).ConfigureAwait(false);
+    }
+
+    private static async Task<TResult> PostRestEmptyAsync<TResult>(AgentCard card, string path)
+    {
+        using var httpClient = new HttpClient();
+        using var request = CreateRestRequest(HttpMethod.Post, card, path);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        await EnsureRestSuccessOrThrowA2AExceptionAsync(response).ConfigureAwait(false);
+
+        return await ReadRestResponseAsync<TResult>(response.Content, path).ConfigureAwait(false);
+    }
+
+    private static async Task SendRestAsync(HttpMethod method, AgentCard card, string path)
+    {
+        using var httpClient = new HttpClient();
+        using var request = CreateRestRequest(method, card, path);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        await EnsureRestSuccessOrThrowA2AExceptionAsync(response).ConfigureAwait(false);
+    }
+
+    private static async IAsyncEnumerable<StreamResponse> PostRestStreamingAsync(
+        AgentCard card,
+        string path,
+        SendMessageRequest body,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var httpClient = new HttpClient();
+        using var request = CreateRestRequest(HttpMethod.Post, card, path);
+        request.Content = new StringContent(JsonSerializer.Serialize(body, A2AJsonUtilities.DefaultOptions), Encoding.UTF8, "application/json");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        await EnsureRestSuccessOrThrowA2AExceptionAsync(response).ConfigureAwait(false);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await foreach (var sseItem in SseParser.Create(stream).EnumerateAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var result = ReadRestPayload<StreamResponse>(sseItem.Data, path);
+            yield return result;
+        }
+    }
+
+    private static async Task<TResult> ReadRestResponseAsync<TResult>(HttpContent content, string path)
+    {
+        await using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
+        var payload = await JsonNode.ParseAsync(stream).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"received empty REST response for {path}");
+
+        return ReadRestPayload<TResult>(payload, path);
+    }
+
+    private static TResult ReadRestPayload<TResult>(string json, string path)
+    {
+        var payload = JsonNode.Parse(json)
+            ?? throw new InvalidOperationException($"received empty REST response for {path}");
+
+        return ReadRestPayload<TResult>(payload, path);
+    }
+
+    private static TResult ReadRestPayload<TResult>(JsonNode payload, string path)
+    {
+        RemoveNullProperties(payload);
+        payload = NormalizeRestPayload<TResult>(payload);
+
+        var result = payload.Deserialize<TResult>(A2AJsonUtilities.DefaultOptions);
+        return result ?? throw new InvalidOperationException($"failed to deserialize REST response for {path}: {payload.ToJsonString()}");
+    }
+
+    private static JsonNode NormalizeRestPayload<TResult>(JsonNode payload)
+    {
+        if (typeof(TResult) == typeof(ListTaskPushNotificationConfigResponse) && payload is JsonArray configsArray)
+        {
+            foreach (var item in configsArray.OfType<JsonObject>())
+            {
+                NormalizeTaskPushNotificationConfig(item);
+            }
+
+            return new JsonObject
+            {
+                ["configs"] = configsArray,
+                ["nextPageToken"] = string.Empty,
+            };
+        }
+
+        if (payload is not JsonObject root)
+        {
+            return payload;
+        }
+
+        if (typeof(TResult) == typeof(ListTasksResponse))
+        {
+            EnsureStringProperty(root, "nextPageToken");
+            EnsureIntProperty(root, "pageSize");
+            EnsureIntProperty(root, "totalSize");
+            return root;
+        }
+
+        if (typeof(TResult) == typeof(ListTaskPushNotificationConfigResponse))
+        {
+            EnsureStringProperty(root, "nextPageToken");
+
+            if (root["configs"] is JsonArray configs)
+            {
+                foreach (var item in configs.OfType<JsonObject>())
+                {
+                    NormalizeTaskPushNotificationConfig(item);
+                }
+            }
+
+            return root;
+        }
+
+        if (typeof(TResult) == typeof(TaskPushNotificationConfig))
+        {
+            NormalizeTaskPushNotificationConfig(root);
+        }
+
+        return root;
+    }
+
+    private static void NormalizeTaskPushNotificationConfig(JsonObject root)
+    {
+        if (root["config"] is not JsonObject config || root.ContainsKey("pushNotificationConfig"))
+        {
+            return;
+        }
+
+        if (!root.ContainsKey("id") && config["id"] is not null)
+        {
+            root["id"] = config["id"]!.DeepClone();
+        }
+
+        root["pushNotificationConfig"] = config.DeepClone();
+        root.Remove("config");
+    }
+
+    private static void RemoveNullProperties(JsonNode? node)
+    {
+        if (node is JsonObject obj)
+        {
+            foreach (var property in obj.ToList())
+            {
+                if (property.Value is null)
+                {
+                    obj.Remove(property.Key);
+                    continue;
+                }
+
+                RemoveNullProperties(property.Value);
+            }
+
+            return;
+        }
+
+        if (node is JsonArray array)
+        {
+            foreach (var item in array)
+            {
+                RemoveNullProperties(item);
+            }
+        }
+    }
+
+    private static void EnsureStringProperty(JsonObject obj, string propertyName)
+    {
+        if (!obj.ContainsKey(propertyName))
+        {
+            obj[propertyName] = string.Empty;
+        }
+    }
+
+    private static void EnsureIntProperty(JsonObject obj, string propertyName)
+    {
+        if (!obj.ContainsKey(propertyName))
+        {
+            obj[propertyName] = 0;
+        }
+    }
+
+    private static HttpRequestMessage CreateRestRequest(HttpMethod method, AgentCard card, string path)
+    {
+        var request = new HttpRequestMessage(method, GetPrimaryInterface(card).Url.TrimEnd('/') + path);
+        request.Headers.TryAddWithoutValidation("A2A-Version", "1.0");
+        return request;
+    }
+
+    private static async Task EnsureRestSuccessOrThrowA2AExceptionAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        string? detail = null;
+        A2AErrorCode? mappedCode = null;
+
+        try
+        {
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+            if (string.Equals(contentType, "application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var errorResponse = await JsonSerializer.DeserializeAsync<RestA2AErrorResponse>(stream, A2AJsonUtilities.DefaultOptions).ConfigureAwait(false);
+                if (errorResponse?.Error is { } error)
+                {
+                    detail = error.Message;
+                    var errorInfo = error.Details?.FirstOrDefault(value =>
+                        string.Equals(value.Domain, "a2a-protocol.org", StringComparison.OrdinalIgnoreCase));
+                    if (errorInfo?.Reason is not null && ReasonToErrorCode.TryGetValue(errorInfo.Reason, out var code))
+                    {
+                        mappedCode = code;
+                    }
+                }
+            }
+            else
+            {
+                detail = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+        }
+
+        var errorCode = mappedCode ?? response.StatusCode switch
+        {
+            HttpStatusCode.NotFound => A2AErrorCode.TaskNotFound,
+            HttpStatusCode.BadRequest => A2AErrorCode.InvalidRequest,
+            HttpStatusCode.Conflict => A2AErrorCode.TaskNotCancelable,
+            HttpStatusCode.UnsupportedMediaType => A2AErrorCode.ContentTypeNotSupported,
+            HttpStatusCode.BadGateway => A2AErrorCode.InvalidAgentResponse,
+            _ => A2AErrorCode.InternalError,
+        };
+
+        var message = !string.IsNullOrEmpty(detail)
+            ? $"HTTP {(int)response.StatusCode}: {detail}"
+            : $"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}";
+
+        throw new A2AException(message, errorCode);
+    }
+
+    private static string BuildQueryString(params (string Key, string? Value)[] parameters)
+    {
+        var parts = new List<string>();
+        foreach (var (key, value) in parameters)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                parts.Add($"{key}={Uri.EscapeDataString(value)}");
+            }
+        }
+
+        return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
+    }
+
+    private static readonly Dictionary<string, A2AErrorCode> ReasonToErrorCode = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["TASK_NOT_FOUND"] = A2AErrorCode.TaskNotFound,
+        ["TASK_NOT_CANCELABLE"] = A2AErrorCode.TaskNotCancelable,
+        ["PUSH_NOTIFICATION_NOT_SUPPORTED"] = A2AErrorCode.PushNotificationNotSupported,
+        ["UNSUPPORTED_OPERATION"] = A2AErrorCode.UnsupportedOperation,
+        ["CONTENT_TYPE_NOT_SUPPORTED"] = A2AErrorCode.ContentTypeNotSupported,
+        ["INVALID_AGENT_RESPONSE"] = A2AErrorCode.InvalidAgentResponse,
+        ["EXTENDED_AGENT_CARD_NOT_CONFIGURED"] = A2AErrorCode.ExtendedAgentCardNotConfigured,
+        ["EXTENSION_SUPPORT_REQUIRED"] = A2AErrorCode.ExtensionSupportRequired,
+        ["VERSION_NOT_SUPPORTED"] = A2AErrorCode.VersionNotSupported,
+    };
+
+    private static bool UsesJsonRpcCompat(AgentCard card)
+    {
+        return string.Equals(GetPrimaryInterface(card).ProtocolBinding, "JSONRPC", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static AgentInterface GetPrimaryInterface(AgentCard card)
+    {
+        return card.SupportedInterfaces.FirstOrDefault()
+            ?? throw new InvalidOperationException("agent card did not advertise any interfaces");
     }
 
     private static AgentInterface GetJsonRpcInterface(AgentCard card)
@@ -625,6 +1069,31 @@ internal sealed class CompatibleTaskPushNotificationConfig
 internal sealed class CompatibleListTaskPushNotificationConfigResponse
 {
     public List<CompatibleTaskPushNotificationConfig> Configs { get; set; } = [];
+}
+
+internal sealed class RestA2AErrorResponse
+{
+    public RestA2AErrorStatus? Error { get; set; }
+}
+
+internal sealed class RestA2AErrorStatus
+{
+    public int Code { get; set; }
+
+    public string? Status { get; set; }
+
+    public string? Message { get; set; }
+
+    public List<RestA2AErrorDetail>? Details { get; set; }
+}
+
+internal sealed class RestA2AErrorDetail
+{
+    public string? Type { get; set; }
+
+    public string? Reason { get; set; }
+
+    public string? Domain { get; set; }
 }
 
 internal sealed class ProbeOptions

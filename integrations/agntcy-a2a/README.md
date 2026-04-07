@@ -2,7 +2,7 @@
 
 This component hosts cross-SDK A2A interoperability checks.
 
-The current coverage includes Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings plus an initial Rust/.NET JSON-RPC slice.
+The current coverage includes Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings plus a Rust/.NET slice across JSON-RPC and HTTP+JSON.
 
 All 12 Rust/Go client-server legs in the current core lifecycle matrix are green across JSON-RPC, HTTP+JSON, and gRPC.
 
@@ -10,7 +10,7 @@ The released Rust fixture now exposes push-config CRUD. CSIT validates that path
 
 The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
 
-An initial Rust/.NET JSON-RPC slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and scopes the first slice to JSON-RPC only while REST and gRPC remain follow-up work. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
+The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and currently validates JSON-RPC plus HTTP+JSON end to end. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
@@ -44,6 +44,10 @@ The Rust/.NET slice currently requires a local `dotnet` CLI for the .NET 8 SDK b
 | HTTP+JSON | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:rest:go-rust` | `task integrations:a2a:test:rust-go:rest:go-rust` |
 | HTTP+JSON | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:rest:rust-go` | `task integrations:a2a:test:rust-go:rest:rust-go` |
 | HTTP+JSON | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:rest:rust-rust` | `task integrations:a2a:test:rust-go:rest:rust-rust` |
+| HTTP+JSON | `dotnet-dotnet` | .NET client -> .NET server | Pass | `task test:rust-dotnet:rest:dotnet-dotnet` | `task integrations:a2a:test:rust-dotnet:rest:dotnet-dotnet` |
+| HTTP+JSON | `dotnet-rust` | .NET client -> Rust server | Pass | `task test:rust-dotnet:rest:dotnet-rust` | `task integrations:a2a:test:rust-dotnet:rest:dotnet-rust` |
+| HTTP+JSON | `rust-dotnet` | Rust client -> .NET server | Pass | `task test:rust-dotnet:rest:rust-dotnet` | `task integrations:a2a:test:rust-dotnet:rest:rust-dotnet` |
+| HTTP+JSON | `rust-rust-dotnet` | Rust client -> Rust server | Pass | `task test:rust-dotnet:rest:rust-rust` | `task integrations:a2a:test:rust-dotnet:rest:rust-rust` |
 | gRPC | `go-go` | Go client -> Go server | Pass | `task test:rust-go:grpc:go-go` | `task integrations:a2a:test:rust-go:grpc:go-go` |
 | gRPC | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:grpc:go-rust` | `task integrations:a2a:test:rust-go:grpc:go-rust` |
 | gRPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:grpc:rust-go` | `task integrations:a2a:test:rust-go:grpc:rust-go` |
@@ -75,7 +79,7 @@ task test:rust-go:grpc:rust-rust
 
 `task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet`.
 
-The Rust/.NET JSON-RPC slice is also exposed separately so it can be iterated independently:
+The Rust/.NET slice is also exposed separately so it can be iterated independently:
 
 ```sh
 task test:rust-dotnet
@@ -84,6 +88,11 @@ task test:rust-dotnet:jsonrpc:dotnet-dotnet
 task test:rust-dotnet:jsonrpc:dotnet-rust
 task test:rust-dotnet:jsonrpc:rust-dotnet
 task test:rust-dotnet:jsonrpc:rust-rust
+task test:rust-dotnet:rest
+task test:rust-dotnet:rest:dotnet-dotnet
+task test:rust-dotnet:rest:dotnet-rust
+task test:rust-dotnet:rest:rust-dotnet
+task test:rust-dotnet:rest:rust-rust
 ```
 
 From the repository root:
@@ -119,6 +128,11 @@ task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-dotnet
 task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-rust
 task integrations:a2a:test:rust-dotnet:jsonrpc:rust-dotnet
 task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust
+task integrations:a2a:test:rust-dotnet:rest
+task integrations:a2a:test:rust-dotnet:rest:dotnet-dotnet
+task integrations:a2a:test:rust-dotnet:rest:dotnet-rust
+task integrations:a2a:test:rust-dotnet:rest:rust-dotnet
+task integrations:a2a:test:rust-dotnet:rest:rust-rust
 ```
 
 Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The full transport matrix emits `report-agntcy-a2a.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, and `report-agntcy-a2a-grpc.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
