@@ -62,9 +62,9 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      run-a2a: ${{ steps.detect.outputs.run-a2a }}
-      run-slim: ${{ steps.detect.outputs.run-slim }}
-      run-directory: ${{ steps.detect.outputs.run-directory }}
+      run-a2a: ${{ steps.compute.outputs.run-a2a }}
+      run-slim: ${{ steps.compute.outputs.run-slim }}
+      run-directory: ${{ steps.compute.outputs.run-directory }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -72,91 +72,48 @@ jobs:
           fetch-depth: 0
 
       - name: Detect integration changes
-        id: detect
+        id: filter
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'schedule' }}
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            a2a:
+              - integrations/agntcy-a2a/**
+            slim:
+              - integrations/agntcy-slim/**
+            directory:
+              - integrations/agntcy-dir/**
+            shared:
+              - .github/workflows/test-integrations.yaml
+              - Taskfile.yml
+              - integrations/Taskfile.yml
+              - .github/actions/setup-env/**
+              - .github/actions/setup-go/**
+              - .github/actions/setup-python/**
+              - .github/actions/setup-k8s/**
+              - .github/actions/deploy-components/**
+              - .github/actions/create-artifact/**
+              - .github/actions/collect-reports/**
+
+      - name: Compute job selection
+        id: compute
         shell: bash
         run: |
           set -euo pipefail
 
-          run_all=false
-          changed_a2a=false
-          changed_slim=false
-          changed_directory=false
-          changed_shared=false
-
           if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "schedule" ]]; then
-            run_all=true
-          else
-            changed_file_list="$(mktemp)"
-
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              git fetch --no-tags origin "${{ github.base_ref }}"
-              git diff --name-only "origin/${{ github.base_ref }}...HEAD" > "$changed_file_list"
-            elif [[ "${{ github.event_name }}" == "push" ]]; then
-              before_sha="${{ github.event.before }}"
-              if [[ -z "$before_sha" || "$before_sha" == "0000000000000000000000000000000000000000" ]]; then
-                run_all=true
-              else
-                git diff --name-only "$before_sha...HEAD" > "$changed_file_list"
-              fi
-            else
-              run_all=true
-            fi
-
-            if [[ "$run_all" == false ]]; then
-              echo "Changed files:"
-              if [[ -s "$changed_file_list" ]]; then
-                sed 's/^/ - /' "$changed_file_list"
-              else
-                echo " - <none>"
-              fi
-
-              while IFS= read -r file; do
-                [[ -z "$file" ]] && continue
-
-                case "$file" in
-                  integrations/agntcy-a2a/*)
-                    changed_a2a=true
-                    ;;
-                  integrations/agntcy-slim/*)
-                    changed_slim=true
-                    ;;
-                  integrations/agntcy-dir/*)
-                    changed_directory=true
-                    ;;
-                esac
-
-                case "$file" in
-                  .github/workflows/test-integrations.yaml|Taskfile.yml|integrations/Taskfile.yml|.github/actions/setup-env/*|.github/actions/setup-go/*|.github/actions/setup-python/*|.github/actions/setup-k8s/*|.github/actions/deploy-components/*|.github/actions/create-artifact/*|.github/actions/collect-reports/*)
-                    changed_shared=true
-                    ;;
-                esac
-              done < "$changed_file_list"
-            fi
-          fi
-
-          if [[ "$run_all" == true ]]; then
+            run_a2a=true
+            run_slim=true
+            run_directory=true
+          elif [[ "${{ steps.filter.outputs.shared }}" == "true" ]]; then
             run_a2a=true
             run_slim=true
             run_directory=true
           else
-            touched_components=0
-            [[ "$changed_a2a" == true ]] && touched_components=$((touched_components + 1))
-            [[ "$changed_slim" == true ]] && touched_components=$((touched_components + 1))
-            [[ "$changed_directory" == true ]] && touched_components=$((touched_components + 1))
-
-            if (( touched_components > 0 )); then
-              run_a2a=$changed_a2a
-              run_slim=$changed_slim
-              run_directory=$changed_directory
-            elif [[ "$changed_shared" == true ]]; then
-              run_a2a=true
-              run_slim=true
-              run_directory=true
-            else
-              run_a2a=false
-              run_slim=false
-              run_directory=false
-            fi
+            run_a2a=${{ steps.filter.outputs.a2a }}
+            run_slim=${{ steps.filter.outputs.slim }}
+            run_directory=${{ steps.filter.outputs.directory }}
           fi
 
           echo "run-a2a=$run_a2a" >> "$GITHUB_OUTPUT"
