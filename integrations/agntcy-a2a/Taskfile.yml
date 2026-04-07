@@ -8,7 +8,7 @@ silent: true
 
 tasks:
   test:
-    desc: All A2A interoperability tests
+    desc: Default A2A interoperability tests
     cmds:
       - task: test:rust-go
 
@@ -18,6 +18,51 @@ tasks:
       - task: test:rust-go:run
         vars:
           REPORT_NAME: report-agntcy-a2a
+
+  test:rust-dotnet:
+    desc: Rust and .NET interoperability test matrix for the current JSON-RPC slice
+    cmds:
+      - task: test:rust-dotnet:jsonrpc
+
+  test:rust-dotnet:jsonrpc:
+    desc: Rust and .NET JSON-RPC interoperability matrix
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && jsonrpc
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-jsonrpc
+
+  test:rust-dotnet:jsonrpc:dotnet-dotnet:
+    desc: .NET client to .NET server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && jsonrpc && dotnet-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-dotnet-dotnet
+
+  test:rust-dotnet:jsonrpc:dotnet-rust:
+    desc: .NET client to Rust server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && jsonrpc && dotnet-rust
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-dotnet-rust
+
+  test:rust-dotnet:jsonrpc:rust-dotnet:
+    desc: Rust client to .NET server JSON-RPC interoperability test
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-dotnet
+
+  test:rust-dotnet:jsonrpc:rust-rust:
+    desc: Rust client to Rust server JSON-RPC interoperability test for the Rust-.NET slice
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-rust-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-rust
 
   test:rust-go:jsonrpc:
     desc: Rust and Go JSON-RPC interoperability matrix
@@ -152,6 +197,14 @@ tasks:
         --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
 
   test:rust-go:run:
+    internal: true
+    cmds:
+      - task: test:rust-go:jsonrpc:run
+        vars:
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
+
+  test:rust-dotnet:run:
     internal: true
     cmds:
       - task: test:rust-go:jsonrpc:run

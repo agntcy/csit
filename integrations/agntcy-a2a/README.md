@@ -10,6 +10,8 @@ The released Rust fixture now exposes push-config CRUD. CSIT validates that path
 
 The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
 
+An initial Rust/.NET JSON-RPC slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and scopes the first slice to JSON-RPC only while REST and gRPC remain follow-up work.
+
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
 - unary and streaming `SendMessage`
@@ -23,6 +25,8 @@ The fixtures are intentionally small and deterministic so the suite can run the 
 Each scenario is tagged with a dedicated Ginkgo label and exposed through a matching Task target so the full matrix and each individual leg can be run independently.
 
 The gRPC legs follow the same agent-card discovery path as the other transports: each fixture serves `/.well-known/agent-card.json` over HTTP and advertises a separate gRPC transport endpoint from that card.
+
+The Rust/.NET slice currently requires a local `dotnet` CLI for the .NET 8 SDK because the CSIT harness builds the fixture and probe from published `A2A` and `A2A.AspNetCore` NuGet packages at test time.
 
 ## Matrix
 
@@ -67,6 +71,17 @@ task test:rust-go:grpc:rust-rust
 
 `task test` is an alias for the full `task test:rust-go` transport matrix run.
 
+The Rust/.NET JSON-RPC slice is exposed separately so it can iterate without affecting the established Rust/Go matrix:
+
+```sh
+task test:rust-dotnet
+task test:rust-dotnet:jsonrpc
+task test:rust-dotnet:jsonrpc:dotnet-dotnet
+task test:rust-dotnet:jsonrpc:dotnet-rust
+task test:rust-dotnet:jsonrpc:rust-dotnet
+task test:rust-dotnet:jsonrpc:rust-rust
+```
+
 From the repository root:
 
 ```sh
@@ -90,5 +105,16 @@ task integrations:a2a:test:rust-go:grpc:rust-rust
 ```
 
 `task integrations:a2a:test` is the repository-level alias for the same full matrix run.
+
+The repository-level aliases for the new slice follow the same pattern:
+
+```sh
+task integrations:a2a:test:rust-dotnet
+task integrations:a2a:test:rust-dotnet:jsonrpc
+task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-dotnet
+task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-rust
+task integrations:a2a:test:rust-dotnet:jsonrpc:rust-dotnet
+task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust
+```
 
 Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The full transport matrix emits `report-agntcy-a2a.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, and `report-agntcy-a2a-grpc.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.

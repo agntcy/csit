@@ -45,7 +45,7 @@ on:
         default: true
         type: boolean
       skip_a2a_test:
-        description: "Skip A2A Rust-Go interoperability tests"
+        description: "Skip A2A interoperability tests"
         required: false
         default: false
         type: boolean
@@ -200,18 +200,24 @@ jobs:
         with:
           go: true
           go-version: "1.24.4"
+          dotnet: true
+          dotnet-version: "8.0.x"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Run A2A interoperability tests
+      - name: Run A2A Rust-Go interoperability tests
         run: task integrations:a2a:test:rust-go
+        shell: bash
+
+      - name: Run A2A Rust-.NET JSON-RPC interoperability tests
+        run: task integrations:a2a:test:rust-dotnet:jsonrpc
         shell: bash
 
       - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
         with:
-          artifact-name: "a2a-rust-go-test-result"
+          artifact-name: "a2a-interop-test-result"
           path-to-archive: "./integrations/agntcy-a2a/reports/*"
 
   run-agentic-apps:

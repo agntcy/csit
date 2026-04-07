@@ -27,6 +27,15 @@ inputs:
     required: false
     default: '1.23.1'
 
+  dotnet:
+    description: 'Install dotnet'
+    required: false
+    default: false
+  dotnet-version:
+    description: 'Dotnet version to install'
+    required: false
+    default: '8.0.x'
+
 runs:
   using: 'composite'
   steps:
@@ -46,6 +55,12 @@ runs:
       uses: ./.github/actions/setup-go
       with:
         go-version: ${{ inputs.go-version }}
+
+    - name: Setup Dotnet
+      if: ${{ inputs.dotnet == 'true' }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
 
     - name: Update GITHUB_PATH
       shell: bash
