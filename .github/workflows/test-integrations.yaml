@@ -106,14 +106,18 @@ jobs:
             run_a2a=true
             run_slim=true
             run_directory=true
+          elif [[ "${{ steps.filter.outputs.a2a }}" == "true" || "${{ steps.filter.outputs.slim }}" == "true" || "${{ steps.filter.outputs.directory }}" == "true" ]]; then
+            run_a2a=${{ steps.filter.outputs.a2a }}
+            run_slim=${{ steps.filter.outputs.slim }}
+            run_directory=${{ steps.filter.outputs.directory }}
           elif [[ "${{ steps.filter.outputs.shared }}" == "true" ]]; then
             run_a2a=true
             run_slim=true
             run_directory=true
           else
-            run_a2a=${{ steps.filter.outputs.a2a }}
-            run_slim=${{ steps.filter.outputs.slim }}
-            run_directory=${{ steps.filter.outputs.directory }}
+            run_a2a=false
+            run_slim=false
+            run_directory=false
           fi
 
           echo "run-a2a=$run_a2a" >> "$GITHUB_OUTPUT"
