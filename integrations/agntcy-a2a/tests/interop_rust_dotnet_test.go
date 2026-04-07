@@ -15,6 +15,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
+const dotNetPushUnsupportedCode = -32003
+
 type dotNetProbeOptions = rustProbeOptions
 
 type rustDotNetFixtureBinaries struct {
@@ -243,7 +245,7 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, fu
 
 			output, err := runDotNetProbe(requestCtx, binaries, dotnetJSONRPCFixtureURL, "dotnet", dotNetProbeOptions{
 				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectedPushErrorCode: dotNetPushUnsupportedCode,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
@@ -268,7 +270,7 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, fu
 				rustProbe:  binaries.rustProbe,
 			}, dotnetJSONRPCFixtureURL, "dotnet", rustProbeOptions{
 				expectPushUnsupported: true,
-				expectedPushErrorCode: pushUnsupportedCode,
+				expectedPushErrorCode: dotNetPushUnsupportedCode,
 			})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 		})
