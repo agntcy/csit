@@ -8,7 +8,7 @@ inputs:
   python:
     description: 'Install python'
     required: false
-    default: false
+    default: 'false'
   python-version:
     description: 'Python version to install'
     required: false
@@ -21,7 +21,7 @@ inputs:
   go:
     description: 'Install golang'
     required: false
-    default: false
+    default: 'false'
   go-version:
     description: 'Go version to install'
     required: false
@@ -30,7 +30,7 @@ inputs:
   dotnet:
     description: 'Install dotnet'
     required: false
-    default: false
+    default: 'false'
   dotnet-version:
     description: 'Dotnet version to install'
     required: false
