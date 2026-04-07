@@ -1,3 +1,6 @@
+// Copyright AGNTCY Contributors (https://github.com/agntcy)
+// SPDX-License-Identifier: Apache-2.0
+
 using A2A;
 using A2A.AspNetCore;
 using AgentTaskStatus = A2A.TaskStatus;
