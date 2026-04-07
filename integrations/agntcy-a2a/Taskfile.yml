@@ -24,8 +24,10 @@ tasks:
   test:rust-dotnet:
     desc: Rust and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
     cmds:
-      - task: test:rust-dotnet:jsonrpc
-      - task: test:rust-dotnet:rest
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet
 
   test:rust-dotnet:jsonrpc:
     desc: Rust and .NET JSON-RPC interoperability matrix
