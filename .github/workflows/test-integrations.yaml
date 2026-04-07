@@ -59,7 +59,113 @@ on:
     - cron: "0 4 * * *"
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run-a2a: ${{ steps.detect.outputs.run-a2a }}
+      run-slim: ${{ steps.detect.outputs.run-slim }}
+      run-directory: ${{ steps.detect.outputs.run-directory }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect integration changes
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_all=false
+          changed_a2a=false
+          changed_slim=false
+          changed_directory=false
+          changed_shared=false
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "schedule" ]]; then
+            run_all=true
+          else
+            changed_file_list="$(mktemp)"
+
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              git fetch --no-tags origin "${{ github.base_ref }}"
+              git diff --name-only "origin/${{ github.base_ref }}...HEAD" > "$changed_file_list"
+            elif [[ "${{ github.event_name }}" == "push" ]]; then
+              before_sha="${{ github.event.before }}"
+              if [[ -z "$before_sha" || "$before_sha" == "0000000000000000000000000000000000000000" ]]; then
+                run_all=true
+              else
+                git diff --name-only "$before_sha...HEAD" > "$changed_file_list"
+              fi
+            else
+              run_all=true
+            fi
+
+            if [[ "$run_all" == false ]]; then
+              echo "Changed files:"
+              if [[ -s "$changed_file_list" ]]; then
+                sed 's/^/ - /' "$changed_file_list"
+              else
+                echo " - <none>"
+              fi
+
+              while IFS= read -r file; do
+                [[ -z "$file" ]] && continue
+
+                case "$file" in
+                  integrations/agntcy-a2a/*)
+                    changed_a2a=true
+                    ;;
+                  integrations/agntcy-slim/*)
+                    changed_slim=true
+                    ;;
+                  integrations/agntcy-dir/*)
+                    changed_directory=true
+                    ;;
+                esac
+
+                case "$file" in
+                  .github/workflows/test-integrations.yaml|Taskfile.yml|integrations/Taskfile.yml|.github/actions/setup-env/*|.github/actions/setup-go/*|.github/actions/setup-python/*|.github/actions/setup-k8s/*|.github/actions/deploy-components/*|.github/actions/create-artifact/*|.github/actions/collect-reports/*)
+                    changed_shared=true
+                    ;;
+                esac
+              done < "$changed_file_list"
+            fi
+          fi
+
+          if [[ "$run_all" == true ]]; then
+            run_a2a=true
+            run_slim=true
+            run_directory=true
+          else
+            touched_components=0
+            [[ "$changed_a2a" == true ]] && touched_components=$((touched_components + 1))
+            [[ "$changed_slim" == true ]] && touched_components=$((touched_components + 1))
+            [[ "$changed_directory" == true ]] && touched_components=$((touched_components + 1))
+
+            if (( touched_components > 0 )); then
+              run_a2a=$changed_a2a
+              run_slim=$changed_slim
+              run_directory=$changed_directory
+            elif [[ "$changed_shared" == true ]]; then
+              run_a2a=true
+              run_slim=true
+              run_directory=true
+            else
+              run_a2a=false
+              run_slim=false
+              run_directory=false
+            fi
+          fi
+
+          echo "run-a2a=$run_a2a" >> "$GITHUB_OUTPUT"
+          echo "run-slim=$run_slim" >> "$GITHUB_OUTPUT"
+          echo "run-directory=$run_directory" >> "$GITHUB_OUTPUT"
+
   set-kind-version:
+    needs: [detect-changes]
+    if: ${{ (github.event_name == 'workflow_dispatch' && (!inputs.skip_slim_test || !inputs.skip_directory_test)) || (github.event_name != 'workflow_dispatch' && (needs.detect-changes.outputs.run-slim == 'true' || needs.detect-changes.outputs.run-directory == 'true')) }}
     runs-on: ubuntu-latest
     outputs:
       kind-version: ${{steps.set-kind-version.outputs.kind-version }}
@@ -78,8 +184,8 @@ jobs:
           echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
 
   run-tests-slim-topology:
-    if: ${{ !inputs.skip_slim_test }}
-    needs: [set-kind-version]
+    if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_slim_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-slim == 'true') }}
+    needs: [detect-changes, set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
@@ -132,8 +238,8 @@ jobs:
           artifact-name: "slim-test-result"
 
   run-tests-directory:
-    if: ${{ !inputs.skip_directory_test }}
-    needs: [set-kind-version]
+    if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_directory_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-directory == 'true') }}
+    needs: [detect-changes, set-kind-version]
     runs-on: ubuntu-latest
 
     permissions:
@@ -183,7 +289,8 @@ jobs:
           artifact-name: "directory-test-result"
 
   run-tests-a2a:
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_a2a_test }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_a2a_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-a2a == 'true') }}
+    needs: [detect-changes]
     runs-on: ubuntu-latest
 
     permissions:
