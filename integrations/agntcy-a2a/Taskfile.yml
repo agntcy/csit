@@ -11,6 +11,7 @@ tasks:
     desc: Default A2A interoperability tests
     cmds:
       - task: test:rust-go
+      - task: test:rust-dotnet
 
   test:rust-go:
     desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC

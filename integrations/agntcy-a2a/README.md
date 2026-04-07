@@ -2,7 +2,7 @@
 
 This component hosts cross-SDK A2A interoperability checks.
 
-The current slice covers Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings.
+The current coverage includes Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings plus an initial Rust/.NET JSON-RPC slice.
 
 All 12 Rust/Go client-server legs in the current core lifecycle matrix are green across JSON-RPC, HTTP+JSON, and gRPC.
 
@@ -10,7 +10,7 @@ The released Rust fixture now exposes push-config CRUD. CSIT validates that path
 
 The Go fixture still models the current unsupported push-config behavior, and the Rust-probe scenarios keep validating that negative path against Go-server targets.
 
-An initial Rust/.NET JSON-RPC slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and scopes the first slice to JSON-RPC only while REST and gRPC remain follow-up work.
+An initial Rust/.NET JSON-RPC slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and scopes the first slice to JSON-RPC only while REST and gRPC remain follow-up work. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
@@ -36,6 +36,10 @@ The Rust/.NET slice currently requires a local `dotnet` CLI for the .NET 8 SDK b
 | JSON-RPC | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:jsonrpc:go-rust` | `task integrations:a2a:test:rust-go:jsonrpc:go-rust` |
 | JSON-RPC | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:jsonrpc:rust-go` | `task integrations:a2a:test:rust-go:jsonrpc:rust-go` |
 | JSON-RPC | `rust-rust` | Rust client -> Rust server | Pass | `task test:rust-go:jsonrpc:rust-rust` | `task integrations:a2a:test:rust-go:jsonrpc:rust-rust` |
+| JSON-RPC | `dotnet-dotnet` | .NET client -> .NET server | Pass | `task test:rust-dotnet:jsonrpc:dotnet-dotnet` | `task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-dotnet` |
+| JSON-RPC | `dotnet-rust` | .NET client -> Rust server | Pass | `task test:rust-dotnet:jsonrpc:dotnet-rust` | `task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-rust` |
+| JSON-RPC | `rust-dotnet` | Rust client -> .NET server | Pass | `task test:rust-dotnet:jsonrpc:rust-dotnet` | `task integrations:a2a:test:rust-dotnet:jsonrpc:rust-dotnet` |
+| JSON-RPC | `rust-rust-dotnet` | Rust client -> Rust server | Pass | `task test:rust-dotnet:jsonrpc:rust-rust` | `task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust` |
 | HTTP+JSON | `go-go` | Go client -> Go server | Pass | `task test:rust-go:rest:go-go` | `task integrations:a2a:test:rust-go:rest:go-go` |
 | HTTP+JSON | `go-rust` | Go client -> Rust server | Pass | `task test:rust-go:rest:go-rust` | `task integrations:a2a:test:rust-go:rest:go-rust` |
 | HTTP+JSON | `rust-go` | Rust client -> Go server | Pass | `task test:rust-go:rest:rust-go` | `task integrations:a2a:test:rust-go:rest:rust-go` |
@@ -69,9 +73,9 @@ task test:rust-go:grpc:rust-go
 task test:rust-go:grpc:rust-rust
 ```
 
-`task test` is an alias for the full `task test:rust-go` transport matrix run.
+`task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet`.
 
-The Rust/.NET JSON-RPC slice is exposed separately so it can iterate without affecting the established Rust/Go matrix:
+The Rust/.NET JSON-RPC slice is also exposed separately so it can be iterated independently:
 
 ```sh
 task test:rust-dotnet
@@ -104,9 +108,9 @@ task integrations:a2a:test:rust-go:grpc:rust-go
 task integrations:a2a:test:rust-go:grpc:rust-rust
 ```
 
-`task integrations:a2a:test` is the repository-level alias for the same full matrix run.
+`task integrations:a2a:test` is the repository-level alias for the same combined Rust/Go plus Rust/.NET run.
 
-The repository-level aliases for the new slice follow the same pattern:
+The repository-level aliases for the new slice remain available for focused runs:
 
 ```sh
 task integrations:a2a:test:rust-dotnet
