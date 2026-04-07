@@ -253,6 +253,33 @@ jobs:
     if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_a2a_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-a2a == 'true') }}
     needs: [detect-changes]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Add one entry per SDK pair. Each row runs as its own parallel job.
+          # Future pairs should follow the same shape, for example rust-javascript,
+          # rust-java, or rust-python with the task and runtime setup they require.
+          - id: rust-go
+            display-name: Rust/Go
+            task: integrations:a2a:test:rust-go
+            artifact-name: a2a-interop-test-result-rust-go
+            setup-python: 'false'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: rust-dotnet
+            display-name: Rust/C#
+            task: integrations:a2a:test:rust-dotnet
+            artifact-name: a2a-interop-test-result-rust-dotnet
+            setup-python: 'false'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'true'
+            dotnet-version: '8.0.x'
+
+    name: A2A ${{ matrix.display-name }}
 
     permissions:
       contents: "read"
@@ -266,26 +293,23 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
         with:
-          go: true
-          go-version: "1.24.4"
-          dotnet: true
-          dotnet-version: "8.0.x"
+          python: ${{ matrix.setup-python }}
+          go: ${{ matrix.setup-go }}
+          go-version: ${{ matrix.go-version }}
+          dotnet: ${{ matrix.setup-dotnet }}
+          dotnet-version: ${{ matrix.dotnet-version }}
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Run A2A Rust-Go interoperability tests
-        run: task integrations:a2a:test:rust-go
-        shell: bash
-
-      - name: Run A2A Rust-.NET JSON-RPC interoperability tests
-        run: task integrations:a2a:test:rust-dotnet:jsonrpc
+      - name: Run A2A ${{ matrix.display-name }} interoperability tests
+        run: task ${{ matrix.task }}
         shell: bash
 
       - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
         with:
-          artifact-name: "a2a-interop-test-result"
+          artifact-name: ${{ matrix.artifact-name }}
           path-to-archive: "./integrations/agntcy-a2a/reports/*"
 
   run-agentic-apps:
