@@ -12,6 +12,12 @@ using A2A;
 
 namespace InteropProbe;
 
+// This probe is the .NET harness implementation behind the shared Go/Ginkgo interop behaviors.
+// It connects to a fixture card URL, executes one behavior scenario at a time, and exits non-zero
+// on any interoperability mismatch.
+// When adding a new shared behavior, mirror the scenario here if the behavior should be runnable
+// independently, then keep its assertions aligned with interop_behaviors_test.go.
+
 internal static class Program
 {
     private const string RequestText = "ping";

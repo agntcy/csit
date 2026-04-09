@@ -3,6 +3,12 @@
 
 package tests
 
+// This file is the Rust/.NET suite wrapper. It declares the Rust and .NET fixtures used in this
+// slice, the client/server matrix, and any pair-specific harness overrides such as push-config
+// expectations.
+// To add a new Rust/.NET leg, change the matrix data here. If a new behavior applies to every leg,
+// add it in interop_behaviors_test.go instead of introducing suite-local assertions here.
+
 import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"

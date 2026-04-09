@@ -3,6 +3,12 @@
 
 package tests
 
+// This file is the Rust/Go suite wrapper. It owns only the fixture lifecycle and the client/server
+// matrix for this suite, then delegates spec generation to the shared behavior layer.
+// To add a new Rust/Go leg, update the clients or servers declared here and let the shared matrix
+// registration create the specs. Do not add one-off It blocks unless the suite truly needs a
+// behavior that cannot be expressed through the shared harness model.
+
 import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"

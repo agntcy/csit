@@ -3,6 +3,12 @@
 
 package tests
 
+// This file holds the reusable interop test primitives: shared constants, transport and
+// scenario enums, fixture process types, and generic lifecycle helpers.
+// Add code here only when multiple suites or harnesses need the same low-level plumbing.
+// New behavior assertions belong in interop_behaviors_test.go, and suite-specific matrix
+// wiring belongs in the suite wrapper files.
+
 import (
 	"bytes"
 	"context"

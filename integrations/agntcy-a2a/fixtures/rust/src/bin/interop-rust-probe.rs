@@ -15,6 +15,12 @@ use futures::stream::BoxStream;
 use serde_json::{Value, json};
 use tokio::time::sleep;
 
+// This probe is the Rust harness implementation behind the shared Go/Ginkgo interop behaviors.
+// It resolves a fixture card, runs one shared behavior scenario at a time, and reports failures
+// through its process exit code so the Go suite can treat it like any other harness.
+// When adding a new shared behavior, add or extend the scenario mapping here if that behavior
+// should be filterable on its own, then keep the assertions aligned with interop_behaviors_test.go.
+
 const REQUEST_TEXT: &str = "ping";
 const PENDING_REQUEST_TEXT: &str = "pending";
 const MESSAGE_ONLY_REQUEST_TEXT: &str = "message-only";

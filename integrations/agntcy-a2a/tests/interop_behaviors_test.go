@@ -3,6 +3,13 @@
 
 package tests
 
+// This file is the shared behavior layer for the interop suite. It defines the behavior slices,
+// the harness interface each SDK must satisfy, and the helpers that expand client/server matrices
+// into labeled Ginkgo specs.
+// To add a new cross-SDK test, add a behavior entry here and implement it for each harness that
+// should participate. Use the wrapper files only to declare which clients, servers, and overrides
+// are in a suite.
+
 import (
 	"context"
 	"errors"

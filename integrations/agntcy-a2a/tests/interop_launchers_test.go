@@ -3,6 +3,12 @@
 
 package tests
 
+// This file builds fixture binaries, launches per-transport test servers, and runs the Rust
+// and .NET probe executables used by the shared Ginkgo behaviors.
+// Extend this file when a new SDK fixture, probe binary, or transport startup path is needed.
+// Keep behavior checks out of this layer so the wrappers and shared behavior registry stay
+// declarative.
+
 import (
 	"context"
 	"errors"
