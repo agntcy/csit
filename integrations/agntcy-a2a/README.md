@@ -2,13 +2,15 @@
 
 This component hosts cross-SDK A2A interoperability checks.
 
-The current coverage includes Rust and Go across the released JSON-RPC, HTTP+JSON, and gRPC bindings plus a Rust/.NET slice across JSON-RPC and HTTP+JSON.
+The suite is structured around shared Ginkgo behaviors and per-SDK harnesses. The behavior assertions are written once, expanded across client/server transport matrices, and the language-specific differences are isolated behind Go, Rust, and .NET launchers or probes.
 
-All 12 Rust/Go client-server legs in the current core lifecycle matrix are green across JSON-RPC, HTTP+JSON, and gRPC.
+The current coverage includes a Rust/Go suite across JSON-RPC, HTTP+JSON, and gRPC plus a Rust/.NET suite across JSON-RPC and HTTP+JSON. Each client/server leg is split into shared behavior slices for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity.
 
-The Go and Rust fixtures now expose push-config CRUD. CSIT validates that path from both clients against both server targets across JSON-RPC, HTTP+JSON, and gRPC.
+All 12 Rust/Go client-server legs are green across JSON-RPC, HTTP+JSON, and gRPC. The Go and Rust fixtures expose push-config CRUD, and CSIT validates that path from both clients against both server targets across all three transports.
 
-The Rust/.NET slice now exists alongside the Rust/Go suite. It reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and covers 8 legs: 4 JSON-RPC legs (`dotnet-dotnet`, `dotnet-rust`, `rust-dotnet`, `rust-rust-dotnet`) plus the same 4 legs over HTTP+JSON. Each leg is split into shared behavior specs for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity. Push-config is covered in this slice as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. This slice does not cover gRPC. The default `task test` and `task integrations:a2a:test` entrypoints now run both the established Rust/Go matrix and this Rust/.NET slice.
+The Rust/.NET suite reuses the existing Rust fixture and Rust probe, adds CSIT-owned .NET fixture and probe binaries, and covers 8 legs: 4 JSON-RPC legs (`dotnet-dotnet`, `dotnet-rust`, `rust-dotnet`, `rust-rust-dotnet`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
+
+Push-config is covered in the Rust/.NET suite as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. The default `task test` and `task integrations:a2a:test` entrypoints run both the Rust/Go and Rust/.NET suites.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
@@ -93,6 +95,34 @@ From `integrations/agntcy-a2a/`:
 ```sh
 task test
 task test:rust-go
+task test:rust-dotnet
+```
+
+`task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet`.
+
+The user-facing task triggers are organized by scope:
+
+- Full suites:
+
+```sh
+task test
+task test:rust-go
+task test:rust-dotnet
+```
+
+- Cross-suite behavior slices:
+
+```sh
+task test:behavior:core
+task test:behavior:unary-streaming
+task test:behavior:lifecycle
+task test:behavior:push-config
+task test:behavior:parity
+```
+
+- Rust/Go suite filters:
+
+```sh
 task test:rust-go:jsonrpc
 task test:rust-go:rest
 task test:rust-go:grpc
@@ -108,93 +138,43 @@ task test:rust-go:grpc:go-go
 task test:rust-go:grpc:go-rust
 task test:rust-go:grpc:rust-go
 task test:rust-go:grpc:rust-rust
+task test:rust-go:behavior:core
+task test:rust-go:behavior:unary-streaming
+task test:rust-go:behavior:lifecycle
+task test:rust-go:behavior:push-config
+task test:rust-go:behavior:parity
 ```
 
-`task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet`.
-
-The Rust/.NET slice is also exposed separately so it can be iterated independently:
+- Rust/.NET suite filters:
 
 ```sh
-task test:rust-dotnet
 task test:rust-dotnet:jsonrpc
+task test:rust-dotnet:rest
 task test:rust-dotnet:jsonrpc:dotnet-dotnet
 task test:rust-dotnet:jsonrpc:dotnet-rust
 task test:rust-dotnet:jsonrpc:rust-dotnet
 task test:rust-dotnet:jsonrpc:rust-rust-dotnet
-task test:rust-dotnet:rest
 task test:rust-dotnet:rest:dotnet-dotnet
 task test:rust-dotnet:rest:dotnet-rust
 task test:rust-dotnet:rest:rust-dotnet
 task test:rust-dotnet:rest:rust-rust-dotnet
-```
-
-Behavior-focused runs are exposed as first-class Task targets as well:
-
-```sh
-task test:behavior:core
-task test:behavior:unary-streaming
-task test:behavior:lifecycle
-task test:behavior:push-config
-task test:behavior:parity
-task test:rust-go:behavior:unary-streaming
-task test:rust-go:behavior:lifecycle
-task test:rust-go:behavior:push-config
+task test:rust-dotnet:behavior:core
 task test:rust-dotnet:behavior:unary-streaming
 task test:rust-dotnet:behavior:lifecycle
 task test:rust-dotnet:behavior:push-config
+task test:rust-dotnet:behavior:parity
 ```
 
-From the repository root:
+The canonical Rust/.NET pair trigger is `rust-rust-dotnet`. The shorter `rust-rust` name is still kept as a compatibility alias in the Taskfile, but new usage should prefer `rust-rust-dotnet`.
 
-```sh
-task integrations:a2a:test
-task integrations:a2a:test:rust-go
-task integrations:a2a:test:rust-go:jsonrpc
-task integrations:a2a:test:rust-go:rest
-task integrations:a2a:test:rust-go:grpc
-task integrations:a2a:test:rust-go:jsonrpc:go-go
-task integrations:a2a:test:rust-go:jsonrpc:go-rust
-task integrations:a2a:test:rust-go:jsonrpc:rust-go
-task integrations:a2a:test:rust-go:jsonrpc:rust-rust
-task integrations:a2a:test:rust-go:rest:go-go
-task integrations:a2a:test:rust-go:rest:go-rust
-task integrations:a2a:test:rust-go:rest:rust-go
-task integrations:a2a:test:rust-go:rest:rust-rust
-task integrations:a2a:test:rust-go:grpc:go-go
-task integrations:a2a:test:rust-go:grpc:go-rust
-task integrations:a2a:test:rust-go:grpc:rust-go
-task integrations:a2a:test:rust-go:grpc:rust-rust
-```
-
-`task integrations:a2a:test` is the repository-level alias for the same combined Rust/Go plus Rust/.NET run.
-
-The repository-level aliases for the new slice remain available for focused runs:
-
-```sh
-task integrations:a2a:test:rust-dotnet
-task integrations:a2a:test:rust-dotnet:jsonrpc
-task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-dotnet
-task integrations:a2a:test:rust-dotnet:jsonrpc:dotnet-rust
-task integrations:a2a:test:rust-dotnet:jsonrpc:rust-dotnet
-task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust-dotnet
-task integrations:a2a:test:rust-dotnet:rest
-task integrations:a2a:test:rust-dotnet:rest:dotnet-dotnet
-task integrations:a2a:test:rust-dotnet:rest:dotnet-rust
-task integrations:a2a:test:rust-dotnet:rest:rust-dotnet
-task integrations:a2a:test:rust-dotnet:rest:rust-rust-dotnet
-```
-
-The same behavior-focused targets are available from the repository root:
+From the repository root, prepend `integrations:a2a:` to any component-level task trigger:
 
 ```sh
 task integrations:a2a:test:behavior:core
-task integrations:a2a:test:behavior:unary-streaming
-task integrations:a2a:test:behavior:lifecycle
-task integrations:a2a:test:behavior:push-config
-task integrations:a2a:test:behavior:parity
-task integrations:a2a:test:rust-go:behavior:unary-streaming
+task integrations:a2a:test:rust-go:grpc:rust-rust
+task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust-dotnet
 task integrations:a2a:test:rust-go:behavior:lifecycle
-task integrations:a2a:test:rust-dotnet:behavior:push-config
+task integrations:a2a:test:rust-dotnet:behavior:parity
 ```
 
 Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, and `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
