@@ -29,6 +29,126 @@ tasks:
           LABEL_FILTER: suite-rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet
 
+  test:behavior:core:
+    desc: Shared core behavior slices across all A2A interoperability suites
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: behavior-core
+          REPORT_NAME: report-agntcy-a2a-behavior-core
+
+  test:behavior:unary-streaming:
+    desc: Shared unary and streaming behavior slices across all A2A interoperability suites
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: behavior-unary-streaming
+          REPORT_NAME: report-agntcy-a2a-behavior-unary-streaming
+
+  test:behavior:lifecycle:
+    desc: Shared task lifecycle behavior slices across all A2A interoperability suites
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: behavior-lifecycle
+          REPORT_NAME: report-agntcy-a2a-behavior-lifecycle
+
+  test:behavior:push-config:
+    desc: Shared push-config behavior slices across all A2A interoperability suites
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: behavior-push-config
+          REPORT_NAME: report-agntcy-a2a-behavior-push-config
+
+  test:behavior:parity:
+    desc: Shared scenario parity behavior slices across all A2A interoperability suites
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: behavior-parity
+          REPORT_NAME: report-agntcy-a2a-behavior-parity
+
+  test:rust-go:behavior:core:
+    desc: Rust and Go shared core behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          LABEL_FILTER: suite-rust-go && behavior-core
+          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-core
+
+  test:rust-go:behavior:unary-streaming:
+    desc: Rust and Go unary and streaming behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          LABEL_FILTER: suite-rust-go && behavior-unary-streaming
+          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-unary-streaming
+
+  test:rust-go:behavior:lifecycle:
+    desc: Rust and Go task lifecycle behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          LABEL_FILTER: suite-rust-go && behavior-lifecycle
+          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-lifecycle
+
+  test:rust-go:behavior:push-config:
+    desc: Rust and Go push-config behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          LABEL_FILTER: suite-rust-go && behavior-push-config
+          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-push-config
+
+  test:rust-go:behavior:parity:
+    desc: Rust and Go scenario parity behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-go:run
+        vars:
+          LABEL_FILTER: suite-rust-go && behavior-parity
+          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-parity
+
+  test:rust-dotnet:behavior:core:
+    desc: Rust and .NET shared core behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && behavior-core
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-core
+
+  test:rust-dotnet:behavior:unary-streaming:
+    desc: Rust and .NET unary and streaming behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && behavior-unary-streaming
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-unary-streaming
+
+  test:rust-dotnet:behavior:lifecycle:
+    desc: Rust and .NET task lifecycle behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && behavior-lifecycle
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-lifecycle
+
+  test:rust-dotnet:behavior:push-config:
+    desc: Rust and .NET push-config behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && behavior-push-config
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-push-config
+
+  test:rust-dotnet:behavior:parity:
+    desc: Rust and .NET scenario parity behavior slices across all transports and pairs
+    cmds:
+      - task: test:rust-dotnet:run
+        vars:
+          LABEL_FILTER: suite-rust-dotnet && behavior-parity
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-parity
+
   test:rust-dotnet:jsonrpc:
     desc: Rust and .NET JSON-RPC interoperability matrix
     cmds:
@@ -61,13 +181,18 @@ tasks:
           LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-dotnet
 
-  test:rust-dotnet:jsonrpc:rust-rust:
+  test:rust-dotnet:jsonrpc:rust-rust-dotnet:
     desc: Rust client to Rust server JSON-RPC interoperability test for the Rust-.NET slice
     cmds:
       - task: test:rust-dotnet:run
         vars:
           LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-rust
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-rust-dotnet
+
+  test:rust-dotnet:jsonrpc:rust-rust:
+    desc: Alias for test:rust-dotnet:jsonrpc:rust-rust-dotnet
+    cmds:
+      - task: test:rust-dotnet:jsonrpc:rust-rust-dotnet
 
   test:rust-dotnet:rest:
     desc: Rust and .NET HTTP+JSON interoperability matrix
@@ -101,13 +226,18 @@ tasks:
           LABEL_FILTER: suite-rust-dotnet && rest && rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-dotnet
 
-  test:rust-dotnet:rest:rust-rust:
+  test:rust-dotnet:rest:rust-rust-dotnet:
     desc: Rust client to Rust server HTTP+JSON interoperability test for the Rust-.NET slice
     cmds:
       - task: test:rust-dotnet:run
         vars:
           LABEL_FILTER: suite-rust-dotnet && rest && rust-rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-rust
+          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-rust-dotnet
+
+  test:rust-dotnet:rest:rust-rust:
+    desc: Alias for test:rust-dotnet:rest:rust-rust-dotnet
+    cmds:
+      - task: test:rust-dotnet:rest:rust-rust-dotnet
 
   test:rust-go:jsonrpc:
     desc: Rust and Go JSON-RPC interoperability matrix

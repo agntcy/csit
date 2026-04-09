@@ -43,6 +43,7 @@ const EXPECTED_SKILL_IDS: &[&str] = &[
 struct Args {
     card_url: String,
     server_prefix: String,
+    scenario: Scenario,
     expect_subscribe_unsupported: bool,
     expect_push_supported: bool,
     expect_push_unsupported: bool,
@@ -50,10 +51,64 @@ struct Args {
     expected_push_error_code: i32,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Scenario {
+    All,
+    Core,
+    UnaryStreaming,
+    TaskLifecycle,
+    PushConfig,
+    Parity,
+}
+
+impl Scenario {
+    fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "all" => Ok(Self::All),
+            "core" => Ok(Self::Core),
+            "unary-streaming" => Ok(Self::UnaryStreaming),
+            "task-lifecycle" => Ok(Self::TaskLifecycle),
+            "push-config" => Ok(Self::PushConfig),
+            "parity" => Ok(Self::Parity),
+            _ => Err(format!(
+                "--scenario must be one of all, core, unary-streaming, task-lifecycle, push-config, or parity; got {value}"
+            )),
+        }
+    }
+
+    fn runs_unary_streaming(self) -> bool {
+        matches!(self, Self::All | Self::Core | Self::UnaryStreaming)
+    }
+
+    fn runs_task_lifecycle(self) -> bool {
+        matches!(self, Self::All | Self::Core | Self::TaskLifecycle)
+    }
+
+    fn runs_push_config(self) -> bool {
+        matches!(self, Self::All | Self::Core | Self::PushConfig)
+    }
+
+    fn runs_parity(self) -> bool {
+        matches!(self, Self::All | Self::Parity)
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Core => "core",
+            Self::UnaryStreaming => "unary-streaming",
+            Self::TaskLifecycle => "task-lifecycle",
+            Self::PushConfig => "push-config",
+            Self::Parity => "parity",
+        }
+    }
+}
+
 fn parse_args() -> Result<Args, String> {
     let mut args = env::args().skip(1);
     let mut card_url = None;
     let mut server_prefix = None;
+    let mut scenario = Scenario::All;
     let mut expect_subscribe_unsupported = false;
     let mut expect_push_supported = false;
     let mut expect_push_unsupported = false;
@@ -73,6 +128,12 @@ fn parse_args() -> Result<Args, String> {
                     args.next()
                         .ok_or_else(|| "--server-prefix requires a value".to_string())?,
                 );
+            }
+            "--scenario" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--scenario requires a value".to_string())?;
+                scenario = Scenario::parse(&value)?;
             }
             "--expect-subscribe-unsupported" => {
                 expect_subscribe_unsupported = true;
@@ -110,6 +171,7 @@ fn parse_args() -> Result<Args, String> {
     Ok(Args {
         card_url: card_url.ok_or_else(|| "missing --card-url".to_string())?,
         server_prefix: server_prefix.ok_or_else(|| "missing --server-prefix".to_string())?,
+        scenario,
         expect_subscribe_unsupported,
         expect_push_supported,
         expect_push_unsupported,
@@ -557,549 +619,595 @@ async fn run(args: Args) -> Result<(), String> {
     let expected_long_running_complete_text = expected_scenario_text(&args.server_prefix, "long-running complete");
     let expected_data_types_text = expected_scenario_text(&args.server_prefix, "data-types ready");
 
-    let request = request_with_payload(REQUEST_TEXT, false);
+    if args.scenario.runs_unary_streaming() {
+        let request = request_with_payload(REQUEST_TEXT, false);
 
-    let response = client
-        .send_message(&request)
-        .await
-        .map_err(|error| format!("unary request failed: {error}"))?;
-    let completed_task = task_from_response(response, "unary")?;
-    assert_state(&completed_task.status.state, TaskState::Completed, "unary")?;
-    assert_text(task_text(&completed_task)?, &expected_ping_text, "unary")?;
-    assert_task_history(&completed_task, REQUEST_TEXT, "unary")?;
-
-    let fetched_task = client
-        .get_task(&GetTaskRequest {
-            id: completed_task.id.clone(),
-            history_length: Some(1),
-            tenant: None,
-        })
-        .await
-        .map_err(|error| format!("get_task failed: {error}"))?;
-    assert_state(&fetched_task.status.state, TaskState::Completed, "get_task")?;
-    assert_text(task_text(&fetched_task)?, &expected_ping_text, "get_task")?;
-    assert_task_history(&fetched_task, REQUEST_TEXT, "get_task")?;
-
-    let listed_tasks = client
-        .list_tasks(&ListTasksRequest {
-            context_id: Some(completed_task.context_id.clone()),
-            status: None,
-            page_size: None,
-            page_token: None,
-            history_length: None,
-            status_timestamp_after: None,
-            include_artifacts: None,
-            tenant: None,
-        })
-        .await
-        .map_err(|error| format!("list_tasks failed: {error}"))?;
-    if !listed_tasks
-        .tasks
-        .iter()
-        .any(|task| task.id == completed_task.id)
-    {
-        return Err(format!(
-            "list_tasks did not include expected task {}",
-            completed_task.id
-        ));
-    }
-
-    let mut stream = client
-        .send_streaming_message(&request)
-        .await
-        .map_err(|error| format!("streaming request failed: {error}"))?;
-
-    let streaming_text = loop {
-        match stream.next().await {
-            Some(Ok(event)) => match stream_response_text(event)? {
-                Some(text) => break text,
-                None => continue,
-            },
-            Some(Err(error)) => {
-                return Err(format!("streaming event failed: {error}"));
-            }
-            None => {
-                return Err("stream completed without a terminal response event".to_string());
-            }
-        }
-    };
-    assert_text(streaming_text, &expected_ping_text, "streaming")?;
-
-    let pending_task = task_from_response(
-        client
-            .send_message(&request_with_payload(PENDING_REQUEST_TEXT, true))
+        let response = client
+            .send_message(&request)
             .await
-            .map_err(|error| format!("pending unary request failed: {error}"))?,
-        "pending unary",
-    )?;
-    assert_state(
-        &pending_task.status.state,
-        TaskState::Working,
-        "pending unary",
-    )?;
-    assert_text(
-        task_text(&pending_task)?,
-        &expected_pending_text,
-        "pending unary",
-    )?;
+            .map_err(|error| format!("unary request failed: {error}"))?;
+        let completed_task = task_from_response(response, "unary")?;
+        assert_state(&completed_task.status.state, TaskState::Completed, "unary")?;
+        assert_text(task_text(&completed_task)?, &expected_ping_text, "unary")?;
+        assert_task_history(&completed_task, REQUEST_TEXT, "unary")?;
 
-    let canceled_task = client
-        .cancel_task(&CancelTaskRequest {
-            id: pending_task.id.clone(),
-            metadata: None,
-            tenant: None,
-        })
-        .await
-        .map_err(|error| format!("cancel_task failed: {error}"))?;
-    assert_state(
-        &canceled_task.status.state,
-        TaskState::Canceled,
-        "cancel_task",
-    )?;
-    assert_text(
-        task_text(&canceled_task)?,
-        &expected_cancel_text,
-        "cancel_task",
-    )?;
+        let mut stream = client
+            .send_streaming_message(&request)
+            .await
+            .map_err(|error| format!("streaming request failed: {error}"))?;
 
-    let fetched_canceled_task = client
-        .get_task(&GetTaskRequest {
-            id: pending_task.id.clone(),
-            history_length: None,
-            tenant: None,
-        })
-        .await
-        .map_err(|error| format!("get_task after cancel failed: {error}"))?;
-    assert_state(
-        &fetched_canceled_task.status.state,
-        TaskState::Canceled,
-        "get_task after cancel",
-    )?;
-    assert_text(
-        task_text(&fetched_canceled_task)?,
-        &expected_cancel_text,
-        "get_task after cancel",
-    )?;
-
-    if args.relaxed_error_checks {
-        assert_failed(
-            client
-                .get_task(&GetTaskRequest {
-                    id: new_task_id(),
-                    history_length: None,
-                    tenant: None,
-                })
-                .await,
-            "get missing task",
-        )?;
-
-        assert_failed(
-            client
-                .cancel_task(&CancelTaskRequest {
-                    id: completed_task.id.clone(),
-                    metadata: None,
-                    tenant: None,
-                })
-                .await,
-            "cancel completed task",
-        )?;
-    } else {
-        assert_error_code(
-            client
-                .get_task(&GetTaskRequest {
-                    id: new_task_id(),
-                    history_length: None,
-                    tenant: None,
-                })
-                .await,
-            a2a::error_code::TASK_NOT_FOUND,
-            "get missing task",
-        )?;
-
-        assert_error_code(
-            client
-                .cancel_task(&CancelTaskRequest {
-                    id: completed_task.id.clone(),
-                    metadata: None,
-                    tenant: None,
-                })
-                .await,
-            a2a::error_code::TASK_NOT_CANCELABLE,
-            "cancel completed task",
-        )?;
-    }
-
-    if args.expect_subscribe_unsupported {
-        assert_stream_error_code(
-            client
-                .subscribe_to_task(&SubscribeToTaskRequest {
-                    id: completed_task.id.clone(),
-                    tenant: None,
-                })
-                .await,
-            a2a::error_code::UNSUPPORTED_OPERATION,
-            "subscribe_to_task",
-        )
-        .await?;
-    }
-
-    if args.expect_push_unsupported {
-        let push_config = PushNotificationConfig {
-            url: "https://example.invalid/webhook".to_string(),
-            id: Some("interop-config".to_string()),
-            token: None,
-            authentication: None,
+        let streaming_text = loop {
+            match stream.next().await {
+                Some(Ok(event)) => match stream_response_text(event)? {
+                    Some(text) => break text,
+                    None => continue,
+                },
+                Some(Err(error)) => {
+                    return Err(format!("streaming event failed: {error}"));
+                }
+                None => {
+                    return Err("stream completed without a terminal response event".to_string());
+                }
+            }
         };
+        assert_text(streaming_text, &expected_ping_text, "streaming")?;
+    }
+
+    if args.scenario.runs_task_lifecycle() {
+        let completed_task = task_from_response(
+            client
+                .send_message(&request_with_payload(REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("task lifecycle setup failed: {error}"))?,
+            "task lifecycle setup",
+        )?;
+        assert_state(
+            &completed_task.status.state,
+            TaskState::Completed,
+            "task lifecycle setup",
+        )?;
+        assert_text(
+            task_text(&completed_task)?,
+            &expected_ping_text,
+            "task lifecycle setup",
+        )?;
+        assert_task_history(&completed_task, REQUEST_TEXT, "task lifecycle setup")?;
+
+        let fetched_task = client
+            .get_task(&GetTaskRequest {
+                id: completed_task.id.clone(),
+                history_length: Some(1),
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("get_task failed: {error}"))?;
+        assert_state(&fetched_task.status.state, TaskState::Completed, "get_task")?;
+        assert_text(task_text(&fetched_task)?, &expected_ping_text, "get_task")?;
+        assert_task_history(&fetched_task, REQUEST_TEXT, "get_task")?;
+
+        let listed_tasks = client
+            .list_tasks(&ListTasksRequest {
+                context_id: Some(completed_task.context_id.clone()),
+                status: None,
+                page_size: None,
+                page_token: None,
+                history_length: None,
+                status_timestamp_after: None,
+                include_artifacts: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("list_tasks failed: {error}"))?;
+        if !listed_tasks
+            .tasks
+            .iter()
+            .any(|task| task.id == completed_task.id)
+        {
+            return Err(format!(
+                "list_tasks did not include expected task {}",
+                completed_task.id
+            ));
+        }
+
+        let pending_task = task_from_response(
+            client
+                .send_message(&request_with_payload(PENDING_REQUEST_TEXT, true))
+                .await
+                .map_err(|error| format!("pending unary request failed: {error}"))?,
+            "pending unary",
+        )?;
+        assert_state(
+            &pending_task.status.state,
+            TaskState::Working,
+            "pending unary",
+        )?;
+        assert_text(
+            task_text(&pending_task)?,
+            &expected_pending_text,
+            "pending unary",
+        )?;
+
+        let canceled_task = client
+            .cancel_task(&CancelTaskRequest {
+                id: pending_task.id.clone(),
+                metadata: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("cancel_task failed: {error}"))?;
+        assert_state(
+            &canceled_task.status.state,
+            TaskState::Canceled,
+            "cancel_task",
+        )?;
+        assert_text(
+            task_text(&canceled_task)?,
+            &expected_cancel_text,
+            "cancel_task",
+        )?;
+
+        let fetched_canceled_task = client
+            .get_task(&GetTaskRequest {
+                id: pending_task.id.clone(),
+                history_length: None,
+                tenant: None,
+            })
+            .await
+            .map_err(|error| format!("get_task after cancel failed: {error}"))?;
+        assert_state(
+            &fetched_canceled_task.status.state,
+            TaskState::Canceled,
+            "get_task after cancel",
+        )?;
+        assert_text(
+            task_text(&fetched_canceled_task)?,
+            &expected_cancel_text,
+            "get_task after cancel",
+        )?;
 
         if args.relaxed_error_checks {
             assert_failed(
                 client
-                    .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        config: push_config.clone(),
+                    .get_task(&GetTaskRequest {
+                        id: new_task_id(),
+                        history_length: None,
                         tenant: None,
                     })
                     .await,
-                "create_push_config",
+                "get missing task",
             )?;
 
             assert_failed(
                 client
-                    .get_push_config(&GetTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        id: "interop-config".to_string(),
+                    .cancel_task(&CancelTaskRequest {
+                        id: completed_task.id.clone(),
+                        metadata: None,
                         tenant: None,
                     })
                     .await,
-                "get_push_config",
-            )?;
-
-            assert_failed(
-                client
-                    .list_push_configs(&ListTaskPushNotificationConfigsRequest {
-                        task_id: completed_task.id.clone(),
-                        page_size: None,
-                        page_token: None,
-                        tenant: None,
-                    })
-                    .await,
-                "list_push_configs",
-            )?;
-
-            assert_failed(
-                client
-                    .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        id: "interop-config".to_string(),
-                        tenant: None,
-                    })
-                    .await,
-                "delete_push_config",
+                "cancel completed task",
             )?;
         } else {
             assert_error_code(
                 client
-                    .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        config: push_config.clone(),
+                    .get_task(&GetTaskRequest {
+                        id: new_task_id(),
+                        history_length: None,
                         tenant: None,
                     })
                     .await,
-                args.expected_push_error_code,
+                a2a::error_code::TASK_NOT_FOUND,
+                "get missing task",
+            )?;
+
+            assert_error_code(
+                client
+                    .cancel_task(&CancelTaskRequest {
+                        id: completed_task.id.clone(),
+                        metadata: None,
+                        tenant: None,
+                    })
+                    .await,
+                a2a::error_code::TASK_NOT_CANCELABLE,
+                "cancel completed task",
+            )?;
+        }
+
+        if args.expect_subscribe_unsupported {
+            assert_stream_error_code(
+                client
+                    .subscribe_to_task(&SubscribeToTaskRequest {
+                        id: completed_task.id.clone(),
+                        tenant: None,
+                    })
+                    .await,
+                a2a::error_code::UNSUPPORTED_OPERATION,
+                "subscribe_to_task",
+            )
+            .await?;
+        }
+    }
+
+    if args.scenario.runs_push_config() {
+        let completed_task = task_from_response(
+            client
+                .send_message(&request_with_payload(REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("push-config setup failed: {error}"))?,
+            "push-config setup",
+        )?;
+        assert_state(
+            &completed_task.status.state,
+            TaskState::Completed,
+            "push-config setup",
+        )?;
+        assert_text(
+            task_text(&completed_task)?,
+            &expected_ping_text,
+            "push-config setup",
+        )?;
+        assert_task_history(&completed_task, REQUEST_TEXT, "push-config setup")?;
+
+        if args.expect_push_unsupported {
+            let push_config = PushNotificationConfig {
+                url: "https://example.invalid/webhook".to_string(),
+                id: Some("interop-config".to_string()),
+                token: None,
+                authentication: None,
+            };
+
+            if args.relaxed_error_checks {
+                assert_failed(
+                    client
+                        .create_push_config(&CreateTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            config: push_config.clone(),
+                            tenant: None,
+                        })
+                        .await,
+                    "create_push_config",
+                )?;
+
+                assert_failed(
+                    client
+                        .get_push_config(&GetTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            id: "interop-config".to_string(),
+                            tenant: None,
+                        })
+                        .await,
+                    "get_push_config",
+                )?;
+
+                assert_failed(
+                    client
+                        .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                            task_id: completed_task.id.clone(),
+                            page_size: None,
+                            page_token: None,
+                            tenant: None,
+                        })
+                        .await,
+                    "list_push_configs",
+                )?;
+
+                assert_failed(
+                    client
+                        .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            id: "interop-config".to_string(),
+                            tenant: None,
+                        })
+                        .await,
+                    "delete_push_config",
+                )?;
+            } else {
+                assert_error_code(
+                    client
+                        .create_push_config(&CreateTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            config: push_config.clone(),
+                            tenant: None,
+                        })
+                        .await,
+                    args.expected_push_error_code,
+                    "create_push_config",
+                )?;
+
+                assert_error_code(
+                    client
+                        .get_push_config(&GetTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            id: "interop-config".to_string(),
+                            tenant: None,
+                        })
+                        .await,
+                    args.expected_push_error_code,
+                    "get_push_config",
+                )?;
+
+                assert_error_code(
+                    client
+                        .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                            task_id: completed_task.id.clone(),
+                            page_size: None,
+                            page_token: None,
+                            tenant: None,
+                        })
+                        .await,
+                    args.expected_push_error_code,
+                    "list_push_configs",
+                )?;
+
+                assert_error_code(
+                    client
+                        .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
+                            task_id: completed_task.id.clone(),
+                            id: "interop-config".to_string(),
+                            tenant: None,
+                        })
+                        .await,
+                    args.expected_push_error_code,
+                    "delete_push_config",
+                )?;
+            }
+        } else if args.expect_push_supported {
+            let push_config = PushNotificationConfig {
+                url: "https://example.invalid/webhook".to_string(),
+                id: Some("interop-config".to_string()),
+                token: Some("interop-token".to_string()),
+                authentication: Some(AuthenticationInfo {
+                    scheme: "Bearer".to_string(),
+                    credentials: Some("interop-credential".to_string()),
+                }),
+            };
+
+            let created_push_config = client
+                .create_push_config(&CreateTaskPushNotificationConfigRequest {
+                    task_id: completed_task.id.clone(),
+                    config: push_config.clone(),
+                    tenant: None,
+                })
+                .await
+                .map_err(|error| format!("create_push_config failed: {error}"))?;
+            assert_push_config(
+                &created_push_config,
+                &completed_task.id,
+                &push_config,
                 "create_push_config",
             )?;
 
-            assert_error_code(
-                client
-                    .get_push_config(&GetTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        id: "interop-config".to_string(),
-                        tenant: None,
-                    })
-                    .await,
-                args.expected_push_error_code,
+            let fetched_push_config = client
+                .get_push_config(&GetTaskPushNotificationConfigRequest {
+                    task_id: completed_task.id.clone(),
+                    id: "interop-config".to_string(),
+                    tenant: None,
+                })
+                .await
+                .map_err(|error| format!("get_push_config failed: {error}"))?;
+            assert_push_config(
+                &fetched_push_config,
+                &completed_task.id,
+                &push_config,
                 "get_push_config",
             )?;
 
-            assert_error_code(
-                client
-                    .list_push_configs(&ListTaskPushNotificationConfigsRequest {
-                        task_id: completed_task.id.clone(),
-                        page_size: None,
-                        page_token: None,
-                        tenant: None,
-                    })
-                    .await,
-                args.expected_push_error_code,
+            let listed_push_configs = client
+                .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                    task_id: completed_task.id.clone(),
+                    page_size: None,
+                    page_token: None,
+                    tenant: None,
+                })
+                .await
+                .map_err(|error| format!("list_push_configs failed: {error}"))?;
+            if listed_push_configs.configs.len() != 1 {
+                return Err(format!(
+                    "unexpected list_push_configs result count: got {}, want 1",
+                    listed_push_configs.configs.len()
+                ));
+            }
+            assert_push_config(
+                &listed_push_configs.configs[0],
+                &completed_task.id,
+                &push_config,
                 "list_push_configs",
             )?;
 
-            assert_error_code(
-                client
-                    .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
-                        task_id: completed_task.id.clone(),
-                        id: "interop-config".to_string(),
-                        tenant: None,
-                    })
-                    .await,
-                args.expected_push_error_code,
-                "delete_push_config",
-            )?;
-        }
-    } else if args.expect_push_supported {
-        let push_config = PushNotificationConfig {
-            url: "https://example.invalid/webhook".to_string(),
-            id: Some("interop-config".to_string()),
-            token: Some("interop-token".to_string()),
-            authentication: Some(AuthenticationInfo {
-                scheme: "Bearer".to_string(),
-                credentials: Some("interop-credential".to_string()),
-            }),
-        };
+            client
+                .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
+                    task_id: completed_task.id.clone(),
+                    id: "interop-config".to_string(),
+                    tenant: None,
+                })
+                .await
+                .map_err(|error| format!("delete_push_config failed: {error}"))?;
 
-        let created_push_config = client
-            .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                task_id: completed_task.id.clone(),
-                config: push_config.clone(),
-                tenant: None,
-            })
-            .await
-            .map_err(|error| format!("create_push_config failed: {error}"))?;
-        assert_push_config(
-            &created_push_config,
-            &completed_task.id,
-            &push_config,
-            "create_push_config",
-        )?;
-
-        let fetched_push_config = client
-            .get_push_config(&GetTaskPushNotificationConfigRequest {
-                task_id: completed_task.id.clone(),
-                id: "interop-config".to_string(),
-                tenant: None,
-            })
-            .await
-            .map_err(|error| format!("get_push_config failed: {error}"))?;
-        assert_push_config(
-            &fetched_push_config,
-            &completed_task.id,
-            &push_config,
-            "get_push_config",
-        )?;
-
-        let listed_push_configs = client
-            .list_push_configs(&ListTaskPushNotificationConfigsRequest {
-                task_id: completed_task.id.clone(),
-                page_size: None,
-                page_token: None,
-                tenant: None,
-            })
-            .await
-            .map_err(|error| format!("list_push_configs failed: {error}"))?;
-        if listed_push_configs.configs.len() != 1 {
-            return Err(format!(
-                "unexpected list_push_configs result count: got {}, want 1",
-                listed_push_configs.configs.len()
-            ));
-        }
-        assert_push_config(
-            &listed_push_configs.configs[0],
-            &completed_task.id,
-            &push_config,
-            "list_push_configs",
-        )?;
-
-        client
-            .delete_push_config(&DeleteTaskPushNotificationConfigRequest {
-                task_id: completed_task.id.clone(),
-                id: "interop-config".to_string(),
-                tenant: None,
-            })
-            .await
-            .map_err(|error| format!("delete_push_config failed: {error}"))?;
-
-        let listed_after_delete = client
-            .list_push_configs(&ListTaskPushNotificationConfigsRequest {
-                task_id: completed_task.id.clone(),
-                page_size: None,
-                page_token: None,
-                tenant: None,
-            })
-            .await
-            .map_err(|error| format!("list_push_configs after delete failed: {error}"))?;
-        if !listed_after_delete.configs.is_empty() {
-            return Err(format!(
-                "expected list_push_configs after delete to be empty, got {:?}",
-                listed_after_delete.configs
-            ));
+            let listed_after_delete = client
+                .list_push_configs(&ListTaskPushNotificationConfigsRequest {
+                    task_id: completed_task.id.clone(),
+                    page_size: None,
+                    page_token: None,
+                    tenant: None,
+                })
+                .await
+                .map_err(|error| format!("list_push_configs after delete failed: {error}"))?;
+            if !listed_after_delete.configs.is_empty() {
+                return Err(format!(
+                    "expected list_push_configs after delete to be empty, got {:?}",
+                    listed_after_delete.configs
+                ));
+            }
         }
     }
 
-    let message_only = message_from_response(
-        client
-            .send_message(&request_with_payload(MESSAGE_ONLY_REQUEST_TEXT, false))
-            .await
-            .map_err(|error| format!("message-only request failed: {error}"))?,
-        "message-only",
-    )?;
-    assert_text(
-        first_text(&message_only)?,
-        &expected_message_only_text,
-        "message-only",
-    )?;
+    if args.scenario.runs_parity() {
+        let message_only = message_from_response(
+            client
+                .send_message(&request_with_payload(MESSAGE_ONLY_REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("message-only request failed: {error}"))?,
+            "message-only",
+        )?;
+        assert_text(
+            first_text(&message_only)?,
+            &expected_message_only_text,
+            "message-only",
+        )?;
 
-    let failed_task = task_from_response(
-        client
-            .send_message(&request_with_payload(TASK_FAILURE_REQUEST_TEXT, false))
-            .await
-            .map_err(|error| format!("task-failure request failed: {error}"))?,
-        "task-failure",
-    )?;
-    assert_state(&failed_task.status.state, TaskState::Failed, "task-failure")?;
-    assert_text(task_text(&failed_task)?, &expected_failed_text, "task-failure")?;
+        let failed_task = task_from_response(
+            client
+                .send_message(&request_with_payload(TASK_FAILURE_REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("task-failure request failed: {error}"))?,
+            "task-failure",
+        )?;
+        assert_state(&failed_task.status.state, TaskState::Failed, "task-failure")?;
+        assert_text(task_text(&failed_task)?, &expected_failed_text, "task-failure")?;
 
-    let input_required_task = task_from_response(
-        client
-            .send_message(&request_with_payload(MULTI_TURN_START_REQUEST_TEXT, false))
-            .await
-            .map_err(|error| format!("multi-turn start failed: {error}"))?,
-        "multi-turn start",
-    )?;
-    assert_state(
-        &input_required_task.status.state,
-        TaskState::InputRequired,
-        "multi-turn start",
-    )?;
-    assert_text(
-        task_text(&input_required_task)?,
-        &expected_input_required_text,
-        "multi-turn start",
-    )?;
-    assert_task_history(&input_required_task, MULTI_TURN_START_REQUEST_TEXT, "multi-turn start")?;
+        let input_required_task = task_from_response(
+            client
+                .send_message(&request_with_payload(MULTI_TURN_START_REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("multi-turn start failed: {error}"))?,
+            "multi-turn start",
+        )?;
+        assert_state(
+            &input_required_task.status.state,
+            TaskState::InputRequired,
+            "multi-turn start",
+        )?;
+        assert_text(
+            task_text(&input_required_task)?,
+            &expected_input_required_text,
+            "multi-turn start",
+        )?;
+        assert_task_history(&input_required_task, MULTI_TURN_START_REQUEST_TEXT, "multi-turn start")?;
 
-    let multi_turn_completed = task_from_response(
-        client
-            .send_message(&request_with_payload_ids(
-                MULTI_TURN_CONTINUE_REQUEST_TEXT,
-                false,
-                Some(input_required_task.id.clone()),
-                Some(input_required_task.context_id.clone()),
-            ))
-            .await
-            .map_err(|error| format!("multi-turn continuation failed: {error}"))?,
-        "multi-turn continuation",
-    )?;
-    assert_state(
-        &multi_turn_completed.status.state,
-        TaskState::Completed,
-        "multi-turn continuation",
-    )?;
-    assert_text(
-        task_text(&multi_turn_completed)?,
-        &expected_multi_turn_complete_text,
-        "multi-turn continuation",
-    )?;
-    assert_task_history_entries(
-        &multi_turn_completed,
-        &[MULTI_TURN_START_REQUEST_TEXT, MULTI_TURN_CONTINUE_REQUEST_TEXT],
-        "multi-turn continuation",
-    )?;
+        let multi_turn_completed = task_from_response(
+            client
+                .send_message(&request_with_payload_ids(
+                    MULTI_TURN_CONTINUE_REQUEST_TEXT,
+                    false,
+                    Some(input_required_task.id.clone()),
+                    Some(input_required_task.context_id.clone()),
+                ))
+                .await
+                .map_err(|error| format!("multi-turn continuation failed: {error}"))?,
+            "multi-turn continuation",
+        )?;
+        assert_state(
+            &multi_turn_completed.status.state,
+            TaskState::Completed,
+            "multi-turn continuation",
+        )?;
+        assert_text(
+            task_text(&multi_turn_completed)?,
+            &expected_multi_turn_complete_text,
+            "multi-turn continuation",
+        )?;
+        assert_task_history_entries(
+            &multi_turn_completed,
+            &[MULTI_TURN_START_REQUEST_TEXT, MULTI_TURN_CONTINUE_REQUEST_TEXT],
+            "multi-turn continuation",
+        )?;
 
-    let mut scenario_stream = client
-        .send_streaming_message(&request_with_payload(STREAMING_REQUEST_TEXT, false))
-        .await
-        .map_err(|error| format!("streaming scenario request failed: {error}"))?;
-    let mut streaming_chunks = Vec::new();
-    let mut saw_append = false;
-    let mut saw_stream_start = false;
-    let mut saw_stream_complete = false;
-    while let Some(event) = scenario_stream.next().await {
-        let event = event.map_err(|error| format!("streaming scenario event failed: {error}"))?;
-        match event {
-            StreamResponse::Task(task) => {
-                saw_stream_start = true;
-                assert_state(&task.status.state, TaskState::Working, "streaming scenario task")?;
-                assert_text(task_text(&task)?, &expected_streaming_start_text, "streaming scenario task")?;
-            }
-            StreamResponse::ArtifactUpdate(update) => {
-                streaming_chunks.push(first_artifact_text(&update.artifact)?);
-                if update.append == Some(true) {
-                    saw_append = true;
+        let mut scenario_stream = client
+            .send_streaming_message(&request_with_payload(STREAMING_REQUEST_TEXT, false))
+            .await
+            .map_err(|error| format!("streaming scenario request failed: {error}"))?;
+        let mut streaming_chunks = Vec::new();
+        let mut saw_append = false;
+        let mut saw_stream_start = false;
+        let mut saw_stream_complete = false;
+        while let Some(event) = scenario_stream.next().await {
+            let event = event.map_err(|error| format!("streaming scenario event failed: {error}"))?;
+            match event {
+                StreamResponse::Task(task) => {
+                    saw_stream_start = true;
+                    assert_state(&task.status.state, TaskState::Working, "streaming scenario task")?;
+                    assert_text(task_text(&task)?, &expected_streaming_start_text, "streaming scenario task")?;
                 }
+                StreamResponse::ArtifactUpdate(update) => {
+                    streaming_chunks.push(first_artifact_text(&update.artifact)?);
+                    if update.append == Some(true) {
+                        saw_append = true;
+                    }
+                }
+                StreamResponse::StatusUpdate(update) => {
+                    assert_state(&update.status.state, TaskState::Completed, "streaming scenario status")?;
+                    assert_text(
+                        first_text(update.status.message.as_ref().ok_or_else(|| "streaming scenario completion was missing a message".to_string())?)?,
+                        &expected_streaming_complete_text,
+                        "streaming scenario status",
+                    )?;
+                    saw_stream_complete = true;
+                }
+                StreamResponse::Message(_) => return Err("streaming scenario yielded an unexpected message event".to_string()),
             }
-            StreamResponse::StatusUpdate(update) => {
-                assert_state(&update.status.state, TaskState::Completed, "streaming scenario status")?;
+        }
+        if !saw_stream_start || !saw_stream_complete {
+            return Err("streaming scenario did not emit the expected task/status events".to_string());
+        }
+        if streaming_chunks != vec!["streaming chunk 1".to_string(), "streaming chunk 2".to_string()] {
+            return Err(format!("streaming scenario artifact chunks mismatch: got {streaming_chunks:?}"));
+        }
+        if !saw_append {
+            return Err("streaming scenario did not emit an append artifact update".to_string());
+        }
+
+        let long_running_task = task_from_response(
+            client
+                .send_message(&request_with_payload(LONG_RUNNING_REQUEST_TEXT, true))
+                .await
+                .map_err(|error| format!("long-running request failed: {error}"))?,
+            "long-running",
+        )?;
+        let long_running_completed = match long_running_task.status.state {
+            TaskState::Working => {
                 assert_text(
-                    first_text(update.status.message.as_ref().ok_or_else(|| "streaming scenario completion was missing a message".to_string())?)?,
-                    &expected_streaming_complete_text,
-                    "streaming scenario status",
+                    task_text(&long_running_task)?,
+                    &expected_long_running_start_text,
+                    "long-running",
                 )?;
-                saw_stream_complete = true;
+                wait_for_task_state(
+                    &client,
+                    &long_running_task.id,
+                    TaskState::Completed,
+                    "long-running",
+                )
+                .await?
             }
-            StreamResponse::Message(_) => return Err("streaming scenario yielded an unexpected message event".to_string()),
-        }
-    }
-    if !saw_stream_start || !saw_stream_complete {
-        return Err("streaming scenario did not emit the expected task/status events".to_string());
-    }
-    if streaming_chunks != vec!["streaming chunk 1".to_string(), "streaming chunk 2".to_string()] {
-        return Err(format!("streaming scenario artifact chunks mismatch: got {streaming_chunks:?}"));
-    }
-    if !saw_append {
-        return Err("streaming scenario did not emit an append artifact update".to_string());
-    }
+            TaskState::Completed => long_running_task,
+            ref other => {
+                return Err(format!(
+                    "unexpected long-running task state: got {other:?}, want Working or Completed"
+                ));
+            }
+        };
+        assert_text(
+            task_text(&long_running_completed)?,
+            &expected_long_running_complete_text,
+            "long-running completion",
+        )?;
 
-    let long_running_task = task_from_response(
-        client
-            .send_message(&request_with_payload(LONG_RUNNING_REQUEST_TEXT, true))
+        let data_types_task = task_from_response(
+            client
+                .send_message(&request_with_payload(DATA_TYPES_REQUEST_TEXT, false))
+                .await
+                .map_err(|error| format!("data-types request failed: {error}"))?,
+            "data-types",
+        )?;
+        assert_state(&data_types_task.status.state, TaskState::Completed, "data-types")?;
+        assert_text(task_text(&data_types_task)?, &expected_data_types_text, "data-types")?;
+        assert_data_types_task(&data_types_task, "data-types")?;
+
+        let extended_card = client
+            .get_extended_agent_card(&GetExtendedAgentCardRequest { tenant: None })
             .await
-            .map_err(|error| format!("long-running request failed: {error}"))?,
-        "long-running",
-    )?;
-    let long_running_completed = match long_running_task.status.state {
-        TaskState::Working => {
-            assert_text(
-                task_text(&long_running_task)?,
-                &expected_long_running_start_text,
-                "long-running",
-            )?;
-            wait_for_task_state(
-                &client,
-                &long_running_task.id,
-                TaskState::Completed,
-                "long-running",
-            )
-            .await?
-        }
-        TaskState::Completed => long_running_task,
-        ref other => {
-            return Err(format!(
-                "unexpected long-running task state: got {other:?}, want Working or Completed"
-            ));
-        }
-    };
-    assert_text(
-        task_text(&long_running_completed)?,
-        &expected_long_running_complete_text,
-        "long-running completion",
-    )?;
-
-    let data_types_task = task_from_response(
-        client
-            .send_message(&request_with_payload(DATA_TYPES_REQUEST_TEXT, false))
-            .await
-            .map_err(|error| format!("data-types request failed: {error}"))?,
-        "data-types",
-    )?;
-    assert_state(&data_types_task.status.state, TaskState::Completed, "data-types")?;
-    assert_text(task_text(&data_types_task)?, &expected_data_types_text, "data-types")?;
-    assert_data_types_task(&data_types_task, "data-types")?;
-
-    let extended_card = client
-        .get_extended_agent_card(&GetExtendedAgentCardRequest { tenant: None })
-        .await
-        .map_err(|error| format!("get_extended_agent_card failed: {error}"))?;
-    assert_extended_card_metadata(&extended_card, "extended-card")?;
+            .map_err(|error| format!("get_extended_agent_card failed: {error}"))?;
+        assert_extended_card_metadata(&extended_card, "extended-card")?;
+    }
 
     let protocol = card
         .supported_interfaces
@@ -1107,8 +1215,11 @@ async fn run(args: Args) -> Result<(), String> {
         .map(|iface| iface.protocol_binding.clone())
         .unwrap_or_else(|| "unknown".to_string());
     println!(
-        "validated {} {} lifecycle against {}",
-        args.server_prefix, protocol, args.card_url
+        "validated {} {} {} against {}",
+        args.server_prefix,
+        protocol,
+        args.scenario.as_str(),
+        args.card_url
     );
     Ok(())
 }

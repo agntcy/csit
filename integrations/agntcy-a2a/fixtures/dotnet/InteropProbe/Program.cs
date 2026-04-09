@@ -85,277 +85,304 @@ internal static class Program
         var expectedLongRunningCompleteText = ExpectedScenarioText(options.ServerPrefix, "long-running complete");
         var expectedDataTypesText = ExpectedScenarioText(options.ServerPrefix, "data-types ready");
 
-        var request = BuildRequest(RequestText, false);
-
-        var completedTask = TaskFromResponse(
-            await SendMessageAsync(client, card, request, false).ConfigureAwait(false),
-            "unary");
-        AssertState(completedTask.Status.State, TaskState.Completed, "unary");
-        AssertText(TaskText(completedTask), expectedPingText, "unary");
-        AssertTaskHistory(completedTask, RequestText, "unary");
-
-        var fetchedTask = await GetTaskAsync(client, card, new GetTaskRequest
+        if (options.Scenario.RunsUnaryStreaming())
         {
-            Id = completedTask.Id,
-            HistoryLength = 1,
-        }).ConfigureAwait(false);
-        AssertState(fetchedTask.Status.State, TaskState.Completed, "get_task");
-        AssertText(TaskText(fetchedTask), expectedPingText, "get_task");
-        AssertTaskHistory(fetchedTask, RequestText, "get_task");
+            var request = BuildRequest(RequestText, false);
 
-        var listedTasks = await ListTasksAsync(client, card, new ListTasksRequest
-        {
-            ContextId = completedTask.ContextId,
-        }).ConfigureAwait(false);
-        if (!listedTasks.Any(task => task.Id == completedTask.Id))
-        {
-            throw new InvalidOperationException($"list_tasks did not include expected task {completedTask.Id}");
+            var completedTask = TaskFromResponse(
+                await SendMessageAsync(client, card, request, false).ConfigureAwait(false),
+                "unary");
+            AssertState(completedTask.Status.State, TaskState.Completed, "unary");
+            AssertText(TaskText(completedTask), expectedPingText, "unary");
+            AssertTaskHistory(completedTask, RequestText, "unary");
+
+            var streamingText = await ReadStreamingTextAsync(SendStreamingMessageAsync(client, card, request)).ConfigureAwait(false);
+            AssertText(streamingText, expectedPingText, "streaming");
         }
 
-        var streamingText = await ReadStreamingTextAsync(SendStreamingMessageAsync(client, card, request)).ConfigureAwait(false);
-        AssertText(streamingText, expectedPingText, "streaming");
-
-        var pendingTask = TaskFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(PendingRequestText, true), true).ConfigureAwait(false),
-            "pending unary");
-        AssertState(pendingTask.Status.State, TaskState.Working, "pending unary");
-        AssertText(TaskText(pendingTask), expectedPendingText, "pending unary");
-
-        var canceledTask = await CancelTaskAsync(client, card, new CancelTaskRequest
+        if (options.Scenario.RunsTaskLifecycle())
         {
-            Id = pendingTask.Id,
-        }).ConfigureAwait(false);
-        AssertState(canceledTask.Status.State, TaskState.Canceled, "cancel_task");
-        AssertText(TaskText(canceledTask), expectedCancelText, "cancel_task");
+            var completedTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(RequestText, false), false).ConfigureAwait(false),
+                "task lifecycle setup");
+            AssertState(completedTask.Status.State, TaskState.Completed, "task lifecycle setup");
+            AssertText(TaskText(completedTask), expectedPingText, "task lifecycle setup");
+            AssertTaskHistory(completedTask, RequestText, "task lifecycle setup");
 
-        var fetchedCanceledTask = await GetTaskAsync(client, card, new GetTaskRequest
-        {
-            Id = pendingTask.Id,
-        }).ConfigureAwait(false);
-        AssertState(fetchedCanceledTask.Status.State, TaskState.Canceled, "get_task after cancel");
-        AssertText(TaskText(fetchedCanceledTask), expectedCancelText, "get_task after cancel");
-
-        if (options.RelaxedErrorChecks)
-        {
-            await ExpectFailureAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), "get missing task").ConfigureAwait(false);
-            await ExpectFailureAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), "cancel completed task").ConfigureAwait(false);
-        }
-        else
-        {
-            await ExpectA2AErrorAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), A2AErrorCode.TaskNotFound, "get missing task").ConfigureAwait(false);
-            await ExpectA2AErrorAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), A2AErrorCode.TaskNotCancelable, "cancel completed task").ConfigureAwait(false);
-        }
-
-        if (options.ExpectPushUnsupported)
-        {
-            var pushConfig = new PushNotificationConfig
+            var fetchedTask = await GetTaskAsync(client, card, new GetTaskRequest
             {
-                Id = "interop-config",
-                Url = "https://example.invalid/webhook",
-            };
+                Id = completedTask.Id,
+                HistoryLength = 1,
+            }).ConfigureAwait(false);
+            AssertState(fetchedTask.Status.State, TaskState.Completed, "get_task");
+            AssertText(TaskText(fetchedTask), expectedPingText, "get_task");
+            AssertTaskHistory(fetchedTask, RequestText, "get_task");
+
+            var listedTasks = await ListTasksAsync(client, card, new ListTasksRequest
+            {
+                ContextId = completedTask.ContextId,
+            }).ConfigureAwait(false);
+            if (!listedTasks.Any(task => task.Id == completedTask.Id))
+            {
+                throw new InvalidOperationException($"list_tasks did not include expected task {completedTask.Id}");
+            }
+
+            var pendingTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(PendingRequestText, true), true).ConfigureAwait(false),
+                "pending unary");
+            AssertState(pendingTask.Status.State, TaskState.Working, "pending unary");
+            AssertText(TaskText(pendingTask), expectedPendingText, "pending unary");
+
+            var canceledTask = await CancelTaskAsync(client, card, new CancelTaskRequest
+            {
+                Id = pendingTask.Id,
+            }).ConfigureAwait(false);
+            AssertState(canceledTask.Status.State, TaskState.Canceled, "cancel_task");
+            AssertText(TaskText(canceledTask), expectedCancelText, "cancel_task");
+
+            var fetchedCanceledTask = await GetTaskAsync(client, card, new GetTaskRequest
+            {
+                Id = pendingTask.Id,
+            }).ConfigureAwait(false);
+            AssertState(fetchedCanceledTask.Status.State, TaskState.Canceled, "get_task after cancel");
+            AssertText(TaskText(fetchedCanceledTask), expectedCancelText, "get_task after cancel");
 
             if (options.RelaxedErrorChecks)
             {
-                await ExpectFailureAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
-                {
-                    TaskId = completedTask.Id,
-                    ConfigId = "interop-config",
-                    Config = pushConfig,
-                }), "create_push_config").ConfigureAwait(false);
-                await ExpectFailureAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
-                {
-                    TaskId = completedTask.Id,
-                    Id = "interop-config",
-                }), "get_push_config").ConfigureAwait(false);
-                await ExpectFailureAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
-                {
-                    TaskId = completedTask.Id,
-                }), "list_push_configs").ConfigureAwait(false);
-                await ExpectFailureAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
-                {
-                    TaskId = completedTask.Id,
-                    Id = "interop-config",
-                }), "delete_push_config").ConfigureAwait(false);
+                await ExpectFailureAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), "get missing task").ConfigureAwait(false);
+                await ExpectFailureAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), "cancel completed task").ConfigureAwait(false);
             }
             else
             {
-                await ExpectA2AErrorAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
+                await ExpectA2AErrorAsync(() => GetTaskAsync(client, card, new GetTaskRequest { Id = Guid.NewGuid().ToString("N") }), A2AErrorCode.TaskNotFound, "get missing task").ConfigureAwait(false);
+                await ExpectA2AErrorAsync(() => CancelTaskAsync(client, card, new CancelTaskRequest { Id = completedTask.Id }), A2AErrorCode.TaskNotCancelable, "cancel completed task").ConfigureAwait(false);
+            }
+
+        }
+
+        if (options.Scenario.RunsPushConfig())
+        {
+            var completedTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(RequestText, false), false).ConfigureAwait(false),
+                "push-config setup");
+            AssertState(completedTask.Status.State, TaskState.Completed, "push-config setup");
+            AssertText(TaskText(completedTask), expectedPingText, "push-config setup");
+            AssertTaskHistory(completedTask, RequestText, "push-config setup");
+
+            if (options.ExpectPushUnsupported)
+            {
+                var pushConfig = new PushNotificationConfig
+                {
+                    Id = "interop-config",
+                    Url = "https://example.invalid/webhook",
+                };
+
+                if (options.RelaxedErrorChecks)
+                {
+                    await ExpectFailureAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        ConfigId = "interop-config",
+                        Config = pushConfig,
+                    }), "create_push_config").ConfigureAwait(false);
+                    await ExpectFailureAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        Id = "interop-config",
+                    }), "get_push_config").ConfigureAwait(false);
+                    await ExpectFailureAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                    }), "list_push_configs").ConfigureAwait(false);
+                    await ExpectFailureAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        Id = "interop-config",
+                    }), "delete_push_config").ConfigureAwait(false);
+                }
+                else
+                {
+                    await ExpectA2AErrorAsync(() => CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        ConfigId = "interop-config",
+                        Config = pushConfig,
+                    }), options.ExpectedPushErrorCode, "create_push_config").ConfigureAwait(false);
+                    await ExpectA2AErrorAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        Id = "interop-config",
+                    }), options.ExpectedPushErrorCode, "get_push_config").ConfigureAwait(false);
+                    await ExpectA2AErrorAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                    }), options.ExpectedPushErrorCode, "list_push_configs").ConfigureAwait(false);
+                    await ExpectA2AErrorAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
+                    {
+                        TaskId = completedTask.Id,
+                        Id = "interop-config",
+                    }), options.ExpectedPushErrorCode, "delete_push_config").ConfigureAwait(false);
+                }
+            }
+            else if (options.ExpectPushSupported)
+            {
+                var pushConfig = new PushNotificationConfig
+                {
+                    Id = "interop-config",
+                    Url = "https://example.invalid/webhook",
+                    Token = "interop-token",
+                    Authentication = new AuthenticationInfo
+                    {
+                        Scheme = "Bearer",
+                        Credentials = "interop-credential",
+                    },
+                };
+
+                var createdConfig = await CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     ConfigId = "interop-config",
                     Config = pushConfig,
-                }), options.ExpectedPushErrorCode, "create_push_config").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
+                }).ConfigureAwait(false);
+                AssertPushConfig(createdConfig, completedTask.Id, pushConfig, "create_push_config");
+
+                var fetchedConfig = await GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
-                }), options.ExpectedPushErrorCode, "get_push_config").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
+                }).ConfigureAwait(false);
+                AssertPushConfig(fetchedConfig, completedTask.Id, pushConfig, "get_push_config");
+
+                var listedConfigs = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
-                }), options.ExpectedPushErrorCode, "list_push_configs").ConfigureAwait(false);
-                await ExpectA2AErrorAsync(() => DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
+                }).ConfigureAwait(false);
+                if (listedConfigs.Count != 1)
+                {
+                    throw new InvalidOperationException($"unexpected list_push_configs result count: got {listedConfigs.Count}, want 1");
+                }
+                AssertPushConfig(listedConfigs[0], completedTask.Id, pushConfig, "list_push_configs");
+
+                await DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
                 {
                     TaskId = completedTask.Id,
                     Id = "interop-config",
-                }), options.ExpectedPushErrorCode, "delete_push_config").ConfigureAwait(false);
+                }).ConfigureAwait(false);
+
+                var listedAfterDelete = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
+                {
+                    TaskId = completedTask.Id,
+                }).ConfigureAwait(false);
+                if (listedAfterDelete.Count > 0)
+                {
+                    throw new InvalidOperationException($"expected list_push_configs after delete to be empty, got {listedAfterDelete.Count}");
+                }
             }
         }
-        else if (options.ExpectPushSupported)
+
+        if (options.Scenario.RunsParity())
         {
-            var pushConfig = new PushNotificationConfig
+            var messageOnly = MessageFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(MessageOnlyRequestText, false), false).ConfigureAwait(false),
+                "message-only");
+            AssertText(FirstText(messageOnly), expectedMessageOnlyText, "message-only");
+
+            var failedTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(TaskFailureRequestText, false), false).ConfigureAwait(false),
+                "task-failure");
+            AssertState(failedTask.Status.State, TaskState.Failed, "task-failure");
+            AssertText(TaskText(failedTask), expectedFailedText, "task-failure");
+
+            var inputRequiredTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(MultiTurnStartRequestText, false), false).ConfigureAwait(false),
+                "multi-turn start");
+            AssertState(inputRequiredTask.Status.State, TaskState.InputRequired, "multi-turn start");
+            AssertText(TaskText(inputRequiredTask), expectedInputRequiredText, "multi-turn start");
+            AssertTaskHistory(inputRequiredTask, MultiTurnStartRequestText, "multi-turn start");
+
+            var multiTurnCompleted = TaskFromResponse(
+                await SendMessageAsync(
+                    client,
+                    card,
+                    BuildRequest(MultiTurnContinueRequestText, false, inputRequiredTask.Id, inputRequiredTask.ContextId),
+                    false).ConfigureAwait(false),
+                "multi-turn continuation");
+            AssertState(multiTurnCompleted.Status.State, TaskState.Completed, "multi-turn continuation");
+            AssertText(TaskText(multiTurnCompleted), expectedMultiTurnCompleteText, "multi-turn continuation");
+            AssertTaskHistoryEntries(multiTurnCompleted, [MultiTurnStartRequestText, MultiTurnContinueRequestText], "multi-turn continuation");
+
+            var sawStreamingStart = false;
+            var sawStreamingComplete = false;
+            var sawAppend = false;
+            var streamingChunks = new List<string>();
+            await foreach (var response in SendStreamingMessageAsync(client, card, BuildRequest(StreamingRequestText, false)).ConfigureAwait(false))
             {
-                Id = "interop-config",
-                Url = "https://example.invalid/webhook",
-                Token = "interop-token",
-                Authentication = new AuthenticationInfo
+                switch (response.PayloadCase)
                 {
-                    Scheme = "Bearer",
-                    Credentials = "interop-credential",
-                },
+                    case StreamResponseCase.Task:
+                        sawStreamingStart = true;
+                        AssertState(response.Task!.Status.State, TaskState.Working, "streaming scenario task");
+                        AssertText(TaskText(response.Task), expectedStreamingStartText, "streaming scenario task");
+                        break;
+                    case StreamResponseCase.ArtifactUpdate:
+                        streamingChunks.Add(FirstArtifactText(response.ArtifactUpdate!.Artifact));
+                        if (response.ArtifactUpdate.Append)
+                        {
+                            sawAppend = true;
+                        }
+                        break;
+                    case StreamResponseCase.StatusUpdate:
+                        sawStreamingComplete = true;
+                        AssertState(response.StatusUpdate!.Status.State, TaskState.Completed, "streaming scenario status");
+                        AssertText(FirstText(response.StatusUpdate.Status.Message!), expectedStreamingCompleteText, "streaming scenario status");
+                        break;
+                    case StreamResponseCase.Message:
+                        throw new InvalidOperationException("streaming scenario yielded an unexpected message event");
+                    default:
+                        throw new InvalidOperationException($"unexpected streaming scenario payload case {response.PayloadCase}");
+                }
+            }
+            if (!sawStreamingStart || !sawStreamingComplete)
+            {
+                throw new InvalidOperationException("streaming scenario did not emit the expected task/status events");
+            }
+            if (streamingChunks.Count != 2 || streamingChunks[0] != "streaming chunk 1" || streamingChunks[1] != "streaming chunk 2")
+            {
+                throw new InvalidOperationException($"streaming scenario artifact chunks mismatch: got [{string.Join(", ", streamingChunks)}]");
+            }
+            if (!sawAppend)
+            {
+                throw new InvalidOperationException("streaming scenario did not emit an append artifact update");
+            }
+
+            var longRunningTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(LongRunningRequestText, true), true).ConfigureAwait(false),
+                "long-running");
+            var longRunningCompleted = longRunningTask.Status.State switch
+            {
+                TaskState.Working => await WaitForTaskStateAsync(client, card, longRunningTask.Id, TaskState.Completed, "long-running").ConfigureAwait(false),
+                TaskState.Completed => longRunningTask,
+                _ => throw new InvalidOperationException($"unexpected long-running task state: got {longRunningTask.Status.State}, want Working or Completed"),
             };
-
-            var createdConfig = await CreateTaskPushNotificationConfigAsync(client, card, new CreateTaskPushNotificationConfigRequest
+            if (longRunningTask.Status.State == TaskState.Working)
             {
-                TaskId = completedTask.Id,
-                ConfigId = "interop-config",
-                Config = pushConfig,
-            }).ConfigureAwait(false);
-            AssertPushConfig(createdConfig, completedTask.Id, pushConfig, "create_push_config");
-
-            var fetchedConfig = await GetTaskPushNotificationConfigAsync(client, card, new GetTaskPushNotificationConfigRequest
-            {
-                TaskId = completedTask.Id,
-                Id = "interop-config",
-            }).ConfigureAwait(false);
-            AssertPushConfig(fetchedConfig, completedTask.Id, pushConfig, "get_push_config");
-
-            var listedConfigs = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
-            {
-                TaskId = completedTask.Id,
-            }).ConfigureAwait(false);
-            if (listedConfigs.Count != 1)
-            {
-                throw new InvalidOperationException($"unexpected list_push_configs result count: got {listedConfigs.Count}, want 1");
+                AssertText(TaskText(longRunningTask), expectedLongRunningStartText, "long-running");
             }
-            AssertPushConfig(listedConfigs[0], completedTask.Id, pushConfig, "list_push_configs");
+            AssertText(TaskText(longRunningCompleted), expectedLongRunningCompleteText, "long-running completion");
 
-            await DeleteTaskPushNotificationConfigAsync(client, card, new DeleteTaskPushNotificationConfigRequest
-            {
-                TaskId = completedTask.Id,
-                Id = "interop-config",
-            }).ConfigureAwait(false);
+            var dataTypesTask = TaskFromResponse(
+                await SendMessageAsync(client, card, BuildRequest(DataTypesRequestText, false), false).ConfigureAwait(false),
+                "data-types");
+            AssertState(dataTypesTask.Status.State, TaskState.Completed, "data-types");
+            AssertText(TaskText(dataTypesTask), expectedDataTypesText, "data-types");
+            AssertDataTypesTask(dataTypesTask, "data-types");
 
-            var listedAfterDelete = await ListTaskPushNotificationConfigAsync(client, card, new ListTaskPushNotificationConfigRequest
-            {
-                TaskId = completedTask.Id,
-            }).ConfigureAwait(false);
-            if (listedAfterDelete.Count > 0)
-            {
-                throw new InvalidOperationException($"expected list_push_configs after delete to be empty, got {listedAfterDelete.Count}");
-            }
+            var extendedCard = await GetExtendedAgentCardAsync(client, card).ConfigureAwait(false);
+            AssertExtendedCardMetadata(extendedCard, "extended-card");
         }
-
-        var messageOnly = MessageFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(MessageOnlyRequestText, false), false).ConfigureAwait(false),
-            "message-only");
-        AssertText(FirstText(messageOnly), expectedMessageOnlyText, "message-only");
-
-        var failedTask = TaskFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(TaskFailureRequestText, false), false).ConfigureAwait(false),
-            "task-failure");
-        AssertState(failedTask.Status.State, TaskState.Failed, "task-failure");
-        AssertText(TaskText(failedTask), expectedFailedText, "task-failure");
-
-        var inputRequiredTask = TaskFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(MultiTurnStartRequestText, false), false).ConfigureAwait(false),
-            "multi-turn start");
-        AssertState(inputRequiredTask.Status.State, TaskState.InputRequired, "multi-turn start");
-        AssertText(TaskText(inputRequiredTask), expectedInputRequiredText, "multi-turn start");
-        AssertTaskHistory(inputRequiredTask, MultiTurnStartRequestText, "multi-turn start");
-
-        var multiTurnCompleted = TaskFromResponse(
-            await SendMessageAsync(
-                client,
-                card,
-                BuildRequest(MultiTurnContinueRequestText, false, inputRequiredTask.Id, inputRequiredTask.ContextId),
-                false).ConfigureAwait(false),
-            "multi-turn continuation");
-        AssertState(multiTurnCompleted.Status.State, TaskState.Completed, "multi-turn continuation");
-        AssertText(TaskText(multiTurnCompleted), expectedMultiTurnCompleteText, "multi-turn continuation");
-        AssertTaskHistoryEntries(multiTurnCompleted, [MultiTurnStartRequestText, MultiTurnContinueRequestText], "multi-turn continuation");
-
-        var sawStreamingStart = false;
-        var sawStreamingComplete = false;
-        var sawAppend = false;
-        var streamingChunks = new List<string>();
-        await foreach (var response in SendStreamingMessageAsync(client, card, BuildRequest(StreamingRequestText, false)).ConfigureAwait(false))
-        {
-            switch (response.PayloadCase)
-            {
-                case StreamResponseCase.Task:
-                    sawStreamingStart = true;
-                    AssertState(response.Task!.Status.State, TaskState.Working, "streaming scenario task");
-                    AssertText(TaskText(response.Task), expectedStreamingStartText, "streaming scenario task");
-                    break;
-                case StreamResponseCase.ArtifactUpdate:
-                    streamingChunks.Add(FirstArtifactText(response.ArtifactUpdate!.Artifact));
-                    if (response.ArtifactUpdate.Append)
-                    {
-                        sawAppend = true;
-                    }
-                    break;
-                case StreamResponseCase.StatusUpdate:
-                    sawStreamingComplete = true;
-                    AssertState(response.StatusUpdate!.Status.State, TaskState.Completed, "streaming scenario status");
-                    AssertText(FirstText(response.StatusUpdate.Status.Message!), expectedStreamingCompleteText, "streaming scenario status");
-                    break;
-                case StreamResponseCase.Message:
-                    throw new InvalidOperationException("streaming scenario yielded an unexpected message event");
-                default:
-                    throw new InvalidOperationException($"unexpected streaming scenario payload case {response.PayloadCase}");
-            }
-        }
-        if (!sawStreamingStart || !sawStreamingComplete)
-        {
-            throw new InvalidOperationException("streaming scenario did not emit the expected task/status events");
-        }
-        if (streamingChunks.Count != 2 || streamingChunks[0] != "streaming chunk 1" || streamingChunks[1] != "streaming chunk 2")
-        {
-            throw new InvalidOperationException($"streaming scenario artifact chunks mismatch: got [{string.Join(", ", streamingChunks)}]");
-        }
-        if (!sawAppend)
-        {
-            throw new InvalidOperationException("streaming scenario did not emit an append artifact update");
-        }
-
-        var longRunningTask = TaskFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(LongRunningRequestText, true), true).ConfigureAwait(false),
-            "long-running");
-        var longRunningCompleted = longRunningTask.Status.State switch
-        {
-            TaskState.Working => await WaitForTaskStateAsync(client, card, longRunningTask.Id, TaskState.Completed, "long-running").ConfigureAwait(false),
-            TaskState.Completed => longRunningTask,
-            _ => throw new InvalidOperationException($"unexpected long-running task state: got {longRunningTask.Status.State}, want Working or Completed"),
-        };
-        if (longRunningTask.Status.State == TaskState.Working)
-        {
-            AssertText(TaskText(longRunningTask), expectedLongRunningStartText, "long-running");
-        }
-        AssertText(TaskText(longRunningCompleted), expectedLongRunningCompleteText, "long-running completion");
-
-        var dataTypesTask = TaskFromResponse(
-            await SendMessageAsync(client, card, BuildRequest(DataTypesRequestText, false), false).ConfigureAwait(false),
-            "data-types");
-        AssertState(dataTypesTask.Status.State, TaskState.Completed, "data-types");
-        AssertText(TaskText(dataTypesTask), expectedDataTypesText, "data-types");
-        AssertDataTypesTask(dataTypesTask, "data-types");
-
-        var extendedCard = await GetExtendedAgentCardAsync(client, card).ConfigureAwait(false);
-        AssertExtendedCardMetadata(extendedCard, "extended-card");
 
         var protocol = card.SupportedInterfaces.FirstOrDefault()?.ProtocolBinding ?? "unknown";
-        Console.WriteLine($"validated {options.ServerPrefix} {protocol} lifecycle against {options.CardUrl}");
+        Console.WriteLine($"validated {options.ServerPrefix} {protocol} {options.Scenario.ToString().ToLowerInvariant()} against {options.CardUrl}");
     }
 
     private static SendMessageRequest BuildRequest(string text, bool returnImmediately, string? taskId = null, string? contextId = null)
@@ -1354,6 +1381,8 @@ internal sealed class ProbeOptions
 
     public required string ServerPrefix { get; init; }
 
+    public ProbeScenario Scenario { get; init; } = ProbeScenario.All;
+
     public bool ExpectPushSupported { get; init; }
 
     public bool ExpectPushUnsupported { get; init; }
@@ -1366,6 +1395,7 @@ internal sealed class ProbeOptions
     {
         string? cardUrl = null;
         string? serverPrefix = null;
+        var scenario = ProbeScenario.All;
         var expectPushSupported = false;
         var expectPushUnsupported = false;
         var relaxedErrorChecks = false;
@@ -1382,6 +1412,10 @@ internal sealed class ProbeOptions
                 case "--server-prefix":
                     index++;
                     serverPrefix = args[index];
+                    break;
+                case "--scenario":
+                    index++;
+                    scenario = ProbeScenarioParser.Parse(args[index]);
                     break;
                 case "--expect-push-supported":
                     expectPushSupported = true;
@@ -1410,10 +1444,49 @@ internal sealed class ProbeOptions
         {
             CardUrl = cardUrl ?? throw new ArgumentException("missing --card-url"),
             ServerPrefix = serverPrefix ?? throw new ArgumentException("missing --server-prefix"),
+            Scenario = scenario,
             ExpectPushSupported = expectPushSupported,
             ExpectPushUnsupported = expectPushUnsupported,
             RelaxedErrorChecks = relaxedErrorChecks,
             ExpectedPushErrorCode = expectedPushErrorCode,
         };
     }
+}
+
+internal enum ProbeScenario
+{
+    All,
+    Core,
+    UnaryStreaming,
+    TaskLifecycle,
+    PushConfig,
+    Parity,
+}
+
+internal static class ProbeScenarioExtensions
+{
+    public static bool RunsUnaryStreaming(this ProbeScenario scenario) =>
+        scenario is ProbeScenario.All or ProbeScenario.Core or ProbeScenario.UnaryStreaming;
+
+    public static bool RunsTaskLifecycle(this ProbeScenario scenario) =>
+        scenario is ProbeScenario.All or ProbeScenario.Core or ProbeScenario.TaskLifecycle;
+
+    public static bool RunsPushConfig(this ProbeScenario scenario) =>
+        scenario is ProbeScenario.All or ProbeScenario.Core or ProbeScenario.PushConfig;
+
+    public static bool RunsParity(this ProbeScenario scenario) => scenario is ProbeScenario.All or ProbeScenario.Parity;
+}
+
+internal static class ProbeScenarioParser
+{
+    public static ProbeScenario Parse(string value) => value switch
+    {
+        "all" => ProbeScenario.All,
+        "core" => ProbeScenario.Core,
+        "unary-streaming" => ProbeScenario.UnaryStreaming,
+        "task-lifecycle" => ProbeScenario.TaskLifecycle,
+        "push-config" => ProbeScenario.PushConfig,
+        "parity" => ProbeScenario.Parity,
+        _ => throw new ArgumentException($"--scenario must be one of all, core, unary-streaming, task-lifecycle, push-config, or parity; got {value}"),
+    };
 }
