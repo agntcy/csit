@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
@@ -345,6 +346,37 @@ func (harness dotNetProbeHarness) AssertScenarioParity(ctx context.Context, targ
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 }
 
+type pythonProbeHarness struct {
+	getAssets func() pythonFixtureAssets
+	options   rustProbeOptions
+}
+
+func (harness pythonProbeHarness) optionsForScenario(scenario probeScenario) rustProbeOptions {
+	options := harness.options
+	options.scenario = scenario
+	return options
+}
+
+func (harness pythonProbeHarness) AssertUnaryStreaming(ctx context.Context, target interopTarget) {
+	output, err := runPythonProbe(ctx, harness.getAssets(), target.baseURL, target.serverPrefix, harness.optionsForScenario(probeScenarioUnaryStreaming))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+}
+
+func (harness pythonProbeHarness) AssertTaskLifecycle(ctx context.Context, target interopTarget) {
+	output, err := runPythonProbe(ctx, harness.getAssets(), target.baseURL, target.serverPrefix, harness.optionsForScenario(probeScenarioTaskLifecycle))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+}
+
+func (harness pythonProbeHarness) AssertPushConfig(ctx context.Context, target interopTarget) {
+	output, err := runPythonProbe(ctx, harness.getAssets(), target.baseURL, target.serverPrefix, harness.optionsForScenario(probeScenarioPushConfig))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+}
+
+func (harness pythonProbeHarness) AssertScenarioParity(ctx context.Context, target interopTarget) {
+	output, err := runPythonProbe(ctx, harness.getAssets(), target.baseURL, target.serverPrefix, harness.optionsForScenario(probeScenarioParity))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
+}
+
 func newGoClient(ctx context.Context, baseURL string) (*a2aclient.Client, error) {
 	card, err := agentcard.DefaultResolver.Resolve(ctx, baseURL)
 	if err != nil {
@@ -629,7 +661,12 @@ func goClientAssertTaskLifecycle(ctx context.Context, client *a2aclient.Client, 
 	gomega.Expect(fetchedCanceledText).To(gomega.Equal(expectedCancelText(serverPrefix)))
 
 	_, err = client.GetTask(ctx, &a2a.GetTaskRequest{ID: a2a.NewTaskID()})
-	gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("task not found")))
+	gomega.Expect(err).To(gomega.WithTransform(func(err error) string {
+		if err == nil {
+			return ""
+		}
+		return strings.ToLower(err.Error())
+	}, gomega.ContainSubstring("task not found")))
 
 	_, err = client.CancelTask(ctx, &a2a.CancelTaskRequest{ID: completedTask.ID})
 	gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("cancel")))

@@ -1,0 +1,7 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+# The Python interop fixture intentionally tracks the v1.0 release branch the
+# suite is validating rather than the stable 0.3 line.
+a2a-sdk[http-server] @ git+https://github.com/a2aproject/a2a-python.git@release-please--branches--1.0-dev
+uvicorn>=0.35.0

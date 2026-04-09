@@ -12,6 +12,7 @@ tasks:
     cmds:
       - task: test:rust-go
       - task: test:rust-dotnet
+      - task: test:python-go
 
   test:rust-go:
     desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
@@ -28,6 +29,14 @@ tasks:
         vars:
           LABEL_FILTER: suite-rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet
+
+  test:python-go:
+    desc: Python v1.0 and Go interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go
+          REPORT_NAME: report-agntcy-a2a-python-go
 
   test:behavior:core:
     desc: Shared core behavior slices across all A2A interoperability suites
@@ -149,6 +158,46 @@ tasks:
           LABEL_FILTER: suite-rust-dotnet && behavior-parity
           REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-parity
 
+  test:python-go:behavior:core:
+    desc: Python and Go shared core behavior slices across all transports and pairs
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && behavior-core
+          REPORT_NAME: report-agntcy-a2a-python-go-behavior-core
+
+  test:python-go:behavior:unary-streaming:
+    desc: Python and Go unary and streaming behavior slices across all transports and pairs
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && behavior-unary-streaming
+          REPORT_NAME: report-agntcy-a2a-python-go-behavior-unary-streaming
+
+  test:python-go:behavior:lifecycle:
+    desc: Python and Go task lifecycle behavior slices across all transports and pairs
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && behavior-lifecycle
+          REPORT_NAME: report-agntcy-a2a-python-go-behavior-lifecycle
+
+  test:python-go:behavior:push-config:
+    desc: Python and Go push-config behavior slices across all transports and pairs
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && behavior-push-config
+          REPORT_NAME: report-agntcy-a2a-python-go-behavior-push-config
+
+  test:python-go:behavior:parity:
+    desc: Python and Go scenario parity behavior slices across all transports and pairs
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && behavior-parity
+          REPORT_NAME: report-agntcy-a2a-python-go-behavior-parity
+
   test:rust-dotnet:jsonrpc:
     desc: Rust and .NET JSON-RPC interoperability matrix
     cmds:
@@ -238,6 +287,86 @@ tasks:
     desc: Alias for test:rust-dotnet:rest:rust-rust-dotnet
     cmds:
       - task: test:rust-dotnet:rest:rust-rust-dotnet
+
+  test:python-go:jsonrpc:
+    desc: Python and Go JSON-RPC interoperability matrix
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && jsonrpc
+          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc
+
+  test:python-go:jsonrpc:go-go:
+    desc: Go client to Go server JSON-RPC interoperability test for the Python/Go slice
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && jsonrpc && go-go
+          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-go-go
+
+  test:python-go:jsonrpc:go-python:
+    desc: Go client to Python server JSON-RPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && jsonrpc && go-python
+          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-go-python
+
+  test:python-go:jsonrpc:python-go:
+    desc: Python client to Go server JSON-RPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && jsonrpc && python-go
+          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-python-go
+
+  test:python-go:jsonrpc:python-python:
+    desc: Python client to Python server JSON-RPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && jsonrpc && python-python
+          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-python-python
+
+  test:python-go:rest:
+    desc: Python and Go HTTP+JSON interoperability matrix
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && rest
+          REPORT_NAME: report-agntcy-a2a-python-go-rest
+
+  test:python-go:rest:go-go:
+    desc: Go client to Go server HTTP+JSON interoperability test for the Python/Go slice
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && rest && go-go
+          REPORT_NAME: report-agntcy-a2a-python-go-rest-go-go
+
+  test:python-go:rest:go-python:
+    desc: Go client to Python server HTTP+JSON interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && rest && go-python
+          REPORT_NAME: report-agntcy-a2a-python-go-rest-go-python
+
+  test:python-go:rest:python-go:
+    desc: Python client to Go server HTTP+JSON interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && rest && python-go
+          REPORT_NAME: report-agntcy-a2a-python-go-rest-python-go
+
+  test:python-go:rest:python-python:
+    desc: Python client to Python server HTTP+JSON interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && rest && python-python
+          REPORT_NAME: report-agntcy-a2a-python-go-rest-python-python
 
   test:rust-go:jsonrpc:
     desc: Rust and Go JSON-RPC interoperability matrix
@@ -380,6 +509,14 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   test:rust-dotnet:run:
+    internal: true
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
+
+  test:python-go:run:
     internal: true
     cmds:
       - task: test:interop:run

@@ -16,7 +16,41 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
+
+func buildGoFixture(root string, outputPath string) error {
+	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
+	defer cancel()
+
+	goBuild := exec.CommandContext(buildCtx, "go", "build", "-o", outputPath, "./fixtures/go-jsonrpc-server")
+	goBuild.Dir = root
+	if output, err := goBuild.CombinedOutput(); err != nil {
+		return fmt.Errorf("build go fixture: %w\n%s", err, string(output))
+	}
+
+	return nil
+}
+
+func buildGoFixtureBinaryOnly() (fixtureBinaries, error) {
+	root := componentRoot()
+	tempDir, err := os.MkdirTemp("", "agntcy-a2a-go-")
+	if err != nil {
+		return fixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
+	}
+
+	binaries := fixtureBinaries{
+		tempDir:  tempDir,
+		goServer: filepath.Join(tempDir, executableName("go-jsonrpc-server")),
+	}
+
+	if err := buildGoFixture(root, binaries.goServer); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return fixtureBinaries{}, err
+	}
+
+	return binaries, nil
+}
 
 func buildFixtureBinaries() (fixtureBinaries, error) {
 	root := componentRoot()
@@ -31,16 +65,13 @@ func buildFixtureBinaries() (fixtureBinaries, error) {
 		rustServer: filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-server")),
 		rustProbe:  filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-probe")),
 	}
+	if err := buildGoFixture(root, binaries.goServer); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return fixtureBinaries{}, err
+	}
 
 	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
 	defer cancel()
-
-	goBuild := exec.CommandContext(buildCtx, "go", "build", "-o", binaries.goServer, "./fixtures/go-jsonrpc-server")
-	goBuild.Dir = root
-	if output, err := goBuild.CombinedOutput(); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return fixtureBinaries{}, fmt.Errorf("build go fixture: %w\n%s", err, string(output))
-	}
 
 	rustBuild := exec.CommandContext(
 		buildCtx,
@@ -59,6 +90,91 @@ func buildFixtureBinaries() (fixtureBinaries, error) {
 	}
 
 	return binaries, nil
+}
+
+func venvPythonCommand(venvDir string) string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(venvDir, "Scripts", executableName("python"))
+	}
+
+	return filepath.Join(venvDir, "bin", executableName("python"))
+}
+
+func validatePythonCommand(path string) error {
+	cmd := exec.Command(path, "-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("validate python executable %s: %w\n%s", path, err, string(output))
+	}
+
+	return nil
+}
+
+func resolvePythonCommand() (string, error) {
+	if configured := os.Getenv("PYTHON"); configured != "" {
+		if err := validatePythonCommand(configured); err != nil {
+			return "", fmt.Errorf("validate configured PYTHON: %w", err)
+		}
+		return configured, nil
+	}
+
+	for _, candidate := range []string{"python3.13", "python3.12", "python3.11", "python3.10", "python3"} {
+		path, err := exec.LookPath(candidate)
+		if err != nil {
+			continue
+		}
+		if err := validatePythonCommand(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", errors.New("python 3.10+ executable not found; install Python 3.10+ or set PYTHON to its path")
+}
+
+func buildPythonFixtureAssets() (pythonFixtureAssets, error) {
+	root := componentRoot()
+	pythonCommand, err := resolvePythonCommand()
+	if err != nil {
+		return pythonFixtureAssets{}, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "agntcy-a2a-python-")
+	if err != nil {
+		return pythonFixtureAssets{}, fmt.Errorf("create temp dir: %w", err)
+	}
+
+	venvDir := filepath.Join(tempDir, "venv")
+	buildCtx, cancel := context.WithTimeout(context.Background(), 2*buildTimeout)
+	defer cancel()
+
+	createVenv := exec.CommandContext(buildCtx, pythonCommand, "-m", "venv", venvDir)
+	createVenv.Dir = root
+	if output, err := createVenv.CombinedOutput(); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return pythonFixtureAssets{}, fmt.Errorf("create python fixture venv: %w\n%s", err, string(output))
+	}
+
+	venvPython := venvPythonCommand(venvDir)
+	installRequirements := exec.CommandContext(
+		buildCtx,
+		venvPython,
+		"-m",
+		"pip",
+		"install",
+		"-r",
+		filepath.Join(root, "fixtures", "python", "requirements.txt"),
+	)
+	installRequirements.Dir = root
+	if output, err := installRequirements.CombinedOutput(); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return pythonFixtureAssets{}, fmt.Errorf("install python fixture requirements: %w\n%s", err, string(output))
+	}
+
+	return pythonFixtureAssets{
+		tempDir:       tempDir,
+		pythonCommand: venvPython,
+		serverScript:  filepath.Join(root, "fixtures", "python", "interop_python_server.py"),
+		probeScript:   filepath.Join(root, "fixtures", "python", "interop_python_probe.py"),
+	}, nil
 }
 
 func resolveDotNetCommand() (string, error) {
@@ -260,6 +376,30 @@ func startDotNetFixture(binaries rustDotNetFixtureBinaries, port int, protocol t
 	return process, baseURL, nil
 }
 
+func startPythonFixture(assets pythonFixtureAssets, port int, protocol transportProtocol) (*fixtureProcess, string, error) {
+	if protocol == transportGRPC {
+		return nil, "", errors.New("python fixture does not support gRPC yet")
+	}
+
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	process, err := startFixtureProcess(
+		fmt.Sprintf("python-%s-server", protocol),
+		componentRoot(),
+		baseURL+"/.well-known/agent-card.json",
+		assets.pythonCommand,
+		assets.serverScript,
+		"--port",
+		fmt.Sprintf("%d", port),
+		"--protocol",
+		string(protocol),
+	)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return process, baseURL, nil
+}
+
 func appendProbeOptions(args []string, options rustProbeOptions) []string {
 	if options.scenario != "" {
 		args = append(args, "--scenario", string(options.scenario))
@@ -328,6 +468,31 @@ func runDotNetProbe(
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(output), fmt.Errorf("dotnet probe failed: %w\n%s", err, string(output))
+	}
+
+	return string(output), nil
+}
+
+func runPythonProbe(
+	ctx context.Context,
+	assets pythonFixtureAssets,
+	baseURL string,
+	serverPrefix string,
+	options rustProbeOptions,
+) (string, error) {
+	args := append([]string{assets.probeScript}, appendProbeOptions([]string{
+		"--card-url",
+		baseURL,
+		"--server-prefix",
+		serverPrefix,
+	}, options)...)
+
+	cmd := exec.CommandContext(ctx, assets.pythonCommand, args...)
+	cmd.Dir = componentRoot()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(output), fmt.Errorf("python probe failed: %w\n%s", err, string(output))
 	}
 
 	return string(output), nil

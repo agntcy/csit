@@ -97,6 +97,13 @@ type rustDotNetFixtureBinaries struct {
 	dotnetProbeDL  string
 }
 
+type pythonFixtureAssets struct {
+	tempDir       string
+	pythonCommand string
+	serverScript  string
+	probeScript   string
+}
+
 func (binaries rustDotNetFixtureBinaries) rustAssets() fixtureBinaries {
 	return fixtureBinaries{
 		tempDir:    binaries.tempDir,
