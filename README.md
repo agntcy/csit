@@ -69,6 +69,8 @@ task: Available tasks for this project:
 * benchmarks:directory:test:                              All ADS benchmark test
 * benchmarks:slim:test:                                All Slim benchmark test
 * integrations:a2a:test:                                 All A2A interoperability tests
+* integrations:a2a:test:python-go:                       Python and Go interoperability tests
+* integrations:a2a:test:rust-python:                     Rust and Python interoperability tests
 * integrations:a2a:test:rust-go:jsonrpc:                 Rust and Go JSON-RPC interoperability smoke test
 * integrations:a2a:test:rust-go:jsonrpc:go-go:           Go client to Go server JSON-RPC interoperability test
 * integrations:a2a:test:rust-go:jsonrpc:go-rust:         Go client to Rust server JSON-RPC interoperability test
@@ -180,26 +182,27 @@ task integratons:kind:destroy
 
 The `integrations/agntcy-a2a` suite is self-contained and does not require a
 Kind cluster, Helm, or repository sibling checkouts. It builds and runs small
-Go and Rust JSON-RPC fixtures locally to exercise this matrix:
+Go, Rust, .NET, and Python fixtures locally across these suite slices:
 
-- Go client -> Go server
-- Go client -> Rust server
-- Rust client -> Go server
-- Rust client -> Rust server
+- Rust/Go across JSON-RPC, HTTP+JSON, and gRPC
+- Rust/.NET across JSON-RPC and HTTP+JSON
+- Python/Go across JSON-RPC and HTTP+JSON
+- Rust/Python across JSON-RPC and HTTP+JSON
 
 To run it from the repository root you need:
 
 - [Taskfile](https://taskfile.dev/installation/)
-- [Go](https://go.dev/doc/install)
 - [Rust and Cargo](https://www.rust-lang.org/tools/install)
+- [Go](https://go.dev/doc/install) for the Rust/Go and Python/Go slices
+- Python 3.10+ for the Python/Go and Rust/Python slices
+- .NET 8 SDK for the Rust/.NET slice
 
 ```bash
 task integrations:a2a:test
 task integrations:a2a:test:rust-go:jsonrpc
-task integrations:a2a:test:rust-go:jsonrpc:go-go
-task integrations:a2a:test:rust-go:jsonrpc:go-rust
-task integrations:a2a:test:rust-go:jsonrpc:rust-go
-task integrations:a2a:test:rust-go:jsonrpc:rust-rust
+task integrations:a2a:test:python-go
+task integrations:a2a:test:rust-python
+task integrations:a2a:test:rust-python:jsonrpc:python-rust
 ```
 
 The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`.

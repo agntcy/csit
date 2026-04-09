@@ -4,7 +4,7 @@ This component hosts cross-SDK A2A interoperability checks.
 
 The suite is structured around shared Ginkgo behaviors and per-SDK harnesses. The behavior assertions are written once, expanded across client/server transport matrices, and the language-specific differences are isolated behind Go, Rust, .NET, and Python launchers or probes.
 
-The current coverage includes a Rust/Go suite across JSON-RPC, HTTP+JSON, and gRPC, a Rust/.NET suite across JSON-RPC and HTTP+JSON, and a Python v1.0/Go suite across JSON-RPC and HTTP+JSON. Each client/server leg is split into shared behavior slices for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity.
+The current coverage includes a Rust/Go suite across JSON-RPC, HTTP+JSON, and gRPC, a Rust/.NET suite across JSON-RPC and HTTP+JSON, and Python v1.0 suites for both Go and Rust across JSON-RPC and HTTP+JSON. Each client/server leg is split into shared behavior slices for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity.
 
 All 12 Rust/Go client-server legs are green across JSON-RPC, HTTP+JSON, and gRPC. The Go and Rust fixtures expose push-config CRUD, and CSIT validates that path from both clients against both server targets across all three transports.
 
@@ -12,7 +12,9 @@ The Rust/.NET suite reuses the existing Rust fixture and Rust probe, adds CSIT-o
 
 The Python/Go suite adds a CSIT-owned Python server and probe built against the `release-please--branches--1.0-dev` branch of `a2aproject/a2a-python`. It currently covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
-Push-config is covered in the Rust/.NET suite as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. The default `task test` and `task integrations:a2a:test` entrypoints run the Rust/Go, Rust/.NET, and Python/Go suites.
+The Rust/Python suite reuses the existing Rust fixture and probe together with the same CSIT-owned Python server and probe. It currently covers 8 legs: 4 JSON-RPC legs (`rust-rust`, `rust-python`, `python-rust`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
+
+Push-config is covered in the Rust/.NET suite as well, but only the Rust-server legs are expected to support push-config CRUD; the .NET-server legs are expected to return the current unsupported error. The default `task test` and `task integrations:a2a:test` entrypoints run the Rust/Go, Rust/.NET, Python/Go, and Rust/Python suites.
 
 Across the matrix, the scenarios validate the same core interoperability behavior:
 
@@ -26,7 +28,7 @@ Across the matrix, the scenarios validate the same core interoperability behavio
 - structured text + data + URL artifact payloads
 - extended-agent-card discovery and skill metadata
 - negative-path error semantics for missing and non-cancelable tasks
-- successful push-config CRUD on both server paths across all three transports
+- successful push-config CRUD on supported server paths across the covered transports
 - preservation of a mixed text plus structured-data request payload and message metadata through task history
 
 The fixtures are intentionally small and deterministic so the suite can run the same way locally and in CI without depending on sibling SDK checkouts.
@@ -37,7 +39,7 @@ The gRPC legs follow the same agent-card discovery path as the other transports:
 
 The Rust/.NET slice currently requires a local `dotnet` CLI for the .NET 8 SDK because the CSIT harness builds the fixture and probe from published `A2A` and `A2A.AspNetCore` NuGet packages at test time.
 
-The Python/Go slice requires Python 3.10+ and installs the Python SDK fixture environment into a temporary virtualenv on first use from `fixtures/python/requirements.txt`, which pins the SDK to the `release-please--branches--1.0-dev` branch.
+The Python/Go and Rust/Python slices require Python 3.10+ and install the Python SDK fixture environment into a temporary virtualenv on first use from `fixtures/python/requirements.txt`, which pins the SDK to the `release-please--branches--1.0-dev` branch.
 
 ## Matrix
 
@@ -50,6 +52,7 @@ Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this
 | Rust/Go | ✅ | ✅ | ✅ |
 | Rust/.NET | ✅ | ✅ | ❌ |
 | Python/Go | ✅ | ✅ | ❌ |
+| Rust/Python | ✅ | ✅ | ❌ |
 
 ### Rust/Go Leg Coverage
 
@@ -78,26 +81,35 @@ Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this
 | Python -> Go | ✅ | ✅ | ❌ |
 | Python -> Python | ✅ | ✅ | ❌ |
 
+### Rust/Python Leg Coverage
+
+| Client -> Server | JSON-RPC | HTTP+JSON | gRPC |
+| --- | --- | --- | --- |
+| Rust -> Rust (Rust/Python slice) | ✅ | ✅ | ❌ |
+| Rust -> Python | ✅ | ✅ | ❌ |
+| Python -> Rust | ✅ | ✅ | ❌ |
+| Python -> Python (Rust/Python slice) | ✅ | ✅ | ❌ |
+
 ### Behavior Coverage
 
-| Behavior | Rust/Go | Rust/.NET | Python/Go |
-| --- | --- | --- | --- |
-| Unary `SendMessage` | ✅ | ✅ | ✅ |
-| Streaming `SendMessage` | ✅ | ✅ | ✅ |
-| Message-only response path | ✅ | ✅ | ✅ |
-| `GetTask`, `ListTasks`, and `CancelTask` lifecycle | ✅ | ✅ | ✅ |
-| Failed-task response path | ✅ | ✅ | ✅ |
-| Multi-turn input-required continuation | ✅ | ✅ | ✅ |
-| Long-running completion after non-blocking send | ✅ | ✅ | ✅ |
-| Artifact-rich streaming updates | ✅ | ✅ | ✅ |
-| Structured text + data + URL artifact payloads | ✅ | ✅ | ✅ |
-| Extended-agent-card discovery | ✅ | ✅ | ✅ |
-| Extended-card security-scheme metadata | ✅ | ✅ | ✅ |
-| Missing-task and non-cancelable-task errors | ✅ | ✅ | ✅ |
-| Mixed text + structured-data payload preserved through task history | ✅ | ✅ | ✅ |
-| Push-config CRUD against Rust-server targets | ✅ | ✅ | n/a |
-| Unsupported push-config response against non-Rust server targets | ✅ | ✅ | n/a |
-| Push-config CRUD against Go- and Python-server targets | n/a | n/a | ✅ |
+| Behavior | Rust/Go | Rust/.NET | Python/Go | Rust/Python |
+| --- | --- | --- | --- | --- |
+| Unary `SendMessage` | ✅ | ✅ | ✅ | ✅ |
+| Streaming `SendMessage` | ✅ | ✅ | ✅ | ✅ |
+| Message-only response path | ✅ | ✅ | ✅ | ✅ |
+| `GetTask`, `ListTasks`, and `CancelTask` lifecycle | ✅ | ✅ | ✅ | ✅ |
+| Failed-task response path | ✅ | ✅ | ✅ | ✅ |
+| Multi-turn input-required continuation | ✅ | ✅ | ✅ | ✅ |
+| Long-running completion after non-blocking send | ✅ | ✅ | ✅ | ✅ |
+| Artifact-rich streaming updates | ✅ | ✅ | ✅ | ✅ |
+| Structured text + data + URL artifact payloads | ✅ | ✅ | ✅ | ✅ |
+| Extended-agent-card discovery | ✅ | ✅ | ✅ | ✅ |
+| Extended-card security-scheme metadata | ✅ | ✅ | ✅ | ✅ |
+| Missing-task and non-cancelable-task errors | ✅ | ✅ | ✅ | ✅ |
+| Mixed text + structured-data payload preserved through task history | ✅ | ✅ | ✅ | ✅ |
+| Push-config CRUD against Rust-server targets | ✅ | ✅ | n/a | ✅ |
+| Unsupported push-config response against non-Rust server targets | ✅ | ✅ | n/a | n/a |
+| Push-config CRUD against Go- and Python-server targets where covered | n/a | n/a | ✅ | ✅ |
 
 For Rust/.NET, the uncovered cells are the current gRPC gap. For push-config, a ✅ means the suite verifies the expected behavior for that leg: CRUD succeeds on Rust-server targets and the current unsupported error is returned on Go-server or .NET-server targets.
 
@@ -112,9 +124,10 @@ task test
 task test:rust-go
 task test:rust-dotnet
 task test:python-go
+task test:rust-python
 ```
 
-`task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet` and `task test:python-go`.
+`task test` now runs the full `task test:rust-go` transport matrix plus `task test:rust-dotnet`, `task test:python-go`, and `task test:rust-python`.
 
 The user-facing task triggers are organized by scope:
 
@@ -125,6 +138,7 @@ task test
 task test:rust-go
 task test:rust-dotnet
 task test:python-go
+task test:rust-python
 ```
 
 - Cross-suite behavior slices:
@@ -202,6 +216,26 @@ task test:python-go:behavior:push-config
 task test:python-go:behavior:parity
 ```
 
+- Rust/Python suite filters:
+
+```sh
+task test:rust-python:jsonrpc
+task test:rust-python:rest
+task test:rust-python:jsonrpc:rust-rust
+task test:rust-python:jsonrpc:rust-python
+task test:rust-python:jsonrpc:python-rust
+task test:rust-python:jsonrpc:python-python
+task test:rust-python:rest:rust-rust
+task test:rust-python:rest:rust-python
+task test:rust-python:rest:python-rust
+task test:rust-python:rest:python-python
+task test:rust-python:behavior:core
+task test:rust-python:behavior:unary-streaming
+task test:rust-python:behavior:lifecycle
+task test:rust-python:behavior:push-config
+task test:rust-python:behavior:parity
+```
+
 The canonical Rust/.NET pair trigger is `rust-rust-dotnet`. The shorter `rust-rust` name is still kept as a compatibility alias in the Taskfile, but new usage should prefer `rust-rust-dotnet`.
 
 From the repository root, prepend `integrations:a2a:` to any component-level task trigger:
@@ -213,9 +247,10 @@ task integrations:a2a:test:rust-dotnet:jsonrpc:rust-rust-dotnet
 task integrations:a2a:test:rust-go:behavior:lifecycle
 task integrations:a2a:test:rust-dotnet:behavior:parity
 task integrations:a2a:test:python-go:rest:python-python
+task integrations:a2a:test:rust-python:jsonrpc:python-rust
 ```
 
-Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, and the combined Python/Go suite emits `report-agntcy-a2a-python-go.{json,xml}`. The transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, `report-agntcy-a2a-python-go-jsonrpc.{json,xml}`, and `report-agntcy-a2a-python-go-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
+Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the combined Python/Go suite emits `report-agntcy-a2a-python-go.{json,xml}`, and the combined Rust/Python suite emits `report-agntcy-a2a-rust-python.{json,xml}`. The transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, `report-agntcy-a2a-python-go-jsonrpc.{json,xml}`, `report-agntcy-a2a-python-go-rest.{json,xml}`, `report-agntcy-a2a-rust-python-jsonrpc.{json,xml}`, and `report-agntcy-a2a-rust-python-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
 
 ## How to Add a Test
 
@@ -248,4 +283,4 @@ To add a new shared behavior:
 	`fixtures/python/interop_python_probe.py`
 5. Run the narrowest task that exercises the new behavior first, for example `task test:rust-go:behavior:lifecycle` or `task test:behavior:lifecycle`, then run the broader suite once that path is green.
 
-If you are adding a new leg rather than a new behavior, use the Rust/Go suite wrapper in `tests/interop_rust_go_test.go` or the Python/Go suite wrapper in `tests/interop_python_go_test.go` as the model. Update the `clients` or `servers` tables there and let `registerInteropTransportMatrix(...)` expand the existing shared behaviors over the new matrix entry. Keep wrapper-level customization limited to matrix declarations and pair-specific overrides, as shown in `tests/interop_rust_dotnet_test.go` for the Rust/.NET push-config expectations.
+If you are adding a new leg rather than a new behavior, use the Rust/Go suite wrapper in `tests/interop_rust_go_test.go`, the Python/Go suite wrapper in `tests/interop_python_go_test.go`, or the Rust/Python suite wrapper in `tests/interop_rust_python_test.go` as the model. Update the `clients` or `servers` tables there and let `registerInteropTransportMatrix(...)` expand the existing shared behaviors over the new matrix entry. Keep wrapper-level customization limited to matrix declarations and pair-specific overrides, as shown in `tests/interop_rust_dotnet_test.go` for the Rust/.NET push-config expectations.

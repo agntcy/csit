@@ -32,6 +32,28 @@ func buildGoFixture(root string, outputPath string) error {
 	return nil
 }
 
+func buildRustFixtures(root string, targetDir string) error {
+	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
+	defer cancel()
+
+	rustBuild := exec.CommandContext(
+		buildCtx,
+		"cargo",
+		"build",
+		"--manifest-path",
+		filepath.Join(root, "fixtures", "rust", "Cargo.toml"),
+		"--bins",
+		"--target-dir",
+		targetDir,
+	)
+	rustBuild.Dir = root
+	if output, err := rustBuild.CombinedOutput(); err != nil {
+		return fmt.Errorf("build rust fixtures: %w\n%s", err, string(output))
+	}
+
+	return nil
+}
+
 func buildGoFixtureBinaryOnly() (fixtureBinaries, error) {
 	root := componentRoot()
 	tempDir, err := os.MkdirTemp("", "agntcy-a2a-go-")
@@ -45,6 +67,27 @@ func buildGoFixtureBinaryOnly() (fixtureBinaries, error) {
 	}
 
 	if err := buildGoFixture(root, binaries.goServer); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return fixtureBinaries{}, err
+	}
+
+	return binaries, nil
+}
+
+func buildRustFixtureBinaryOnly() (fixtureBinaries, error) {
+	root := componentRoot()
+	tempDir, err := os.MkdirTemp("", "agntcy-a2a-rust-")
+	if err != nil {
+		return fixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
+	}
+
+	binaries := fixtureBinaries{
+		tempDir:    tempDir,
+		rustServer: filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-server")),
+		rustProbe:  filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-probe")),
+	}
+
+	if err := buildRustFixtures(root, filepath.Join(tempDir, "cargo-target")); err != nil {
 		_ = os.RemoveAll(tempDir)
 		return fixtureBinaries{}, err
 	}
@@ -69,24 +112,9 @@ func buildFixtureBinaries() (fixtureBinaries, error) {
 		_ = os.RemoveAll(tempDir)
 		return fixtureBinaries{}, err
 	}
-
-	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
-	defer cancel()
-
-	rustBuild := exec.CommandContext(
-		buildCtx,
-		"cargo",
-		"build",
-		"--manifest-path",
-		filepath.Join(root, "fixtures", "rust", "Cargo.toml"),
-		"--bins",
-		"--target-dir",
-		filepath.Join(tempDir, "cargo-target"),
-	)
-	rustBuild.Dir = root
-	if output, err := rustBuild.CombinedOutput(); err != nil {
+	if err := buildRustFixtures(root, filepath.Join(tempDir, "cargo-target")); err != nil {
 		_ = os.RemoveAll(tempDir)
-		return fixtureBinaries{}, fmt.Errorf("build rust fixtures: %w\n%s", err, string(output))
+		return fixtureBinaries{}, err
 	}
 
 	return binaries, nil
@@ -230,20 +258,9 @@ func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
 	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
 	defer cancel()
 
-	rustBuild := exec.CommandContext(
-		buildCtx,
-		"cargo",
-		"build",
-		"--manifest-path",
-		filepath.Join(root, "fixtures", "rust", "Cargo.toml"),
-		"--bins",
-		"--target-dir",
-		filepath.Join(tempDir, "cargo-target"),
-	)
-	rustBuild.Dir = root
-	if output, err := rustBuild.CombinedOutput(); err != nil {
+	if err := buildRustFixtures(root, filepath.Join(tempDir, "cargo-target")); err != nil {
 		_ = os.RemoveAll(tempDir)
-		return rustDotNetFixtureBinaries{}, fmt.Errorf("build rust fixtures: %w\n%s", err, string(output))
+		return rustDotNetFixtureBinaries{}, err
 	}
 
 	dotnetServerBuild := exec.CommandContext(

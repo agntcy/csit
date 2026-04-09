@@ -258,14 +258,32 @@ jobs:
       matrix:
         include:
           # Add one entry per SDK pair. Each row runs as its own parallel job.
-          # Future pairs should follow the same shape, for example rust-javascript,
-          # rust-java, or rust-python with the task and runtime setup they require.
+          # Future pairs should follow the same shape, including the task and
+          # runtime setup required for that SDK combination.
           - id: rust-go
             display-name: Rust/Go
             task: integrations:a2a:test:rust-go
             artifact-name: a2a-interop-test-result-rust-go
             setup-python: 'false'
             setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: python-go
+            display-name: Python/Go
+            task: integrations:a2a:test:python-go
+            artifact-name: a2a-interop-test-result-python-go
+            setup-python: 'true'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: rust-python
+            display-name: Rust/Python
+            task: integrations:a2a:test:rust-python
+            artifact-name: a2a-interop-test-result-rust-python
+            setup-python: 'true'
+            setup-go: 'false'
             go-version: '1.24.4'
             setup-dotnet: 'false'
             dotnet-version: '8.0.x'

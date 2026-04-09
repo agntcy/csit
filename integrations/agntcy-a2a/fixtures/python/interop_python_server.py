@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -25,8 +26,9 @@ import uvicorn
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -45,7 +47,10 @@ from a2a.server.tasks import (
 )
 from a2a.types import a2a_pb2
 from a2a.utils import TransportProtocol, get_message_text, new_task
-from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH
+from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH, PROTOCOL_VERSION_1_0
+from a2a.utils.error_handlers import rest_error_handler
+from a2a.utils.errors import TaskNotFoundError
+from a2a.utils.helpers import validate_version
 
 
 LOGGER = logging.getLogger(__name__)
@@ -384,6 +389,49 @@ def forward_response_headers(response: Response) -> dict[str, str]:
     }
 
 
+async def normalize_sse_body(response: Response) -> AsyncIterator[bytes]:
+    pending = b''
+
+    async for chunk in response.body_iterator:
+        data = chunk if isinstance(chunk, bytes) else chunk.encode()
+        pending += data
+
+        if not pending:
+            continue
+
+        if pending.endswith(b'\r'):
+            emit = pending[:-1]
+            pending = b'\r'
+        else:
+            emit = pending
+            pending = b''
+
+        if emit:
+            yield emit.replace(b'\r\n', b'\n')
+
+    if pending:
+        yield pending.replace(b'\r\n', b'\n')
+
+
+def normalize_sse_response(response: Response) -> Response:
+    return StreamingResponse(
+        normalize_sse_body(response),
+        status_code=response.status_code,
+        headers=forward_response_headers(response),
+        media_type='text/event-stream',
+        background=response.background,
+    )
+
+
+class SSELineEndingsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        content_type = response.headers.get('content-type', '')
+        if 'text/event-stream' not in content_type.lower():
+            return response
+        return normalize_sse_response(response)
+
+
 def create_jsonrpc_routes_with_compat(request_handler: LegacyRequestHandler) -> list[Route]:
     dispatcher = JsonRpcDispatcher(request_handler=request_handler)
 
@@ -494,6 +542,30 @@ def create_rest_routes_with_compat(request_handler: LegacyRequestHandler) -> lis
             )
         )
 
+    @rest_error_handler
+    async def get_task_endpoint(request: Request) -> Response:
+        @validate_version(PROTOCOL_VERSION_1_0)
+        async def _handler(context: ServerCallContext) -> a2a_pb2.Task:
+            params = a2a_pb2.GetTaskRequest(id=request.path_params['id'])
+
+            history_length = request.query_params.get('historyLength')
+            if history_length:
+                params.history_length = int(history_length)
+
+            task = await request_handler.on_get_task(params, context)
+            if task:
+                return task
+            raise TaskNotFoundError
+
+        response = await _handler(build_context(request))
+        return JSONResponse(
+            content=MessageToDict(
+                response,
+                preserving_proto_field_name=False,
+                always_print_fields_with_no_presence=True,
+            )
+        )
+
     async def delete_push_config_endpoint(request: Request) -> Response:
         await request_handler.on_delete_task_push_notification_config(
             a2a_pb2.DeleteTaskPushNotificationConfigRequest(
@@ -545,6 +617,7 @@ def create_rest_routes_with_compat(request_handler: LegacyRequestHandler) -> lis
         Route(path='/tasks/{id}/pushNotificationConfigs', endpoint=list_push_configs_endpoint, methods=['GET']),
         Route(path='/tasks/{id}/pushNotificationConfigs/{push_id}', endpoint=get_push_config_endpoint, methods=['GET']),
         Route(path='/tasks/{id}/pushNotificationConfigs/{push_id}', endpoint=delete_push_config_endpoint, methods=['DELETE']),
+        Route(path='/tasks/{id}', endpoint=get_task_endpoint, methods=['GET']),
         Route(path='/tasks', endpoint=list_tasks_endpoint, methods=['GET']),
         *rest_routes,
     ]
@@ -728,7 +801,9 @@ def build_app(port: int, protocol: str) -> Starlette:
     else:
         routes.extend(create_jsonrpc_routes_with_compat(request_handler))
 
-    return Starlette(routes=routes)
+    app = Starlette(routes=routes)
+    app.add_middleware(SSELineEndingsMiddleware)
+    return app
 
 
 def parse_args() -> argparse.Namespace:

@@ -248,8 +248,16 @@ def build_create_push_config_params(
 
 def build_rest_create_push_config_payload(
     config: a2a_pb2.TaskPushNotificationConfig,
+    *,
+    nested_config: bool,
 ) -> dict[str, Any]:
-    return {'config': build_create_push_config_params(config)['config']}
+    config_payload = build_create_push_config_params(config)['config']
+    if nested_config:
+        return {'config': config_payload}
+
+    flat_payload = dict(config_payload)
+    flat_payload['taskId'] = config.task_id
+    return flat_payload
 
 
 def parse_push_config_entry(payload: dict[str, Any]) -> a2a_pb2.TaskPushNotificationConfig:
@@ -399,11 +407,16 @@ async def delete_task_push_config_jsonrpc(
 async def create_task_push_config_rest(
     base_url: str,
     config: a2a_pb2.TaskPushNotificationConfig,
+    *,
+    nested_config: bool,
 ) -> a2a_pb2.TaskPushNotificationConfig:
     result = await send_rest_request(
         'POST',
         f"{base_url.rstrip('/')}/tasks/{config.task_id}/pushNotificationConfigs",
-        json_body=build_rest_create_push_config_payload(config),
+        json_body=build_rest_create_push_config_payload(
+            config,
+            nested_config=nested_config,
+        ),
     )
     if not isinstance(result, dict):
         raise AssertionError(f'create push config: unexpected REST result {result!r}')
@@ -600,6 +613,7 @@ async def assert_push_config(
             card = await load_agent_card(card_url)
         agent_interface = primary_interface(card)
         uses_jsonrpc = agent_interface.protocol_binding == TransportProtocol.JSONRPC.value
+        uses_nested_rest_push_config = server_prefix != 'rust'
 
         completed_task = expect_task_response(
             (await collect_responses(client, new_request(REQUEST_TEXT, False)))[0],
@@ -627,7 +641,11 @@ async def assert_push_config(
                 if uses_jsonrpc:
                     await create_task_push_config_jsonrpc(agent_interface.url, push_config)
                 else:
-                    await create_task_push_config_rest(agent_interface.url, push_config)
+                    await create_task_push_config_rest(
+                        agent_interface.url,
+                        push_config,
+                        nested_config=uses_nested_rest_push_config,
+                    )
             except Exception as exc:  # noqa: BLE001
                 if not relaxed_error_checks and expected_push_error_code != 0:
                     if isinstance(exc, JsonRpcCompatError):
@@ -646,7 +664,11 @@ async def assert_push_config(
         if uses_jsonrpc:
             created_config = await create_task_push_config_jsonrpc(agent_interface.url, push_config)
         else:
-            created_config = await create_task_push_config_rest(agent_interface.url, push_config)
+            created_config = await create_task_push_config_rest(
+                agent_interface.url,
+                push_config,
+                nested_config=uses_nested_rest_push_config,
+            )
         assert_task_push_config(created_config, completed_task.id, push_config, 'created push config')
 
         get_request = a2a_pb2.GetTaskPushNotificationConfigRequest(
