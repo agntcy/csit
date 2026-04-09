@@ -198,3 +198,35 @@ task integrations:a2a:test:rust-dotnet:behavior:push-config
 ```
 
 Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, and `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
+
+## How to Add a Test
+
+Most new interop coverage should be added once in the shared behavior layer so the same assertions automatically run across the existing client/server matrix.
+
+### Example: `covers task lifecycle behavior`
+
+The existing `covers task lifecycle behavior` entry in `tests/interop_behaviors_test.go` is the reference pattern for a shared cross-SDK test:
+
+```go
+{
+	name:   "covers task lifecycle behavior",
+	labels: []string{"behavior-core", "behavior-lifecycle"},
+	run: func(ctx context.Context, harness interopHarness, target interopTarget) {
+		harness.AssertTaskLifecycle(ctx, target)
+	},
+}
+```
+
+That one behavior entry is expanded into multiple specs because the suite wrappers register matrices through `registerInteropTransportMatrix(...)`.
+
+To add a new shared behavior:
+
+1. Add a new method to `interopHarness` in `tests/interop_behaviors_test.go`.
+2. Implement that method in each harness that should participate, such as `goSDKHarness`, `rustProbeHarness`, and `dotNetProbeHarness`.
+3. Add a new entry to `sharedInteropBehaviorSpecs` with a stable label. If the behavior should be runnable as a first-class filtered target like the current behavior slices, add matching Taskfile targets and document them here.
+4. If the Rust or .NET harnesses need their own focused scenario selection, add a new `probeScenario` in `tests/interop_shared_test.go`, pass it through `tests/interop_launchers_test.go`, and implement the scenario in the matching probe binary:
+   `fixtures/rust/src/bin/interop-rust-probe.rs`
+   `fixtures/dotnet/InteropProbe/Program.cs`
+5. Run the narrowest task that exercises the new behavior first, for example `task test:rust-go:behavior:lifecycle` or `task test:behavior:lifecycle`, then run the broader suite once that path is green.
+
+If you are adding a new leg rather than a new behavior, use the Rust/Go suite wrapper in `tests/interop_rust_go_test.go` as the model. Update the `clients` or `servers` tables there and let `registerInteropTransportMatrix(...)` expand the existing shared behaviors over the new matrix entry. Keep wrapper-level customization limited to matrix declarations and pair-specific overrides, as shown in `tests/interop_rust_dotnet_test.go` for the Rust/.NET push-config expectations.
