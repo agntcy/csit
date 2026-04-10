@@ -234,22 +234,9 @@ func resolveDotNetCommand() (string, error) {
 	return "", errors.New("dotnet executable not found; install the .NET 8 SDK or set DOTNET to the dotnet CLI path")
 }
 
-func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
-	root := componentRoot()
-	dotnetCommand, err := resolveDotNetCommand()
-	if err != nil {
-		return rustDotNetFixtureBinaries{}, err
-	}
-
-	tempDir, err := os.MkdirTemp("", "agntcy-a2a-rust-dotnet-")
-	if err != nil {
-		return rustDotNetFixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
-	}
-
-	binaries := rustDotNetFixtureBinaries{
+func buildDotNetFixtures(root string, dotnetCommand string, tempDir string) (dotNetFixtureBinaries, error) {
+	binaries := dotNetFixtureBinaries{
 		tempDir:        tempDir,
-		rustServer:     filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-server")),
-		rustProbe:      filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-probe")),
 		dotnetCommand:  dotnetCommand,
 		dotnetServerDL: filepath.Join(tempDir, "dotnet-server", "InteropServer.dll"),
 		dotnetProbeDL:  filepath.Join(tempDir, "dotnet-probe", "InteropProbe.dll"),
@@ -257,11 +244,6 @@ func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
 
 	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
 	defer cancel()
-
-	if err := buildRustFixtures(root, filepath.Join(tempDir, "cargo-target")); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return rustDotNetFixtureBinaries{}, err
-	}
 
 	dotnetServerBuild := exec.CommandContext(
 		buildCtx,
@@ -276,8 +258,7 @@ func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
 	)
 	dotnetServerBuild.Dir = root
 	if output, err := dotnetServerBuild.CombinedOutput(); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return rustDotNetFixtureBinaries{}, fmt.Errorf("build dotnet server fixture: %w\n%s", err, string(output))
+		return dotNetFixtureBinaries{}, fmt.Errorf("build dotnet server fixture: %w\n%s", err, string(output))
 	}
 
 	dotnetProbeBuild := exec.CommandContext(
@@ -293,9 +274,61 @@ func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
 	)
 	dotnetProbeBuild.Dir = root
 	if output, err := dotnetProbeBuild.CombinedOutput(); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return rustDotNetFixtureBinaries{}, fmt.Errorf("build dotnet probe: %w\n%s", err, string(output))
+		return dotNetFixtureBinaries{}, fmt.Errorf("build dotnet probe: %w\n%s", err, string(output))
 	}
+
+	return binaries, nil
+}
+
+func buildDotNetFixtureBinaryOnly() (dotNetFixtureBinaries, error) {
+	root := componentRoot()
+	dotnetCommand, err := resolveDotNetCommand()
+	if err != nil {
+		return dotNetFixtureBinaries{}, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "agntcy-a2a-dotnet-")
+	if err != nil {
+		return dotNetFixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
+	}
+
+	binaries, err := buildDotNetFixtures(root, dotnetCommand, tempDir)
+	if err != nil {
+		_ = os.RemoveAll(tempDir)
+		return dotNetFixtureBinaries{}, err
+	}
+
+	return binaries, nil
+}
+
+func buildRustDotNetFixtureBinaries() (rustDotNetFixtureBinaries, error) {
+	root := componentRoot()
+	dotnetCommand, err := resolveDotNetCommand()
+	if err != nil {
+		return rustDotNetFixtureBinaries{}, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "agntcy-a2a-rust-dotnet-")
+	if err != nil {
+		return rustDotNetFixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
+	}
+
+	binaries := rustDotNetFixtureBinaries{
+		rustServer: filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-server")),
+		rustProbe:  filepath.Join(tempDir, "cargo-target", "debug", executableName("interop-rust-probe")),
+	}
+
+	if err := buildRustFixtures(root, filepath.Join(tempDir, "cargo-target")); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return rustDotNetFixtureBinaries{}, err
+	}
+
+	dotNetAssets, err := buildDotNetFixtures(root, dotnetCommand, tempDir)
+	if err != nil {
+		_ = os.RemoveAll(tempDir)
+		return rustDotNetFixtureBinaries{}, err
+	}
+	binaries.dotNetFixtureBinaries = dotNetAssets
 
 	return binaries, nil
 }
@@ -376,7 +409,7 @@ func startRustFixture(binaries fixtureBinaries, port int, protocol transportProt
 	return startNativeFixture(fmt.Sprintf("rust-%s-server", protocol), binaries.rustServer, port, protocol)
 }
 
-func startDotNetFixture(binaries rustDotNetFixtureBinaries, port int, protocol transportProtocol) (*fixtureProcess, string, error) {
+func startDotNetFixture(binaries dotNetFixtureBinaries, port int, protocol transportProtocol) (*fixtureProcess, string, error) {
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	args, _ := protocolFixtureArgs(port, protocol)
 	process, err := startFixtureProcess(
@@ -467,7 +500,7 @@ func runRustProbe(
 
 func runDotNetProbe(
 	ctx context.Context,
-	binaries rustDotNetFixtureBinaries,
+	binaries dotNetFixtureBinaries,
 	baseURL string,
 	serverPrefix string,
 	options dotNetProbeOptions,

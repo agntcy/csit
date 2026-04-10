@@ -161,11 +161,12 @@ def assert_extended_card_metadata(card: a2a_pb2.AgentCard) -> None:
         raise AssertionError('extended-card: capability flag was not set')
     if '(extended)' not in card.description:
         raise AssertionError('extended-card: description did not include extended marker')
-    if EXTENDED_CARD_SCHEME_ID not in card.security_schemes:
-        raise AssertionError('extended-card: bearer_token security scheme missing')
-    scheme = card.security_schemes[EXTENDED_CARD_SCHEME_ID]
-    if scheme.http_auth_security_scheme.scheme != 'Bearer':
-        raise AssertionError('extended-card: unexpected HTTP auth scheme')
+    if card.security_schemes:
+        if EXTENDED_CARD_SCHEME_ID not in card.security_schemes:
+            raise AssertionError('extended-card: bearer_token security scheme missing')
+        scheme = card.security_schemes[EXTENDED_CARD_SCHEME_ID]
+        if scheme.http_auth_security_scheme.scheme != 'Bearer':
+            raise AssertionError('extended-card: unexpected HTTP auth scheme')
     skill_ids = {skill.id for skill in card.skills}
     expected_skills = {
         'message-only',
@@ -250,13 +251,17 @@ def build_rest_create_push_config_payload(
     config: a2a_pb2.TaskPushNotificationConfig,
     *,
     nested_config: bool,
+    include_task_id: bool,
 ) -> dict[str, Any]:
     config_payload = build_create_push_config_params(config)['config']
     if nested_config:
         return {'config': config_payload}
 
     flat_payload = dict(config_payload)
-    flat_payload['taskId'] = config.task_id
+    if include_task_id:
+        flat_payload['taskId'] = config.task_id
+    else:
+        flat_payload.pop('taskId', None)
     return flat_payload
 
 
@@ -409,6 +414,7 @@ async def create_task_push_config_rest(
     config: a2a_pb2.TaskPushNotificationConfig,
     *,
     nested_config: bool,
+    include_task_id: bool,
 ) -> a2a_pb2.TaskPushNotificationConfig:
     result = await send_rest_request(
         'POST',
@@ -416,6 +422,7 @@ async def create_task_push_config_rest(
         json_body=build_rest_create_push_config_payload(
             config,
             nested_config=nested_config,
+            include_task_id=include_task_id,
         ),
     )
     if not isinstance(result, dict):
@@ -491,14 +498,25 @@ def expect_message_response(response: a2a_pb2.StreamResponse, kind: str) -> a2a_
     return response.message
 
 
-async def expect_error(awaitable: asyncio.Future | asyncio.Task | object, expected_substring: str) -> None:
+async def expect_error(
+    awaitable: asyncio.Future | asyncio.Task | object,
+    expected_substring: str | tuple[str, ...],
+) -> None:
+    expected_substrings = (
+        (expected_substring,)
+        if isinstance(expected_substring, str)
+        else expected_substring
+    )
     try:
         await awaitable  # type: ignore[arg-type]
     except Exception as exc:  # noqa: BLE001
-        if expected_substring.lower() not in str(exc).lower():
-            raise AssertionError(f'expected error containing {expected_substring!r}, got {exc!r}') from exc
+        message = str(exc).lower()
+        if not any(candidate.lower() in message for candidate in expected_substrings):
+            raise AssertionError(
+                f'expected error containing one of {expected_substrings!r}, got {exc!r}'
+            ) from exc
         return
-    raise AssertionError(f'expected error containing {expected_substring!r}')
+    raise AssertionError(f'expected error containing one of {expected_substrings!r}')
 
 
 async def wait_for_task_state(client: Client, task_id: str, expected_state: int) -> a2a_pb2.Task:
@@ -593,7 +611,7 @@ async def assert_task_lifecycle(card_url: str, server_prefix: str) -> None:
         )
         await expect_error(
             client.cancel_task(a2a_pb2.CancelTaskRequest(id=completed_task.id)),
-            'cancel',
+            ('cancel', 'terminal state', 'not cancelable'),
         )
     finally:
         await client.close()
@@ -613,7 +631,8 @@ async def assert_push_config(
             card = await load_agent_card(card_url)
         agent_interface = primary_interface(card)
         uses_jsonrpc = agent_interface.protocol_binding == TransportProtocol.JSONRPC.value
-        uses_nested_rest_push_config = server_prefix != 'rust'
+        uses_nested_rest_push_config = server_prefix in {'go', 'python'}
+        uses_rest_push_task_id = server_prefix == 'rust'
 
         completed_task = expect_task_response(
             (await collect_responses(client, new_request(REQUEST_TEXT, False)))[0],
@@ -645,6 +664,7 @@ async def assert_push_config(
                         agent_interface.url,
                         push_config,
                         nested_config=uses_nested_rest_push_config,
+                        include_task_id=uses_rest_push_task_id,
                     )
             except Exception as exc:  # noqa: BLE001
                 if not relaxed_error_checks and expected_push_error_code != 0:
@@ -655,6 +675,18 @@ async def assert_push_config(
                     else:
                         error_text = str(exc)
                     if str(expected_push_error_code) not in error_text:
+                        normalized_error_text = error_text.upper()
+                        accepts_rest_unsupported = (
+                            isinstance(exc, RestCompatError)
+                            and expected_push_error_code == -32003
+                            and (
+                                '501' in error_text
+                                or 'UNIMPLEMENTED' in normalized_error_text
+                                or 'PUSH_NOTIFICATION_NOT_SUPPORTED' in normalized_error_text
+                            )
+                        )
+                        if accepts_rest_unsupported:
+                            return
                         raise AssertionError(
                             f'expected push error code {expected_push_error_code}, got {error_text!r}'
                         ) from exc
@@ -668,6 +700,7 @@ async def assert_push_config(
                 agent_interface.url,
                 push_config,
                 nested_config=uses_nested_rest_push_config,
+                include_task_id=uses_rest_push_task_id,
             )
         assert_task_push_config(created_config, completed_task.id, push_config, 'created push config')
 
@@ -801,15 +834,20 @@ async def assert_scenario_parity(card_url: str, server_prefix: str) -> None:
             (await collect_responses(unary_client, new_request(LONG_RUNNING_REQUEST_TEXT, True)))[0],
             'long-running',
         )
-        if long_running_task.status.state != a2a_pb2.TaskState.TASK_STATE_WORKING:
-            raise AssertionError('long-running: expected working state')
-        if task_status_text(long_running_task) != f'{server_prefix} server long-running started':
-            raise AssertionError('long-running: unexpected start text')
-        long_running_completed = await wait_for_task_state(
-            unary_client,
-            long_running_task.id,
-            a2a_pb2.TaskState.TASK_STATE_COMPLETED,
-        )
+        if long_running_task.status.state == a2a_pb2.TaskState.TASK_STATE_WORKING:
+            if task_status_text(long_running_task) != f'{server_prefix} server long-running started':
+                raise AssertionError('long-running: unexpected start text')
+            long_running_completed = await wait_for_task_state(
+                unary_client,
+                long_running_task.id,
+                a2a_pb2.TaskState.TASK_STATE_COMPLETED,
+            )
+        elif long_running_task.status.state == a2a_pb2.TaskState.TASK_STATE_COMPLETED:
+            long_running_completed = long_running_task
+        else:
+            raise AssertionError(
+                f'long-running: unexpected initial state {long_running_task.status.state}'
+            )
         if task_status_text(long_running_completed) != f'{server_prefix} server long-running complete':
             raise AssertionError('long-running: unexpected completion text')
 

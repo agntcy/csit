@@ -296,6 +296,24 @@ jobs:
             go-version: '1.24.4'
             setup-dotnet: 'true'
             dotnet-version: '8.0.x'
+          - id: go-dotnet
+            display-name: Go/C#
+            task: integrations:a2a:test:go-dotnet
+            artifact-name: a2a-interop-test-result-go-dotnet
+            setup-python: 'false'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'true'
+            dotnet-version: '8.0.x'
+          - id: python-dotnet
+            display-name: Python/C#
+            task: integrations:a2a:test:python-dotnet
+            artifact-name: a2a-interop-test-result-python-dotnet
+            setup-python: 'true'
+            setup-go: 'false'
+            go-version: '1.24.4'
+            setup-dotnet: 'true'
+            dotnet-version: '8.0.x'
 
     name: A2A ${{ matrix.display-name }}
 

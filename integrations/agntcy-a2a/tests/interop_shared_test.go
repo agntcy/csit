@@ -88,13 +88,17 @@ type fixtureBinaries struct {
 	rustProbe  string
 }
 
-type rustDotNetFixtureBinaries struct {
+type dotNetFixtureBinaries struct {
 	tempDir        string
-	rustServer     string
-	rustProbe      string
 	dotnetCommand  string
 	dotnetServerDL string
 	dotnetProbeDL  string
+}
+
+type rustDotNetFixtureBinaries struct {
+	dotNetFixtureBinaries
+	rustServer string
+	rustProbe  string
 }
 
 type pythonFixtureAssets struct {
@@ -102,6 +106,10 @@ type pythonFixtureAssets struct {
 	pythonCommand string
 	serverScript  string
 	probeScript   string
+}
+
+func (binaries rustDotNetFixtureBinaries) dotNetAssets() dotNetFixtureBinaries {
+	return binaries.dotNetFixtureBinaries
 }
 
 func (binaries rustDotNetFixtureBinaries) rustAssets() fixtureBinaries {

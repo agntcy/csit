@@ -30,15 +30,16 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, gi
 	)
 
 	rustAssets := func() fixtureBinaries { return binaries.rustAssets() }
+	dotNetAssets := func() dotNetFixtureBinaries { return binaries.dotNetAssets() }
 	dotNetPushUnsupported := dotNetProbeHarness{
-		getBinaries: func() rustDotNetFixtureBinaries { return binaries },
+		getBinaries: dotNetAssets,
 		options: dotNetProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
 	}
 	dotNetPushSupported := dotNetProbeHarness{
-		getBinaries: func() rustDotNetFixtureBinaries { return binaries },
+		getBinaries: dotNetAssets,
 		options: dotNetProbeOptions{
 			expectPushSupported: true,
 		},
@@ -93,13 +94,13 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, gi
 		binaries, err = buildRustDotNetFixtureBinaries()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		dotnetJSONRPCFixture, dotnetJSONRPCFixtureURL, err = startDotNetFixture(binaries, findFreePort(), transportJSONRPC)
+		dotnetJSONRPCFixture, dotnetJSONRPCFixtureURL, err = startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportJSONRPC)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		rustJSONRPCFixture, rustJSONRPCFixtureURL, err = startRustFixture(binaries.rustAssets(), findFreePort(), transportJSONRPC)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		dotnetRESTFixture, dotnetRESTFixtureURL, err = startDotNetFixture(binaries, findFreePort(), transportREST)
+		dotnetRESTFixture, dotnetRESTFixtureURL, err = startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportREST)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		rustRESTFixture, rustRESTFixtureURL, err = startRustFixture(binaries.rustAssets(), findFreePort(), transportREST)

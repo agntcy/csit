@@ -69,7 +69,9 @@ task: Available tasks for this project:
 * benchmarks:directory:test:                              All ADS benchmark test
 * benchmarks:slim:test:                                All Slim benchmark test
 * integrations:a2a:test:                                 All A2A interoperability tests
+* integrations:a2a:test:go-dotnet:                       Go and C# interoperability tests
 * integrations:a2a:test:python-go:                       Python and Go interoperability tests
+* integrations:a2a:test:python-dotnet:                   Python and C# interoperability tests
 * integrations:a2a:test:rust-python:                     Rust and Python interoperability tests
 * integrations:a2a:test:rust-go:jsonrpc:                 Rust and Go JSON-RPC interoperability smoke test
 * integrations:a2a:test:rust-go:jsonrpc:go-go:           Go client to Go server JSON-RPC interoperability test
@@ -186,22 +188,26 @@ Go, Rust, .NET, and Python fixtures locally across these suite slices:
 
 - Rust/Go across JSON-RPC, HTTP+JSON, and gRPC
 - Rust/.NET across JSON-RPC and HTTP+JSON
+- Go/.NET across JSON-RPC and HTTP+JSON
 - Python/Go across JSON-RPC and HTTP+JSON
 - Rust/Python across JSON-RPC and HTTP+JSON
+- Python/.NET across JSON-RPC and HTTP+JSON
 
 To run it from the repository root you need:
 
 - [Taskfile](https://taskfile.dev/installation/)
 - [Rust and Cargo](https://www.rust-lang.org/tools/install)
-- [Go](https://go.dev/doc/install) for the Rust/Go and Python/Go slices
-- Python 3.10+ for the Python/Go and Rust/Python slices
-- .NET 8 SDK for the Rust/.NET slice
+- [Go](https://go.dev/doc/install) for the Rust/Go, Python/Go, and Go/.NET slices
+- Python 3.10+ for the Python/Go, Rust/Python, and Python/.NET slices
+- .NET 8 SDK for the Rust/.NET, Go/.NET, and Python/.NET slices
 
 ```bash
 task integrations:a2a:test
 task integrations:a2a:test:rust-go:jsonrpc
+task integrations:a2a:test:go-dotnet
 task integrations:a2a:test:python-go
 task integrations:a2a:test:rust-python
+task integrations:a2a:test:python-dotnet
 task integrations:a2a:test:rust-python:jsonrpc:python-rust
 ```
 

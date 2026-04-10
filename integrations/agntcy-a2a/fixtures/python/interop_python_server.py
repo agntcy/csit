@@ -47,7 +47,7 @@ from a2a.server.tasks import (
 )
 from a2a.types import a2a_pb2
 from a2a.utils import TransportProtocol, get_message_text, new_task
-from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH, PROTOCOL_VERSION_1_0
+from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH, PROTOCOL_VERSION_1_0, VERSION_HEADER
 from a2a.utils.error_handlers import rest_error_handler
 from a2a.utils.errors import TaskNotFoundError
 from a2a.utils.helpers import validate_version
@@ -236,18 +236,23 @@ class InteropPushNotificationConfigStore(InMemoryPushNotificationConfigStore):
 
 
 def rewrite_jsonrpc_request_payload(payload: dict[str, object]) -> dict[str, object]:
-    if payload.get('method') != 'CreateTaskPushNotificationConfig':
-        return payload
+    rewritten_payload = payload
+    if payload.get('version') == '0.3':
+        rewritten_payload = dict(payload)
+        rewritten_payload['version'] = PROTOCOL_VERSION_1_0
 
-    params = payload.get('params')
+    if payload.get('method') != 'CreateTaskPushNotificationConfig':
+        return rewritten_payload
+
+    params = rewritten_payload.get('params')
     if not isinstance(params, dict) or 'config' not in params:
-        return payload
+        return rewritten_payload
 
     config = params.get('config')
     if not isinstance(config, dict):
-        return payload
+        return rewritten_payload
 
-    rewritten_payload = dict(payload)
+    rewritten_payload = dict(rewritten_payload)
     rewritten_params = dict(params)
     rewritten_config = dict(config)
 
@@ -345,13 +350,22 @@ def rewrite_rest_push_config_payload(payload: dict[str, object]) -> dict[str, ob
     return rewritten_payload
 
 
-def clone_request_with_body(request: Request, body: bytes) -> Request:
+def clone_request_with_body(
+    request: Request,
+    body: bytes,
+    header_overrides: dict[bytes, bytes] | None = None,
+) -> Request:
     scope = dict(request.scope)
+    normalized_overrides = {
+        key.lower(): value
+        for key, value in (header_overrides or {}).items()
+    }
     headers = [
         (key, value)
         for key, value in request.scope.get('headers', [])
-        if key.lower() != b'content-length'
+        if key.lower() != b'content-length' and key.lower() not in normalized_overrides
     ]
+    headers.extend(normalized_overrides.items())
     headers.append((b'content-length', str(len(body)).encode()))
     scope['headers'] = headers
 
@@ -434,6 +448,7 @@ class SSELineEndingsMiddleware(BaseHTTPMiddleware):
 
 def create_jsonrpc_routes_with_compat(request_handler: LegacyRequestHandler) -> list[Route]:
     dispatcher = JsonRpcDispatcher(request_handler=request_handler)
+    version_header = {VERSION_HEADER.lower().encode(): PROTOCOL_VERSION_1_0.encode()}
 
     async def endpoint(request: Request) -> Response:
         body = await request.body()
@@ -441,7 +456,9 @@ def create_jsonrpc_routes_with_compat(request_handler: LegacyRequestHandler) -> 
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
-            return await dispatcher.handle_requests(clone_request_with_body(request, body))
+            return await dispatcher.handle_requests(
+                clone_request_with_body(request, body, version_header)
+            )
 
         method = ''
         rewritten_payload = payload
@@ -454,7 +471,7 @@ def create_jsonrpc_routes_with_compat(request_handler: LegacyRequestHandler) -> 
             rewritten_body = json.dumps(rewritten_payload).encode('utf-8')
 
         response = await dispatcher.handle_requests(
-            clone_request_with_body(request, rewritten_body)
+            clone_request_with_body(request, rewritten_body, version_header)
         )
         if method not in JSONRPC_PUSH_COMPAT_METHODS:
             return response

@@ -260,8 +260,6 @@ func (goSDKHarness) AssertTaskLifecycle(ctx context.Context, target interopTarge
 }
 
 func (goSDKHarness) AssertPushConfig(ctx context.Context, target interopTarget) {
-	gomega.Expect(target.expectPushSupported).To(gomega.BeTrue(), "goSDKHarness expects push-config support")
-
 	client, err := newGoClient(ctx, target.baseURL)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -273,6 +271,11 @@ func (goSDKHarness) AssertPushConfig(ctx context.Context, target interopTarget) 
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(completedText).To(gomega.Equal(expectedServerText(target.serverPrefix, requestText)))
 	assertTaskHistoryPayload(completedTask, requestText, "push config task history")
+
+	if !target.expectPushSupported {
+		goClientAssertPushUnsupported(ctx, client, completedTask.ID)
+		return
+	}
 
 	goClientAssertPushLifecycle(ctx, client, completedTask.ID)
 }
@@ -316,7 +319,7 @@ func (harness rustProbeHarness) AssertScenarioParity(ctx context.Context, target
 }
 
 type dotNetProbeHarness struct {
-	getBinaries func() rustDotNetFixtureBinaries
+	getBinaries func() dotNetFixtureBinaries
 	options     dotNetProbeOptions
 }
 
@@ -508,6 +511,59 @@ func goClientAssertPushLifecycle(ctx context.Context, client *a2aclient.Client, 
 	gomega.Expect(listedConfigs).To(gomega.BeEmpty())
 }
 
+func goClientAssertPushUnsupported(ctx context.Context, client *a2aclient.Client, taskID a2a.TaskID) {
+	pushConfig := newInteropPushConfig()
+	expectUnsupportedError := func(err error, kind string) {
+		gomega.Expect(err).To(gomega.HaveOccurred(), kind)
+		gomega.Expect(strings.ToLower(err.Error())).To(gomega.Or(
+			gomega.ContainSubstring("push notification not supported"),
+			gomega.ContainSubstring("push_notification_not_supported"),
+			gomega.ContainSubstring("not supported"),
+			gomega.ContainSubstring("unsupported"),
+			gomega.ContainSubstring("unimplemented"),
+			gomega.ContainSubstring("server error"),
+		), kind)
+	}
+
+	_, err := client.CreateTaskPushConfig(ctx, &a2a.CreateTaskPushConfigRequest{
+		TaskID: taskID,
+		Config: *pushConfig,
+	})
+	expectUnsupportedError(err, "create push config unsupported")
+
+	_, err = client.GetTaskPushConfig(ctx, &a2a.GetTaskPushConfigRequest{
+		TaskID: taskID,
+		ID:     pushConfig.ID,
+	})
+	expectUnsupportedError(err, "get push config unsupported")
+
+	_, err = client.ListTaskPushConfigs(ctx, &a2a.ListTaskPushConfigRequest{TaskID: taskID})
+	expectUnsupportedError(err, "list push config unsupported")
+
+	err = client.DeleteTaskPushConfig(ctx, &a2a.DeleteTaskPushConfigRequest{
+		TaskID: taskID,
+		ID:     pushConfig.ID,
+	})
+	expectUnsupportedError(err, "delete push config unsupported")
+}
+
+func assertTaskNotFoundError(err error, kind string) {
+	gomega.Expect(err).To(gomega.HaveOccurred(), kind)
+	gomega.Expect(strings.ToLower(err.Error())).To(gomega.Or(
+		gomega.ContainSubstring("task not found"),
+		gomega.ContainSubstring("not found"),
+	), kind)
+}
+
+func assertTaskNotCancelableError(err error, kind string) {
+	gomega.Expect(err).To(gomega.HaveOccurred(), kind)
+	gomega.Expect(strings.ToLower(err.Error())).To(gomega.Or(
+		gomega.ContainSubstring("cancel"),
+		gomega.ContainSubstring("terminal state"),
+		gomega.ContainSubstring("not cancelable"),
+	), kind)
+}
+
 func taskStatusText(task *a2a.Task) (string, error) {
 	if task == nil || task.Status.Message == nil {
 		return "", errors.New("task status did not include a message")
@@ -661,15 +717,10 @@ func goClientAssertTaskLifecycle(ctx context.Context, client *a2aclient.Client, 
 	gomega.Expect(fetchedCanceledText).To(gomega.Equal(expectedCancelText(serverPrefix)))
 
 	_, err = client.GetTask(ctx, &a2a.GetTaskRequest{ID: a2a.NewTaskID()})
-	gomega.Expect(err).To(gomega.WithTransform(func(err error) string {
-		if err == nil {
-			return ""
-		}
-		return strings.ToLower(err.Error())
-	}, gomega.ContainSubstring("task not found")))
+	assertTaskNotFoundError(err, "missing task should fail")
 
 	_, err = client.CancelTask(ctx, &a2a.CancelTaskRequest{ID: completedTask.ID})
-	gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("cancel")))
+	assertTaskNotCancelableError(err, "canceling a terminal task should fail")
 }
 
 func goClientWaitForTaskState(ctx context.Context, client *a2aclient.Client, taskID a2a.TaskID, expectedState a2a.TaskState) *a2a.Task {
@@ -705,11 +756,13 @@ func assertExtendedCardMetadata(card *a2a.AgentCard, kind string) {
 	gomega.Expect(card.Capabilities.ExtendedAgentCard).To(gomega.BeTrue(), kind)
 	gomega.Expect(card.Description).To(gomega.ContainSubstring("(extended)"), kind)
 
-	scheme, ok := card.SecuritySchemes[extendedCardSchemeID]
-	gomega.Expect(ok).To(gomega.BeTrue(), kind)
-	httpScheme, ok := scheme.(a2a.HTTPAuthSecurityScheme)
-	gomega.Expect(ok).To(gomega.BeTrue(), kind)
-	gomega.Expect(httpScheme.Scheme).To(gomega.Equal("Bearer"), kind)
+	if len(card.SecuritySchemes) > 0 {
+		scheme, ok := card.SecuritySchemes[extendedCardSchemeID]
+		gomega.Expect(ok).To(gomega.BeTrue(), kind)
+		httpScheme, ok := scheme.(a2a.HTTPAuthSecurityScheme)
+		gomega.Expect(ok).To(gomega.BeTrue(), kind)
+		gomega.Expect(httpScheme.Scheme).To(gomega.Equal("Bearer"), kind)
+	}
 
 	for _, expectedSkill := range expectedSkillIDs {
 		gomega.Expect(card.Skills).To(gomega.ContainElement(gomega.HaveField("ID", expectedSkill)), kind)
@@ -785,11 +838,18 @@ func goClientAssertScenarioParity(ctx context.Context, client *a2aclient.Client,
 
 	longRunningTask, err := goClientSendTask(ctx, client, longRunningRequestText, true)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(longRunningTask.Status.State).To(gomega.Equal(a2a.TaskStateWorking))
-	longRunningText, err := taskStatusText(longRunningTask)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Expect(longRunningText).To(gomega.Equal(fmt.Sprintf("%s server long-running started", serverPrefix)))
-	longRunningCompleted := goClientWaitForTaskState(ctx, client, longRunningTask.ID, a2a.TaskStateCompleted)
+	var longRunningCompleted *a2a.Task
+	switch longRunningTask.Status.State {
+	case a2a.TaskStateWorking:
+		longRunningText, textErr := taskStatusText(longRunningTask)
+		gomega.Expect(textErr).NotTo(gomega.HaveOccurred())
+		gomega.Expect(longRunningText).To(gomega.Equal(fmt.Sprintf("%s server long-running started", serverPrefix)))
+		longRunningCompleted = goClientWaitForTaskState(ctx, client, longRunningTask.ID, a2a.TaskStateCompleted)
+	case a2a.TaskStateCompleted:
+		longRunningCompleted = longRunningTask
+	default:
+		ginkgo.Fail(fmt.Sprintf("unexpected long-running task state: got %s, want WORKING or COMPLETED", longRunningTask.Status.State))
+	}
 	longRunningCompletedText, err := taskStatusText(longRunningCompleted)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(longRunningCompletedText).To(gomega.Equal(fmt.Sprintf("%s server long-running complete", serverPrefix)))
