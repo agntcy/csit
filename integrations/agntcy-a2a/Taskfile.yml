@@ -26,6 +26,12 @@ tasks:
       - task: test:rust-python
       - task: test:python-dotnet
 
+  reports:dashboard:
+    desc: Render the A2A HTML dashboard from the reports directory
+    cmds:
+      - mkdir -p ./reports
+      - go run ./tools/report_dashboard.go --reports-dir ./reports --output ./reports/index.html
+
   test:rust-go:
     desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
@@ -391,13 +397,23 @@ tasks:
     internal: true
     cmds:
       - mkdir -p ./reports
-      - >
-        cd tests &&
-        go test . -v -failfast -test.v -test.paniconexit0
-        -ginkgo.timeout 20m -timeout 20m -ginkgo.v
-        {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}}
-        --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json
-        --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
+      - |
+        set +e
+        (
+          cd tests &&
+          go test . -v -failfast -test.v -test.paniconexit0 \
+            -ginkgo.timeout 20m -timeout 20m -ginkgo.v \
+            {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}} \
+            --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json \
+            --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
+        )
+        test_status=$?
+        go run ./tools/report_dashboard.go --reports-dir ./reports --output ./reports/index.html
+        dashboard_status=$?
+        if [ "$test_status" -ne 0 ]; then
+          exit "$test_status"
+        fi
+        exit "$dashboard_status"
 
   default:
     cmd: task -l

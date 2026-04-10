@@ -220,7 +220,7 @@ task integrations:a2a:test:rust-python:jsonrpc:python-rust
 
 Because the A2A Taskfile is now wildcard-backed, `task -l` shows families like `integrations:a2a:test:rust-go:*:` and `integrations:a2a:test:rust-go:*:*:` instead of one line per expanded case. Exact commands like `task integrations:a2a:test:rust-go:jsonrpc:go-go` still work.
 
-The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`.
+The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/` and refreshes an HTML dashboard at `integrations/agntcy-a2a/reports/index.html`. You can rebuild the dashboard from existing raw reports with `task integrations:a2a:reports:dashboard`.
 
 
 ## Running tests using GitHub actions
