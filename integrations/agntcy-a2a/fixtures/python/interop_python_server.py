@@ -5,7 +5,7 @@
 
 This server mirrors the behavior contract already exercised by the shared Go
 interop suite, but implements it using the Python SDK from the
-release-please--branches--1.0-dev branch.
+1.0-dev branch.
 
 Use this file when adding or adjusting Python server-side parity behavior. Keep
 transport bootstrapping in this file and leave cross-SDK assertions in the Go
@@ -22,6 +22,8 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import grpc
+import grpc.aio
 import uvicorn
 
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -31,10 +33,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
+import a2a.types.a2a_pb2_grpc as a2a_pb2_grpc
+
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.context import ServerCallContext
 from a2a.server.events import EventQueue
-from a2a.server.request_handlers import LegacyRequestHandler
+from a2a.server.request_handlers import GrpcHandler, LegacyRequestHandler
 from a2a.server.routes import (
     create_agent_card_routes,
     create_rest_routes,
@@ -170,13 +174,27 @@ def scenario_skills() -> list[a2a_pb2.AgentSkill]:
     ]
 
 
-def build_agent_card(base_url: str, protocol: str, extended: bool) -> a2a_pb2.AgentCard:
+def build_agent_card(
+    base_url: str,
+    protocol: str,
+    extended: bool,
+    grpc_port: int | None = None,
+) -> a2a_pb2.AgentCard:
     if protocol == 'rest':
         name = 'CSIT Python REST Agent'
         interface = a2a_pb2.AgentInterface(
             protocol_binding=TransportProtocol.HTTP_JSON.value,
             protocol_version='1.0',
             url=base_url,
+        )
+    elif protocol == 'grpc':
+        if grpc_port is None:
+            raise ValueError('gRPC transport requires --grpc-port')
+        name = 'CSIT Python gRPC Agent'
+        interface = a2a_pb2.AgentInterface(
+            protocol_binding=TransportProtocol.GRPC.value,
+            protocol_version='1.0',
+            url=f'127.0.0.1:{grpc_port}',
         )
     else:
         name = 'CSIT Python JSON-RPC Agent'
@@ -798,10 +816,14 @@ class InteropExecutor(AgentExecutor):
         )
 
 
-def build_app(port: int, protocol: str) -> Starlette:
+def build_app(
+    port: int,
+    protocol: str,
+    grpc_port: int | None = None,
+) -> tuple[Starlette, LegacyRequestHandler]:
     base_url = f'http://127.0.0.1:{port}'
-    public_card = build_agent_card(base_url, protocol, extended=False)
-    extended_card = build_agent_card(base_url, protocol, extended=True)
+    public_card = build_agent_card(base_url, protocol, extended=False, grpc_port=grpc_port)
+    extended_card = build_agent_card(base_url, protocol, extended=True, grpc_port=grpc_port)
     request_handler = LegacyRequestHandler(
         agent_executor=InteropExecutor(),
         task_store=InMemoryTaskStore(),
@@ -815,25 +837,86 @@ def build_app(port: int, protocol: str) -> Starlette:
     ]
     if protocol == 'rest':
         routes.extend(create_rest_routes_with_compat(request_handler))
-    else:
+    elif protocol == 'jsonrpc':
         routes.extend(create_jsonrpc_routes_with_compat(request_handler))
 
     app = Starlette(routes=routes)
     app.add_middleware(SSELineEndingsMiddleware)
-    return app
+    return app, request_handler
+
+
+class InteropGrpcHandler(GrpcHandler):
+    async def ListTaskPushNotificationConfigs(
+        self,
+        request: a2a_pb2.ListTaskPushNotificationConfigsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> a2a_pb2.ListTaskPushNotificationConfigsResponse:
+        if request.page_size == 0:
+            request.page_size = 1
+        return await super().ListTaskPushNotificationConfigs(request, context)
+
+    async def ListTasks(
+        self,
+        request: a2a_pb2.ListTasksRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> a2a_pb2.ListTasksResponse:
+        if request.page_size == 0:
+            request.page_size = 1
+        return await super().ListTasks(request, context)
+
+
+async def run_grpc_fixture(http_port: int, grpc_port: int) -> None:
+    app, request_handler = build_app(http_port, 'grpc', grpc_port=grpc_port)
+    grpc_server = grpc.aio.server()
+    grpc_address = f'127.0.0.1:{grpc_port}'
+
+    a2a_pb2_grpc.add_A2AServiceServicer_to_server(
+        InteropGrpcHandler(request_handler),
+        grpc_server,
+    )
+    grpc_server.add_insecure_port(grpc_address)
+    await grpc_server.start()
+
+    LOGGER.info(
+        'python grpc fixture listening on %s with card http://127.0.0.1:%d',
+        grpc_address,
+        http_port,
+    )
+
+    server = uvicorn.Server(
+        uvicorn.Config(
+            app,
+            host='127.0.0.1',
+            port=http_port,
+            access_log=False,
+            log_level='warning',
+            lifespan='off',
+        )
+    )
+    try:
+        await server.serve()
+    finally:
+        await grpc_server.stop(0)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Run the Python A2A interop fixture server.')
     parser.add_argument('--port', type=int, required=True)
-    parser.add_argument('--protocol', choices=('jsonrpc', 'rest'), required=True)
+    parser.add_argument('--protocol', choices=('jsonrpc', 'rest', 'grpc'), required=True)
+    parser.add_argument('--grpc-port', type=int)
     return parser.parse_args()
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     args = parse_args()
-    app = build_app(args.port, args.protocol)
+    if args.protocol == 'grpc':
+        if args.grpc_port is None:
+            raise SystemExit('--grpc-port is required when --protocol=grpc')
+        asyncio.run(run_grpc_fixture(args.port, args.grpc_port))
+        return
+
+    app, _ = build_app(args.port, args.protocol)
     LOGGER.info('python %s fixture listening on http://127.0.0.1:%d', args.protocol, args.port)
     uvicorn.run(
         app,

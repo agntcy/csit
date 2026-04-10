@@ -9,8 +9,8 @@
   - [A2A interoperability smoke tests](#a2a-interoperability-smoke-tests)
   - [Running tests using GitHub actions](#running-tests-using-github-actions)
   - [How to extend tests with your own test](#how-to-extend-tests-with-your-own-test)
-- [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
-- [Copyright Notice](#copyright-notice)
+  - [Updating the agntcy/dir testdata](#updating-the-agntcydir-testdata)
+  - [Copyright Notice](#copyright-notice)
 
 ## Architecture
 
@@ -186,12 +186,14 @@ The `integrations/agntcy-a2a` suite is self-contained and does not require a
 Kind cluster, Helm, or repository sibling checkouts. It builds and runs small
 Go, Rust, .NET, and Python fixtures locally across these suite slices:
 
-- Rust/Go across JSON-RPC, HTTP+JSON, and gRPC
-- Rust/.NET across JSON-RPC and HTTP+JSON
-- Go/.NET across JSON-RPC and HTTP+JSON
-- Python/Go across JSON-RPC and HTTP+JSON
-- Rust/Python across JSON-RPC and HTTP+JSON
-- Python/.NET across JSON-RPC and HTTP+JSON
+| SDK pair | JSON-RPC | HTTP+JSON | gRPC | Root task |
+| --- | --- | --- | --- | --- |
+| Rust/Go | Yes | Yes | Yes | `task integrations:a2a:test:rust-go` |
+| Rust/.NET | Yes | Yes | No | `task integrations:a2a:test:rust-dotnet` |
+| Go/.NET | Yes | Yes | No | `task integrations:a2a:test:go-dotnet` |
+| Python/Go | Yes | Yes | Yes | `task integrations:a2a:test:python-go` |
+| Rust/Python | Yes | Yes | Yes | `task integrations:a2a:test:rust-python` |
+| Python/.NET | Yes | Yes | No | `task integrations:a2a:test:python-dotnet` |
 
 To run it from the repository root you need:
 
@@ -205,6 +207,7 @@ To run it from the repository root you need:
 task integrations:a2a:test
 task integrations:a2a:test:rust-go:jsonrpc
 task integrations:a2a:test:go-dotnet
+task integrations:a2a:test:python-go:grpc
 task integrations:a2a:test:python-go
 task integrations:a2a:test:rust-python
 task integrations:a2a:test:python-dotnet

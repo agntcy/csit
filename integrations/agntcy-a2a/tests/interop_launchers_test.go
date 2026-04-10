@@ -427,24 +427,23 @@ func startDotNetFixture(binaries dotNetFixtureBinaries, port int, protocol trans
 }
 
 func startPythonFixture(assets pythonFixtureAssets, port int, protocol transportProtocol) (*fixtureProcess, string, error) {
-	if protocol == transportGRPC {
-		return nil, "", errors.New("python fixture does not support gRPC yet")
-	}
-
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	args, grpcAddress := protocolFixtureArgs(port, protocol)
 	process, err := startFixtureProcess(
 		fmt.Sprintf("python-%s-server", protocol),
 		componentRoot(),
 		baseURL+"/.well-known/agent-card.json",
 		assets.pythonCommand,
-		assets.serverScript,
-		"--port",
-		fmt.Sprintf("%d", port),
-		"--protocol",
-		string(protocol),
+		append([]string{assets.serverScript}, args...)...,
 	)
 	if err != nil {
 		return nil, "", err
+	}
+	if grpcAddress != "" {
+		if err := waitForTCPListener(grpcAddress, process.logs); err != nil {
+			_ = process.stop()
+			return nil, "", fmt.Errorf("wait for python-%s-server listener: %w", protocol, err)
+		}
 	}
 
 	return process, baseURL, nil

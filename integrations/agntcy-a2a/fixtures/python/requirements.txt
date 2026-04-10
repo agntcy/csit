@@ -3,5 +3,5 @@
 
 # The Python interop fixture intentionally tracks the v1.0 release branch the
 # suite is validating rather than the stable 0.3 line.
-a2a-sdk[http-server] @ git+https://github.com/a2aproject/a2a-python.git@1.0-dev
+a2a-sdk[grpc,http-server] @ git+https://github.com/a2aproject/a2a-python.git@1.0-dev
 uvicorn>=0.35.0

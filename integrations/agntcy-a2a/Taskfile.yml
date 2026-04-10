@@ -42,7 +42,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-go-dotnet
 
   test:python-go:
-    desc: Python v1.0 and Go interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
+    desc: Python v1.0 and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
       - task: test:python-go:run
         vars:
@@ -50,7 +50,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-python-go
 
   test:rust-python:
-    desc: Rust and Python v1.0 interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
+    desc: Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
       - task: test:rust-python:run
         vars:
@@ -595,6 +595,46 @@ tasks:
           LABEL_FILTER: suite-python-go && rest && python-python
           REPORT_NAME: report-agntcy-a2a-python-go-rest-python-python
 
+  test:python-go:grpc:
+    desc: Python and Go gRPC interoperability matrix
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && grpc
+          REPORT_NAME: report-agntcy-a2a-python-go-grpc
+
+  test:python-go:grpc:go-go:
+    desc: Go client to Go server gRPC interoperability test for the Python/Go slice
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && grpc && go-go
+          REPORT_NAME: report-agntcy-a2a-python-go-grpc-go-go
+
+  test:python-go:grpc:go-python:
+    desc: Go client to Python server gRPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && grpc && go-python
+          REPORT_NAME: report-agntcy-a2a-python-go-grpc-go-python
+
+  test:python-go:grpc:python-go:
+    desc: Python client to Go server gRPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && grpc && python-go
+          REPORT_NAME: report-agntcy-a2a-python-go-grpc-python-go
+
+  test:python-go:grpc:python-python:
+    desc: Python client to Python server gRPC interoperability test
+    cmds:
+      - task: test:python-go:run
+        vars:
+          LABEL_FILTER: suite-python-go && grpc && python-python
+          REPORT_NAME: report-agntcy-a2a-python-go-grpc-python-python
+
   test:rust-python:jsonrpc:
     desc: Rust and Python JSON-RPC interoperability matrix
     cmds:
@@ -674,6 +714,46 @@ tasks:
         vars:
           LABEL_FILTER: suite-rust-python && rest && python-python
           REPORT_NAME: report-agntcy-a2a-rust-python-rest-python-python
+
+  test:rust-python:grpc:
+    desc: Rust and Python gRPC interoperability matrix
+    cmds:
+      - task: test:rust-python:run
+        vars:
+          LABEL_FILTER: suite-rust-python && grpc
+          REPORT_NAME: report-agntcy-a2a-rust-python-grpc
+
+  test:rust-python:grpc:rust-rust:
+    desc: Rust client to Rust server gRPC interoperability test for the Rust/Python slice
+    cmds:
+      - task: test:rust-python:run
+        vars:
+          LABEL_FILTER: suite-rust-python && grpc && rust-rust
+          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-rust-rust
+
+  test:rust-python:grpc:rust-python:
+    desc: Rust client to Python server gRPC interoperability test
+    cmds:
+      - task: test:rust-python:run
+        vars:
+          LABEL_FILTER: suite-rust-python && grpc && rust-python
+          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-rust-python
+
+  test:rust-python:grpc:python-rust:
+    desc: Python client to Rust server gRPC interoperability test
+    cmds:
+      - task: test:rust-python:run
+        vars:
+          LABEL_FILTER: suite-rust-python && grpc && python-rust
+          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-python-rust
+
+  test:rust-python:grpc:python-python:
+    desc: Python client to Python server gRPC interoperability test for the Rust/Python slice
+    cmds:
+      - task: test:rust-python:run
+        vars:
+          LABEL_FILTER: suite-rust-python && grpc && python-python
+          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-python-python
 
   test:python-dotnet:jsonrpc:
     desc: Python and .NET JSON-RPC interoperability matrix

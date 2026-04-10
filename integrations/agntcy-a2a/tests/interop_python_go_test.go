@@ -22,10 +22,14 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 		pythonJSONRPCFixture *fixtureProcess
 		goRESTFixture        *fixtureProcess
 		pythonRESTFixture    *fixtureProcess
+		goGRPCFixture        *fixtureProcess
+		pythonGRPCFixture    *fixtureProcess
 		goJSONRPCFixtureURL  string
 		pythonJSONRPCURL     string
 		goRESTFixtureURL     string
 		pythonRESTURL        string
+		goGRPCFixtureURL     string
+		pythonGRPCURL        string
 	)
 
 	goClient := goSDKHarness{}
@@ -48,6 +52,7 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 			urls: map[transportProtocol]func() string{
 				transportJSONRPC: func() string { return goJSONRPCFixtureURL },
 				transportREST:    func() string { return goRESTFixtureURL },
+				transportGRPC:    func() string { return goGRPCFixtureURL },
 			},
 		},
 		{
@@ -58,6 +63,7 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 			urls: map[transportProtocol]func() string{
 				transportJSONRPC: func() string { return pythonJSONRPCURL },
 				transportREST:    func() string { return pythonRESTURL },
+				transportGRPC:    func() string { return pythonGRPCURL },
 			},
 		},
 	}
@@ -82,9 +88,17 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 
 		pythonRESTFixture, pythonRESTURL, err = startPythonFixture(pythonAssets, findFreePort(), transportREST)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		goGRPCFixture, goGRPCFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportGRPC)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		pythonGRPCFixture, pythonGRPCURL, err = startPythonFixture(pythonAssets, findFreePort(), transportGRPC)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
+		stopFixtureIfRunning(pythonGRPCFixture)
+		stopFixtureIfRunning(goGRPCFixture)
 		stopFixtureIfRunning(pythonRESTFixture)
 		stopFixtureIfRunning(goRESTFixture)
 		stopFixtureIfRunning(pythonJSONRPCFixture)
@@ -94,7 +108,7 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 	})
 
 	registerInteropTransportMatrix(
-		[]transportProtocol{transportJSONRPC, transportREST},
+		[]transportProtocol{transportJSONRPC, transportREST, transportGRPC},
 		clients,
 		servers,
 		nil,

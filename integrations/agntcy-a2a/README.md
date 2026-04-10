@@ -4,7 +4,7 @@ This component hosts cross-SDK A2A interoperability checks.
 
 The suite is structured around shared Ginkgo behaviors and per-SDK harnesses. The behavior assertions are written once, expanded across client/server transport matrices, and the language-specific differences are isolated behind Go, Rust, .NET, and Python launchers or probes.
 
-The current coverage includes a Rust/Go suite across JSON-RPC, HTTP+JSON, and gRPC; .NET-backed suites for Rust, Go, and Python across JSON-RPC and HTTP+JSON; and Python v1.0 suites for both Go and Rust across JSON-RPC and HTTP+JSON. Each client/server leg is split into shared behavior slices for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity.
+The current coverage includes a Rust/Go suite across JSON-RPC, HTTP+JSON, and gRPC; .NET-backed suites for Rust, Go, and Python across JSON-RPC and HTTP+JSON; and Python v1.0 suites for both Go and Rust across JSON-RPC, HTTP+JSON, and gRPC. Each client/server leg is split into shared behavior slices for unary and streaming requests, task lifecycle APIs, push-config semantics, and scenario parity.
 
 All 12 Rust/Go client-server legs are green across JSON-RPC, HTTP+JSON, and gRPC. The Go and Rust fixtures expose push-config CRUD, and CSIT validates that path from both clients against both server targets across all three transports.
 
@@ -12,9 +12,9 @@ The Rust/.NET suite reuses the existing Rust fixture and Rust probe, adds CSIT-o
 
 The Go/.NET suite reuses the existing Go fixture with the same CSIT-owned .NET fixture and probe binaries, and covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-dotnet`, `dotnet-go`, `dotnet-dotnet`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
-The Python/Go suite adds a CSIT-owned Python server and probe built against the `1.0-dev` branch of `a2aproject/a2a-python`. It currently covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
+The Python/Go suite adds a CSIT-owned Python server and probe built against the `1.0-dev` branch of `a2aproject/a2a-python`. It now covers 12 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`), the same 4 legs over HTTP+JSON, and the same 4 legs over gRPC.
 
-The Rust/Python suite reuses the existing Rust fixture and probe together with the same CSIT-owned Python server and probe. It currently covers 8 legs: 4 JSON-RPC legs (`rust-rust`, `rust-python`, `python-rust`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
+The Rust/Python suite reuses the existing Rust fixture and probe together with the same CSIT-owned Python server and probe. It now covers 12 legs: 4 JSON-RPC legs (`rust-rust`, `rust-python`, `python-rust`, `python-python`), the same 4 legs over HTTP+JSON, and the same 4 legs over gRPC.
 
 The Python/.NET suite reuses the same CSIT-owned Python server and probe together with the same .NET fixture and probe binaries. It currently covers 8 legs: 4 JSON-RPC legs (`python-python`, `python-dotnet`, `dotnet-python`, `dotnet-dotnet`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
@@ -51,14 +51,14 @@ Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this
 
 ### SDK Pair Coverage
 
-| SDK pair | JSON-RPC | HTTP+JSON | gRPC |
-| --- | --- | --- | --- |
-| Rust/Go | ✅ | ✅ | ✅ |
-| Rust/.NET | ✅ | ✅ | ❌ |
-| Go/.NET | ✅ | ✅ | ❌ |
-| Python/Go | ✅ | ✅ | ❌ |
-| Rust/Python | ✅ | ✅ | ❌ |
-| Python/.NET | ✅ | ✅ | ❌ |
+| SDK pair | JSON-RPC | HTTP+JSON | gRPC | Component task |
+| --- | --- | --- | --- | --- |
+| Rust/Go | ✅ | ✅ | ✅ | `task test:rust-go` |
+| Rust/.NET | ✅ | ✅ | ❌ | `task test:rust-dotnet` |
+| Go/.NET | ✅ | ✅ | ❌ | `task test:go-dotnet` |
+| Python/Go | ✅ | ✅ | ✅ | `task test:python-go` |
+| Rust/Python | ✅ | ✅ | ✅ | `task test:rust-python` |
+| Python/.NET | ✅ | ✅ | ❌ | `task test:python-dotnet` |
 
 ### Rust/Go Leg Coverage
 
@@ -91,19 +91,19 @@ Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this
 
 | Client -> Server | JSON-RPC | HTTP+JSON | gRPC |
 | --- | --- | --- | --- |
-| Go -> Go (Python/Go slice) | ✅ | ✅ | ❌ |
-| Go -> Python | ✅ | ✅ | ❌ |
-| Python -> Go | ✅ | ✅ | ❌ |
-| Python -> Python | ✅ | ✅ | ❌ |
+| Go -> Go (Python/Go slice) | ✅ | ✅ | ✅ |
+| Go -> Python | ✅ | ✅ | ✅ |
+| Python -> Go | ✅ | ✅ | ✅ |
+| Python -> Python | ✅ | ✅ | ✅ |
 
 ### Rust/Python Leg Coverage
 
 | Client -> Server | JSON-RPC | HTTP+JSON | gRPC |
 | --- | --- | --- | --- |
-| Rust -> Rust (Rust/Python slice) | ✅ | ✅ | ❌ |
-| Rust -> Python | ✅ | ✅ | ❌ |
-| Python -> Rust | ✅ | ✅ | ❌ |
-| Python -> Python (Rust/Python slice) | ✅ | ✅ | ❌ |
+| Rust -> Rust (Rust/Python slice) | ✅ | ✅ | ✅ |
+| Rust -> Python | ✅ | ✅ | ✅ |
+| Python -> Rust | ✅ | ✅ | ✅ |
+| Python -> Python (Rust/Python slice) | ✅ | ✅ | ✅ |
 
 ### Python/.NET Leg Coverage
 
@@ -249,6 +249,7 @@ task test:go-dotnet:behavior:parity
 ```sh
 task test:python-go:jsonrpc
 task test:python-go:rest
+task test:python-go:grpc
 task test:python-go:jsonrpc:go-go
 task test:python-go:jsonrpc:go-python
 task test:python-go:jsonrpc:python-go
@@ -257,6 +258,10 @@ task test:python-go:rest:go-go
 task test:python-go:rest:go-python
 task test:python-go:rest:python-go
 task test:python-go:rest:python-python
+task test:python-go:grpc:go-go
+task test:python-go:grpc:go-python
+task test:python-go:grpc:python-go
+task test:python-go:grpc:python-python
 task test:python-go:behavior:core
 task test:python-go:behavior:unary-streaming
 task test:python-go:behavior:lifecycle
@@ -269,6 +274,7 @@ task test:python-go:behavior:parity
 ```sh
 task test:rust-python:jsonrpc
 task test:rust-python:rest
+task test:rust-python:grpc
 task test:rust-python:jsonrpc:rust-rust
 task test:rust-python:jsonrpc:rust-python
 task test:rust-python:jsonrpc:python-rust
@@ -277,6 +283,10 @@ task test:rust-python:rest:rust-rust
 task test:rust-python:rest:rust-python
 task test:rust-python:rest:python-rust
 task test:rust-python:rest:python-python
+task test:rust-python:grpc:rust-rust
+task test:rust-python:grpc:rust-python
+task test:rust-python:grpc:python-rust
+task test:rust-python:grpc:python-python
 task test:rust-python:behavior:core
 task test:rust-python:behavior:unary-streaming
 task test:rust-python:behavior:lifecycle
@@ -316,11 +326,13 @@ task integrations:a2a:test:rust-go:behavior:lifecycle
 task integrations:a2a:test:rust-dotnet:behavior:parity
 task integrations:a2a:test:go-dotnet:rest:dotnet-go
 task integrations:a2a:test:python-go:rest:python-python
+task integrations:a2a:test:python-go:grpc:python-python
 task integrations:a2a:test:rust-python:jsonrpc:python-rust
+task integrations:a2a:test:rust-python:grpc:python-python
 task integrations:a2a:test:python-dotnet:jsonrpc:dotnet-python
 ```
 
-Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the combined Go/.NET suite emits `report-agntcy-a2a-go-dotnet.{json,xml}`, the combined Python/Go suite emits `report-agntcy-a2a-python-go.{json,xml}`, the combined Rust/Python suite emits `report-agntcy-a2a-rust-python.{json,xml}`, and the combined Python/.NET suite emits `report-agntcy-a2a-python-dotnet.{json,xml}`. The transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, `report-agntcy-a2a-go-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-go-dotnet-rest.{json,xml}`, `report-agntcy-a2a-python-go-jsonrpc.{json,xml}`, `report-agntcy-a2a-python-go-rest.{json,xml}`, `report-agntcy-a2a-rust-python-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-python-rest.{json,xml}`, `report-agntcy-a2a-python-dotnet-jsonrpc.{json,xml}`, and `report-agntcy-a2a-python-dotnet-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
+Each run writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`. The combined Rust/Go suite emits `report-agntcy-a2a.{json,xml}`, the combined Rust/.NET suite emits `report-agntcy-a2a-rust-dotnet.{json,xml}`, the combined Go/.NET suite emits `report-agntcy-a2a-go-dotnet.{json,xml}`, the combined Python/Go suite emits `report-agntcy-a2a-python-go.{json,xml}`, the combined Rust/Python suite emits `report-agntcy-a2a-rust-python.{json,xml}`, and the combined Python/.NET suite emits `report-agntcy-a2a-python-dotnet.{json,xml}`. The transport-scoped tasks emit `report-agntcy-a2a-jsonrpc.{json,xml}`, `report-agntcy-a2a-rest.{json,xml}`, `report-agntcy-a2a-grpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-dotnet-rest.{json,xml}`, `report-agntcy-a2a-go-dotnet-jsonrpc.{json,xml}`, `report-agntcy-a2a-go-dotnet-rest.{json,xml}`, `report-agntcy-a2a-python-go-jsonrpc.{json,xml}`, `report-agntcy-a2a-python-go-rest.{json,xml}`, `report-agntcy-a2a-python-go-grpc.{json,xml}`, `report-agntcy-a2a-rust-python-jsonrpc.{json,xml}`, `report-agntcy-a2a-rust-python-rest.{json,xml}`, `report-agntcy-a2a-rust-python-grpc.{json,xml}`, `report-agntcy-a2a-python-dotnet-jsonrpc.{json,xml}`, and `report-agntcy-a2a-python-dotnet-rest.{json,xml}`, and the per-case tasks emit scenario-specific report names via `-ginkgo.label-filter`.
 
 ## How to Add a Test
 

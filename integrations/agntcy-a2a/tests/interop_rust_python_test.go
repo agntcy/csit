@@ -20,10 +20,14 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 		pythonJSONRPCFixture *fixtureProcess
 		rustRESTFixture      *fixtureProcess
 		pythonRESTFixture    *fixtureProcess
+		rustGRPCFixture      *fixtureProcess
+		pythonGRPCFixture    *fixtureProcess
 		rustJSONRPCURL       string
 		pythonJSONRPCURL     string
 		rustRESTURL          string
 		pythonRESTURL        string
+		rustGRPCURL          string
+		pythonGRPCURL        string
 	)
 
 	rustClient := rustProbeHarness{
@@ -51,6 +55,7 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 			urls: map[transportProtocol]func() string{
 				transportJSONRPC: func() string { return rustJSONRPCURL },
 				transportREST:    func() string { return rustRESTURL },
+				transportGRPC:    func() string { return rustGRPCURL },
 			},
 		},
 		{
@@ -61,6 +66,7 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 			urls: map[transportProtocol]func() string{
 				transportJSONRPC: func() string { return pythonJSONRPCURL },
 				transportREST:    func() string { return pythonRESTURL },
+				transportGRPC:    func() string { return pythonGRPCURL },
 			},
 		},
 	}
@@ -85,9 +91,17 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 
 		pythonRESTFixture, pythonRESTURL, err = startPythonFixture(pythonAssets, findFreePort(), transportREST)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		rustGRPCFixture, rustGRPCURL, err = startRustFixture(rustAssets, findFreePort(), transportGRPC)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		pythonGRPCFixture, pythonGRPCURL, err = startPythonFixture(pythonAssets, findFreePort(), transportGRPC)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
+		stopFixtureIfRunning(pythonGRPCFixture)
+		stopFixtureIfRunning(rustGRPCFixture)
 		stopFixtureIfRunning(pythonRESTFixture)
 		stopFixtureIfRunning(rustRESTFixture)
 		stopFixtureIfRunning(pythonJSONRPCFixture)
@@ -97,7 +111,7 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 	})
 
 	registerInteropTransportMatrix(
-		[]transportProtocol{transportJSONRPC, transportREST},
+		[]transportProtocol{transportJSONRPC, transportREST, transportGRPC},
 		clients,
 		servers,
 		nil,

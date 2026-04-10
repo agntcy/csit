@@ -15,8 +15,10 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import urlparse
 from uuid import uuid4
 
+import grpc
 import httpx
 
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -196,9 +198,23 @@ class RestCompatError(RuntimeError):
         self.data = data
 
 
+def resolve_card_url(base_url: str) -> str:
+    if base_url.rstrip('/').endswith('/.well-known/agent-card.json'):
+        return base_url
+    return f"{base_url.rstrip('/')}/.well-known/agent-card.json"
+
+
+def grpc_target(address: str) -> str:
+    if '://' not in address:
+        return address
+
+    parsed = urlparse(address)
+    return parsed.netloc or address
+
+
 async def load_agent_card(card_url: str) -> a2a_pb2.AgentCard:
     async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(card_url)
+        response = await client.get(resolve_card_url(card_url))
         response.raise_for_status()
         payload = response.json()
     return ParseDict(payload, a2a_pb2.AgentCard())
@@ -467,13 +483,44 @@ async def delete_task_push_config_rest(
 async def create_probe_client(card_url: str, streaming: bool) -> Client:
     config = ClientConfig(
         streaming=streaming,
+        grpc_channel_factory=lambda address: grpc.aio.insecure_channel(grpc_target(address)),
         supported_protocol_bindings=[
+            TransportProtocol.GRPC,
             TransportProtocol.JSONRPC,
             TransportProtocol.HTTP_JSON,
         ],
         httpx_client=httpx.AsyncClient(timeout=5.0),
     )
     return await create_client(card_url, client_config=config)
+
+
+async def create_task_push_config_grpc(
+    client: Client,
+    config: a2a_pb2.TaskPushNotificationConfig,
+) -> a2a_pb2.TaskPushNotificationConfig:
+    return await client.create_task_push_notification_config(config)
+
+
+async def get_task_push_config_grpc(
+    client: Client,
+    request: a2a_pb2.GetTaskPushNotificationConfigRequest,
+) -> a2a_pb2.TaskPushNotificationConfig:
+    return await client.get_task_push_notification_config(request)
+
+
+async def list_task_push_configs_grpc(
+    client: Client,
+    request: a2a_pb2.ListTaskPushNotificationConfigsRequest,
+) -> list[a2a_pb2.TaskPushNotificationConfig]:
+    response = await client.list_task_push_notification_configs(request)
+    return list(response.configs)
+
+
+async def delete_task_push_config_grpc(
+    client: Client,
+    request: a2a_pb2.DeleteTaskPushNotificationConfigRequest,
+) -> None:
+    await client.delete_task_push_notification_config(request)
 
 
 async def collect_responses(
@@ -630,6 +677,7 @@ async def assert_push_config(
         if not isinstance(card, a2a_pb2.AgentCard):
             card = await load_agent_card(card_url)
         agent_interface = primary_interface(card)
+        uses_grpc = agent_interface.protocol_binding == TransportProtocol.GRPC.value
         uses_jsonrpc = agent_interface.protocol_binding == TransportProtocol.JSONRPC.value
         uses_nested_rest_push_config = server_prefix in {'go', 'python'}
         uses_rest_push_task_id = server_prefix == 'rust'
@@ -657,7 +705,9 @@ async def assert_push_config(
 
         if not expect_push_supported:
             try:
-                if uses_jsonrpc:
+                if uses_grpc:
+                    await create_task_push_config_grpc(client, push_config)
+                elif uses_jsonrpc:
                     await create_task_push_config_jsonrpc(agent_interface.url, push_config)
                 else:
                     await create_task_push_config_rest(
@@ -685,7 +735,12 @@ async def assert_push_config(
                                 or 'PUSH_NOTIFICATION_NOT_SUPPORTED' in normalized_error_text
                             )
                         )
-                        if accepts_rest_unsupported:
+                        accepts_grpc_unsupported = (
+                            uses_grpc
+                            and expected_push_error_code == -32003
+                            and 'UNIMPLEMENTED' in normalized_error_text
+                        )
+                        if accepts_rest_unsupported or accepts_grpc_unsupported:
                             return
                         raise AssertionError(
                             f'expected push error code {expected_push_error_code}, got {error_text!r}'
@@ -693,7 +748,9 @@ async def assert_push_config(
                 return
             raise AssertionError('expected push configuration to be unsupported')
 
-        if uses_jsonrpc:
+        if uses_grpc:
+            created_config = await create_task_push_config_grpc(client, push_config)
+        elif uses_jsonrpc:
             created_config = await create_task_push_config_jsonrpc(agent_interface.url, push_config)
         else:
             created_config = await create_task_push_config_rest(
@@ -708,14 +765,18 @@ async def assert_push_config(
             task_id=completed_task.id,
             id=push_config.id,
         )
-        if uses_jsonrpc:
+        if uses_grpc:
+            fetched_config = await get_task_push_config_grpc(client, get_request)
+        elif uses_jsonrpc:
             fetched_config = await get_task_push_config_jsonrpc(agent_interface.url, get_request)
         else:
             fetched_config = await get_task_push_config_rest(agent_interface.url, get_request)
         assert_task_push_config(fetched_config, completed_task.id, push_config, 'fetched push config')
 
         list_request = a2a_pb2.ListTaskPushNotificationConfigsRequest(task_id=completed_task.id)
-        if uses_jsonrpc:
+        if uses_grpc:
+            listed_configs = await list_task_push_configs_grpc(client, list_request)
+        elif uses_jsonrpc:
             listed_configs = await list_task_push_configs_jsonrpc(agent_interface.url, list_request)
         else:
             listed_configs = await list_task_push_configs_rest(agent_interface.url, list_request)
@@ -728,7 +789,10 @@ async def assert_push_config(
             task_id=completed_task.id,
             id=push_config.id,
         )
-        if uses_jsonrpc:
+        if uses_grpc:
+            await delete_task_push_config_grpc(client, delete_request)
+            listed_configs = await list_task_push_configs_grpc(client, list_request)
+        elif uses_jsonrpc:
             await delete_task_push_config_jsonrpc(agent_interface.url, delete_request)
             listed_configs = await list_task_push_configs_jsonrpc(agent_interface.url, list_request)
         else:
