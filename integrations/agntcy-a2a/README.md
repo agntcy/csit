@@ -12,7 +12,7 @@ The Rust/.NET suite reuses the existing Rust fixture and Rust probe, adds CSIT-o
 
 The Go/.NET suite reuses the existing Go fixture with the same CSIT-owned .NET fixture and probe binaries, and covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-dotnet`, `dotnet-go`, `dotnet-dotnet`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
-The Python/Go suite adds a CSIT-owned Python server and probe built against the `release-please--branches--1.0-dev` branch of `a2aproject/a2a-python`. It currently covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
+The Python/Go suite adds a CSIT-owned Python server and probe built against the `1.0-dev` branch of `a2aproject/a2a-python`. It currently covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
 The Rust/Python suite reuses the existing Rust fixture and probe together with the same CSIT-owned Python server and probe. It currently covers 8 legs: 4 JSON-RPC legs (`rust-rust`, `rust-python`, `python-rust`, `python-python`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
@@ -43,7 +43,7 @@ The gRPC legs follow the same agent-card discovery path as the other transports:
 
 The .NET-backed slices currently require a local `dotnet` CLI for the .NET 8 SDK because the CSIT harness builds the fixture and probe from published `A2A` and `A2A.AspNetCore` NuGet packages at test time.
 
-The Python/Go, Rust/Python, and Python/.NET slices require Python 3.10+ and install the Python SDK fixture environment into a temporary virtualenv on first use from `fixtures/python/requirements.txt`, which pins the SDK to the `release-please--branches--1.0-dev` branch.
+The Python/Go, Rust/Python, and Python/.NET slices require Python 3.10+ and install the Python SDK fixture environment into a temporary virtualenv on first use from `fixtures/python/requirements.txt`, which pins the SDK to the `1.0-dev` branch.
 
 ## Matrix
 
