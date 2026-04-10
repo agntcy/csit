@@ -3,11 +3,11 @@
 
 package tests
 
-// This file builds fixture binaries, launches per-transport test servers, and runs the Rust
-// and .NET probe executables used by the shared Ginkgo behaviors.
-// Extend this file when a new SDK fixture, probe binary, or transport startup path is needed.
-// Keep behavior checks out of this layer so the wrappers and shared behavior registry stay
-// declarative.
+// This file builds non-Go fixture assets, launches shared transport processes, and runs the
+// Rust, .NET, and Python probe executables used by the shared Ginkgo behaviors.
+// Extend this file for shared process orchestration and non-Go external runtime support.
+// The native Go fixture path lives in native_go_launchers_test.go so this layer stays focused
+// on generic launcher plumbing.
 
 import (
 	"context"
@@ -18,19 +18,6 @@ import (
 	"path/filepath"
 	"runtime"
 )
-
-func buildGoFixture(root string, outputPath string) error {
-	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
-	defer cancel()
-
-	goBuild := exec.CommandContext(buildCtx, "go", "build", "-o", outputPath, "./fixtures/go-jsonrpc-server")
-	goBuild.Dir = root
-	if output, err := goBuild.CombinedOutput(); err != nil {
-		return fmt.Errorf("build go fixture: %w\n%s", err, string(output))
-	}
-
-	return nil
-}
 
 func buildRustFixtures(root string, targetDir string) error {
 	buildCtx, cancel := context.WithTimeout(context.Background(), buildTimeout)
@@ -52,26 +39,6 @@ func buildRustFixtures(root string, targetDir string) error {
 	}
 
 	return nil
-}
-
-func buildGoFixtureBinaryOnly() (fixtureBinaries, error) {
-	root := componentRoot()
-	tempDir, err := os.MkdirTemp("", "agntcy-a2a-go-")
-	if err != nil {
-		return fixtureBinaries{}, fmt.Errorf("create temp dir: %w", err)
-	}
-
-	binaries := fixtureBinaries{
-		tempDir:  tempDir,
-		goServer: filepath.Join(tempDir, executableName("go-jsonrpc-server")),
-	}
-
-	if err := buildGoFixture(root, binaries.goServer); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return fixtureBinaries{}, err
-	}
-
-	return binaries, nil
 }
 
 func buildRustFixtureBinaryOnly() (fixtureBinaries, error) {
@@ -399,10 +366,6 @@ func startNativeFixture(name string, command string, port int, protocol transpor
 	}
 
 	return process, baseURL, nil
-}
-
-func startGoFixture(binaries fixtureBinaries, port int, protocol transportProtocol) (*fixtureProcess, string, error) {
-	return startNativeFixture(fmt.Sprintf("go-%s-server", protocol), binaries.goServer, port, protocol)
 }
 
 func startRustFixture(binaries fixtureBinaries, port int, protocol transportProtocol) (*fixtureProcess, string, error) {

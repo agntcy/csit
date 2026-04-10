@@ -62,22 +62,26 @@ In the Taskfiles, all required tasks and steps are defined in a structured manne
 ## Tasks
 
 You can list all the task defined in the Taskfiles using the `task -l` or simply run `task`.
-The following tasks are defined:
+Representative entries from `task -l` include:
+
+For the A2A suite, wildcard-backed task families are shown with `*` to keep the listing compact. Concrete invocations such as `task integrations:a2a:test:rust-go:jsonrpc:go-go` still work unchanged.
 
 ```bash
 task: Available tasks for this project:
 * benchmarks:directory:test:                              All ADS benchmark test
 * benchmarks:slim:test:                                All Slim benchmark test
-* integrations:a2a:test:                                 All A2A interoperability tests
-* integrations:a2a:test:go-dotnet:                       Go and C# interoperability tests
-* integrations:a2a:test:python-go:                       Python and Go interoperability tests
-* integrations:a2a:test:python-dotnet:                   Python and C# interoperability tests
-* integrations:a2a:test:rust-python:                     Rust and Python interoperability tests
-* integrations:a2a:test:rust-go:jsonrpc:                 Rust and Go JSON-RPC interoperability smoke test
-* integrations:a2a:test:rust-go:jsonrpc:go-go:           Go client to Go server JSON-RPC interoperability test
-* integrations:a2a:test:rust-go:jsonrpc:go-rust:         Go client to Rust server JSON-RPC interoperability test
-* integrations:a2a:test:rust-go:jsonrpc:rust-go:         Rust client to Go server JSON-RPC interoperability test
-* integrations:a2a:test:rust-go:jsonrpc:rust-rust:       Rust client to Rust server JSON-RPC interoperability test
+* integrations:a2a:test:                                 Default A2A interoperability tests
+* integrations:a2a:test:behavior:*:                      Shared behavior slice task. Use test:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+* integrations:a2a:test:go-dotnet:                       Go and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
+* integrations:a2a:test:go-dotnet:*:                     Go and .NET transport task. Use test:go-dotnet:<jsonrpc|rest>.
+* integrations:a2a:test:go-dotnet:*:*:                   Go and .NET per-case task. Use test:go-dotnet:<jsonrpc|rest>:<go-go|go-dotnet|dotnet-go|dotnet-dotnet>.
+* integrations:a2a:test:python-go:                       Python v1.0 and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
+* integrations:a2a:test:python-go:*:                     Python and Go transport task. Use test:python-go:<jsonrpc|rest|grpc>.
+* integrations:a2a:test:python-go:*:*:                   Python and Go per-case task. Use test:python-go:<jsonrpc|rest|grpc>:<go-go|go-python|python-go|python-python>.
+* integrations:a2a:test:rust-go:                         Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
+* integrations:a2a:test:rust-go:*:                       Rust and Go transport task. Use test:rust-go:<jsonrpc|rest|grpc>.
+* integrations:a2a:test:rust-go:*:*:                     Rust and Go per-case task. Use test:rust-go:<jsonrpc|rest|grpc>:<go-go|go-rust|rust-go|rust-rust>.
+* integrations:a2a:test:rust-python:                     Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
 * integrations:apps:download:wfsm-bin:                    Get wfsm binary from GitHub
 * integrations:apps:get-marketing-campaign-cfgs:          Populate marketing campaign config file
 * integrations:apps:init-submodules:                      Initialize submodules
@@ -213,6 +217,8 @@ task integrations:a2a:test:rust-python
 task integrations:a2a:test:python-dotnet
 task integrations:a2a:test:rust-python:jsonrpc:python-rust
 ```
+
+Because the A2A Taskfile is now wildcard-backed, `task -l` shows families like `integrations:a2a:test:rust-go:*:` and `integrations:a2a:test:rust-go:*:*:` instead of one line per expanded case. Exact commands like `task integrations:a2a:test:rust-go:jsonrpc:go-go` still work.
 
 The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/reports/`.
 

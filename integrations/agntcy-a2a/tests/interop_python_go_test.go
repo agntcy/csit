@@ -16,56 +16,71 @@ import (
 
 var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, ginkgo.Label("suite-python-go"), func() {
 	var (
-		goAssets             fixtureBinaries
-		pythonAssets         pythonFixtureAssets
-		goJSONRPCFixture     *fixtureProcess
-		pythonJSONRPCFixture *fixtureProcess
-		goRESTFixture        *fixtureProcess
-		pythonRESTFixture    *fixtureProcess
-		goGRPCFixture        *fixtureProcess
-		pythonGRPCFixture    *fixtureProcess
-		goJSONRPCFixtureURL  string
-		pythonJSONRPCURL     string
-		goRESTFixtureURL     string
-		pythonRESTURL        string
-		goGRPCFixtureURL     string
-		pythonGRPCURL        string
+		goAssets     fixtureBinaries
+		pythonAssets pythonFixtureAssets
 	)
 
-	goClient := goSDKHarness{}
-	pythonClient := pythonProbeHarness{
-		getAssets: func() pythonFixtureAssets { return pythonAssets },
-		options: rustProbeOptions{
-			expectPushSupported: true,
+	runtime := newInteropSuiteRuntime()
+	protocols := []transportProtocol{transportJSONRPC, transportREST, transportGRPC}
+	fixtures := []interopSuiteFixtureSpec{
+		{
+			label:    "go",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startGoFixture(goAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "python",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startPythonFixture(pythonAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "go",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startGoFixture(goAssets, findFreePort(), transportREST)
+			},
+		},
+		{
+			label:    "python",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startPythonFixture(pythonAssets, findFreePort(), transportREST)
+			},
+		},
+		{
+			label:    "go",
+			protocol: transportGRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startGoFixture(goAssets, findFreePort(), transportGRPC)
+			},
+		},
+		{
+			label:    "python",
+			protocol: transportGRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startPythonFixture(pythonAssets, findFreePort(), transportGRPC)
+			},
 		},
 	}
+
 	clients := []interopClientMatrixSpec{
-		{label: "go", displayName: "Go", harness: goClient},
-		{label: "python", displayName: "Python", harness: pythonClient},
+		{label: "go", displayName: "Go", harness: goSDKHarness{}},
+		{
+			label:       "python",
+			displayName: "Python",
+			harness: newPythonProbeHarness(
+				func() pythonFixtureAssets { return pythonAssets },
+				rustProbeOptions{expectPushSupported: true},
+			),
+		},
 	}
 	servers := []interopServerMatrixSpec{
-		{
-			label:               "go",
-			displayName:         "Go",
-			serverPrefix:        "go",
-			expectPushSupported: true,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return goJSONRPCFixtureURL },
-				transportREST:    func() string { return goRESTFixtureURL },
-				transportGRPC:    func() string { return goGRPCFixtureURL },
-			},
-		},
-		{
-			label:               "python",
-			displayName:         "Python",
-			serverPrefix:        "python",
-			expectPushSupported: true,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return pythonJSONRPCURL },
-				transportREST:    func() string { return pythonRESTURL },
-				transportGRPC:    func() string { return pythonGRPCURL },
-			},
-		},
+		newInteropServerSpec(runtime, "go", "Go", "go", true, protocols...),
+		newInteropServerSpec(runtime, "python", "Python", "python", true, protocols...),
 	}
 
 	ginkgo.BeforeAll(func() {
@@ -77,38 +92,18 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 		pythonAssets, err = buildPythonFixtureAssets()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		goJSONRPCFixture, goJSONRPCFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		pythonJSONRPCFixture, pythonJSONRPCURL, err = startPythonFixture(pythonAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		goRESTFixture, goRESTFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportREST)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		pythonRESTFixture, pythonRESTURL, err = startPythonFixture(pythonAssets, findFreePort(), transportREST)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		goGRPCFixture, goGRPCFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportGRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		pythonGRPCFixture, pythonGRPCURL, err = startPythonFixture(pythonAssets, findFreePort(), transportGRPC)
+		err = startInteropSuiteFixtures(runtime, fixtures)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
-		stopFixtureIfRunning(pythonGRPCFixture)
-		stopFixtureIfRunning(goGRPCFixture)
-		stopFixtureIfRunning(pythonRESTFixture)
-		stopFixtureIfRunning(goRESTFixture)
-		stopFixtureIfRunning(pythonJSONRPCFixture)
-		stopFixtureIfRunning(goJSONRPCFixture)
+		runtime.stopFixtures(fixtures)
 		removeTempDir(pythonAssets.tempDir)
 		removeTempDir(goAssets.tempDir)
 	})
 
 	registerInteropTransportMatrix(
-		[]transportProtocol{transportJSONRPC, transportREST, transportGRPC},
+		protocols,
 		clients,
 		servers,
 		nil,

@@ -6,6 +6,15 @@ version: '3'
 
 silent: true
 
+vars:
+  G_BEHAVIOR_LABELS:
+    map:
+      core: behavior-core
+      unary-streaming: behavior-unary-streaming
+      lifecycle: behavior-lifecycle
+      push-config: behavior-push-config
+      parity: behavior-parity
+
 tasks:
   test:
     desc: Default A2A interoperability tests
@@ -20,7 +29,7 @@ tasks:
   test:rust-go:
     desc: Rust and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
-      - task: test:rust-go:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-rust-go
           REPORT_NAME: report-agntcy-a2a
@@ -28,7 +37,7 @@ tasks:
   test:rust-dotnet:
     desc: Rust and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
     cmds:
-      - task: test:rust-dotnet:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-rust-dotnet
           REPORT_NAME: report-agntcy-a2a-rust-dotnet
@@ -36,7 +45,7 @@ tasks:
   test:go-dotnet:
     desc: Go and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
     cmds:
-      - task: test:go-dotnet:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-go-dotnet
           REPORT_NAME: report-agntcy-a2a-go-dotnet
@@ -44,7 +53,7 @@ tasks:
   test:python-go:
     desc: Python v1.0 and Go interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
-      - task: test:python-go:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-python-go
           REPORT_NAME: report-agntcy-a2a-python-go
@@ -52,7 +61,7 @@ tasks:
   test:rust-python:
     desc: Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
     cmds:
-      - task: test:rust-python:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-rust-python
           REPORT_NAME: report-agntcy-a2a-rust-python
@@ -60,900 +69,323 @@ tasks:
   test:python-dotnet:
     desc: Python v1.0 and .NET interoperability test matrix for the current JSON-RPC and HTTP+JSON slices
     cmds:
-      - task: test:python-dotnet:run
+      - task: test:interop:run
         vars:
           LABEL_FILTER: suite-python-dotnet
           REPORT_NAME: report-agntcy-a2a-python-dotnet
 
-  test:behavior:core:
-    desc: Shared core behavior slices across all A2A interoperability suites
+  'test:behavior:*':
+    desc: Shared behavior slice task. Use test:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: '{{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported shared behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: behavior-core
-          REPORT_NAME: report-agntcy-a2a-behavior-core
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:behavior:unary-streaming:
-    desc: Shared unary and streaming behavior slices across all A2A interoperability suites
+  'test:rust-go:behavior:*':
+    desc: Rust and Go behavior slice task. Use test:rust-go:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-go && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-go-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Go behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-behavior-unary-streaming
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:behavior:lifecycle:
-    desc: Shared task lifecycle behavior slices across all A2A interoperability suites
+  'test:rust-dotnet:behavior:*':
+    desc: Rust and .NET behavior slice task. Use test:rust-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-dotnet-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-behavior-lifecycle
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:behavior:push-config:
-    desc: Shared push-config behavior slices across all A2A interoperability suites
+  'test:go-dotnet:behavior:*':
+    desc: Go and .NET behavior slice task. Use test:go-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-go-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-go-dotnet-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Go and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-behavior-push-config
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:behavior:parity:
-    desc: Shared scenario parity behavior slices across all A2A interoperability suites
+  'test:python-go:behavior:*':
+    desc: Python and Go behavior slice task. Use test:python-go:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-python-go && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-go-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and Go behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: behavior-parity
-          REPORT_NAME: report-agntcy-a2a-behavior-parity
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:behavior:core:
-    desc: Rust and Go shared core behavior slices across all transports and pairs
+  'test:rust-python:behavior:*':
+    desc: Rust and Python behavior slice task. Use test:rust-python:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-python && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-python-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Python behavior "{{.BEHAVIOR}}".'
     cmds:
-      - task: test:rust-go:run
+      - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && behavior-core
-          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-core
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:behavior:unary-streaming:
-    desc: Rust and Go unary and streaming behavior slices across all transports and pairs
+  'test:python-dotnet:behavior:*':
+    desc: Python and .NET behavior slice task. Use test:python-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    vars:
+      BEHAVIOR: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-python-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-dotnet-behavior-{{.BEHAVIOR}}'
+    preconditions:
+      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
-      - task: test:rust-go:run
+      - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-unary-streaming
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:behavior:lifecycle:
-    desc: Rust and Go task lifecycle behavior slices across all transports and pairs
+  'test:rust-go:*:*':
+    desc: Rust and Go per-case task. Use test:rust-go:<jsonrpc|rest|grpc>:<go-go|go-rust|rust-go|rust-rust>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-rust-go && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: '{{if eq .TRANSPORT "jsonrpc"}}report-agntcy-a2a-{{.PAIR}}{{else if eq .TRANSPORT "rest"}}report-agntcy-a2a-rest-{{.PAIR}}{{else if eq .TRANSPORT "grpc"}}report-agntcy-a2a-grpc-{{.PAIR}}{{end}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Go transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in go-go|go-rust|rust-go|rust-rust) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Go pair "{{.PAIR}}".'
     cmds:
-      - task: test:rust-go:run
+      - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-lifecycle
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:behavior:push-config:
-    desc: Rust and Go push-config behavior slices across all transports and pairs
+  'test:rust-dotnet:*:*':
+    desc: Rust and .NET per-case task. Use test:rust-dotnet:<jsonrpc|rest>:<dotnet-dotnet|dotnet-rust|rust-dotnet|rust-rust-dotnet>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-rust-dotnet && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: '{{if eq .TRANSPORT "jsonrpc"}}report-agntcy-a2a-rust-dotnet-{{.PAIR}}{{else if eq .TRANSPORT "rest"}}report-agntcy-a2a-rust-dotnet-rest-{{.PAIR}}{{end}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and .NET transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in dotnet-dotnet|dotnet-rust|rust-dotnet|rust-rust-dotnet) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and .NET pair "{{.PAIR}}".'
     cmds:
-      - task: test:rust-go:run
+      - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-push-config
-
-  test:rust-go:behavior:parity:
-    desc: Rust and Go scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-go:run
-        vars:
-          LABEL_FILTER: suite-rust-go && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-rust-go-behavior-parity
-
-  test:rust-dotnet:behavior:core:
-    desc: Rust and .NET shared core behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && behavior-core
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-core
-
-  test:rust-dotnet:behavior:unary-streaming:
-    desc: Rust and .NET unary and streaming behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-unary-streaming
-
-  test:rust-dotnet:behavior:lifecycle:
-    desc: Rust and .NET task lifecycle behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-lifecycle
-
-  test:rust-dotnet:behavior:push-config:
-    desc: Rust and .NET push-config behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-push-config
-
-  test:rust-dotnet:behavior:parity:
-    desc: Rust and .NET scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-behavior-parity
-
-  test:go-dotnet:behavior:core:
-    desc: Go and .NET shared core behavior slices across all transports and pairs
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && behavior-core
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-behavior-core
-
-  test:go-dotnet:behavior:unary-streaming:
-    desc: Go and .NET unary and streaming behavior slices across all transports and pairs
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-behavior-unary-streaming
-
-  test:go-dotnet:behavior:lifecycle:
-    desc: Go and .NET task lifecycle behavior slices across all transports and pairs
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-behavior-lifecycle
-
-  test:go-dotnet:behavior:push-config:
-    desc: Go and .NET push-config behavior slices across all transports and pairs
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-behavior-push-config
-
-  test:go-dotnet:behavior:parity:
-    desc: Go and .NET scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-behavior-parity
-
-  test:python-go:behavior:core:
-    desc: Python and Go shared core behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && behavior-core
-          REPORT_NAME: report-agntcy-a2a-python-go-behavior-core
-
-  test:python-go:behavior:unary-streaming:
-    desc: Python and Go unary and streaming behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-python-go-behavior-unary-streaming
-
-  test:python-go:behavior:lifecycle:
-    desc: Python and Go task lifecycle behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-python-go-behavior-lifecycle
-
-  test:python-go:behavior:push-config:
-    desc: Python and Go push-config behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-python-go-behavior-push-config
-
-  test:python-go:behavior:parity:
-    desc: Python and Go scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-python-go-behavior-parity
-
-  test:rust-python:behavior:core:
-    desc: Rust and Python shared core behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && behavior-core
-          REPORT_NAME: report-agntcy-a2a-rust-python-behavior-core
-
-  test:rust-python:behavior:unary-streaming:
-    desc: Rust and Python unary and streaming behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-rust-python-behavior-unary-streaming
-
-  test:rust-python:behavior:lifecycle:
-    desc: Rust and Python task lifecycle behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-rust-python-behavior-lifecycle
-
-  test:rust-python:behavior:push-config:
-    desc: Rust and Python push-config behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-rust-python-behavior-push-config
-
-  test:rust-python:behavior:parity:
-    desc: Rust and Python scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-rust-python-behavior-parity
-
-  test:python-dotnet:behavior:core:
-    desc: Python and .NET shared core behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && behavior-core
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-behavior-core
-
-  test:python-dotnet:behavior:unary-streaming:
-    desc: Python and .NET unary and streaming behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && behavior-unary-streaming
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-behavior-unary-streaming
-
-  test:python-dotnet:behavior:lifecycle:
-    desc: Python and .NET task lifecycle behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && behavior-lifecycle
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-behavior-lifecycle
-
-  test:python-dotnet:behavior:push-config:
-    desc: Python and .NET push-config behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && behavior-push-config
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-behavior-push-config
-
-  test:python-dotnet:behavior:parity:
-    desc: Python and .NET scenario parity behavior slices across all transports and pairs
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && behavior-parity
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-behavior-parity
-
-  test:rust-dotnet:jsonrpc:
-    desc: Rust and .NET JSON-RPC interoperability matrix
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-jsonrpc
-
-  test:rust-dotnet:jsonrpc:dotnet-dotnet:
-    desc: .NET client to .NET server JSON-RPC interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && jsonrpc && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-dotnet-dotnet
-
-  test:rust-dotnet:jsonrpc:dotnet-rust:
-    desc: .NET client to Rust server JSON-RPC interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && jsonrpc && dotnet-rust
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-dotnet-rust
-
-  test:rust-dotnet:jsonrpc:rust-dotnet:
-    desc: Rust client to .NET server JSON-RPC interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-dotnet
-
-  test:rust-dotnet:jsonrpc:rust-rust-dotnet:
-    desc: Rust client to Rust server JSON-RPC interoperability test for the Rust-.NET slice
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && jsonrpc && rust-rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rust-rust-dotnet
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
   test:rust-dotnet:jsonrpc:rust-rust:
     desc: Alias for test:rust-dotnet:jsonrpc:rust-rust-dotnet
     cmds:
       - task: test:rust-dotnet:jsonrpc:rust-rust-dotnet
 
-  test:rust-dotnet:rest:
-    desc: Rust and .NET HTTP+JSON interoperability matrix
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && rest
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest
-
-  test:rust-dotnet:rest:dotnet-dotnet:
-    desc: .NET client to .NET server HTTP+JSON interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && rest && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-dotnet-dotnet
-
-  test:rust-dotnet:rest:dotnet-rust:
-    desc: .NET client to Rust server HTTP+JSON interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && rest && dotnet-rust
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-dotnet-rust
-
-  test:rust-dotnet:rest:rust-dotnet:
-    desc: Rust client to .NET server HTTP+JSON interoperability test
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && rest && rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-dotnet
-
-  test:rust-dotnet:rest:rust-rust-dotnet:
-    desc: Rust client to Rust server HTTP+JSON interoperability test for the Rust-.NET slice
-    cmds:
-      - task: test:rust-dotnet:run
-        vars:
-          LABEL_FILTER: suite-rust-dotnet && rest && rust-rust-dotnet
-          REPORT_NAME: report-agntcy-a2a-rust-dotnet-rest-rust-rust-dotnet
-
   test:rust-dotnet:rest:rust-rust:
     desc: Alias for test:rust-dotnet:rest:rust-rust-dotnet
     cmds:
       - task: test:rust-dotnet:rest:rust-rust-dotnet
 
-  test:go-dotnet:jsonrpc:
-    desc: Go and .NET JSON-RPC interoperability matrix
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-jsonrpc
-
-  test:go-dotnet:jsonrpc:go-go:
-    desc: Go client to Go server JSON-RPC interoperability test for the Go/.NET slice
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && jsonrpc && go-go
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-jsonrpc-go-go
-
-  test:go-dotnet:jsonrpc:go-dotnet:
-    desc: Go client to .NET server JSON-RPC interoperability test
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && jsonrpc && go-dotnet
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-jsonrpc-go-dotnet
-
-  test:go-dotnet:jsonrpc:dotnet-go:
-    desc: .NET client to Go server JSON-RPC interoperability test
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && jsonrpc && dotnet-go
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-jsonrpc-dotnet-go
-
-  test:go-dotnet:jsonrpc:dotnet-dotnet:
-    desc: .NET client to .NET server JSON-RPC interoperability test for the Go/.NET slice
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && jsonrpc && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-jsonrpc-dotnet-dotnet
-
-  test:go-dotnet:rest:
-    desc: Go and .NET HTTP+JSON interoperability matrix
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && rest
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-rest
-
-  test:go-dotnet:rest:go-go:
-    desc: Go client to Go server HTTP+JSON interoperability test for the Go/.NET slice
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && rest && go-go
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-rest-go-go
-
-  test:go-dotnet:rest:go-dotnet:
-    desc: Go client to .NET server HTTP+JSON interoperability test
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && rest && go-dotnet
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-rest-go-dotnet
-
-  test:go-dotnet:rest:dotnet-go:
-    desc: .NET client to Go server HTTP+JSON interoperability test
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && rest && dotnet-go
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-rest-dotnet-go
-
-  test:go-dotnet:rest:dotnet-dotnet:
-    desc: .NET client to .NET server HTTP+JSON interoperability test for the Go/.NET slice
-    cmds:
-      - task: test:go-dotnet:run
-        vars:
-          LABEL_FILTER: suite-go-dotnet && rest && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-go-dotnet-rest-dotnet-dotnet
-
-  test:python-go:jsonrpc:
-    desc: Python and Go JSON-RPC interoperability matrix
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc
-
-  test:python-go:jsonrpc:go-go:
-    desc: Go client to Go server JSON-RPC interoperability test for the Python/Go slice
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && jsonrpc && go-go
-          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-go-go
-
-  test:python-go:jsonrpc:go-python:
-    desc: Go client to Python server JSON-RPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && jsonrpc && go-python
-          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-go-python
-
-  test:python-go:jsonrpc:python-go:
-    desc: Python client to Go server JSON-RPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && jsonrpc && python-go
-          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-python-go
-
-  test:python-go:jsonrpc:python-python:
-    desc: Python client to Python server JSON-RPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && jsonrpc && python-python
-          REPORT_NAME: report-agntcy-a2a-python-go-jsonrpc-python-python
-
-  test:python-go:rest:
-    desc: Python and Go HTTP+JSON interoperability matrix
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && rest
-          REPORT_NAME: report-agntcy-a2a-python-go-rest
-
-  test:python-go:rest:go-go:
-    desc: Go client to Go server HTTP+JSON interoperability test for the Python/Go slice
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && rest && go-go
-          REPORT_NAME: report-agntcy-a2a-python-go-rest-go-go
-
-  test:python-go:rest:go-python:
-    desc: Go client to Python server HTTP+JSON interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && rest && go-python
-          REPORT_NAME: report-agntcy-a2a-python-go-rest-go-python
-
-  test:python-go:rest:python-go:
-    desc: Python client to Go server HTTP+JSON interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && rest && python-go
-          REPORT_NAME: report-agntcy-a2a-python-go-rest-python-go
-
-  test:python-go:rest:python-python:
-    desc: Python client to Python server HTTP+JSON interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && rest && python-python
-          REPORT_NAME: report-agntcy-a2a-python-go-rest-python-python
-
-  test:python-go:grpc:
-    desc: Python and Go gRPC interoperability matrix
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && grpc
-          REPORT_NAME: report-agntcy-a2a-python-go-grpc
-
-  test:python-go:grpc:go-go:
-    desc: Go client to Go server gRPC interoperability test for the Python/Go slice
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && grpc && go-go
-          REPORT_NAME: report-agntcy-a2a-python-go-grpc-go-go
-
-  test:python-go:grpc:go-python:
-    desc: Go client to Python server gRPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && grpc && go-python
-          REPORT_NAME: report-agntcy-a2a-python-go-grpc-go-python
-
-  test:python-go:grpc:python-go:
-    desc: Python client to Go server gRPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && grpc && python-go
-          REPORT_NAME: report-agntcy-a2a-python-go-grpc-python-go
-
-  test:python-go:grpc:python-python:
-    desc: Python client to Python server gRPC interoperability test
-    cmds:
-      - task: test:python-go:run
-        vars:
-          LABEL_FILTER: suite-python-go && grpc && python-python
-          REPORT_NAME: report-agntcy-a2a-python-go-grpc-python-python
-
-  test:rust-python:jsonrpc:
-    desc: Rust and Python JSON-RPC interoperability matrix
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-rust-python-jsonrpc
-
-  test:rust-python:jsonrpc:rust-rust:
-    desc: Rust client to Rust server JSON-RPC interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && jsonrpc && rust-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-jsonrpc-rust-rust
-
-  test:rust-python:jsonrpc:rust-python:
-    desc: Rust client to Python server JSON-RPC interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && jsonrpc && rust-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-jsonrpc-rust-python
-
-  test:rust-python:jsonrpc:python-rust:
-    desc: Python client to Rust server JSON-RPC interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && jsonrpc && python-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-jsonrpc-python-rust
-
-  test:rust-python:jsonrpc:python-python:
-    desc: Python client to Python server JSON-RPC interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && jsonrpc && python-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-jsonrpc-python-python
-
-  test:rust-python:rest:
-    desc: Rust and Python HTTP+JSON interoperability matrix
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && rest
-          REPORT_NAME: report-agntcy-a2a-rust-python-rest
-
-  test:rust-python:rest:rust-rust:
-    desc: Rust client to Rust server HTTP+JSON interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && rest && rust-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-rest-rust-rust
-
-  test:rust-python:rest:rust-python:
-    desc: Rust client to Python server HTTP+JSON interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && rest && rust-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-rest-rust-python
-
-  test:rust-python:rest:python-rust:
-    desc: Python client to Rust server HTTP+JSON interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && rest && python-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-rest-python-rust
-
-  test:rust-python:rest:python-python:
-    desc: Python client to Python server HTTP+JSON interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && rest && python-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-rest-python-python
-
-  test:rust-python:grpc:
-    desc: Rust and Python gRPC interoperability matrix
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && grpc
-          REPORT_NAME: report-agntcy-a2a-rust-python-grpc
-
-  test:rust-python:grpc:rust-rust:
-    desc: Rust client to Rust server gRPC interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && grpc && rust-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-rust-rust
-
-  test:rust-python:grpc:rust-python:
-    desc: Rust client to Python server gRPC interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && grpc && rust-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-rust-python
-
-  test:rust-python:grpc:python-rust:
-    desc: Python client to Rust server gRPC interoperability test
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && grpc && python-rust
-          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-python-rust
-
-  test:rust-python:grpc:python-python:
-    desc: Python client to Python server gRPC interoperability test for the Rust/Python slice
-    cmds:
-      - task: test:rust-python:run
-        vars:
-          LABEL_FILTER: suite-rust-python && grpc && python-python
-          REPORT_NAME: report-agntcy-a2a-rust-python-grpc-python-python
-
-  test:python-dotnet:jsonrpc:
-    desc: Python and .NET JSON-RPC interoperability matrix
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-jsonrpc
-
-  test:python-dotnet:jsonrpc:python-python:
-    desc: Python client to Python server JSON-RPC interoperability test for the Python/.NET slice
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && jsonrpc && python-python
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-jsonrpc-python-python
-
-  test:python-dotnet:jsonrpc:python-dotnet:
-    desc: Python client to .NET server JSON-RPC interoperability test
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && jsonrpc && python-dotnet
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-jsonrpc-python-dotnet
-
-  test:python-dotnet:jsonrpc:dotnet-python:
-    desc: .NET client to Python server JSON-RPC interoperability test
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && jsonrpc && dotnet-python
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-jsonrpc-dotnet-python
-
-  test:python-dotnet:jsonrpc:dotnet-dotnet:
-    desc: .NET client to .NET server JSON-RPC interoperability test for the Python/.NET slice
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && jsonrpc && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-jsonrpc-dotnet-dotnet
-
-  test:python-dotnet:rest:
-    desc: Python and .NET HTTP+JSON interoperability matrix
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && rest
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-rest
-
-  test:python-dotnet:rest:python-python:
-    desc: Python client to Python server HTTP+JSON interoperability test for the Python/.NET slice
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && rest && python-python
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-rest-python-python
-
-  test:python-dotnet:rest:python-dotnet:
-    desc: Python client to .NET server HTTP+JSON interoperability test
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && rest && python-dotnet
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-rest-python-dotnet
-
-  test:python-dotnet:rest:dotnet-python:
-    desc: .NET client to Python server HTTP+JSON interoperability test
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && rest && dotnet-python
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-rest-dotnet-python
-
-  test:python-dotnet:rest:dotnet-dotnet:
-    desc: .NET client to .NET server HTTP+JSON interoperability test for the Python/.NET slice
-    cmds:
-      - task: test:python-dotnet:run
-        vars:
-          LABEL_FILTER: suite-python-dotnet && rest && dotnet-dotnet
-          REPORT_NAME: report-agntcy-a2a-python-dotnet-rest-dotnet-dotnet
-
-  test:rust-go:jsonrpc:
-    desc: Rust and Go JSON-RPC interoperability matrix
+  'test:go-dotnet:*:*':
+    desc: Go and .NET per-case task. Use test:go-dotnet:<jsonrpc|rest>:<go-go|go-dotnet|dotnet-go|dotnet-dotnet>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-go-dotnet && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: 'report-agntcy-a2a-go-dotnet-{{.TRANSPORT}}-{{.PAIR}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Go and .NET transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in go-go|go-dotnet|dotnet-go|dotnet-dotnet) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Go and .NET pair "{{.PAIR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && jsonrpc
-          REPORT_NAME: report-agntcy-a2a-jsonrpc
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:rest:
-    desc: Rust and Go HTTP+JSON interoperability matrix
+  'test:python-go:*:*':
+    desc: Python and Go per-case task. Use test:python-go:<jsonrpc|rest|grpc>:<go-go|go-python|python-go|python-python>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-python-go && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-go-{{.TRANSPORT}}-{{.PAIR}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and Go transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in go-go|go-python|python-go|python-python) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and Go pair "{{.PAIR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && rest
-          REPORT_NAME: report-agntcy-a2a-rest
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:grpc:
-    desc: Rust and Go gRPC interoperability matrix
+  'test:rust-python:*:*':
+    desc: Rust and Python per-case task. Use test:rust-python:<jsonrpc|rest|grpc>:<rust-rust|rust-python|python-rust|python-python>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-rust-python && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-python-{{.TRANSPORT}}-{{.PAIR}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Python transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in rust-rust|rust-python|python-rust|python-python) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Python pair "{{.PAIR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && grpc
-          REPORT_NAME: report-agntcy-a2a-grpc
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:jsonrpc:go-go:
-    desc: Go client to Go server JSON-RPC interoperability test
+  'test:python-dotnet:*:*':
+    desc: Python and .NET per-case task. Use test:python-dotnet:<jsonrpc|rest>:<python-python|python-dotnet|dotnet-python|dotnet-dotnet>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      PAIR: '{{index .MATCH 1}}'
+      LABEL_FILTER: 'suite-python-dotnet && {{.TRANSPORT}} && {{.PAIR}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-dotnet-{{.TRANSPORT}}-{{.PAIR}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and .NET transport "{{.TRANSPORT}}".'
+      - sh: 'case "{{.PAIR}}" in python-python|python-dotnet|dotnet-python|dotnet-dotnet) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and .NET pair "{{.PAIR}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && jsonrpc && go-go
-          REPORT_NAME: report-agntcy-a2a-go-go
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:jsonrpc:go-rust:
-    desc: Go client to Rust server JSON-RPC interoperability test
+  'test:rust-go:*':
+    desc: Rust and Go transport task. Use test:rust-go:<jsonrpc|rest|grpc>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-go && {{.TRANSPORT}}'
+      REPORT_NAME: '{{if eq .TRANSPORT "jsonrpc"}}report-agntcy-a2a-jsonrpc{{else if eq .TRANSPORT "rest"}}report-agntcy-a2a-rest{{else if eq .TRANSPORT "grpc"}}report-agntcy-a2a-grpc{{end}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Go transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && jsonrpc && go-rust
-          REPORT_NAME: report-agntcy-a2a-go-rust
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:jsonrpc:rust-go:
-    desc: Rust client to Go server JSON-RPC interoperability test
+  'test:rust-dotnet:*':
+    desc: Rust and .NET transport task. Use test:rust-dotnet:<jsonrpc|rest>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-dotnet && {{.TRANSPORT}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-dotnet-{{.TRANSPORT}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and .NET transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && jsonrpc && rust-go
-          REPORT_NAME: report-agntcy-a2a-rust-go
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:jsonrpc:rust-rust:
-    desc: Rust client to Rust server JSON-RPC interoperability test
+  'test:go-dotnet:*':
+    desc: Go and .NET transport task. Use test:go-dotnet:<jsonrpc|rest>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-go-dotnet && {{.TRANSPORT}}'
+      REPORT_NAME: 'report-agntcy-a2a-go-dotnet-{{.TRANSPORT}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Go and .NET transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && jsonrpc && rust-rust
-          REPORT_NAME: report-agntcy-a2a-rust-rust
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:rest:go-go:
-    desc: Go client to Go server HTTP+JSON interoperability test
+  'test:python-go:*':
+    desc: Python and Go transport task. Use test:python-go:<jsonrpc|rest|grpc>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-python-go && {{.TRANSPORT}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-go-{{.TRANSPORT}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and Go transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && rest && go-go
-          REPORT_NAME: report-agntcy-a2a-rest-go-go
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:rest:go-rust:
-    desc: Go client to Rust server HTTP+JSON interoperability test
+  'test:rust-python:*':
+    desc: Rust and Python transport task. Use test:rust-python:<jsonrpc|rest|grpc>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-rust-python && {{.TRANSPORT}}'
+      REPORT_NAME: 'report-agntcy-a2a-rust-python-{{.TRANSPORT}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest|grpc) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Rust and Python transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && rest && go-rust
-          REPORT_NAME: report-agntcy-a2a-rest-go-rust
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
-  test:rust-go:rest:rust-go:
-    desc: Rust client to Go server HTTP+JSON interoperability test
+  'test:python-dotnet:*':
+    desc: Python and .NET transport task. Use test:python-dotnet:<jsonrpc|rest>.
+    vars:
+      TRANSPORT: '{{index .MATCH 0}}'
+      LABEL_FILTER: 'suite-python-dotnet && {{.TRANSPORT}}'
+      REPORT_NAME: 'report-agntcy-a2a-python-dotnet-{{.TRANSPORT}}'
+    preconditions:
+      - sh: 'case "{{.TRANSPORT}}" in jsonrpc|rest) exit 0 ;; *) exit 1 ;; esac'
+        msg: 'Unsupported Python and .NET transport "{{.TRANSPORT}}".'
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-rust-go && rest && rust-go
-          REPORT_NAME: report-agntcy-a2a-rest-rust-go
-
-  test:rust-go:rest:rust-rust:
-    desc: Rust client to Rust server HTTP+JSON interoperability test
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: suite-rust-go && rest && rust-rust
-          REPORT_NAME: report-agntcy-a2a-rest-rust-rust
-
-  test:rust-go:grpc:go-go:
-    desc: Go client to Go server gRPC interoperability test
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: suite-rust-go && grpc && go-go
-          REPORT_NAME: report-agntcy-a2a-grpc-go-go
-
-  test:rust-go:grpc:go-rust:
-    desc: Go client to Rust server gRPC interoperability test
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: suite-rust-go && grpc && go-rust
-          REPORT_NAME: report-agntcy-a2a-grpc-go-rust
-
-  test:rust-go:grpc:rust-go:
-    desc: Rust client to Go server gRPC interoperability test
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: suite-rust-go && grpc && rust-go
-          REPORT_NAME: report-agntcy-a2a-grpc-rust-go
-
-  test:rust-go:grpc:rust-rust:
-    desc: Rust client to Rust server gRPC interoperability test
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: suite-rust-go && grpc && rust-rust
-          REPORT_NAME: report-agntcy-a2a-grpc-rust-rust
+          LABEL_FILTER: '{{.LABEL_FILTER}}'
+          REPORT_NAME: '{{.REPORT_NAME}}'
 
   test:interop:run:
     internal: true
@@ -966,54 +398,6 @@ tasks:
         {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}}
         --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json
         --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
-
-  test:rust-go:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
-
-  test:rust-dotnet:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
-
-  test:go-dotnet:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
-
-  test:python-go:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
-
-  test:rust-python:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
-
-  test:python-dotnet:run:
-    internal: true
-    cmds:
-      - task: test:interop:run
-        vars:
-          LABEL_FILTER: '{{.LABEL_FILTER}}'
-          REPORT_NAME: '{{.REPORT_NAME}}'
 
   default:
     cmd: task -l

@@ -14,69 +14,72 @@ import (
 
 var _ = ginkgo.Describe("A2A Python and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-python-dotnet"), func() {
 	var (
-		pythonAssets         pythonFixtureAssets
-		dotNetAssets         dotNetFixtureBinaries
-		pythonJSONRPCFixture *fixtureProcess
-		dotNetJSONRPCFixture *fixtureProcess
-		pythonRESTFixture    *fixtureProcess
-		dotNetRESTFixture    *fixtureProcess
-		pythonJSONRPCURL     string
-		dotNetJSONRPCURL     string
-		pythonRESTURL        string
-		dotNetRESTURL        string
+		pythonAssets pythonFixtureAssets
+		dotNetAssets dotNetFixtureBinaries
 	)
 
-	pythonPushUnsupported := pythonProbeHarness{
-		getAssets: func() pythonFixtureAssets { return pythonAssets },
-		options: rustProbeOptions{
+	runtime := newInteropSuiteRuntime()
+	protocols := []transportProtocol{transportJSONRPC, transportREST}
+	fixtures := []interopSuiteFixtureSpec{
+		{
+			label:    "python",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startPythonFixture(pythonAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "dotnet",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(dotNetAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "python",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startPythonFixture(pythonAssets, findFreePort(), transportREST)
+			},
+		},
+		{
+			label:    "dotnet",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(dotNetAssets, findFreePort(), transportREST)
+			},
+		},
+	}
+
+	pythonPushUnsupported := newPythonProbeHarness(
+		func() pythonFixtureAssets { return pythonAssets },
+		rustProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
-	}
-	pythonPushSupported := pythonProbeHarness{
-		getAssets: func() pythonFixtureAssets { return pythonAssets },
-		options: rustProbeOptions{
-			expectPushSupported: true,
-		},
-	}
-	dotNetPushUnsupported := dotNetProbeHarness{
-		getBinaries: func() dotNetFixtureBinaries { return dotNetAssets },
-		options: dotNetProbeOptions{
+	)
+	pythonPushSupported := newPythonProbeHarness(
+		func() pythonFixtureAssets { return pythonAssets },
+		rustProbeOptions{expectPushSupported: true},
+	)
+	dotNetPushUnsupported := newDotNetProbeHarness(
+		func() dotNetFixtureBinaries { return dotNetAssets },
+		dotNetProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
-	}
-	dotNetPushSupported := dotNetProbeHarness{
-		getBinaries: func() dotNetFixtureBinaries { return dotNetAssets },
-		options: dotNetProbeOptions{
-			expectPushSupported: true,
-		},
-	}
+	)
+	dotNetPushSupported := newDotNetProbeHarness(
+		func() dotNetFixtureBinaries { return dotNetAssets },
+		dotNetProbeOptions{expectPushSupported: true},
+	)
 	clients := []interopClientMatrixSpec{
 		{label: "python", displayName: "Python", harness: pythonPushUnsupported},
 		{label: "dotnet", displayName: ".NET", harness: dotNetPushUnsupported},
 	}
 	servers := []interopServerMatrixSpec{
-		{
-			label:               "python",
-			displayName:         "Python",
-			serverPrefix:        "python",
-			expectPushSupported: true,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return pythonJSONRPCURL },
-				transportREST:    func() string { return pythonRESTURL },
-			},
-		},
-		{
-			label:               "dotnet",
-			displayName:         ".NET",
-			serverPrefix:        "dotnet",
-			expectPushSupported: false,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return dotNetJSONRPCURL },
-				transportREST:    func() string { return dotNetRESTURL },
-			},
-		},
+		newInteropServerSpec(runtime, "python", "Python", "python", true, protocols...),
+		newInteropServerSpec(runtime, "dotnet", ".NET", "dotnet", false, protocols...),
 	}
 	clientHarnessOverrides := map[string]interopHarness{
 		interopPairKey("python", "python"): pythonPushSupported,
@@ -92,30 +95,18 @@ var _ = ginkgo.Describe("A2A Python and .NET interoperability", ginkgo.Ordered, 
 		dotNetAssets, err = buildDotNetFixtureBinaryOnly()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		pythonJSONRPCFixture, pythonJSONRPCURL, err = startPythonFixture(pythonAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		dotNetJSONRPCFixture, dotNetJSONRPCURL, err = startDotNetFixture(dotNetAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		pythonRESTFixture, pythonRESTURL, err = startPythonFixture(pythonAssets, findFreePort(), transportREST)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		dotNetRESTFixture, dotNetRESTURL, err = startDotNetFixture(dotNetAssets, findFreePort(), transportREST)
+		err = startInteropSuiteFixtures(runtime, fixtures)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
-		stopFixtureIfRunning(dotNetRESTFixture)
-		stopFixtureIfRunning(pythonRESTFixture)
-		stopFixtureIfRunning(dotNetJSONRPCFixture)
-		stopFixtureIfRunning(pythonJSONRPCFixture)
+		runtime.stopFixtures(fixtures)
 		removeTempDir(dotNetAssets.tempDir)
 		removeTempDir(pythonAssets.tempDir)
 	})
 
 	registerInteropTransportMatrixWithOverrides(
-		[]transportProtocol{transportJSONRPC, transportREST},
+		protocols,
 		clients,
 		servers,
 		nil,

@@ -17,71 +17,72 @@ import (
 const dotNetPushUnsupportedCode = -32003
 
 var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-rust-dotnet"), func() {
-	var (
-		binaries                rustDotNetFixtureBinaries
-		dotnetJSONRPCFixture    *fixtureProcess
-		rustJSONRPCFixture      *fixtureProcess
-		dotnetRESTFixture       *fixtureProcess
-		rustRESTFixture         *fixtureProcess
-		dotnetJSONRPCFixtureURL string
-		rustJSONRPCFixtureURL   string
-		dotnetRESTFixtureURL    string
-		rustRESTFixtureURL      string
-	)
+	var binaries rustDotNetFixtureBinaries
+
+	runtime := newInteropSuiteRuntime()
+	protocols := []transportProtocol{transportJSONRPC, transportREST}
+	fixtures := []interopSuiteFixtureSpec{
+		{
+			label:    "dotnet",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "rust",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startRustFixture(binaries.rustAssets(), findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "dotnet",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportREST)
+			},
+		},
+		{
+			label:    "rust",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startRustFixture(binaries.rustAssets(), findFreePort(), transportREST)
+			},
+		},
+	}
 
 	rustAssets := func() fixtureBinaries { return binaries.rustAssets() }
 	dotNetAssets := func() dotNetFixtureBinaries { return binaries.dotNetAssets() }
-	dotNetPushUnsupported := dotNetProbeHarness{
-		getBinaries: dotNetAssets,
-		options: dotNetProbeOptions{
+	dotNetPushUnsupported := newDotNetProbeHarness(
+		dotNetAssets,
+		dotNetProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
-	}
-	dotNetPushSupported := dotNetProbeHarness{
-		getBinaries: dotNetAssets,
-		options: dotNetProbeOptions{
-			expectPushSupported: true,
-		},
-	}
-	rustPushUnsupported := rustProbeHarness{
-		getBinaries: rustAssets,
-		options: rustProbeOptions{
+	)
+	dotNetPushSupported := newDotNetProbeHarness(
+		dotNetAssets,
+		dotNetProbeOptions{expectPushSupported: true},
+	)
+	rustPushUnsupported := newRustProbeHarness(
+		rustAssets,
+		rustProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
-	}
-	rustPushSupported := rustProbeHarness{
-		getBinaries: rustAssets,
-		options: rustProbeOptions{
-			expectPushSupported: true,
-		},
-	}
+	)
+	rustPushSupported := newRustProbeHarness(
+		rustAssets,
+		rustProbeOptions{expectPushSupported: true},
+	)
 	clients := []interopClientMatrixSpec{
 		{label: "dotnet", displayName: ".NET", harness: dotNetPushUnsupported},
 		{label: "rust", displayName: "Rust", harness: rustPushUnsupported},
 	}
 	servers := []interopServerMatrixSpec{
-		{
-			label:               "dotnet",
-			displayName:         ".NET",
-			serverPrefix:        "dotnet",
-			expectPushSupported: false,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return dotnetJSONRPCFixtureURL },
-				transportREST:    func() string { return dotnetRESTFixtureURL },
-			},
-		},
-		{
-			label:               "rust",
-			displayName:         "Rust",
-			serverPrefix:        "rust",
-			expectPushSupported: true,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return rustJSONRPCFixtureURL },
-				transportREST:    func() string { return rustRESTFixtureURL },
-			},
-		},
+		newInteropServerSpec(runtime, "dotnet", ".NET", "dotnet", false, protocols...),
+		newInteropServerSpec(runtime, "rust", "Rust", "rust", true, protocols...),
 	}
 	clientHarnessOverrides := map[string]interopHarness{
 		interopPairKey("dotnet", "rust"): dotNetPushSupported,
@@ -94,29 +95,17 @@ var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, gi
 		binaries, err = buildRustDotNetFixtureBinaries()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		dotnetJSONRPCFixture, dotnetJSONRPCFixtureURL, err = startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		rustJSONRPCFixture, rustJSONRPCFixtureURL, err = startRustFixture(binaries.rustAssets(), findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		dotnetRESTFixture, dotnetRESTFixtureURL, err = startDotNetFixture(binaries.dotNetAssets(), findFreePort(), transportREST)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		rustRESTFixture, rustRESTFixtureURL, err = startRustFixture(binaries.rustAssets(), findFreePort(), transportREST)
+		err = startInteropSuiteFixtures(runtime, fixtures)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
-		stopFixtureIfRunning(rustRESTFixture)
-		stopFixtureIfRunning(dotnetRESTFixture)
-		stopFixtureIfRunning(rustJSONRPCFixture)
-		stopFixtureIfRunning(dotnetJSONRPCFixture)
+		runtime.stopFixtures(fixtures)
 		removeTempDir(binaries.tempDir)
 	})
 
 	registerInteropTransportMatrixWithOverrides(
-		[]transportProtocol{transportJSONRPC, transportREST},
+		protocols,
 		clients,
 		servers,
 		map[string]string{interopPairKey("rust", "rust"): "rust-rust-dotnet"},

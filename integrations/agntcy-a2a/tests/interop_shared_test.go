@@ -264,6 +264,98 @@ func removeTempDir(path string) {
 	gomega.Expect(os.RemoveAll(path)).To(gomega.Succeed())
 }
 
+type interopSuiteFixtureSpec struct {
+	label    string
+	protocol transportProtocol
+	start    func() (*fixtureProcess, string, error)
+}
+
+type interopSuiteRuntime struct {
+	fixtures map[string]*fixtureProcess
+	urls     map[string]string
+}
+
+func newInteropSuiteRuntime() *interopSuiteRuntime {
+	return &interopSuiteRuntime{
+		fixtures: map[string]*fixtureProcess{},
+		urls:     map[string]string{},
+	}
+}
+
+func interopSuiteFixtureKey(label string, protocol transportProtocol) string {
+	return label + ":" + string(protocol)
+}
+
+func (runtime *interopSuiteRuntime) setFixture(
+	label string,
+	protocol transportProtocol,
+	process *fixtureProcess,
+	url string,
+) {
+	key := interopSuiteFixtureKey(label, protocol)
+	runtime.fixtures[key] = process
+	runtime.urls[key] = url
+}
+
+func (runtime *interopSuiteRuntime) fixtureURL(label string, protocol transportProtocol) string {
+	return runtime.urls[interopSuiteFixtureKey(label, protocol)]
+}
+
+func (runtime *interopSuiteRuntime) fixtureURLs(
+	label string,
+	protocols ...transportProtocol,
+) map[transportProtocol]func() string {
+	urls := make(map[transportProtocol]func() string, len(protocols))
+	for _, protocol := range protocols {
+		protocol := protocol
+		urls[protocol] = func() string {
+			return runtime.fixtureURL(label, protocol)
+		}
+	}
+
+	return urls
+}
+
+func (runtime *interopSuiteRuntime) stopFixtures(fixtures []interopSuiteFixtureSpec) {
+	for index := len(fixtures) - 1; index >= 0; index-- {
+		fixture := fixtures[index]
+		stopFixtureIfRunning(runtime.fixtures[interopSuiteFixtureKey(fixture.label, fixture.protocol)])
+	}
+}
+
+func startInteropSuiteFixtures(runtime *interopSuiteRuntime, fixtures []interopSuiteFixtureSpec) error {
+	started := make([]interopSuiteFixtureSpec, 0, len(fixtures))
+	for _, fixture := range fixtures {
+		process, url, err := fixture.start()
+		if err != nil {
+			runtime.stopFixtures(started)
+			return err
+		}
+
+		runtime.setFixture(fixture.label, fixture.protocol, process, url)
+		started = append(started, fixture)
+	}
+
+	return nil
+}
+
+func newInteropServerSpec(
+	runtime *interopSuiteRuntime,
+	label string,
+	displayName string,
+	serverPrefix string,
+	expectPushSupported bool,
+	protocols ...transportProtocol,
+) interopServerMatrixSpec {
+	return interopServerMatrixSpec{
+		label:               label,
+		displayName:         displayName,
+		serverPrefix:        serverPrefix,
+		expectPushSupported: expectPushSupported,
+		urls:                runtime.fixtureURLs(label, protocols...),
+	}
+}
+
 func expectedServerText(serverPrefix string, text string) string {
 	return fmt.Sprintf("%s server received: %s", serverPrefix, text)
 }

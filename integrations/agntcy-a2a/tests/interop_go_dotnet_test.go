@@ -13,56 +13,61 @@ import (
 
 var _ = ginkgo.Describe("A2A Go and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-go-dotnet"), func() {
 	var (
-		goAssets             fixtureBinaries
-		dotNetAssets         dotNetFixtureBinaries
-		goJSONRPCFixture     *fixtureProcess
-		dotNetJSONRPCFixture *fixtureProcess
-		goRESTFixture        *fixtureProcess
-		dotNetRESTFixture    *fixtureProcess
-		goJSONRPCFixtureURL  string
-		dotNetJSONRPCURL     string
-		goRESTFixtureURL     string
-		dotNetRESTURL        string
+		goAssets     fixtureBinaries
+		dotNetAssets dotNetFixtureBinaries
 	)
 
-	dotNetPushUnsupported := dotNetProbeHarness{
-		getBinaries: func() dotNetFixtureBinaries { return dotNetAssets },
-		options: dotNetProbeOptions{
+	runtime := newInteropSuiteRuntime()
+	protocols := []transportProtocol{transportJSONRPC, transportREST}
+	fixtures := []interopSuiteFixtureSpec{
+		{
+			label:    "go",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startGoFixture(goAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "dotnet",
+			protocol: transportJSONRPC,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(dotNetAssets, findFreePort(), transportJSONRPC)
+			},
+		},
+		{
+			label:    "go",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startGoFixture(goAssets, findFreePort(), transportREST)
+			},
+		},
+		{
+			label:    "dotnet",
+			protocol: transportREST,
+			start: func() (*fixtureProcess, string, error) {
+				return startDotNetFixture(dotNetAssets, findFreePort(), transportREST)
+			},
+		},
+	}
+
+	dotNetPushUnsupported := newDotNetProbeHarness(
+		func() dotNetFixtureBinaries { return dotNetAssets },
+		dotNetProbeOptions{
 			expectPushUnsupported: true,
 			expectedPushErrorCode: dotNetPushUnsupportedCode,
 		},
-	}
-	dotNetPushSupported := dotNetProbeHarness{
-		getBinaries: func() dotNetFixtureBinaries { return dotNetAssets },
-		options: dotNetProbeOptions{
-			expectPushSupported: true,
-		},
-	}
+	)
+	dotNetPushSupported := newDotNetProbeHarness(
+		func() dotNetFixtureBinaries { return dotNetAssets },
+		dotNetProbeOptions{expectPushSupported: true},
+	)
 	clients := []interopClientMatrixSpec{
 		{label: "go", displayName: "Go", harness: goSDKHarness{}},
 		{label: "dotnet", displayName: ".NET", harness: dotNetPushUnsupported},
 	}
 	servers := []interopServerMatrixSpec{
-		{
-			label:               "go",
-			displayName:         "Go",
-			serverPrefix:        "go",
-			expectPushSupported: true,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return goJSONRPCFixtureURL },
-				transportREST:    func() string { return goRESTFixtureURL },
-			},
-		},
-		{
-			label:               "dotnet",
-			displayName:         ".NET",
-			serverPrefix:        "dotnet",
-			expectPushSupported: false,
-			urls: map[transportProtocol]func() string{
-				transportJSONRPC: func() string { return dotNetJSONRPCURL },
-				transportREST:    func() string { return dotNetRESTURL },
-			},
-		},
+		newInteropServerSpec(runtime, "go", "Go", "go", true, protocols...),
+		newInteropServerSpec(runtime, "dotnet", ".NET", "dotnet", false, protocols...),
 	}
 	clientHarnessOverrides := map[string]interopHarness{
 		interopPairKey("dotnet", "go"): dotNetPushSupported,
@@ -77,30 +82,18 @@ var _ = ginkgo.Describe("A2A Go and .NET interoperability", ginkgo.Ordered, gink
 		dotNetAssets, err = buildDotNetFixtureBinaryOnly()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		goJSONRPCFixture, goJSONRPCFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		dotNetJSONRPCFixture, dotNetJSONRPCURL, err = startDotNetFixture(dotNetAssets, findFreePort(), transportJSONRPC)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		goRESTFixture, goRESTFixtureURL, err = startGoFixture(goAssets, findFreePort(), transportREST)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		dotNetRESTFixture, dotNetRESTURL, err = startDotNetFixture(dotNetAssets, findFreePort(), transportREST)
+		err = startInteropSuiteFixtures(runtime, fixtures)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
-		stopFixtureIfRunning(dotNetRESTFixture)
-		stopFixtureIfRunning(goRESTFixture)
-		stopFixtureIfRunning(dotNetJSONRPCFixture)
-		stopFixtureIfRunning(goJSONRPCFixture)
+		runtime.stopFixtures(fixtures)
 		removeTempDir(dotNetAssets.tempDir)
 		removeTempDir(goAssets.tempDir)
 	})
 
 	registerInteropTransportMatrixWithOverrides(
-		[]transportProtocol{transportJSONRPC, transportREST},
+		protocols,
 		clients,
 		servers,
 		nil,
