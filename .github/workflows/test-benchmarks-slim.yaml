@@ -445,3 +445,145 @@ jobs:
           name: slim-benchmark-basic-report
           path: benchmarks/agntcy-slim/published/basic
           retention-days: 30
+
+  publish-pages:
+    name: Publish benchmark dashboard to GitHub Pages
+    needs: [slim-benchmark-smoke, slim-benchmark-basic]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: "test-report-pages"
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+          cache-dependency-path: |
+            integrations/go.sum
+            benchmarks/go.sum
+
+      - name: Download smoke report from this run
+        uses: actions/download-artifact@v4
+        with:
+          name: slim-benchmark-smoke-report
+          run-id: ${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: site/benchmarks/slim/smoke
+
+      - name: Download basic benchmark report from this run
+        uses: actions/download-artifact@v4
+        with:
+          name: slim-benchmark-basic-report
+          run-id: ${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: site/benchmarks/slim/basic
+
+      - name: Download capacity report from this run
+        id: capacity
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: slim-benchmark-capacity-report
+          run-id: ${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: site/benchmarks/slim/capacity
+
+      - name: Fetch latest A2A interop artifacts
+        id: a2a
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "has-a2a=false" >> "$GITHUB_OUTPUT"
+
+          api_get() {
+            curl -fsSL \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "$1"
+          }
+
+          runs_json=$(api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/test-integrations.yaml/runs?branch=main&status=success&per_page=15")
+          run_ids=$(echo "$runs_json" | jq -r '.workflow_runs[].id')
+
+          for run_id in $run_ids; do
+            artifacts=$(api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100")
+            count=$(echo "$artifacts" | jq '[.artifacts[].name | select(test("^a2a-interop-test-result-"))] | length')
+            if [[ "$count" -gt 0 ]]; then
+              echo "found A2A artifacts in run $run_id"
+              echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "has-a2a=true" >> "$GITHUB_OUTPUT"
+              break
+            fi
+          done
+
+      - name: Download A2A report artifacts
+        if: steps.a2a.outputs.has-a2a == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.a2a.outputs.run-id }}
+          pattern: a2a-interop-test-result-*
+          merge-multiple: true
+          path: site/a2a
+
+      - name: Rebuild A2A dashboard
+        if: steps.a2a.outputs.has-a2a == 'true'
+        working-directory: ./integrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./agntcy-a2a/tools/report_dashboard.go \
+            --reports-dir ../site/a2a \
+            --output ../site/a2a/index.html
+
+      - name: Rebuild SLIM benchmark dashboard
+        working-directory: ./benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(go run ./agntcy-slim/tools/report_dashboard.go
+            --smoke-dir ../site/benchmarks/slim/smoke
+            --capacity-dir ../site/benchmarks/slim/capacity
+            --output ../site/benchmarks/slim/index.html)
+          if [[ -f ../site/benchmarks/slim/basic/basic-benchmark-results.csv ]]; then
+            args+=(--basic-csv ../site/benchmarks/slim/basic/basic-benchmark-results.csv)
+          fi
+          "${args[@]}"
+
+      - name: Build site landing page
+        shell: bash
+        run: |
+          HAS_A2A="$([ -f site/a2a/index.html ] && echo true || echo false)" \
+          HAS_BENCHMARKS="$([ -f site/benchmarks/slim/index.html ] && echo true || echo false)" \
+          bash .github/scripts/build-site-landing-page.sh
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

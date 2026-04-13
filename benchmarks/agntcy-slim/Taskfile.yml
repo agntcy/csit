@@ -28,6 +28,7 @@ vars:
   BASIC_BENCH_MSGS_PER_SENDER: '{{ .BASIC_BENCH_MSGS_PER_SENDER | default "100000" }}'
   BASIC_BENCH_RUNS: '{{ .BASIC_BENCH_RUNS | default "3" }}'
   CI_BASIC_BENCH_MSGS_PER_SENDER: '{{ .CI_BASIC_BENCH_MSGS_PER_SENDER | default "10000" }}'
+  CI_BASIC_BENCH_RUNS: '{{ .CI_BASIC_BENCH_RUNS | default "20" }}'
   BASIC_BENCH_CSV: '{{ .BASIC_BENCH_CSV | default "./reports/basic-benchmark-results.csv" }}'
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "fire-and-forget" }}'
@@ -358,7 +359,7 @@ tasks:
           --ginkgo.timeout 60m -timeout 60m
 
   benchmark:ci:basic:
-    desc: Run the CI basic throughput benchmark with bandwidth-safe message counts
+    desc: Run the CI basic throughput benchmark with bandwidth-safe message counts and 20 runs for confidence intervals
     dir: .
     deps:
       - benchmark:local:cleanup
@@ -366,7 +367,7 @@ tasks:
     env:
       SLIM_RUN_BASIC_BENCHMARK: '1'
       BASIC_BENCH_MSGS_PER_SENDER: '{{ .CI_BASIC_BENCH_MSGS_PER_SENDER }}'
-      BASIC_BENCH_RUNS: '3'
+      BASIC_BENCH_RUNS: '{{ .CI_BASIC_BENCH_RUNS }}'
     cmds:
       - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v
           --ginkgo.label-filter basic-benchmark
