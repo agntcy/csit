@@ -7,13 +7,22 @@ on:
   workflow_run:
     workflows:
       - test-integrations
+      - test-benchmarks-slim
     types:
       - completed
   workflow_dispatch:
     inputs:
-      run_id:
-        description: "Workflow run ID to publish"
-        required: true
+      integrations_run_id:
+        description: "Optional test-integrations run ID override"
+        required: false
+        type: string
+      benchmark_run_id:
+        description: "Optional test-benchmarks-slim run ID override"
+        required: false
+        type: string
+      slim_repo_benchmark_run_id:
+        description: "Optional agntcy/slim benchmark.yaml run ID for importing benchmark-results.csv"
+        required: false
         type: string
 
 permissions:
@@ -33,36 +42,129 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || github.event.workflow_run.id }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve source runs
+        id: resolve
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          INPUT_INTEGRATIONS_RUN_ID: ${{ inputs.integrations_run_id || '' }}
+          INPUT_BENCHMARK_RUN_ID: ${{ inputs.benchmark_run_id || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api_get() {
+            curl -fsSL \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "$1"
+          }
+
+          run_artifacts() {
+            local run_id="$1"
+            api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100"
+          }
+
+          has_matching_artifact() {
+            local artifacts_json="$1"
+            local pattern="$2"
+            local count
+            count=$(echo "$artifacts_json" | jq --arg pattern "$pattern" '[.artifacts[].name | select(test($pattern))] | length')
+            [[ "$count" -gt 0 ]]
+          }
+
+          resolve_run_with_artifact() {
+            local workflow_file="$1"
+            local pattern="$2"
+            local runs_json run_ids run_id artifacts_json
+
+            runs_json=$(api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs?branch=${DEFAULT_BRANCH}&status=success&per_page=15")
+            run_ids=$(echo "$runs_json" | jq -r '.workflow_runs[].id')
+
+            for run_id in $run_ids; do
+              artifacts_json=$(run_artifacts "$run_id")
+              if has_matching_artifact "$artifacts_json" "$pattern"; then
+                echo "$run_id"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          integrations_run_id="${INPUT_INTEGRATIONS_RUN_ID}"
+          if [[ -z "$integrations_run_id" ]]; then
+            integrations_run_id="$(resolve_run_with_artifact test-integrations.yaml '^a2a-interop-test-result-' || true)"
+          fi
+
+          benchmark_run_id="${INPUT_BENCHMARK_RUN_ID}"
+          if [[ -z "$benchmark_run_id" ]]; then
+            benchmark_run_id="$(resolve_run_with_artifact test-benchmarks-slim.yaml '^slim-benchmark-smoke-report$' || true)"
+          fi
+
+          has_a2a=false
+          if [[ -n "$integrations_run_id" ]]; then
+            integrations_artifacts_json=$(run_artifacts "$integrations_run_id")
+            if has_matching_artifact "$integrations_artifacts_json" '^a2a-interop-test-result-'; then
+              has_a2a=true
+            fi
+          fi
+
+          has_benchmark_smoke=false
+          has_benchmark_capacity=false
+          has_benchmark_basic=false
+          if [[ -n "$benchmark_run_id" ]]; then
+            benchmark_artifacts_json=$(run_artifacts "$benchmark_run_id")
+            if has_matching_artifact "$benchmark_artifacts_json" '^slim-benchmark-smoke-report$'; then
+              has_benchmark_smoke=true
+            fi
+            if has_matching_artifact "$benchmark_artifacts_json" '^slim-benchmark-capacity-report$'; then
+              has_benchmark_capacity=true
+            fi
+            if has_matching_artifact "$benchmark_artifacts_json" '^slim-benchmark-basic-report$'; then
+              has_benchmark_basic=true
+            fi
+          fi
+
+          echo "integrations-run-id=$integrations_run_id" >> "$GITHUB_OUTPUT"
+          echo "benchmark-run-id=$benchmark_run_id" >> "$GITHUB_OUTPUT"
+          echo "has-a2a=$has_a2a" >> "$GITHUB_OUTPUT"
+          echo "has-benchmark-smoke=$has_benchmark_smoke" >> "$GITHUB_OUTPUT"
+          echo "has-benchmark-capacity=$has_benchmark_capacity" >> "$GITHUB_OUTPUT"
+          echo "has-benchmark-basic=$has_benchmark_basic" >> "$GITHUB_OUTPUT"
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.4'
-          cache-dependency-path: integrations/go.sum
+          cache-dependency-path: |
+            integrations/go.sum
+            benchmarks/go.sum
 
       - name: Download A2A report artifacts
+        if: ${{ steps.resolve.outputs.has-a2a == 'true' }}
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: ${{ env.SOURCE_RUN_ID }}
+          run-id: ${{ steps.resolve.outputs.integrations-run-id }}
           pattern: a2a-interop-test-result-*
           merge-multiple: true
           path: site/a2a
 
       - name: Verify downloaded reports
+        if: ${{ steps.resolve.outputs.has-a2a == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
           compgen -G "site/a2a/*.json" > /dev/null
 
       - name: Rebuild merged A2A dashboard
+        if: ${{ steps.resolve.outputs.has-a2a == 'true' }}
         working-directory: ./integrations
         shell: bash
         run: |
@@ -71,10 +173,115 @@ jobs:
             --reports-dir ../site/a2a \
             --output ../site/a2a/index.html
 
+      - name: Download SLIM benchmark smoke bundle
+        if: ${{ steps.resolve.outputs.has-benchmark-smoke == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.benchmark-run-id }}
+          name: slim-benchmark-smoke-report
+          path: site/benchmarks/slim/smoke
+
+      - name: Download SLIM benchmark capacity bundle
+        if: ${{ steps.resolve.outputs.has-benchmark-capacity == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.benchmark-run-id }}
+          name: slim-benchmark-capacity-report
+          path: site/benchmarks/slim/capacity
+
+      - name: Download SLIM benchmark basic report
+        if: ${{ steps.resolve.outputs.has-benchmark-basic == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.benchmark-run-id }}
+          name: slim-benchmark-basic-report
+          path: site/benchmarks/slim/basic
+
+      - name: Download optional agntcy/slim benchmark CSV
+        id: slim-external
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.slim_repo_benchmark_run_id != '' }}
+        env:
+          SLIM_RUN_ID: ${{ inputs.slim_repo_benchmark_run_id }}
+          SLIM_TOKEN: ${{ secrets.SLIM_REPO_ACTIONS_READ_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "has-slim-external=false" >> "$GITHUB_OUTPUT"
+
+          if [[ -z "${SLIM_TOKEN}" ]]; then
+            echo "SLIM_REPO_ACTIONS_READ_TOKEN is not configured; skipping external slim benchmark import."
+            exit 0
+          fi
+
+          artifacts_json=$(curl -fsSL \
+            -H "Authorization: Bearer ${SLIM_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/agntcy/slim/actions/runs/${SLIM_RUN_ID}/artifacts?per_page=100")
+
+          download_url=$(echo "$artifacts_json" | jq -r '.artifacts[] | select(.name | startswith("benchmark-results-")) | .archive_download_url' | head -n1)
+          if [[ -z "${download_url}" ]]; then
+            echo "No retained benchmark-results artifact was found for agntcy/slim run ${SLIM_RUN_ID}."
+            exit 0
+          fi
+
+          mkdir -p site/benchmarks/slim/external
+          archive_path=$(mktemp "${RUNNER_TEMP}/slim-benchmark-XXXXXX.zip")
+          trap 'rm -f "$archive_path"' EXIT
+
+          curl -fsSL -L \
+            -H "Authorization: Bearer ${SLIM_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "$download_url" \
+            -o "$archive_path"
+
+          unzip -qo "$archive_path" -d site/benchmarks/slim/external
+          csv_path=$(find site/benchmarks/slim/external -type f -name 'benchmark-results*.csv' | head -n1 || true)
+          if [[ -z "$csv_path" ]]; then
+            echo "The downloaded artifact did not contain a benchmark-results CSV."
+            exit 0
+          fi
+
+          if [[ "$(basename "$csv_path")" != "benchmark-results.csv" ]]; then
+            cp "$csv_path" site/benchmarks/slim/external/benchmark-results.csv
+          fi
+
+          echo "has-slim-external=true" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild merged SLIM benchmark dashboard
+        if: ${{ steps.resolve.outputs.has-benchmark-smoke == 'true' || steps.resolve.outputs.has-benchmark-capacity == 'true' || steps.resolve.outputs.has-benchmark-basic == 'true' || steps.slim-external.outputs.has-slim-external == 'true' }}
+        working-directory: ./benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(go run ./agntcy-slim/tools/report_dashboard.go --smoke-dir ../site/benchmarks/slim/smoke --capacity-dir ../site/benchmarks/slim/capacity --output ../site/benchmarks/slim/index.html)
+          if [[ -f ../site/benchmarks/slim/basic/basic-benchmark-results.csv ]]; then
+            args+=(--basic-csv ../site/benchmarks/slim/basic/basic-benchmark-results.csv)
+          fi
+          if [[ -f ../site/benchmarks/slim/external/benchmark-results.csv ]]; then
+            args+=(--slim-csv ../site/benchmarks/slim/external/benchmark-results.csv)
+          fi
+          "${args[@]}"
+
       - name: Build site landing page
         shell: bash
         run: |
           set -euo pipefail
+
+          has_a2a=false
+          has_benchmarks=false
+          if [[ -f site/a2a/index.html ]]; then
+            has_a2a=true
+          fi
+          if [[ -f site/benchmarks/slim/index.html ]]; then
+            has_benchmarks=true
+          fi
+
           cat > site/index.html <<'EOF'
           <!doctype html>
           <html lang="en">
@@ -178,17 +385,57 @@ jobs:
             <main>
               <div class="eyebrow">GitHub Pages</div>
               <h1>CSIT Test Reports</h1>
-              <p>This site publishes static report outputs from CI in a format that is easy to browse and extend. The first published slice is the A2A interoperability dashboard.</p>
+              <p>This site publishes static report outputs from CI in a format that is easy to browse and extend. It currently exposes the A2A interoperability matrix and the SLIM benchmark dashboards, with optional external benchmark overlays when they are imported explicitly.</p>
               <div class="card-grid">
+          EOF
+
+          if [[ "$has_a2a" == true ]]; then
+            cat >> site/index.html <<'EOF'
                 <a class="report-card" href="./a2a/">
                   <h2>A2A interoperability</h2>
                   <p>Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.</p>
                   <span>Open report</span>
                 </a>
+            EOF
+          fi
+
+          if [[ "$has_benchmarks" == true ]]; then
+            cat >> site/index.html <<'EOF'
+                <a class="report-card" href="./benchmarks/slim/">
+                  <h2>SLIM benchmarks</h2>
+                  <p>CSIT smoke and capacity benchmark dashboards, with support for an optional agntcy/slim data-plane benchmark CSV overlay.</p>
+                  <span>Open report</span>
+                </a>
+            EOF
+          fi
+
+          cat >> site/index.html <<'EOF'
               </div>
               <footer>
-                Source workflow run:
-                <a href="https://github.com/${{ github.repository }}/actions/runs/${{ env.SOURCE_RUN_ID }}">${{ env.SOURCE_RUN_ID }}</a>
+                Publication sources:
+          EOF
+
+          if [[ -n '${{ steps.resolve.outputs.integrations-run-id }}' ]]; then
+            cat >> site/index.html <<'EOF'
+                <a href="https://github.com/${{ github.repository }}/actions/runs/${{ steps.resolve.outputs.integrations-run-id }}">test-integrations run ${{ steps.resolve.outputs.integrations-run-id }}</a>
+            EOF
+          fi
+
+          if [[ -n '${{ steps.resolve.outputs.benchmark-run-id }}' ]]; then
+            cat >> site/index.html <<'EOF'
+                <br>
+                <a href="https://github.com/${{ github.repository }}/actions/runs/${{ steps.resolve.outputs.benchmark-run-id }}">test-benchmarks-slim run ${{ steps.resolve.outputs.benchmark-run-id }}</a>
+            EOF
+          fi
+
+          if [[ -n '${{ inputs.slim_repo_benchmark_run_id || '' }}' ]]; then
+            cat >> site/index.html <<'EOF'
+                <br>
+                <a href="https://github.com/agntcy/slim/actions/runs/${{ inputs.slim_repo_benchmark_run_id }}">agntcy/slim benchmark run ${{ inputs.slim_repo_benchmark_run_id }}</a>
+            EOF
+          fi
+
+          cat >> site/index.html <<'EOF'
               </footer>
             </main>
           </body>

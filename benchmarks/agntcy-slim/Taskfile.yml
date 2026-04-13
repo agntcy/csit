@@ -15,12 +15,20 @@ vars:
   BENCH_WRITE_RATES: '{{ .BENCH_WRITE_RATES | default "" }}'
   BENCH_DURATION: '{{ .BENCH_DURATION | default "5s" }}'
   BENCH_REPEATS: '{{ .BENCH_REPEATS | default "1" }}'
+  MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS | default "20" }}'
   CI_BENCH_REPEATS: '{{ .CI_BENCH_REPEATS | default "25" }}'
   SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
   SLIM_BINDINGS_SETUP_VERSION: '{{ .SLIM_BINDINGS_SETUP_VERSION | default "v1.2.0" }}'
   CI_CAPACITY_REPEATS: '{{ .CI_CAPACITY_REPEATS | default "25" }}'
   CI_CAPACITY_SWEEP_REPEATS: '{{ .CI_CAPACITY_SWEEP_REPEATS | default "25" }}'
+
+  BASIC_BENCH_SENDERS: '{{ .BASIC_BENCH_SENDERS | default "1 2 4 8" }}'
+  BASIC_BENCH_PAYLOAD_SIZES: '{{ .BASIC_BENCH_PAYLOAD_SIZES | default "8 16 64 256 1024 4096" }}'
+  BASIC_BENCH_MSGS_PER_SENDER: '{{ .BASIC_BENCH_MSGS_PER_SENDER | default "100000" }}'
+  BASIC_BENCH_RUNS: '{{ .BASIC_BENCH_RUNS | default "3" }}'
+  CI_BASIC_BENCH_MSGS_PER_SENDER: '{{ .CI_BASIC_BENCH_MSGS_PER_SENDER | default "10000" }}'
+  BASIC_BENCH_CSV: '{{ .BASIC_BENCH_CSV | default "./reports/basic-benchmark-results.csv" }}'
 
   CAPACITY_MODES: '{{ .CAPACITY_MODES | default "fire-and-forget" }}'
   CAPACITY_CLIENTS: '{{ .CAPACITY_CLIENTS | default "1" }}'
@@ -142,6 +150,34 @@ tasks:
     cmds:
       - go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v --ginkgo.json-report=../../reports/test-report-agntcy-slim.json --ginkgo.junit-report=../../reports/test-report-agntcy-slim.xml
 
+  reports:dashboard:
+    desc: Render the SLIM benchmark HTML dashboard from the available report artifacts and optional agntcy/slim CSV
+    dir: .
+    vars:
+      SMOKE_DIR: '{{ .SMOKE_DIR | default "./reports" }}'
+      CAPACITY_DIR: '{{ .CAPACITY_DIR | default "./reports" }}'
+      SLIM_REPO_CSV: '{{ .SLIM_REPO_CSV | default "./reports/external/benchmark-results.csv" }}'
+      OUTPUT_FILE: '{{ .OUTPUT_FILE | default "./reports/index.html" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        cmd=(go run ./tools/report_dashboard.go --smoke-dir '{{ .SMOKE_DIR }}' --capacity-dir '{{ .CAPACITY_DIR }}' --min-ci-runs '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}' --output '{{ .OUTPUT_FILE }}')
+        if [ -n '{{ .SLIM_REPO_CSV }}' ]; then
+          cmd+=(--slim-csv '{{ .SLIM_REPO_CSV }}')
+        fi
+        if [ -f '{{ .BASIC_BENCH_CSV }}' ]; then
+          cmd+=(--basic-csv '{{ .BASIC_BENCH_CSV }}')
+        fi
+        "${cmd[@]}"
+
+  benchmark:report:
+    desc: Run the local SLIM benchmark suite and render the HTML dashboard from the generated report artifacts and optional agntcy/slim CSV
+    dir: .
+    deps:
+      - benchmark:suite
+    cmds:
+      - task reports:dashboard MIN_CONFIDENCE_INTERVAL_RUNS='{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}' SLIM_REPO_CSV='{{ .SLIM_REPO_CSV | default "./reports/external/benchmark-results.csv" }}'
+
   benchmark:suite:
     desc: Run the local SLIM benchmark suite with reproducible defaults and optional overrides
     dir: .
@@ -157,6 +193,7 @@ tasks:
       WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -174,6 +211,7 @@ tasks:
       WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -191,6 +229,7 @@ tasks:
       WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -208,6 +247,7 @@ tasks:
       WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
       DURATION: '{{ .BENCH_DURATION }}'
       REPEATS: '{{ .BENCH_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -223,6 +263,7 @@ tasks:
       SIZES: '{{ .CAPACITY_SIZES }}'
       DURATION: '{{ .CAPACITY_DURATION }}'
       REPEATS: '{{ .CAPACITY_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
       CAPACITY_SWEEP: '1'
       CAPACITY_SWEEP_MODES: '{{ .CAPACITY_MODES }}'
       CAPACITY_SWEEP_CLIENTS: '{{ .CAPACITY_CLIENTS }}'
@@ -252,6 +293,7 @@ tasks:
       REQUEST_RATES: '{{ .REQUEST_CAPACITY_START_RATE }}'
       DURATION: '{{ .REQUEST_CAPACITY_DURATION }}'
       REPEATS: '{{ .REQUEST_CAPACITY_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
       CAPACITY_SWEEP: '1'
       CAPACITY_SWEEP_MODES: 'request-reply'
       CAPACITY_SWEEP_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
@@ -281,6 +323,7 @@ tasks:
       PUB_RATES: '{{ .WRITE_CAPACITY_START_RATE }}'
       DURATION: '{{ .WRITE_CAPACITY_DURATION }}'
       REPEATS: '{{ .WRITE_CAPACITY_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
       CAPACITY_SWEEP: '1'
       CAPACITY_SWEEP_MODES: 'write'
       CAPACITY_SWEEP_CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS }}'
@@ -297,6 +340,38 @@ tasks:
     cmds:
       - bash ./scripts/run_suite.sh
 
+  benchmark:basic:
+    desc: Run the basic throughput benchmark reproducing the upstream agntcy/slim stress_publish baseline
+    dir: .
+    deps:
+      - benchmark:local:cleanup
+      - deps:slim-bindings-setup
+    env:
+      SLIM_RUN_BASIC_BENCHMARK: '1'
+      BASIC_BENCH_SENDERS: '{{ .BASIC_BENCH_SENDERS }}'
+      BASIC_BENCH_PAYLOAD_SIZES: '{{ .BASIC_BENCH_PAYLOAD_SIZES }}'
+      BASIC_BENCH_MSGS_PER_SENDER: '{{ .BASIC_BENCH_MSGS_PER_SENDER }}'
+      BASIC_BENCH_RUNS: '{{ .BASIC_BENCH_RUNS }}'
+    cmds:
+      - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v
+          --ginkgo.label-filter basic-benchmark
+          --ginkgo.timeout 60m -timeout 60m
+
+  benchmark:ci:basic:
+    desc: Run the CI basic throughput benchmark with bandwidth-safe message counts
+    dir: .
+    deps:
+      - benchmark:local:cleanup
+      - deps:slim-bindings-setup
+    env:
+      SLIM_RUN_BASIC_BENCHMARK: '1'
+      BASIC_BENCH_MSGS_PER_SENDER: '{{ .CI_BASIC_BENCH_MSGS_PER_SENDER }}'
+      BASIC_BENCH_RUNS: '3'
+    cmds:
+      - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v
+          --ginkgo.label-filter basic-benchmark
+          --ginkgo.timeout 60m -timeout 60m
+
   benchmark:ci:suite-smoke:
     desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write with statistically meaningful repeats
     dir: .
@@ -311,6 +386,7 @@ tasks:
       PUB_RATES: '1000'
       DURATION: '1s'
       REPEATS: '{{ .CI_BENCH_REPEATS }}'
+      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -318,13 +394,16 @@ tasks:
     desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB and statistically meaningful repeats
     dir: .
     cmds:
-      - rm -f reports/capacity-fire-and-forget.md reports/capacity-request-reply.md reports/capacity-write.md
+      - rm -f reports/capacity-fire-and-forget.md reports/capacity-request-reply.md reports/capacity-write.md reports/results-fire-and-forget.tsv reports/results-request-reply.tsv reports/results-write.tsv
       - task benchmark:capacity:fire-and-forget-16kb CAPACITY_DURATION=5s CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-fire-and-forget.md
+      - cp reports/results.tsv reports/results-fire-and-forget.tsv
       - task benchmark:capacity:request-reply-16kb REQUEST_CAPACITY_DURATION=5s REQUEST_CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} REQUEST_CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-request-reply.md
+      - cp reports/results.tsv reports/results-request-reply.tsv
       - task benchmark:capacity:write-16kb WRITE_CAPACITY_DURATION=5s WRITE_CAPACITY_REPEATS={{ .CI_CAPACITY_REPEATS }} WRITE_CAPACITY_SWEEP_REPEATS={{ .CI_CAPACITY_SWEEP_REPEATS }}
       - cp reports/capacity_sweep.md reports/capacity-write.md
+      - cp reports/results.tsv reports/results-write.tsv
       - |
         set -e
         OUTPUT_FILE="reports/capacity_sweep.md"

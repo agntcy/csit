@@ -4,6 +4,14 @@
 name: test-benchmarks-slim
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/test-benchmarks-slim.yaml'
+      - 'Taskfile.yml'
+      - 'benchmarks/Taskfile.yml'
+      - 'benchmarks/agntcy-slim/**'
   pull_request:
     paths:
       - '.github/workflows/test-benchmarks-slim.yaml'
@@ -89,6 +97,34 @@ jobs:
             fi
           } > "$OUTPUT_FILE"
 
+      - name: Stage smoke dashboard artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          PUBLISH_DIR="benchmarks/agntcy-slim/published/smoke"
+
+          rm -rf "$PUBLISH_DIR"
+          mkdir -p "$PUBLISH_DIR"
+
+          for file in \
+            "$REPORT_DIR/results.tsv" \
+            "$REPORT_DIR/suite_summary.md" \
+            "$REPORT_DIR/technical_report.md" \
+            "$REPORT_DIR/ci-smoke-report.md" \
+            "$REPORT_DIR/ci-smoke.log"
+          do
+            if [ -f "$file" ]; then
+              cp "$file" "$PUBLISH_DIR/"
+            fi
+          done
+
+          task benchmarks:slim:reports:dashboard \
+            SMOKE_DIR="$PUBLISH_DIR" \
+            CAPACITY_DIR="$PUBLISH_DIR" \
+            OUTPUT_FILE="$PUBLISH_DIR/index.html"
+
       - name: Print smoke markdown report
         if: always()
         shell: bash
@@ -146,13 +182,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slim-benchmark-smoke-report
-          path: |
-            benchmarks/agntcy-slim/reports/*.md
-            benchmarks/agntcy-slim/reports/ci-smoke.log
+          path: benchmarks/agntcy-slim/published/smoke
           retention-days: 30
 
   slim-benchmark-capacity:
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.run_capacity) }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_capacity) }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -229,6 +263,38 @@ jobs:
             fi
           } > "$OUTPUT_FILE"
 
+      - name: Stage capacity dashboard artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          PUBLISH_DIR="benchmarks/agntcy-slim/published/capacity"
+
+          rm -rf "$PUBLISH_DIR"
+          mkdir -p "$PUBLISH_DIR"
+
+          for file in \
+            "$REPORT_DIR/capacity_sweep.md" \
+            "$REPORT_DIR/capacity-fire-and-forget.md" \
+            "$REPORT_DIR/capacity-request-reply.md" \
+            "$REPORT_DIR/capacity-write.md" \
+            "$REPORT_DIR/results-fire-and-forget.tsv" \
+            "$REPORT_DIR/results-request-reply.tsv" \
+            "$REPORT_DIR/results-write.tsv" \
+            "$REPORT_DIR/ci-capacity-report.md" \
+            "$REPORT_DIR/ci-capacity.log"
+          do
+            if [ -f "$file" ]; then
+              cp "$file" "$PUBLISH_DIR/"
+            fi
+          done
+
+          task benchmarks:slim:reports:dashboard \
+            SMOKE_DIR="$PUBLISH_DIR" \
+            CAPACITY_DIR="$PUBLISH_DIR" \
+            OUTPUT_FILE="$PUBLISH_DIR/index.html"
+
       - name: Print capacity markdown report
         if: always()
         shell: bash
@@ -293,7 +359,89 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slim-benchmark-capacity-report
-          path: |
-            benchmarks/agntcy-slim/reports/*.md
-            benchmarks/agntcy-slim/reports/ci-capacity.log
+          path: benchmarks/agntcy-slim/published/capacity
+          retention-days: 30
+
+  slim-benchmark-basic:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Install slimctl
+        shell: bash
+        run: |
+          task benchmarks:slim:deps:slimctl-download SLIMCTL_PATH="$HOME/.local/bin/slimctl"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install SLIM bindings
+        shell: bash
+        run: task benchmarks:slim:deps:slim-bindings-setup
+
+      - name: Run SLIM basic throughput benchmark
+        shell: bash
+        run: |
+          set -o pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          mkdir -p "$REPORT_DIR"
+          stdbuf -oL -eL task benchmarks:slim:benchmark:ci:basic 2>&1 | tee "$REPORT_DIR/ci-basic.log"
+
+      - name: Stage basic benchmark artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+          PUBLISH_DIR="benchmarks/agntcy-slim/published/basic"
+
+          rm -rf "$PUBLISH_DIR"
+          mkdir -p "$PUBLISH_DIR"
+
+          if [ -f "$REPORT_DIR/basic-benchmark-results.csv" ]; then
+            cp "$REPORT_DIR/basic-benchmark-results.csv" "$PUBLISH_DIR/"
+          fi
+
+          if [ -f "$REPORT_DIR/ci-basic.log" ]; then
+            cp "$REPORT_DIR/ci-basic.log" "$PUBLISH_DIR/"
+          fi
+
+      - name: Publish basic benchmark step summary
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/agntcy-slim/reports"
+
+          {
+            echo "# SLIM Basic Throughput Benchmark Summary"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+
+            if [ -f "$REPORT_DIR/ci-basic.log" ]; then
+              echo "## Results"
+              echo
+              grep 'BASIC_BENCH_RESULT' "$REPORT_DIR/ci-basic.log" | tail -n 40 || true
+              echo
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload basic benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-benchmark-basic-report
+          path: benchmarks/agntcy-slim/published/basic
           retention-days: 30
