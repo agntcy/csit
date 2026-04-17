@@ -124,9 +124,9 @@ jobs:
           fi
           echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "examples_tag=local" >> "$GITHUB_OUTPUT"
 
       - name: Checkout slim source
-        if: ${{ inputs.override_slim_image_tag == '' }}
         uses: actions/checkout@v4
         with:
           repository: agntcy/slim
@@ -134,7 +134,6 @@ jobs:
           path: slim-src
 
       - name: Set up Docker Buildx
-        if: ${{ inputs.override_slim_image_tag == '' }}
         uses: docker/setup-buildx-action@v3
 
       - name: Build slim images (linux/amd64)
@@ -158,6 +157,21 @@ jobs:
             --file slim-src/control-plane/Dockerfile \
             slim-src
 
+      - name: Build slim bindings examples image (linux/amd64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXAMPLES_TAG="${{ steps.resolve-slim-tags.outputs.examples_tag }}"
+
+          cp integrations/agntcy-slim/examples/Dockerfile slim-src/data-plane/bindings/python/Dockerfile
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim/bindings-examples:${EXAMPLES_TAG}" \
+            --file slim-src/data-plane/bindings/python/Dockerfile \
+            slim-src
+
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
         with:
@@ -171,6 +185,12 @@ jobs:
           slim-image-tag: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           slim-controller-image-tag: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+
+      - name: Load slim bindings examples image into kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:${{ steps.resolve-slim-tags.outputs.examples_tag }}" --name "agntcy-test"
 
       - name: Run slim topology test
         run: task integrations:slim:test:topology
