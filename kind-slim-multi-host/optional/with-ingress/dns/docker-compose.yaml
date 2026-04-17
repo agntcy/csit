@@ -1,0 +1,15 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+services:
+  dnsmasq:
+    image: jpillora/dnsmasq:1.4.0
+    container_name: kind-slim-multi-host-dnsmasq
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:53:53/tcp"
+      - "127.0.0.1:53:53/udp"
+    volumes:
+      - type: bind
+        source: ./dnsmasq.conf
+        target: /etc/dnsmasq.conf
+        read_only: true

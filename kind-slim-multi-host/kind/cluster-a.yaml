@@ -1,0 +1,10 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Minimal KinD cluster A (csit-a). No host port mappings required for CoreDNS peer setup.
+# Add extraPortMappings here if you later use optional/with-ingress.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: csit-a
+nodes:
+  - role: control-plane

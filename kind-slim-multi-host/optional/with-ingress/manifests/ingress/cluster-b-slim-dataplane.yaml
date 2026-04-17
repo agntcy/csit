@@ -1,0 +1,24 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+# kubectl --context kind-csit-b apply -f cluster-b-slim-dataplane.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agntcy-slim-dataplane-grpc
+  namespace: cluster-b
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: slim.cluster-b.csit.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agntcy-cluster-b-slim
+                port:
+                  number: 46357

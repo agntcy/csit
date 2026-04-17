@@ -1,0 +1,33 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+# slim-control-plane — cluster A only (namespace admin)
+replicaCount: 1
+image:
+  repository: ghcr.io/agntcy/slim/control-plane
+  pullPolicy: IfNotPresent
+  tag: ""
+
+fullnameOverride: slim-control
+
+spire:
+  enabled: false
+
+config:
+  northbound:
+    httpHost: 0.0.0.0
+    httpPort: 50051
+  southbound:
+    httpHost: 0.0.0.0
+    httpPort: 50052
+    # Do not set tls.useSpiffe: false without certFile/keyFile/caFile — the binary
+    # requires caFile when useSpiffe is false. With no southbound.tls key, the
+    # chart matches upstream defaults for spire.enabled: false.
+  logging:
+    level: DEBUG
+
+service:
+  type: ClusterIP
+  south:
+    port: 50052
+  north:
+    port: 50051

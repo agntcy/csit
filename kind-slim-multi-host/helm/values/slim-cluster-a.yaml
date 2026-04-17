@@ -1,0 +1,39 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+# agntcy slim — KinD cluster A, namespace cluster-a
+slim:
+  replicaCount: 1
+  daemonset: false
+  image:
+    repository: ghcr.io/agntcy/slim
+    pullPolicy: IfNotPresent
+    tag: ""
+  overrideConfig:
+    tracing:
+      log_level: debug
+      display_thread_names: true
+      display_thread_ids: true
+    runtime:
+      n_cores: 0
+      thread_name: slim-data-plane
+      drain_timeout: 10s
+    services:
+      slim/0:
+        group_name: cluster-a
+        dataplane:
+          servers:
+            - endpoint: "0.0.0.0:46357"
+              metadata:
+                local_endpoint: ${env:MY_POD_IP}
+                external_endpoint: "agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357"
+                trust_domain: example.org
+              tls:
+                insecure: true
+        controller:
+          clients:
+            - endpoint: "slim-control.admin.svc.cluster.local:50051"
+              tls:
+                insecure: true
+
+mcpProxy:
+  enabled: false

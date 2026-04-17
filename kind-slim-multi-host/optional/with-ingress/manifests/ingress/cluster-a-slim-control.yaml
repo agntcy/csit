@@ -1,0 +1,25 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+# kubectl --context kind-csit-a apply -f cluster-a-slim-control.yaml
+# Exposes northbound gRPC so cluster B can reach the control plane via host DNS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slim-control-north-grpc
+  namespace: admin
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: control.cluster-a.csit.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slim-control
+                port:
+                  number: 50051

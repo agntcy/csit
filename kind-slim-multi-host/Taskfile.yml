@@ -1,0 +1,232 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+---
+version: "3"
+
+silent: true
+
+env:
+  PATH: '{{env "HOME"}}/.asdf/shims:{{env "HOME"}}/.asdf/bin:/opt/homebrew/opt/asdf/libexec/bin:/usr/local/opt/asdf/libexec/bin:{{env "PATH"}}'
+
+vars:
+  CLUSTER_A: '{{ .CLUSTER_A | default "csit-a" }}'
+  CLUSTER_B: '{{ .CLUSTER_B | default "csit-b" }}'
+  CTX_A: '{{ .CTX_A | default "kind-csit-a" }}'
+  CTX_B: '{{ .CTX_B | default "kind-csit-b" }}'
+
+  SLIM_CHART: '{{ .SLIM_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.7.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.7.2-dev.1" }}'
+
+  CTRL_CHART: '{{ .CTRL_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-control-plane" }}'
+  CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
+  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default "0.7.2-dev.1" }}'
+
+  INGRESS_NGINX_KIND_MANIFEST: '{{ .INGRESS_NGINX_KIND_MANIFEST | default "https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml" }}'
+
+  CTRL_RELEASE: '{{ .CTRL_RELEASE | default "slim-control" }}'
+  SLIM_RELEASE_A: '{{ .SLIM_RELEASE_A | default "agntcy-cluster-a" }}'
+  SLIM_RELEASE_B: '{{ .SLIM_RELEASE_B | default "agntcy-cluster-b" }}'
+  NS_ADMIN: '{{ .NS_ADMIN | default "admin" }}'
+  NS_A: '{{ .NS_A | default "cluster-a" }}'
+  NS_B: '{{ .NS_B | default "cluster-b" }}'
+
+tasks:
+  prereq:
+    desc: Check kind, kubectl, docker, jq
+    cmds:
+      - command -v kind
+      - command -v kubectl
+      - command -v docker
+      - command -v jq
+      - chmod +x scripts/discover-peer-ips.sh scripts/coredns-apply-peer.sh
+
+  prereq:apps:
+    desc: Check helm (optional app installs)
+    cmds:
+      - command -v helm
+
+  kind:create:a:
+    desc: Create KinD cluster A (minimal config)
+    cmds:
+      - kind create cluster --config kind/cluster-a.yaml --wait 90s
+      - kubectl config use-context {{ .CTX_A }}
+      - kubectl cluster-info
+
+  kind:create:b:
+    desc: Create KinD cluster B (minimal config)
+    cmds:
+      - kind create cluster --config kind/cluster-b.yaml --wait 90s
+      - kubectl config use-context {{ .CTX_B }}
+      - kubectl cluster-info
+
+  kind:create:all:
+    desc: Create both KinD clusters (A then B)
+    cmds:
+      - task kind:create:a
+      - task kind:create:b
+
+  kind:delete:a:
+    desc: Delete KinD cluster A
+    cmds:
+      - kind delete cluster --name {{ .CLUSTER_A }}
+
+  kind:delete:b:
+    desc: Delete KinD cluster B
+    cmds:
+      - kind delete cluster --name {{ .CLUSTER_B }}
+
+  kind:delete:all:
+    desc: Delete both KinD clusters (B then A)
+    cmds:
+      - task kind:delete:b
+      - task kind:delete:a
+
+  coredns:discover:
+    desc: Discover Kind node IPs on Docker network → coredns/.gen/peers.env
+    cmds:
+      - CLUSTER_A={{ .CLUSTER_A }} CLUSTER_B={{ .CLUSTER_B }} ./scripts/discover-peer-ips.sh
+
+  coredns:apply:a:
+    desc: Patch CoreDNS on cluster A with node-b.csit.peer
+    cmds:
+      - ./scripts/coredns-apply-peer.sh {{ .CTX_A }} a
+
+  coredns:apply:b:
+    desc: Patch CoreDNS on cluster B with node-a.csit.peer
+    cmds:
+      - ./scripts/coredns-apply-peer.sh {{ .CTX_B }} b
+
+  coredns:apply:all:
+    desc: Patch CoreDNS on both clusters
+    cmds:
+      - task coredns:apply:a
+      - task coredns:apply:b
+
+  up:
+    desc: Create both clusters and apply CoreDNS peer stub zone (csit.peer)
+    cmds:
+      - task prereq
+      - task kind:create:all
+      - task coredns:discover
+      - task coredns:apply:all
+
+  teardown:
+    desc: Delete both KinD clusters (no Helm)
+    cmds:
+      - task kind:delete:all
+
+  # --- Optional Helm + Ingress (see optional/with-ingress/) ---
+  optional:with-ingress:full:
+    desc: ingress-nginx + edge + dnsmasq + Helm slim/controller (optional stack)
+    cmds:
+      - task prereq:apps
+      - task optional:with-ingress:ingress:install:all
+      - task optional:with-ingress:edge:up
+      - task optional:with-ingress:dns:up
+      - task apps:install
+
+  optional:with-ingress:ingress:install:all:
+    desc: Install ingress-nginx on both clusters (optional)
+    cmds:
+      - kubectl --context {{ .CTX_A }} apply -f {{ .INGRESS_NGINX_KIND_MANIFEST }}
+      - kubectl --context {{ .CTX_A }} wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+      - kubectl --context {{ .CTX_B }} apply -f {{ .INGRESS_NGINX_KIND_MANIFEST }}
+      - kubectl --context {{ .CTX_B }} wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+
+  optional:with-ingress:edge:up:
+    dir: optional/with-ingress/edge
+    cmds:
+      - docker compose up -d
+
+  optional:with-ingress:edge:down:
+    dir: optional/with-ingress/edge
+    cmds:
+      - docker compose down
+
+  optional:with-ingress:dns:render:
+    cmds:
+      - chmod +x scripts/render-dnsmasq.sh
+      - ./scripts/render-dnsmasq.sh
+
+  optional:with-ingress:dns:up:
+    deps: [optional:with-ingress:dns:render]
+    dir: optional/with-ingress/dns
+    cmds:
+      - docker compose up -d
+
+  optional:with-ingress:dns:down:
+    dir: optional/with-ingress/dns
+    cmds:
+      - docker compose down
+
+  apps:install:
+    desc: Helm install slim + controller + apply optional Ingress manifests (requires prereq:apps)
+    deps: [prereq:apps]
+    cmds:
+      - task helm:install:controller
+      - task helm:install:slim:all
+      - kubectl --context {{ .CTX_A }} apply -f optional/with-ingress/manifests/ingress/cluster-a-slim-control.yaml
+      - kubectl --context {{ .CTX_A }} apply -f optional/with-ingress/manifests/ingress/cluster-a-slim-dataplane.yaml
+      - kubectl --context {{ .CTX_B }} apply -f optional/with-ingress/manifests/ingress/cluster-b-slim-dataplane.yaml
+
+  apps:uninstall:
+    desc: Remove optional Ingress + Helm releases
+    cmds:
+      - kubectl --context {{ .CTX_A }} delete -f optional/with-ingress/manifests/ingress/cluster-a-slim-control.yaml --ignore-not-found
+      - kubectl --context {{ .CTX_A }} delete -f optional/with-ingress/manifests/ingress/cluster-a-slim-dataplane.yaml --ignore-not-found
+      - kubectl --context {{ .CTX_B }} delete -f optional/with-ingress/manifests/ingress/cluster-b-slim-dataplane.yaml --ignore-not-found
+      - helm uninstall {{ .SLIM_RELEASE_B }} --namespace {{ .NS_B }} --kube-context {{ .CTX_B }} || true
+      - helm uninstall {{ .SLIM_RELEASE_A }} --namespace {{ .NS_A }} --kube-context {{ .CTX_A }} || true
+      - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true
+
+  helm:install:controller:
+    desc: Install slim-control-plane on cluster A (optional apps)
+    cmds:
+      - |
+        helm upgrade {{ .CTRL_RELEASE }} {{ .CTRL_CHART }} \
+          --version {{ .CTRL_CHART_TAG }} \
+          --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
+          -f helm/values/controller.yaml \
+          --namespace {{ .NS_ADMIN }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 15m \
+          --kube-context {{ .CTX_A }}
+
+  helm:install:slim:a:
+    cmds:
+      - |
+        helm upgrade {{ .SLIM_RELEASE_A }} {{ .SLIM_CHART }} \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          -f helm/values/slim-cluster-a.yaml \
+          --namespace {{ .NS_A }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 15m \
+          --kube-context {{ .CTX_A }}
+
+  helm:install:slim:b:
+    cmds:
+      - |
+        helm upgrade {{ .SLIM_RELEASE_B }} {{ .SLIM_CHART }} \
+          --version {{ .SLIM_CHART_TAG }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          -f helm/values/slim-cluster-b.yaml \
+          --namespace {{ .NS_B }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 15m \
+          --kube-context {{ .CTX_B }}
+
+  helm:install:slim:all:
+    cmds:
+      - task helm:install:slim:a
+      - task helm:install:slim:b
+
+  default:
+    cmd: task -l

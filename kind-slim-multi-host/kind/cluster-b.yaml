@@ -1,0 +1,9 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Minimal KinD cluster B (csit-b). Same Docker bridge as A — pods resolve peer via csit.peer zone.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: csit-b
+nodes:
+  - role: control-plane
