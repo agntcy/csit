@@ -45,6 +45,9 @@ vars:
 
   TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
 
+  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
+  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
+
 tasks:
   k8s:port-forward:setup:
     internal: true
@@ -70,18 +73,38 @@ tasks:
     desc: Deploy agntcy slim test env
     cmds:
       - |
-        helm upgrade agntcy-slim \
-          oci://{{ .IMAGE_REPO }}/slim/helm/slim \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-          -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
-          --namespace {{ .HELM_NAMESPACE }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade agntcy-slim \
+            "$REPO/charts/slim" \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+            -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
+            --namespace {{ .HELM_NAMESPACE }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        else
+          helm upgrade agntcy-slim \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
+            -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
+            --namespace {{ .HELM_NAMESPACE }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        fi
 
   test-env:generate:cluster-configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
@@ -92,17 +115,36 @@ tasks:
     desc: Deploy slim controller
     cmds:
       - |
-        helm upgrade slim-controller \
-          oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
-          --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
-          --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-          -f ./config/controller-values.yaml \
-          --namespace "admin" \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim-control-plane" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim-control-plane not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade slim-controller \
+            "$REPO/charts/slim-control-plane" \
+            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            -f ./config/controller-values.yaml \
+            --namespace "admin" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        else
+          helm upgrade slim-controller \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
+            --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
+            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            -f ./config/controller-values.yaml \
+            --namespace "admin" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        fi
 
   test-env:cleanup:controller:
     desc: Remove agent slim test env
@@ -132,18 +174,37 @@ tasks:
       fi
       KUBE_WATCH_PID=$!
 
+      REPO='{{ .SLIM_REPO_PATH }}'
+      if [ -n "$REPO" ] && [ ! -d "$REPO/charts/slim" ]; then
+        echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
+        exit 1
+      fi
+
       for file in "./config/.gen"/*.yaml ;do
-        helm upgrade agntcy-$(basename "$file" .yaml) \
-          oci://{{ .IMAGE_REPO }}/slim/helm/slim \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          -f "$file" \
-          --namespace $(basename "$file" .yaml) \
-          --create-namespace \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"
+        if [ -n "$REPO" ]; then
+          helm upgrade agntcy-$(basename "$file" .yaml) \
+            "$REPO/charts/slim" \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f "$file" \
+            --namespace $(basename "$file" .yaml) \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        else
+          helm upgrade agntcy-$(basename "$file" .yaml) \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f "$file" \
+            --namespace $(basename "$file" .yaml) \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        fi
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 

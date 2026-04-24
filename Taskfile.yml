@@ -16,6 +16,7 @@ includes:
       DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG }}'
       SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
       SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
+      SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
   samples:
     taskfile: ./samples/Taskfile.yml

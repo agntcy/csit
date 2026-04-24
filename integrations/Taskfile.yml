@@ -16,6 +16,7 @@ includes:
       SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
       SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
+      SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
   directory:
     taskfile: ./agntcy-dir/Taskfile.yml

@@ -185,6 +185,7 @@ jobs:
           slim-image-tag: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           slim-controller-image-tag: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+          slim-repo-path: ${{ github.workspace }}/slim-src
 
       - name: Load slim bindings examples image into kind
         shell: bash

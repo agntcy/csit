@@ -34,7 +34,11 @@ inputs:
     required: false
     default: ''
   slim-chart-tag:
-    description: 'Set slim chart version'
+    description: 'Set slim chart version (OCI only; ignored when slim-repo-path is set)'
+    required: false
+    default: ''
+  slim-repo-path:
+    description: 'Absolute path to agntcy/slim repo root with charts/; empty uses OCI charts'
     required: false
     default: ''
   slim-controller-image-tag:
@@ -157,6 +161,7 @@ runs:
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:controller \
+          SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
@@ -164,6 +169,7 @@ runs:
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:clusters \
+          SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
@@ -175,6 +181,7 @@ runs:
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy \
+          SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
           SLIM_CONFIG=${{ inputs.slim-config }} \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
