@@ -8,6 +8,52 @@ An **optional** subtree [`optional/with-ingress/`](optional/with-ingress/) keeps
 
 No changes are required elsewhere in the csit repository; run all tasks from this directory.
 
+## GitHub Actions
+
+Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflows/kind-slim-multicluster.yml)
+
+| Trigger | Behavior |
+|---------|----------|
+| `push` to `main` | Runs `task prereq` → `task up` → cluster + CoreDNS checks → `task teardown` (paths limited to `kind-slim-multi-host/**` and this workflow). |
+| `pull_request` | Same as push, with the same path filters. |
+| `workflow_dispatch` | Same baseline, plus optional boolean inputs below. |
+
+**`workflow_dispatch` inputs**
+
+| Input | Effect |
+|-------|--------|
+| `with_ingress_install` | After `task up`, run `task optional:with-ingress:ingress:install:all`. |
+| `with_apps` | After `task up`, install ingress-nginx (unless `with_ingress_full`), then `task apps:install` (Helm + Ingress manifests). Requires Helm; uses `GITHUB_TOKEN` for rate limits on setup actions. |
+| `with_ingress_full` | Runs `task optional:with-ingress:full` (ingress, edge, dnsmasq, apps). Often unsuitable on shared runners if host ports **80** or **53** are unavailable. |
+
+PR and push runs do **not** install Helm or optional stacks by default, to keep CI fast and reliable.
+
+### Test the workflow locally
+
+**Option A (recommended):** run the same steps CI uses. From the repo root, with Docker running and `kind`, `kubectl`, `jq`, and `task` installed (any recent versions):
+
+```bash
+cd kind-slim-multi-host
+task prereq
+task up
+kubectl --context kind-csit-a get nodes
+kubectl --context kind-csit-b get nodes
+kubectl --context kind-csit-a get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
+kubectl --context kind-csit-a run dns-verify -n default --rm --attach --restart=Never \
+  --image=docker.io/library/busybox:1.36 --command -- nslookup node-b.csit.peer
+task teardown
+```
+
+To approximate **`workflow_dispatch`** with optional flags, run the same extra `task` targets by hand after `task up` (for example `task optional:with-ingress:ingress:install:all`, `task apps:install`, or `task optional:with-ingress:full`) before the verify lines and `task teardown`.
+
+**Option B ([act](https://github.com/nektos/act)):** run Actions in Docker from the **repository root** (the directory that contains `kind-slim-multi-host/` and `.github/`). KinD needs nested Docker and often a **privileged** runner image; this is brittle on some hosts (especially Apple Silicon). Example dry run:
+
+```bash
+act -n -W .github/workflows/kind-slim-multicluster.yml workflow_dispatch
+```
+
+Pass `workflow_dispatch` inputs with a JSON file per [act event payloads](https://nektosact.com/usage/index.html#passing-inputs-to-manual-workflows). Full job parity is usually easier with **Option A** on your laptop.
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)

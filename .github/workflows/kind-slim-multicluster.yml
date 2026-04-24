@@ -1,0 +1,122 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Two KinD clusters + CoreDNS peer setup via Task (kind-slim-multi-host).
+name: kind-slim-multicluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      with_ingress_install:
+        description: Install ingress-nginx on both clusters after task up
+        type: boolean
+        default: false
+      with_apps:
+        description: Run task apps:install (Helm + Ingress YAML; pair with ingress or KinD port maps)
+        type: boolean
+        default: false
+      with_ingress_full:
+        description: Run task optional:with-ingress:full (edge/dns may fail if host ports 80/53 are in use)
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - "kind-slim-multi-host/**"
+      - ".github/workflows/kind-slim-multicluster.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "kind-slim-multi-host/**"
+      - ".github/workflows/kind-slim-multicluster.yml"
+
+permissions:
+  contents: read
+  packages: read
+
+defaults:
+  run:
+    working-directory: kind-slim-multi-host
+
+env:
+  KIND_VERSION: v0.24.0
+
+jobs:
+  multicluster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        run: |
+          set -euo pipefail
+          KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
+          curl -fsSL -o kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          sudo install -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client=true
+
+      - name: Install kind
+        run: |
+          set -euo pipefail
+          curl -fsSL -o ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 kind /usr/local/bin/kind
+          kind version
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.41.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Helm
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.with_apps || inputs.with_ingress_full) }}
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Task prereq
+        run: task prereq
+
+      - name: Task up
+        run: task up
+
+      - name: Install ingress-nginx (both clusters)
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.with_ingress_install || inputs.with_apps) && !inputs.with_ingress_full }}
+        run: task optional:with-ingress:ingress:install:all
+
+      - name: Optional full ingress stack and apps
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.with_ingress_full }}
+        run: task optional:with-ingress:full
+
+      - name: Optional Helm apps
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.with_apps && !inputs.with_ingress_full }}
+        run: task apps:install
+
+      - name: Verify clusters
+        run: |
+          set -euo pipefail
+          kubectl --context kind-csit-a get nodes
+          kubectl --context kind-csit-b get nodes
+
+      - name: Verify CoreDNS csit.peer stub on cluster A
+        run: |
+          set -euo pipefail
+          kubectl --context kind-csit-a get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
+
+      - name: Verify DNS resolution (cluster A)
+        run: |
+          set -euo pipefail
+          kubectl --context kind-csit-a run dns-verify \
+            -n default \
+            --rm \
+            --attach \
+            --restart=Never \
+            --image=docker.io/library/busybox:1.36 \
+            --command -- \
+            nslookup node-b.csit.peer
+
+      - name: Teardown Kind clusters
+        if: always()
+        run: task teardown || true
