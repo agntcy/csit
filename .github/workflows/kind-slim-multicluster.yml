@@ -23,12 +23,14 @@ on:
     paths:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
+      - ".github/actions/setup-k8s/**"
   push:
     branches:
       - main
     paths:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
+      - ".github/actions/setup-k8s/**"
 
 permissions:
   contents: read
@@ -38,9 +40,6 @@ defaults:
   run:
     working-directory: kind-slim-multi-host
 
-env:
-  KIND_VERSION: v0.24.0
-
 jobs:
   multicluster:
     runs-on: ubuntu-latest
@@ -49,32 +48,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install kubectl
-        run: |
-          set -euo pipefail
-          KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
-          curl -fsSL -o kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-          sudo install -m 0755 kubectl /usr/local/bin/kubectl
-          kubectl version --client=true
-
-      - name: Install kind
-        run: |
-          set -euo pipefail
-          curl -fsSL -o ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          sudo install -m 0755 kind /usr/local/bin/kind
-          kind version
+      - name: Setup Kubernetes tooling
+        uses: ./.github/actions/setup-k8s
+        with:
+          kind-version: "0.24.0"
+          helm-version: "3.14.4"
 
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
           version: 3.41.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Helm
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.with_apps || inputs.with_ingress_full) }}
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.14.4
 
       - name: Task prereq
         run: task prereq

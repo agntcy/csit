@@ -14,7 +14,7 @@ Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflo
 
 | Trigger | Behavior |
 |---------|----------|
-| `push` to `main` | Runs `task prereq` → `task up` → cluster + CoreDNS checks → `task teardown` (paths limited to `kind-slim-multi-host/**` and this workflow). |
+| `push` to `main` | Installs tooling via [`.github/actions/setup-k8s`](../.github/actions/setup-k8s), then `task prereq` → `task up` → checks → `task teardown`. Path filters: `kind-slim-multi-host/**`, this workflow, and `setup-k8s` action. |
 | `pull_request` | Same as push, with the same path filters. |
 | `workflow_dispatch` | Same baseline, plus optional boolean inputs below. |
 
@@ -23,10 +23,10 @@ Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflo
 | Input | Effect |
 |-------|--------|
 | `with_ingress_install` | After `task up`, run `task optional:with-ingress:ingress:install:all`. |
-| `with_apps` | After `task up`, install ingress-nginx (unless `with_ingress_full`), then `task apps:install` (Helm + Ingress manifests). Requires Helm; uses `GITHUB_TOKEN` for rate limits on setup actions. |
+| `with_apps` | After `task up`, install ingress-nginx (unless `with_ingress_full`), then `task apps:install` (Helm + Ingress manifests). Helm is already on the runner from `setup-k8s`. |
 | `with_ingress_full` | Runs `task optional:with-ingress:full` (ingress, edge, dnsmasq, apps). Often unsuitable on shared runners if host ports **80** or **53** are unavailable. |
 
-PR and push runs do **not** install Helm or optional stacks by default, to keep CI fast and reliable.
+PR and push runs **do** install Helm (and kind/kubectl/ct) via `setup-k8s`, but they **do not** run optional ingress or `apps:install` unless you use `workflow_dispatch` with the inputs above.
 
 ### Test the workflow locally
 
