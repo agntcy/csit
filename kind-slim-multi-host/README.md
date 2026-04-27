@@ -1,12 +1,13 @@
 # Two KinD clusters + CoreDNS peer names (slim)
 
-Default path: **two Kind clusters** (with **host port maps** for ingress-nginx: A `127.0.0.1:10080`/`:10443`, B `127.0.0.1:9080`/`:9443`), discover each control-plane **IPv4 on the Docker `kind` network**, and patch **CoreDNS** with a **`csit.peer`** stub zone (`node-a.csit.peer` / `node-b.csit.peer`).
+**Clusters:** KinD **csit-a** / **csit-b** on the Docker `kind` network; configs publish ingress on **127.0.0.1** (A **10080**/10443, B **9080**/9443). **`task up`** applies the in-cluster **`csit.peer`** CoreDNS stub (`node-a.csit.peer` / `node-b.csit.peer`).
 
-**What this does not do:** in-cluster DNS still cannot resolve the **other** cluster’s `*.svc.cluster.local` without multicluster plumbing. Use **`csit.peer`** names for the **node IP**, then expose services with **NodePort**, **hostPort**, or similar.
+**What this does not do:** pods still cannot resolve the **other** cluster’s `*.svc.cluster.local` without extra plumbing—use **`csit.peer`** for node IPs and expose services accordingly (**NodePort**, **hostPort**, etc.).
 
-An **optional** subtree [`optional/with-ingress/`](optional/with-ingress/) keeps the **Ingress + host edge nginx + local DNS helper** workflow for laptop-friendly hostnames; it is **not** run by default.
+- **`task up`** — clusters + **`csit.peer`** patch only.
+- **`task up:with-ingress-apps`** — also ingress-nginx, host edge nginx, Docker **local DNS helper** ([`optional/with-ingress/dns`](optional/with-ingress/dns)), Helm, Ingress YAML.
 
-No changes are required elsewhere in the csit repository; run all tasks from this directory.
+CI runs **`up:with-ingress-apps`** / **`down:with-ingress-apps`**. Run all tasks from this directory.
 
 ## GitHub Actions
 
@@ -56,7 +57,7 @@ No workflow inputs are required for this job anymore. Full job parity is usually
 - [jq](https://jqlang.org/)
 - [Task](https://taskfile.dev/) (recommended)
 
-Helm is only needed for optional app installs (`task apps:install`).
+Helm is required for **`task up:with-ingress-apps`** / **`task apps:install`**; not for bare **`task up`**.
 
 ## Quick start
 
@@ -173,7 +174,7 @@ Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default 
 
 ## Helm values (optional)
 
-After `task up`, you can install charts with `task apps:install` (requires `task prereq:apps` and the optional Ingress path if you rely on Ingress hostnames).
+Charts install with **`task up:with-ingress-apps`** or, after **`task up`**, `task prereq:apps` → **`task apps:install`** once ingress (and host DNS, if using `*.csit.test`) is set up.
 
 | File | Role |
 |------|------|

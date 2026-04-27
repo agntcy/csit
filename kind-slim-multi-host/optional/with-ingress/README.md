@@ -1,11 +1,9 @@
 # Optional: local DNS helper + edge nginx + Ingress + Helm (slim)
 
-This subtree provides the **Ingress-based** workflow (edge proxy, local DNS helper, Kubernetes Ingress manifests, Helm values for slim).
-
-It is **not** part of the default `task up` path. Use it when you want hostnames on port 80/443 and OCI chart installs.
+Ingress-based stack: **edge nginx**, **CoreDNS DNS helper** for `*.csit.test`, Ingress YAML, Helm values. Used by **`task optional:with-ingress:*`** / **`task up:with-ingress-apps`** (not plain **`task up`**).
 
 - `edge/` — nginx front proxy (Docker Desktop–friendly port split)
-- `dns/` — CoreDNS-based local DNS helper for `*.csit.test` (default **host `127.0.0.1:8053`** → container 53; set matching `port` in `/etc/resolver/csit.test`. Override with **`CSIT_LOCAL_DNS_HOST_PORT`**.)
+- `dns/` — CoreDNS helper: host **`127.0.0.1:<port>`** → container `:53` (default **8053** via **`CSIT_LOCAL_DNS_HOST_PORT`**; same number in `/etc/resolver/csit.test` **`port`**)
 - `manifests/ingress/` — gRPC Ingress for slim / control plane
 
 Example (from `kind-slim-multi-host/`):
