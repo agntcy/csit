@@ -1,9 +1,24 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Minimal KinD cluster B (csit-b). Same Docker bridge as A — pods resolve peer via csit.peer zone.
+# KinD cluster B (csit-b) with host port maps for ingress-nginx + optional edge proxy.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: csit-b
 nodes:
   - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 9080
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 9443
+        listenAddress: "127.0.0.1"
+        protocol: TCP

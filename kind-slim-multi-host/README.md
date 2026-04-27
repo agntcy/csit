@@ -1,6 +1,6 @@
 # Two KinD clusters + CoreDNS peer names (slim)
 
-Default path: **two minimal Kind clusters**, discover each control-plane **IPv4 on the Docker `kind` network**, and patch **CoreDNS** in each cluster with a small **`csit.peer`** stub zone so workloads can resolve the other cluster’s node as **`node-a.csit.peer`** / **`node-b.csit.peer`**.
+Default path: **two Kind clusters** (with **host port maps** for ingress-nginx: A `127.0.0.1:10080`/`:10443`, B `127.0.0.1:9080`/`:9443`), discover each control-plane **IPv4 on the Docker `kind` network**, and patch **CoreDNS** with a **`csit.peer`** stub zone (`node-a.csit.peer` / `node-b.csit.peer`).
 
 **What this does not do:** in-cluster DNS still cannot resolve the **other** cluster’s `*.svc.cluster.local` without multicluster plumbing. Use **`csit.peer`** names for the **node IP**, then expose services with **NodePort**, **hostPort**, or similar.
 
@@ -24,7 +24,7 @@ Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflo
 |-------|--------|
 | `with_ingress_install` | After `task up`, run `task optional:with-ingress:ingress:install:all`. |
 | `with_apps` | After `task up`, install ingress-nginx (unless `with_ingress_full`), then `task apps:install` (Helm + Ingress manifests). Helm is already on the runner from `setup-k8s`. |
-| `with_ingress_full` | Runs `task optional:with-ingress:full` (ingress, edge, dnsmasq, apps). Often unsuitable on shared runners if host ports **80** or **53** are unavailable. |
+| `with_ingress_full` | Runs `task optional:with-ingress:full` (ingress, edge, dnsmasq, apps). Host **:80** may conflict; dnsmasq defaults to **127.0.0.1:8053** (see `CSIT_DNSMASQ_HOST_PORT`). |
 
 PR and push runs **do** install Helm (and kind/kubectl/ct) via `setup-k8s`, but they **do not** run optional ingress or `apps:install` unless you use `workflow_dispatch` with the inputs above.
 
@@ -93,17 +93,50 @@ task teardown
 
 Deletes both Kind clusters. Generated files under `coredns/.gen/` can be removed manually; they are gitignored.
 
+### Local: slim + controller exposed through Ingress
+
+Use this when you want **ingress-nginx** gRPC Ingress objects, **edge nginx** on the host (`127.0.0.1:80`), **dnsmasq** for `*.csit.test`, and **Helm** installs for slim + control plane.
+
+1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits dnsmasq. Use the **same port** as `CSIT_DNSMASQ_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
+
+   ```
+   nameserver 127.0.0.1
+   port 8053
+   ```
+
+   If **8053** is taken, pick another free port: `task optional:with-ingress:dns:up CSIT_DNSMASQ_HOST_PORT=15353` and set `port 15353` in the resolver file.
+
+   The DNS helper container now uses CoreDNS (still started via `task optional:with-ingress:dns:up`) because it is more reliable on Docker Desktop for both UDP and TCP DNS queries. It still serves `*.csit.test` as `127.0.0.1` and publishes the configured host port.
+2. From `kind-slim-multi-host/`, if clusters already exist from an older layout, run `task teardown` (and stop any prior edge/dns: `task optional:with-ingress:edge:down`, `task optional:with-ingress:dns:down`).
+3. Run the combined Task:
+
+```bash
+task up:with-ingress-apps
+```
+
+This runs `task up` then `task optional:with-ingress:full` (ingress-nginx on both clusters → edge → dnsmasq → Helm + Ingress manifests).
+
+4. **Cluster B → cluster A controller:** default Helm values use `control.cluster-a.csit.test:80` (through edge). That works well from the **host** with split-DNS. **Slim pods on B** may not resolve `csit.test` the same way; on **Docker Desktop** you can reinstall slim on B with the optional overlay [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) (see comments in that file).
+
+**Tear down everything (Helm, compose, Kind):**
+
+```bash
+task down:with-ingress-apps
+```
+
 ## Task reference
 
 | Task | Purpose |
 |------|---------|
 | `task up` | `prereq` → create both clusters → `coredns:discover` → `coredns:apply:all` |
+| `task up:with-ingress-apps` | `task up` then optional ingress + edge + dnsmasq + Helm + Ingress YAML |
+| `task down:with-ingress-apps` | `apps:uninstall` → edge/dns compose down → `teardown` |
 | `task coredns:discover` | Refresh `coredns/.gen/peers.env` from Docker |
 | `task coredns:apply:a` / `coredns:apply:b` | Patch CoreDNS on one context |
 | `task coredns:apply:all` | Both clusters |
 | `task teardown` | `kind:delete:all` |
 
-Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`.
+Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_DNSMASQ_HOST_PORT`** (default `8053`) for dnsmasq compose + macOS resolver `port`.
 
 ## Helm values (optional)
 
@@ -113,19 +146,20 @@ After `task up`, you can install charts with `task apps:install` (requires `task
 |------|------|
 | [`helm/values/controller.yaml`](helm/values/controller.yaml) | slim-control-plane on A |
 | [`helm/values/slim-cluster-a.yaml`](helm/values/slim-cluster-a.yaml) | Slim on A |
-| [`helm/values/slim-cluster-b.yaml`](helm/values/slim-cluster-b.yaml) | Slim on B; example controller client → `node-a.csit.peer:50051` (adjust port after you expose northbound on node A) |
+| [`helm/values/slim-cluster-b.yaml`](helm/values/slim-cluster-b.yaml) | Slim on B; controller client → `control.cluster-a.csit.test:80` (edge + dnsmasq / split-DNS) |
+| [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) | Optional overlay for pod-on-B → A via `host.docker.internal:10080` |
 
 ## Optional: Ingress, edge, dnsmasq
 
-See [`optional/with-ingress/README.md`](optional/with-ingress/README.md). Example KinD configs with **host port mappings** for that stack live under `optional/with-ingress/kind/*.portmap.example.yaml`; copy or merge into `kind/cluster-*.yaml` before recreating clusters if you use the edge proxy.
+See [`optional/with-ingress/README.md`](optional/with-ingress/README.md). Default [`kind/cluster-*.yaml`](kind/cluster-a.yaml) already includes **ingress-ready** labels and **host port maps**; older copies live under `optional/with-ingress/kind/*.portmap.example.yaml` for reference.
 
-Composite task:
+After `task up`, you can still run only part of the stack, for example:
 
 ```bash
 task optional:with-ingress:full
 ```
 
-(Order: ingress-nginx on both clusters → edge → dnsmasq → Helm + Ingress manifests.)
+(Order: ingress-nginx on both clusters → edge → dnsmasq → Helm + Ingress manifests.) Prefer **`task up:with-ingress-apps`** for a single command from a clean machine.
 
 ## Limitations
 

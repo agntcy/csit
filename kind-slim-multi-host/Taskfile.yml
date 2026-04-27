@@ -30,6 +30,8 @@ vars:
   NS_ADMIN: '{{ .NS_ADMIN | default "admin" }}'
   NS_A: '{{ .NS_A | default "cluster-a" }}'
   NS_B: '{{ .NS_B | default "cluster-b" }}'
+  # Host loopback port for dnsmasq (macOS often uses 5353 for mDNS; 53 is blocked/unavailable in Docker).
+  CSIT_DNSMASQ_HOST_PORT: '{{ .CSIT_DNSMASQ_HOST_PORT | default "8053" }}'
 
 tasks:
   prereq:
@@ -116,6 +118,20 @@ tasks:
     cmds:
       - task kind:delete:all
 
+  up:with-ingress-apps:
+    desc: KinD + CoreDNS peer + ingress-nginx + edge + dnsmasq + Helm (slim, controller, Ingress YAML)
+    cmds:
+      - task up
+      - task optional:with-ingress:full
+
+  down:with-ingress-apps:
+    desc: Remove Helm + Ingress manifests, stop edge/dns compose, delete both KinD clusters
+    cmds:
+      - task apps:uninstall
+      - task optional:with-ingress:edge:down
+      - task optional:with-ingress:dns:down
+      - task teardown
+
   # --- Optional Helm + Ingress (see optional/with-ingress/) ---
   optional:with-ingress:full:
     desc: ingress-nginx + edge + dnsmasq + Helm slim/controller (optional stack)
@@ -152,11 +168,15 @@ tasks:
   optional:with-ingress:dns:up:
     deps: [optional:with-ingress:dns:render]
     dir: optional/with-ingress/dns
+    env:
+      CSIT_DNSMASQ_HOST_PORT: '{{ .CSIT_DNSMASQ_HOST_PORT }}'
     cmds:
       - docker compose up -d
 
   optional:with-ingress:dns:down:
     dir: optional/with-ingress/dns
+    env:
+      CSIT_DNSMASQ_HOST_PORT: '{{ .CSIT_DNSMASQ_HOST_PORT }}'
     cmds:
       - docker compose down
 

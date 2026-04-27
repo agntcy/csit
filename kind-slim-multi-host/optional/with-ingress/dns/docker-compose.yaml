@@ -1,15 +1,24 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
+#
+# Host DNS publishes a high loopback port (default 8053 → container 53). Avoids:
+# - privileged 53 and Docker/macOS bind failures
+# - 5353 (often mDNSResponder / Bonjour on macOS)
+# Set CSIT_DNSMASQ_HOST_PORT when running docker compose / Task; resolver `port` must match.
 services:
   dnsmasq:
-    image: jpillora/dnsmasq:1.4.0
+    # Use CoreDNS for reliable UDP/TCP DNS behavior on Docker Desktop (arm64 + amd64).
+    image: docker.io/coredns/coredns:1.11.3
     container_name: kind-slim-multi-host-dnsmasq
     restart: unless-stopped
+    # Bind on all host interfaces (not only 127.0.0.1): Docker Desktop + DNS over UDP/TCP
+    # is more reliable than loopback-only publish; clients still use 127.0.0.1 to query.
     ports:
-      - "127.0.0.1:53:53/tcp"
-      - "127.0.0.1:53:53/udp"
+      - "${CSIT_DNSMASQ_HOST_PORT:-8053}:53/tcp"
+      - "${CSIT_DNSMASQ_HOST_PORT:-8053}:53/udp"
     volumes:
       - type: bind
         source: ./dnsmasq.conf
-        target: /etc/dnsmasq.conf
+        target: /etc/coredns/Corefile
         read_only: true
+    command: ["-conf", "/etc/coredns/Corefile"]
