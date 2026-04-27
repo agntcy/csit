@@ -7,7 +7,7 @@
 #
 # Uses the host-published ingress port (see kind/cluster-a.yaml extraPortMappings → :10080).
 # gRPC :authority may not match the Ingress host; if connections fail, use NodePort + CoreDNS
-# instead or run tests from the host with control.cluster-a.csit.test:80 + dnsmasq.
+# instead or run tests from the host with control.cluster-a.csit.test:80 + local DNS helper.
 slim:
   overrideConfig:
     services:

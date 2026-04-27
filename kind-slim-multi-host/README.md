@@ -130,14 +130,14 @@ flowchart LR
 - **CoreDNS (`csit.peer`):** enables cross-cluster peer node-name resolution.
 - **slim + controller:** controller runs on A; slim runs on both clusters, with B reaching controller through host DNS/edge/ingress.
 
-1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits the local DNS helper. Use the **same port** as `CSIT_DNSMASQ_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
+1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits the local DNS helper. Use the **same port** as `CSIT_LOCAL_DNS_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
 
    ```
    nameserver 127.0.0.1
    port 8053
    ```
 
-   If **8053** is taken, pick another free port: `task optional:with-ingress:dns:up CSIT_DNSMASQ_HOST_PORT=15353` and set `port 15353` in the resolver file.
+   If **8053** is taken, pick another free port: `task optional:with-ingress:dns:up CSIT_LOCAL_DNS_HOST_PORT=15353` and set `port 15353` in the resolver file.
 
    The DNS helper container now uses CoreDNS (still started via `task optional:with-ingress:dns:up`) because it is more reliable on Docker Desktop for both UDP and TCP DNS queries. It still serves `*.csit.test` as `127.0.0.1` and publishes the configured host port.
 2. From `kind-slim-multi-host/`, if clusters already exist from an older layout, run `task teardown` (and stop any prior edge/dns: `task optional:with-ingress:edge:down`, `task optional:with-ingress:dns:down`).
@@ -169,7 +169,7 @@ task down:with-ingress-apps
 | `task coredns:apply:all` | Both clusters |
 | `task teardown` | `kind:delete:all` |
 
-Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_DNSMASQ_HOST_PORT`** (default `8053`) for DNS-helper compose + macOS resolver `port`.
+Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_LOCAL_DNS_HOST_PORT`** (default `8053`) for DNS-helper compose + macOS resolver `port`.
 
 ## Helm values (optional)
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # agntcy slim — KinD cluster B, namespace cluster-b
 # Controller on cluster A via Ingress host (edge nginx on :80 → KinD :10080). Requires
-# `task up:with-ingress-apps` (or equivalent) + macOS `/etc/resolver/csit.test` with `port` = CSIT_DNSMASQ_HOST_PORT (default 8053).
+# `task up:with-ingress-apps` (or equivalent) + macOS `/etc/resolver/csit.test` with `port` = CSIT_LOCAL_DNS_HOST_PORT (default 8053).
 # For slim pods on B reaching the host-mapped port from inside the cluster, see
 # helm/values/slim-cluster-b.docker-desktop.yaml.
 slim:

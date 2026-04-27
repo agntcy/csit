@@ -1,6 +1,6 @@
 # Multi-cluster slim test infrastructure (KinD + ingress + DNS)
 
-**Overview:** Multi-KinD slim testbed with cluster A hosting the control plane, cluster B (and others) reachable from A via ingress hostnames, optional reverse path B→A modeled with split DNS (dnsmasq) and distinct loopback aliases so each cluster can own port 80/443 on different IPs. Extend slim config generation where a single controller endpoint is insufficient.
+**Overview:** Multi-KinD slim testbed with cluster A hosting the control plane, cluster B (and others) reachable from A via ingress hostnames, optional reverse path B→A modeled with split DNS (host-local DNS helper, e.g. CoreDNS in Docker) and distinct loopback aliases so each cluster can own port 80/443 on different IPs. Extend slim config generation where a single controller endpoint is insufficient.
 
 ## Goals
 
@@ -35,7 +35,7 @@ Clients use normal `https://host` / gRPC authority; ports stay 80/443 per IP.
 ```mermaid
 flowchart TB
   subgraph host [Docker_host]
-    dns[dnsmasq_Docker]
+    dns[local_DNS_helper]
     lo1[127.0.0.1]
     lo2[127.0.0.2]
   end
@@ -65,8 +65,8 @@ flowchart TB
 
 ## DNS (ties to prior plan)
 
-- **dnsmasq** remains a good default: static or generated `address=/cluster-b.dev.test/127.0.0.2`-style rules per hostname (wildcards per subdomain if you prefer `*.cluster-b.dev.test`).
-- **macOS**: `/etc/resolver/dev.test` → `nameserver 127.0.0.1` (dnsmasq container published on host loopback).
+- A **small host-local DNS server** (CoreDNS or similar) remains a good default: static or generated A records per logical hostname → `127.0.0.1` / `127.0.0.2` (wildcards per subdomain if you prefer `*.cluster-b.dev.test`).
+- **macOS**: `/etc/resolver/dev.test` → `nameserver 127.0.0.1` (DNS helper container published on host loopback).
 - Automation reads KinD mapping table (known by convention) rather than scraping NodePorts if you standardize port maps.
 
 ## Slim configuration and topology automation
@@ -89,6 +89,6 @@ flowchart TB
 |-------|--------|
 | Clusters | 2+ KinD clusters, separate kubeconfig contexts |
 | Collision-free ingress | Loopback aliases + per-cluster `extraPortMappings` to distinct 127.x addresses |
-| DNS | dnsmasq with A records per logical hostname → 127.0.0.1 / 127.0.0.2 |
+| DNS | Host-local DNS helper with A records per logical hostname → 127.0.0.1 / 127.0.0.2 |
 | Asymmetry | Optional ingress/DNS/routes for B→A; slim config reflects allowed directions |
 | Repo code gap | Per-cluster controller endpoint in generator; multi-context deploy/test driver |
