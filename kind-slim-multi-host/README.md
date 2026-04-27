@@ -170,7 +170,7 @@ task down:with-ingress-apps
 | `task coredns:apply:all` | Both clusters |
 | `task teardown` | `kind:delete:all` |
 
-Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_LOCAL_DNS_HOST_PORT`** (default `8053`) for DNS-helper compose + macOS resolver `port`.
+Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_LOCAL_DNS_HOST_PORT`** (default `8053`) for DNS-helper compose + macOS resolver `port`. The DNS **`Corefile`** under `optional/with-ingress/dns/` is **generated** (gitignored); created by `task optional:with-ingress:dns:render` or before compose via `task optional:with-ingress:dns:up`.
 
 ## Helm values (optional)
 
@@ -185,7 +185,7 @@ Charts install with **`task up:with-ingress-apps`** or, after **`task up`**, `ta
 
 ## Optional: Ingress, edge, local DNS helper
 
-See [`optional/with-ingress/README.md`](optional/with-ingress/README.md). Default [`kind/cluster-*.yaml`](kind/cluster-a.yaml) already includes **ingress-ready** labels and **host port maps**; older copies live under `optional/with-ingress/kind/*.portmap.example.yaml` for reference.
+See [`optional/with-ingress/README.md`](optional/with-ingress/README.md). [`kind/cluster-*.yaml`](kind/cluster-a.yaml) defines **ingress-ready** labels and **host port maps** for the edge proxy.
 
 After `task up`, you can still run only part of the stack, for example:
 

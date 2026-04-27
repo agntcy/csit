@@ -14,4 +14,4 @@ task up:with-ingress-apps
 
 Or, if clusters are already up: `task optional:with-ingress:full`.
 
-**KinD port maps:** the parent [`kind/cluster-*.yaml`](../kind/cluster-a.yaml) files already include `extraPortMappings` for edge → ingress. The `kind/*.portmap.example.yaml` files here are copies for reference only.
+**KinD port maps:** [`kind/cluster-*.yaml`](../kind/cluster-a.yaml) lists `extraPortMappings` (e.g. host **10080** / **9080**) so edge nginx can reach each cluster’s ingress-nginx.
