@@ -15,6 +15,7 @@ import (
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
@@ -81,6 +82,30 @@ func boolPtr(b bool) *bool {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+const (
+	slimClientConfigVolumeName = "slim-client-config"
+	slimClientConfigMapKey     = "slim-config.json"
+	slimClientConfigMountDir   = "/etc/slim"
+)
+
+func slimClientConfigFilePath() string {
+	return slimClientConfigMountDir + "/" + slimClientConfigMapKey
+}
+
+func slimClientConfigVolumes(configMapName string) ([]corev1.Volume, []corev1.VolumeMount) {
+	return []corev1.Volume{{
+			Name: slimClientConfigVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+				},
+			},
+		}}, []corev1.VolumeMount{{
+			Name:      slimClientConfigVolumeName,
+			MountPath: slimClientConfigMountDir,
+		}}
 }
 
 // ...
@@ -182,7 +207,15 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args := append(args, "--slim-config", string(cfgJSON))
+					_, err = k8sHelper.CreateConfigMap(slimClientConfigMapKey, string(cfgJSON))
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create slim config map")
+					ginkgo.DeferCleanup(func(ctx context.Context) {
+						err := k8sHelper.CleanupConfigMap(ctx)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete slim config map")
+					})
+					vols, mounts := slimClientConfigVolumes(jobName)
+					k8sHelper = k8sHelper.WithVolumes(vols).WithWithVolumeMounts(mounts)
+					args = append(args, "--slim-config", slimClientConfigFilePath())
 					k8sHelper = k8sHelper.WithArgs(args).WithSpire()
 
 				} else {
@@ -196,7 +229,15 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					cfgJSON, err := json.Marshal(cfg)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
 
-					args = append(args, "--slim-config", string(cfgJSON))
+					_, err = k8sHelper.CreateConfigMap(slimClientConfigMapKey, string(cfgJSON))
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create slim config map")
+					ginkgo.DeferCleanup(func(ctx context.Context) {
+						err := k8sHelper.CleanupConfigMap(ctx)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete slim config map")
+					})
+					vols, mounts := slimClientConfigVolumes(jobName)
+					k8sHelper = k8sHelper.WithVolumes(vols).WithWithVolumeMounts(mounts)
+					args = append(args, "--slim-config", slimClientConfigFilePath())
 					k8sHelper = k8sHelper.WithArgs(args)
 				}
 

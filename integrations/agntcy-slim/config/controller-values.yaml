@@ -26,16 +26,16 @@ config:
   southbound:
     httpHost: 0.0.0.0
     httpPort: "{{ .Values.service.south.port }}"
-    tls:
-      useSpiffe: true
-    spire:
-      socketPath: "unix:///run/spire/agent-sockets/api.sock"
+    # tls:
+    #   useSpiffe: true
+    # spire:
+    #   socketPath: "unix:///run/spire/agent-sockets/api.sock"
 
   logging:
     level: DEBUG
 
 spire:
-  enabled: true
+  enabled: false
 
 service:
   type: ClusterIP

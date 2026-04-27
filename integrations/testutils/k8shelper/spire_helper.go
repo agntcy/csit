@@ -14,31 +14,23 @@ import (
 )
 
 func (k *k8sHelper) WithSpire() *k8sHelper {
-	return k.WithVolumes(
-		[]corev1.Volume{
-			{
-				Name: "spire-agent-socket",
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/run/spire/agent-sockets",
-						Type: func() *corev1.HostPathType {
-							t := corev1.HostPathDirectory
-							return &t
-						}(),
-					},
-				},
+	hostPathType := corev1.HostPathDirectory
+	k.volumes = append(k.volumes, corev1.Volume{
+		Name: "spire-agent-socket",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/run/spire/agent-sockets",
+				Type: &hostPathType,
 			},
 		},
-	).WithWithVolumeMounts(
-		[]corev1.VolumeMount{
-			{
-				Name:      "spire-agent-socket",
-				MountPath: "/tmp/spire-agent/public",
-				ReadOnly:  false,
-			},
-		},
-	).WithServiceAccountName(k.name)
-
+	})
+	k.volumeMounts = append(k.volumeMounts, corev1.VolumeMount{
+		Name:      "spire-agent-socket",
+		MountPath: "/tmp/spire-agent/public",
+		ReadOnly:  false,
+	})
+	k.serviceAccountName = k.name
+	return k
 }
 
 func (k *k8sHelper) CreateServiceAccount() error {
