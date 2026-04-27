@@ -6,19 +6,6 @@ name: kind-slim-multicluster
 
 on:
   workflow_dispatch:
-    inputs:
-      with_ingress_install:
-        description: Install ingress-nginx on both clusters after task up
-        type: boolean
-        default: false
-      with_apps:
-        description: Run task apps:install (Helm + Ingress YAML; pair with ingress or KinD port maps)
-        type: boolean
-        default: false
-      with_ingress_full:
-        description: Run task optional:with-ingress:full (edge/dns may fail if host ports 80/53 are in use)
-        type: boolean
-        default: false
   pull_request:
     paths:
       - "kind-slim-multi-host/**"
@@ -63,31 +50,27 @@ jobs:
       - name: Task prereq
         run: task prereq
 
-      - name: Task up
-        run: task up
-
-      - name: Install ingress-nginx (both clusters)
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.with_ingress_install || inputs.with_apps) && !inputs.with_ingress_full }}
-        run: task optional:with-ingress:ingress:install:all
-
-      - name: Optional full ingress stack and apps
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.with_ingress_full }}
-        run: task optional:with-ingress:full
-
-      - name: Optional Helm apps
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.with_apps && !inputs.with_ingress_full }}
-        run: task apps:install
+      - name: Task up (latest full infrastructure)
+        run: task up:with-ingress-apps
 
       - name: Verify clusters
         run: |
           set -euo pipefail
           kubectl --context kind-csit-a get nodes
           kubectl --context kind-csit-b get nodes
+          kubectl --context kind-csit-a -n ingress-nginx get pods
+          kubectl --context kind-csit-b -n ingress-nginx get pods
 
       - name: Verify CoreDNS csit.peer stub on cluster A
         run: |
           set -euo pipefail
           kubectl --context kind-csit-a get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
+
+      - name: Verify host DNS helper
+        run: |
+          set -euo pipefail
+          dig @127.0.0.1 -p 8053 +short control.cluster-a.csit.test | grep -q '^127\.0\.0\.1$'
+          dig +tcp @127.0.0.1 -p 8053 +short slim.cluster-b.csit.test | grep -q '^127\.0\.0\.1$'
 
       - name: Verify DNS resolution (cluster A)
         run: |
@@ -101,6 +84,6 @@ jobs:
             --command -- \
             nslookup node-b.csit.peer
 
-      - name: Teardown Kind clusters
+      - name: Teardown full stack
         if: always()
-        run: task teardown || true
+        run: task down:with-ingress-apps || true
