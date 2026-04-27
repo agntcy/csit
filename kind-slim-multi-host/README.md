@@ -95,9 +95,48 @@ Deletes both Kind clusters. Generated files under `coredns/.gen/` can be removed
 
 ### Local: slim + controller exposed through Ingress
 
-Use this when you want **ingress-nginx** gRPC Ingress objects, **edge nginx** on the host (`127.0.0.1:80`), **dnsmasq** for `*.csit.test`, and **Helm** installs for slim + control plane.
+Use this when you want **ingress-nginx** gRPC Ingress objects, **edge nginx** on the host (`127.0.0.1:80`), a local **DNS helper** for `*.csit.test`, and **Helm** installs for slim + control plane.
 
-1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits dnsmasq. Use the **same port** as `CSIT_DNSMASQ_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
+#### Architecture (simplified)
+
+```mermaid
+flowchart LR
+  subgraph H["Host"]
+    D["DNS helper<br/>*.csit.test -> 127.0.0.1"]
+    E["edge nginx :80"]
+  end
+  D --> E
+
+  subgraph A["Cluster A (csit-a)"]
+    ACD["CoreDNS (csit.peer)"]
+    AIN["ingress-nginx"]
+    CTR["slim controller"]
+    SLA["slim"]
+  end
+
+  subgraph B["Cluster B (csit-b)"]
+    BCD["CoreDNS (csit.peer)"]
+    BIN["ingress-nginx"]
+    SLB["slim"]
+  end
+
+  E -->|"control.cluster-a.csit.test"| AIN
+  E -->|"slim.cluster-a.csit.test"| AIN
+  E -->|"slim.cluster-b.csit.test"| BIN
+  AIN --> CTR
+  AIN --> SLA
+  BIN --> SLB
+  SLB -->|"controller client"| E
+  ACD <-->|"peer node names"| BCD
+```
+
+- **DNS helper:** resolves local `*.csit.test` names to loopback for host access.
+- **edge nginx:** host entrypoint that routes by hostname to cluster A or B ingress.
+- **ingress-nginx:** receives routed traffic and forwards to slim/controller services.
+- **CoreDNS (`csit.peer`):** enables cross-cluster peer node-name resolution.
+- **slim + controller:** controller runs on A; slim runs on both clusters, with B reaching controller through host DNS/edge/ingress.
+
+1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits the local DNS helper. Use the **same port** as `CSIT_DNSMASQ_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
 
    ```
    nameserver 127.0.0.1
