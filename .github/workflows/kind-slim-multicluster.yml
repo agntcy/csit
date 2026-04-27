@@ -1,7 +1,8 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Two KinD clusters + CoreDNS peer setup via Task (kind-slim-multi-host).
+# KinD multicluster (csit.peer) + optional ingress stack via Task:
+# task up:with-ingress-apps / task down:with-ingress-apps (kind-slim-multi-host).
 name: kind-slim-multicluster
 
 on:
@@ -50,7 +51,11 @@ jobs:
       - name: Task prereq
         run: task prereq
 
-      - name: Task up (latest full infrastructure)
+      # Ubuntu runners may not ship `dig` (bind-dnsutils); host DNS checks need it.
+      - name: Install dnsutils
+        run: sudo apt-get update && sudo apt-get install -y dnsutils
+
+      - name: Task up (full ingress + apps)
         run: task up:with-ingress-apps
 
       - name: Verify clusters
@@ -61,10 +66,11 @@ jobs:
           kubectl --context kind-csit-a -n ingress-nginx get pods
           kubectl --context kind-csit-b -n ingress-nginx get pods
 
-      - name: Verify CoreDNS csit.peer stub on cluster A
+      - name: Verify CoreDNS csit.peer stub (both clusters)
         run: |
           set -euo pipefail
           kubectl --context kind-csit-a get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
+          kubectl --context kind-csit-b get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
 
       - name: Verify host DNS helper
         run: |
@@ -83,6 +89,13 @@ jobs:
             --image=docker.io/library/busybox:1.36 \
             --command -- \
             nslookup node-b.csit.peer
+
+      - name: Verify Helm releases (optional apps)
+        run: |
+          set -euo pipefail
+          helm list --kube-context kind-csit-a --namespace admin | grep -q slim-control
+          helm list --kube-context kind-csit-a --namespace cluster-a | grep -q agntcy-cluster-a
+          helm list --kube-context kind-csit-b --namespace cluster-b | grep -q agntcy-cluster-b
 
       - name: Teardown full stack
         if: always()
