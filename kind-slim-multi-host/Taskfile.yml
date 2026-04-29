@@ -16,11 +16,15 @@ vars:
 
   SLIM_CHART: '{{ .SLIM_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim" }}'
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.7.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "0.7.2-dev.1" }}'
+  # Prefer CLI/task var, then OS env (CI sets SLIM_IMAGE_TAG / CTRL_IMAGE_TAG), then default chart tag.
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default (env "SLIM_IMAGE_TAG") | default "0.7.2-dev.1" }}'
 
   CTRL_CHART: '{{ .CTRL_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-control-plane" }}'
   CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
-  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default "0.7.2-dev.1" }}'
+  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default "0.7.2-dev.1" }}'
+
+  # Absolute path to agntcy/slim repo root (charts/slim, charts/slim-control-plane). Empty = OCI + *_CHART_TAG (integrations/agntcy-slim pattern).
+  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
 
   INGRESS_NGINX_KIND_MANIFEST: '{{ .INGRESS_NGINX_KIND_MANIFEST | default "https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml" }}'
 
@@ -201,47 +205,101 @@ tasks:
       - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true
 
   helm:install:controller:
-    desc: Install slim-control-plane on cluster A (optional apps)
+    desc: Install slim-control-plane on cluster A (optional apps); SLIM_REPO_PATH uses charts/slim-control-plane from checkout
     cmds:
       - |
-        helm upgrade {{ .CTRL_RELEASE }} {{ .CTRL_CHART }} \
-          --version {{ .CTRL_CHART_TAG }} \
-          --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
-          -f helm/values/controller.yaml \
-          --namespace {{ .NS_ADMIN }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --timeout 15m \
-          --kube-context {{ .CTX_A }}
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim-control-plane" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim-control-plane not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade {{ .CTRL_RELEASE }} "$REPO/charts/slim-control-plane" \
+            --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
+            -f helm/values/controller.yaml \
+            --namespace {{ .NS_ADMIN }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_A }}
+        else
+          helm upgrade {{ .CTRL_RELEASE }} {{ .CTRL_CHART }} \
+            --version {{ .CTRL_CHART_TAG }} \
+            --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
+            -f helm/values/controller.yaml \
+            --namespace {{ .NS_ADMIN }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_A }}
+        fi
 
   helm:install:slim:a:
     cmds:
       - |
-        helm upgrade {{ .SLIM_RELEASE_A }} {{ .SLIM_CHART }} \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          -f helm/values/slim-cluster-a.yaml \
-          --namespace {{ .NS_A }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --timeout 15m \
-          --kube-context {{ .CTX_A }}
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade {{ .SLIM_RELEASE_A }} "$REPO/charts/slim" \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f helm/values/slim-cluster-a.yaml \
+            --namespace {{ .NS_A }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_A }}
+        else
+          helm upgrade {{ .SLIM_RELEASE_A }} {{ .SLIM_CHART }} \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f helm/values/slim-cluster-a.yaml \
+            --namespace {{ .NS_A }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_A }}
+        fi
 
   helm:install:slim:b:
     cmds:
       - |
-        helm upgrade {{ .SLIM_RELEASE_B }} {{ .SLIM_CHART }} \
-          --version {{ .SLIM_CHART_TAG }} \
-          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-          -f helm/values/slim-cluster-b.yaml \
-          --namespace {{ .NS_B }} \
-          --create-namespace \
-          --install \
-          --wait \
-          --timeout 15m \
-          --kube-context {{ .CTX_B }}
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade {{ .SLIM_RELEASE_B }} "$REPO/charts/slim" \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f helm/values/slim-cluster-b.yaml \
+            --namespace {{ .NS_B }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_B }}
+        else
+          helm upgrade {{ .SLIM_RELEASE_B }} {{ .SLIM_CHART }} \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f helm/values/slim-cluster-b.yaml \
+            --namespace {{ .NS_B }} \
+            --create-namespace \
+            --install \
+            --wait \
+            --timeout 25m \
+            --kube-context {{ .CTX_B }}
+        fi
 
   helm:install:slim:all:
     cmds:

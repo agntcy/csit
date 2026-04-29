@@ -187,7 +187,7 @@ jobs:
           if [ -n "${{ inputs.override_slim_image_tag }}" ]; then
             tag="${{ inputs.override_slim_image_tag }}"
           else
-            tag="local-${GITHUB_SHA::12}"
+            tag="local-${GITHUB_SHA:0:12}"
           fi
           echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"

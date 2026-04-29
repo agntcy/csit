@@ -144,11 +144,9 @@ jobs:
             done
           done
 
+      # Charts from checked-out agntcy/slim (charts/slim, charts/slim-control-plane); tags match kind-loaded images.
       - name: Install ingress stack and Helm apps (built images)
-        env:
-          SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
-          CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
-        run: task optional:with-ingress:full
+        run: task optional:with-ingress:full SLIM_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.slim_tag }} CTRL_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.controller_tag }} SLIM_REPO_PATH=${{ github.workspace }}/slim-src
 
       - name: Verify clusters
         run: |
