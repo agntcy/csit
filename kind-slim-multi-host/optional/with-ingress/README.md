@@ -4,7 +4,7 @@ Ingress-based stack: **edge nginx**, **CoreDNS DNS helper** for `*.csit.test`, I
 
 - `edge/` — nginx front proxy (Docker Desktop–friendly port split)
 - `dns/` — CoreDNS helper: host **`127.0.0.1:<port>`** → container `:53` (default **8053** via **`CSIT_LOCAL_DNS_HOST_PORT`**; same number in `/etc/resolver/csit.test` **`port`**)
-- `manifests/ingress/` — gRPC Ingress for slim / control plane
+- gRPC Ingress for slim dataplane and control plane — configured in [`helm/values/`](../helm/values/) via chart values (`slim.ingresses`, `ingressNorth`), not standalone manifests
 
 Example (from `kind-slim-multi-host/`):
 

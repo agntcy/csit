@@ -39,5 +39,17 @@ slim:
               tls:
                 insecure: true
 
+  ingresses:
+    - portName: data-plane-0
+      className: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      hosts:
+        - host: slim.cluster-b.csit.test
+          paths:
+            - path: /
+              pathType: Prefix
+
 mcpProxy:
   enabled: false

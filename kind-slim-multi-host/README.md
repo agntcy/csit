@@ -5,7 +5,7 @@
 **What this does not do:** pods still cannot resolve the **other** cluster’s `*.svc.cluster.local` without extra plumbing—use **`csit.peer`** for node IPs and expose services accordingly (**NodePort**, **hostPort**, etc.).
 
 - **`task up`** — clusters + **`csit.peer`** patch only.
-- **`task up:with-ingress-apps`** — also ingress-nginx, host edge nginx, Docker **local DNS helper** ([`optional/with-ingress/dns`](optional/with-ingress/dns)), Helm, Ingress YAML.
+- **`task up:with-ingress-apps`** — also ingress-nginx, host edge nginx, Docker **local DNS helper** ([`optional/with-ingress/dns`](optional/with-ingress/dns)), Helm (Ingress via [`helm/values/`](helm/values/) + upstream slim charts).
 
 CI runs **`up:with-ingress-apps`** / **`down:with-ingress-apps`**. Run all tasks from this directory.
 
@@ -148,7 +148,7 @@ flowchart LR
 task up:with-ingress-apps
 ```
 
-This runs `task up` then `task optional:with-ingress:full` (ingress-nginx on both clusters → edge → local DNS helper → Helm + Ingress manifests).
+This runs `task up` then `task optional:with-ingress:full` (ingress-nginx on both clusters → edge → local DNS helper → Helm; Ingress rules come from [`helm/values/`](helm/values/) via slim/control-plane charts).
 
 4. **Cluster B → cluster A controller:** default Helm values use `control.cluster-a.csit.test:80` (through edge). That works well from the **host** with split-DNS. **Slim pods on B** may not resolve `csit.test` the same way; on **Docker Desktop** you can reinstall slim on B with the optional overlay [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) (see comments in that file).
 
@@ -163,7 +163,7 @@ task down:with-ingress-apps
 | Task | Purpose |
 |------|---------|
 | `task up` | `prereq` → create both clusters → `coredns:discover` → `coredns:apply:all` |
-| `task up:with-ingress-apps` | `task up` then optional ingress + edge + local DNS helper + Helm + Ingress YAML |
+| `task up:with-ingress-apps` | `task up` then optional ingress + edge + local DNS helper + Helm (Ingress via chart values in [`helm/values/`](helm/values/)) |
 | `task down:with-ingress-apps` | `apps:uninstall` → edge/dns compose down → `teardown` |
 | `task coredns:discover` | Refresh `coredns/.gen/peers.env` from Docker |
 | `task coredns:apply:a` / `coredns:apply:b` | Patch CoreDNS on one context |
@@ -193,7 +193,7 @@ After `task up`, you can still run only part of the stack, for example:
 task optional:with-ingress:full
 ```
 
-(Order: ingress-nginx on both clusters → edge → DNS helper → Helm + Ingress manifests.) Prefer **`task up:with-ingress-apps`** for a single command from a clean machine.
+(Order: ingress-nginx on both clusters → edge → DNS helper → Helm.) Prefer **`task up:with-ingress-apps`** for a single command from a clean machine.
 
 ## Limitations
 

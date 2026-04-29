@@ -31,3 +31,16 @@ service:
     port: 50052
   north:
     port: 50051
+
+# Northbound gRPC exposed for cross-cluster / host DNS (slim-control-plane ingressNorth).
+ingressNorth:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: control.cluster-a.csit.test
+      paths:
+        - path: /
+          pathType: Prefix

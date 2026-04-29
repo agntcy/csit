@@ -190,16 +190,10 @@ tasks:
     cmds:
       - task helm:install:controller
       - task helm:install:slim:all
-      - kubectl --context {{ .CTX_A }} apply -f optional/with-ingress/manifests/ingress/cluster-a-slim-control.yaml
-      - kubectl --context {{ .CTX_A }} apply -f optional/with-ingress/manifests/ingress/cluster-a-slim-dataplane.yaml
-      - kubectl --context {{ .CTX_B }} apply -f optional/with-ingress/manifests/ingress/cluster-b-slim-dataplane.yaml
 
   apps:uninstall:
-    desc: Remove optional Ingress + Helm releases
+    desc: Remove optional Helm releases (Ingress objects owned by Helm releases)
     cmds:
-      - kubectl --context {{ .CTX_A }} delete -f optional/with-ingress/manifests/ingress/cluster-a-slim-control.yaml --ignore-not-found
-      - kubectl --context {{ .CTX_A }} delete -f optional/with-ingress/manifests/ingress/cluster-a-slim-dataplane.yaml --ignore-not-found
-      - kubectl --context {{ .CTX_B }} delete -f optional/with-ingress/manifests/ingress/cluster-b-slim-dataplane.yaml --ignore-not-found
       - helm uninstall {{ .SLIM_RELEASE_B }} --namespace {{ .NS_B }} --kube-context {{ .CTX_B }} || true
       - helm uninstall {{ .SLIM_RELEASE_A }} --namespace {{ .NS_A }} --kube-context {{ .CTX_A }} || true
       - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true

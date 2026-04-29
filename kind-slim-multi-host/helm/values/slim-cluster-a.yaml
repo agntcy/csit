@@ -35,5 +35,18 @@ slim:
               tls:
                 insecure: true
 
+  # gRPC Ingress (slim chart slim.ingresses); matches ingress-nginx + *.csit.test DNS helper.
+  ingresses:
+    - portName: data-plane-0
+      className: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      hosts:
+        - host: slim.cluster-a.csit.test
+          paths:
+            - path: /
+              pathType: Prefix
+
 mcpProxy:
   enabled: false
