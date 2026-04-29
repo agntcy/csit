@@ -1,8 +1,10 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# KinD multicluster (csit.peer) + optional ingress stack via Task:
-# task up:with-ingress-apps / task down:with-ingress-apps (kind-slim-multi-host).
+# KinD multicluster (csit.peer) + optional ingress stack via Task.
+# Builds slim dataplane, control-plane, and bindings-examples images (same steps as
+# test-integrations run-tests-slim-topology), loads them into both clusters, then
+# task up → optional:with-ingress:full (equivalent to up:with-ingress-apps with built tags).
 name: kind-slim-multicluster
 
 on:
@@ -12,6 +14,7 @@ on:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
       - ".github/actions/setup-k8s/**"
+      - "integrations/agntcy-slim/examples/Dockerfile"
   push:
     branches:
       - main
@@ -19,6 +22,7 @@ on:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
       - ".github/actions/setup-k8s/**"
+      - "integrations/agntcy-slim/examples/Dockerfile"
 
 permissions:
   contents: read
@@ -31,10 +35,75 @@ defaults:
 jobs:
   multicluster:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve slim image tags
+        id: resolve-slim-tags
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          tag="local-${GITHUB_SHA:0:12}"
+          echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "examples_tag=local" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout slim source
+        uses: actions/checkout@v4
+        with:
+          repository: agntcy/slim
+          fetch-depth: 1
+          path: slim-src
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build slim images (linux/amd64)
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
+            --file slim-src/data-plane/Dockerfile \
+            slim-src
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
+            --file slim-src/control-plane/Dockerfile \
+            slim-src
+
+      - name: Build slim bindings examples image (linux/amd64)
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          EXAMPLES_TAG: ${{ steps.resolve-slim-tags.outputs.examples_tag }}
+        run: |
+          set -euo pipefail
+          cp integrations/agntcy-slim/examples/Dockerfile slim-src/data-plane/bindings/python/Dockerfile
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim/bindings-examples:${EXAMPLES_TAG}" \
+            --file slim-src/data-plane/bindings/python/Dockerfile \
+            slim-src
 
       - name: Setup Kubernetes tooling
         uses: ./.github/actions/setup-k8s
@@ -55,8 +124,31 @@ jobs:
       - name: Install dnsutils
         run: sudo apt-get update && sudo apt-get install -y dnsutils
 
-      - name: Task up (full ingress + apps)
-        run: task up:with-ingress-apps
+      - name: Task up (KinD + CoreDNS peers)
+        run: task up
+
+      - name: Load slim images into both KinD clusters
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          EXAMPLES_TAG: ${{ steps.resolve-slim-tags.outputs.examples_tag }}
+        run: |
+          set -euo pipefail
+          for cluster in csit-a csit-b; do
+            for img in \
+              "ghcr.io/agntcy/slim:${SLIM_TAG}" \
+              "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
+              "ghcr.io/agntcy/slim/bindings-examples:${EXAMPLES_TAG}"; do
+              kind load docker-image "${img}" --name "${cluster}"
+            done
+          done
+
+      - name: Install ingress stack and Helm apps (built images)
+        env:
+          SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
+        run: task optional:with-ingress:full
 
       - name: Verify clusters
         run: |
