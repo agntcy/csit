@@ -46,7 +46,7 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/coredns-strip-legacy-peer.sh scripts/ensure-slim-headless-service.sh
+      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/coredns-strip-legacy-peer.sh scripts/ensure-slim-headless-service.sh
 
   prereq:apps:
     desc: Check helm, Go (optional app installs + ingress LB via cloud-provider-kind)
@@ -92,22 +92,9 @@ tasks:
 
   # LoadBalancer — https://github.com/kubernetes-sigs/cloud-provider-kind (requires Go)
   kind:cloud-provider-kind:up:
-    desc: Start cloud-provider-kind in background for LoadBalancer Services (Darwin uses sudo for Docker)
+    desc: Start cloud-provider-kind (macOS sudo -v may prompt); wait until controller process is running
     cmds:
-      - |
-        set -euo pipefail
-        command -v go >/dev/null || { echo "ERROR: go is required for cloud-provider-kind" >&2; exit 1; }
-        echo "Starting Kind cloud provider for LoadBalancer support..."
-        OS="$(uname -s)"
-        if [[ "$OS" == "Darwin" ]]; then
-          sudo go run sigs.k8s.io/cloud-provider-kind@latest > /dev/null 2>&1 &
-        elif [[ "$OS" == "Linux" ]]; then
-          go run sigs.k8s.io/cloud-provider-kind@latest > /dev/null 2>&1 &
-        else
-          echo "Unknown OS"
-          exit 1
-        fi
-        echo "Cloud provider started in background"
+      - ./scripts/run-cloud-provider-kind.sh
 
   optional:with-ingress:ingress:lb:a:
     desc: Expose cluster A ingress-nginx via LoadBalancer (requires cloud-provider-kind)
@@ -160,7 +147,6 @@ tasks:
     cmds:
       - task prereq:apps
       - task kind:cloud-provider-kind:up
-      - sleep 5
       - task optional:with-ingress:ingress:install:all
       - task optional:with-ingress:ingress:lb:a
       - task ingress:a:wait-lb-ip

@@ -205,5 +205,5 @@ task optional:with-ingress:full
 ## Limitations
 
 - **Explicit hostname only:** only **`control.cluster-a.csit.test`** is wired for controller ingress from **B**; remote **`*.svc.cluster.local`** is not mirrored.
-- **Go + sudo (Darwin):** **`kind:cloud-provider-kind:up`** runs `go run`; Docker Desktop may require **`sudo`** so the cloud controller can reach Docker.
+- **Go + sudo (Darwin):** **`kind:cloud-provider-kind:up`** runs **`sudo -v`** first (blocking, so you can enter your password), then **`sudo go run …`** in the background and waits until the controller process exists. Logs: **`coredns/.gen/cloud-provider-kind.stderr`**.
 - **Kind/CoreDNS:** merge scripts expect `deployment/coredns` in `kube-system`; adjust if your Kind layout differs.

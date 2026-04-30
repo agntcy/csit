@@ -26,5 +26,5 @@ for _ in $(seq 1 180); do
   sleep 2
 done
 
-echo "ERROR: timed out waiting for ${SVC} LoadBalancer IP (is cloud-provider-kind running?)" >&2
+echo "ERROR: timed out waiting for ${SVC} LoadBalancer IP (is cloud-provider-kind running? See coredns/.gen/cloud-provider-kind.stderr)" >&2
 exit 1
