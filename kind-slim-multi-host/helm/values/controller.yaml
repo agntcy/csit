@@ -40,7 +40,38 @@ ingressNorth:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
+    - host: control.nb.cluster-a.csit.test
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 50051
+
+ingressSouth:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-stream-timeout: "3600"
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'   
+    nginx.ingress.kubernetes.io/server-snippet: |
+      grpc_socket_keepalive on;
+      keepalive_timeout 3600s;
+      grpc_read_timeout 3600s;
+      grpc_send_timeout 3600s;
+      client_header_timeout 60m;
+      client_body_timeout 60m;
+      http2_max_requests 10000;
+      http2_max_concurrent_streams 128; 
+  hosts:
     - host: control.cluster-a.csit.test
       paths:
         - path: /
           pathType: Prefix
+          port: 50052
+  tls:
+    - secretName: slim-control-tls
+      hosts:
+        - control.cluster-a.csit.test 

@@ -24,10 +24,18 @@ slim:
         dataplane:
           servers:
             - endpoint: "0.0.0.0:46357"
+              keepalive:
+                time: "20s"
               metadata:
-                local_endpoint: ${env:MY_POD_IP}
-                external_endpoint: "agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357"
-                trust_domain: example.org
+                external_endpoint: "slim.cluster-a.csit.test:443"   
+                client_config:
+                  keepalive:
+                    keep_alive_while_idle: true
+                  tls:
+                    insecure: false
+                    # because we are using self-signed certificate
+                    insecure_skip_verify: true
+                    include_system_ca_certs_pool: true
               tls:
                 insecure: true
         controller:
@@ -36,6 +44,7 @@ slim:
             - endpoint: "https://slim-control.admin.svc.cluster.local:50052"
               tls:
                 insecure: true
+
 
   # gRPC Ingress (slim chart slim.ingresses); matches ingress-nginx + *.csit.test DNS helper.
   ingresses:

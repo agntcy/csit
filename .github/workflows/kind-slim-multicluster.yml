@@ -4,7 +4,7 @@
 # KinD multicluster + ingress LoadBalancer (cloud-provider-kind) + optional Helm stack via Task.
 # Builds slim dataplane, control-plane, and bindings-examples images (same steps as
 # test-integrations run-tests-slim-topology), loads them into both clusters, then
-# task up → optional:with-ingress:full (equivalent to up:with-ingress-apps with built tags).
+# task cluster:up → task stack:install (same as task stack:up with built tags).
 name: kind-slim-multicluster
 
 on:
@@ -129,8 +129,8 @@ jobs:
       - name: Install dnsutils
         run: sudo apt-get update && sudo apt-get install -y dnsutils
 
-      - name: Task up (KinD clusters)
-        run: task up
+      - name: Task cluster:up (KinD clusters)
+        run: task cluster:up
 
       - name: Load slim images into both KinD clusters
         shell: bash
@@ -151,7 +151,7 @@ jobs:
 
       # Charts from checked-out agntcy/slim (charts/slim, charts/slim-control-plane); tags match kind-loaded images.
       - name: Install ingress stack and Helm apps (built images)
-        run: task optional:with-ingress:full SLIM_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.slim_tag }} CTRL_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.controller_tag }} SLIM_REPO_PATH=${{ github.workspace }}/slim-src
+        run: task stack:install SLIM_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.slim_tag }} CTRL_IMAGE_TAG=${{ steps.resolve-slim-tags.outputs.controller_tag }} SLIM_REPO_PATH=${{ github.workspace }}/slim-src
 
       - name: Verify clusters
         run: |
@@ -159,7 +159,6 @@ jobs:
           kubectl --context kind-csit-a get nodes
           kubectl --context kind-csit-b get nodes
           kubectl --context kind-csit-a -n ingress-nginx get pods
-          kubectl --context kind-csit-b -n ingress-nginx get pods
 
       - name: Verify ingress LoadBalancer on cluster A
         run: |
@@ -190,7 +189,7 @@ jobs:
       - name: Verify DNS resolution (cluster B → controller hostname)
         run: |
           set -euo pipefail
-          source coredns/.gen/ingress-a.env
+          source .gen/ingress-a.env
           kubectl --context kind-csit-b run dns-verify-b \
             -n default \
             --rm \
@@ -209,4 +208,4 @@ jobs:
 
       - name: Teardown full stack
         if: always()
-        run: task down:with-ingress-apps || true
+        run: task stack:down || true

@@ -3,7 +3,7 @@
 # agntcy slim — KinD cluster B, namespace cluster-b
 # Controller on cluster A via cluster-A ingress (nginx). Pods resolve control.cluster-a.csit.test
 # to the ingress LoadBalancer IP (cloud-provider-kind); CoreDNS on B is patched by
-# task optional:with-ingress:full / up:with-ingress-apps.
+# task stack:install / stack:up.
 # Host browsers still use optional edge nginx + local DNS helper (*.csit.test → loopback).
 # If pods cannot reach the LB VIP (some Docker Desktop setups), merge slim-cluster-b.docker-desktop.yaml.
 slim:
@@ -24,33 +24,31 @@ slim:
       drain_timeout: 10s
     services:
       slim/0:
+        node_id: ${env:SLIM_SVC_ID}
         group_name: cluster-b
         dataplane:
           servers:
             - endpoint: "0.0.0.0:46357"
               metadata:
                 local_endpoint: ${env:MY_POD_IP}
-                external_endpoint: "agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357"
-                trust_domain: example.org
               tls:
                 insecure: true
         controller:
           clients:
-            - endpoint: "http://control.cluster-a.csit.test"
+            - endpoint: "https://control.cluster-a.csit.test"
+              keepalive:
+                tcp_keepalive: 20s
+                http2_keepalive: 20s
+                timeout: 10s
+                keep_alive_while_idle: true
               tls:
-                insecure: true
+                insecure: false
+                # because we are using self-signed certificate
+                insecure_skip_verify: true
+                include_system_ca_certs_pool: true 
 
-  ingresses:
-    - portName: data-plane-0
-      className: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-        nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      hosts:
-        - host: slim.cluster-b.csit.test
-          paths:
-            - path: /
-              pathType: Prefix
+  # Cluster B does not run ingress-nginx; host gRPC via slim.cluster-b.csit.test is not wired here.
+  ingresses: []
 
 mcpProxy:
   enabled: false

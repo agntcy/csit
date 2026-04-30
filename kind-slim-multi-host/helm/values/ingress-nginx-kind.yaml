@@ -1,0 +1,21 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# ingress-nginx Helm chart values for KinD (aligned with provider/kind static manifest).
+# Used by task ingress:install:a (ingress only on cluster A).
+#
+# Service uses NodePort so `helm --wait` does not block on LoadBalancer IP assignment
+# (cloud-provider-kind can take a long time or appear stalled). Cluster A is patched to
+# LoadBalancer after install in the Taskfile for cross-cluster VIP + ingress:a:wait-lb-ip.
+controller:
+  allowSnippetAnnotations: true
+
+  # Required for nginx.ingress.kubernetes.io/ssl-passthrough (SPIRE gRPC to root server).
+  extraArgs:
+    enable-ssl-passthrough: ""
+
+  config:
+    annotations-risk-level: Critical
+
+  service:
+    type: LoadBalancer

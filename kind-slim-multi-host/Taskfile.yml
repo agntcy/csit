@@ -23,10 +23,15 @@ vars:
   CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
   CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default (env "SLIM_CONTROLLER_IMAGE_TAG") | default "1.0.0-dev.07" }}'
 
-  # Absolute path to agntcy/slim repo root (charts/slim, charts/slim-control-plane). Empty = OCI + *_CHART_TAG (integrations/agntcy-slim pattern).
-  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
+  # Directory containing slim/ and slim-control-plane/ chart folders. Default = local agntcy/slim checkout.
+  # If .../slim is missing, tasks fall back to $SLIM_REPO_PATH/charts (e.g. CI) or OCI.
+  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default "/Users/lpuskas/prj/outshift/agntcy/slim/charts" }}'
 
-  INGRESS_NGINX_KIND_MANIFEST: '{{ .INGRESS_NGINX_KIND_MANIFEST | default "https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml" }}'
+  # ingress-nginx official chart (KinD values in helm/values/ingress-nginx-kind.yaml).
+  INGRESS_NGINX_HELM_REPO: '{{ .INGRESS_NGINX_HELM_REPO | default "https://kubernetes.github.io/ingress-nginx" }}'
+  INGRESS_NGINX_HELM_CHART: '{{ .INGRESS_NGINX_HELM_CHART | default "ingress-nginx" }}'
+  INGRESS_NGINX_HELM_VERSION: '{{ .INGRESS_NGINX_HELM_VERSION | default "4.15.1" }}'
+  INGRESS_NGINX_RELEASE: '{{ .INGRESS_NGINX_RELEASE | default "ingress-nginx" }}'
 
   CTRL_RELEASE: '{{ .CTRL_RELEASE | default "slim-control" }}'
   SLIM_RELEASE_A: '{{ .SLIM_RELEASE_A | default "agntcy-cluster-a" }}'
@@ -48,8 +53,9 @@ tasks:
       - command -v jq
       - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/coredns-strip-legacy-peer.sh scripts/ensure-slim-headless-service.sh
 
-  prereq:apps:
-    desc: Check helm, Go (optional app installs + ingress LB via cloud-provider-kind)
+  prereq:stack:
+    desc: prereq + helm + go (Helm installs and cloud-provider-kind)
+    deps: [prereq]
     cmds:
       - command -v helm
       - command -v go
@@ -96,13 +102,32 @@ tasks:
     cmds:
       - ./scripts/run-cloud-provider-kind.sh
 
-  optional:with-ingress:ingress:lb:a:
-    desc: Expose cluster A ingress-nginx via LoadBalancer (requires cloud-provider-kind)
+  ingress:install:a:
+    desc: Install ingress-nginx on cluster A (Helm; required before slim / controller Ingress)
+    deps: [prereq:stack]
+    silent: false
     cmds:
-      - kubectl --context {{ .CTX_A }} patch svc {{ .INGRESS_SVC }} -n ingress-nginx -p '{"spec":{"type":"LoadBalancer"}}'
+      - |
+        set -euo pipefail
+        echo "Helm: ingress-nginx on {{ .CTX_A }} (NodePort + wait, then promote Service to LoadBalancer)..."
+        helm upgrade --install {{ .INGRESS_NGINX_RELEASE }} {{ .INGRESS_NGINX_HELM_CHART }} \
+          --repo {{ .INGRESS_NGINX_HELM_REPO }} \
+          --version {{ .INGRESS_NGINX_HELM_VERSION }} \
+          -f helm/values/ingress-nginx-kind.yaml \
+          --namespace ingress-nginx --create-namespace \
+          --wait --timeout 15m \
+          --kube-context {{ .CTX_A }}
+        echo "Helm upgrade: set ingress Service on {{ .CTX_A }} to LoadBalancer (Helm-owned — avoids SSA conflict with kubectl patch on reruns)..."
+        helm upgrade {{ .INGRESS_NGINX_RELEASE }} {{ .INGRESS_NGINX_HELM_CHART }} \
+          --repo {{ .INGRESS_NGINX_HELM_REPO }} \
+          --version {{ .INGRESS_NGINX_HELM_VERSION }} \
+          --reuse-values \
+          --set controller.service.type=LoadBalancer \
+          --namespace ingress-nginx \
+          --kube-context {{ .CTX_A }}
 
   ingress:a:wait-lb-ip:
-    desc: Wait for cluster A ingress LoadBalancer IP → coredns/.gen/ingress-a.env
+    desc: Wait for cluster A ingress LoadBalancer IP → .gen/ingress-a.env
     cmds:
       - INGRESS_SVC={{ .INGRESS_SVC }} ./scripts/discover-ingress-lb-ip-a.sh {{ .CTX_A }}
 
@@ -116,89 +141,91 @@ tasks:
     cmds:
       - ./scripts/coredns-strip-legacy-peer.sh {{ .CTX_A }} {{ .CTX_B }}
 
-  up:
-    desc: Create both KinD clusters (no CoreDNS cross-cluster patches)
+  cluster:up:
+    desc: Create both KinD clusters (prereq + kind)
     cmds:
       - task prereq
       - task kind:create:all
 
-  teardown:
-    desc: Delete both KinD clusters (no Helm)
+  cluster:teardown:
+    desc: Delete both KinD clusters (no Helm uninstall)
     cmds:
       - task kind:delete:all
 
-  up:with-ingress-apps:
-    desc: KinD + cloud-provider-kind + ingress LB + CoreDNS on B + edge + local DNS helper + Helm
+  stack:install:
+    desc: cloud-provider-kind + ingress-nginx (A) + Helm apps + LB wait + CoreDNS B + host edge + DNS helper
     cmds:
-      - task up
-      - task optional:with-ingress:full
-
-  down:with-ingress-apps:
-    desc: Remove Helm + Ingress manifests, stop edge/dns compose, delete both KinD clusters
-    cmds:
-      - task apps:uninstall
-      - task optional:with-ingress:edge:down
-      - task optional:with-ingress:dns:down
-      - task teardown
-
-  # --- Optional Helm + Ingress (see optional/with-ingress/) ---
-  optional:with-ingress:full:
-    desc: cloud-provider-kind + ingress-nginx + LB on A + CoreDNS alias on B + edge + DNS helper + Helm
-    cmds:
-      - task prereq:apps
+      - task prereq:stack
       - task kind:cloud-provider-kind:up
-      - task optional:with-ingress:ingress:install:all
-      - task optional:with-ingress:ingress:lb:a
+      - task ingress:install:a
+      - task apps:install:cluster-a
       - task ingress:a:wait-lb-ip
       - task coredns:apply:cluster-b:ingress-alias
-      - task optional:with-ingress:edge:up
-      - task optional:with-ingress:dns:up
-      - task apps:install
+      - task apps:install:cluster-b
+      - task compose:edge:up
+      - task compose:dns:up
 
-  optional:with-ingress:ingress:install:all:
-    desc: Install ingress-nginx on both clusters (optional)
+  stack:up:
+    desc: cluster:up + stack:install (full dev environment)
     cmds:
-      - kubectl --context {{ .CTX_A }} apply -f {{ .INGRESS_NGINX_KIND_MANIFEST }}
-      - kubectl --context {{ .CTX_A }} wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
-      - kubectl --context {{ .CTX_B }} apply -f {{ .INGRESS_NGINX_KIND_MANIFEST }}
-      - kubectl --context {{ .CTX_B }} wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+      - task cluster:up
+      - task stack:install
 
-  optional:with-ingress:edge:up:
-    dir: optional/with-ingress/edge
+  stack:down:
+    desc: Helm uninstall slim stack, compose down, delete KinD clusters
+    cmds:
+      - task apps:uninstall
+      - task compose:edge:down
+      - task compose:dns:down
+      - task cluster:teardown
+
+  compose:edge:up:
+    desc: Start host edge nginx (compose/edge)
+    dir: compose/edge
     cmds:
       - docker compose up -d
 
-  optional:with-ingress:edge:down:
-    dir: optional/with-ingress/edge
+  compose:edge:down:
+    desc: Stop host edge nginx
+    dir: compose/edge
     cmds:
       - docker compose down
 
-  optional:with-ingress:dns:render:
+  compose:dns:render:
+    desc: Write compose/dns/Corefile for local *.csit.test
     cmds:
       - chmod +x scripts/render-local-dns-corefile.sh
       - ./scripts/render-local-dns-corefile.sh
 
-  optional:with-ingress:dns:up:
-    deps: [optional:with-ingress:dns:render]
-    dir: optional/with-ingress/dns
+  compose:dns:up:
+    desc: Start local DNS helper (render + compose/dns)
+    deps: [compose:dns:render]
+    dir: compose/dns
     env:
       CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
     cmds:
       - docker compose up -d
 
-  optional:with-ingress:dns:down:
-    dir: optional/with-ingress/dns
+  compose:dns:down:
+    desc: Stop local DNS helper
+    dir: compose/dns
     env:
       CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
     cmds:
       - docker compose down
 
-  apps:install:
-    desc: Helm install slim + controller (Ingress via chart values; headless Service workaround — scripts/ensure-slim-headless-service.sh)
-    deps: [prereq:apps]
+  apps:install:cluster-a:
+    desc: Helm controller + slim on cluster A only (creates Ingress in admin + cluster-a before LB VIP / cluster-B DNS)
+    deps: [ingress:install:a]
     cmds:
       - task helm:install:controller
-      - task helm:install:slim:all
+      - task helm:install:slim:a
+
+  apps:install:cluster-b:
+    desc: Helm slim on cluster B (after CoreDNS maps control.cluster-a.csit.test → LB IP; no ingress-nginx on B)
+    deps: [prereq:stack]
+    cmds:
+      - task helm:install:slim:b
 
   apps:uninstall:
     desc: Remove optional Helm releases (Ingress objects owned by Helm releases)
@@ -210,17 +237,16 @@ tasks:
       - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true
 
   helm:install:controller:
-    desc: Install slim-control-plane on cluster A (optional apps); SLIM_REPO_PATH uses charts/slim-control-plane from checkout
+    desc: Install slim-control-plane on cluster A; prefers SLIM_CHARTS_PATH then SLIM_REPO_PATH/charts else OCI
     cmds:
       - |
         set -euo pipefail
-        REPO='{{ .SLIM_REPO_PATH }}'
-        if [ -n "$REPO" ]; then
-          if [ ! -d "$REPO/charts/slim-control-plane" ]; then
-            echo "SLIM_REPO_PATH is set but charts/slim-control-plane not found under: $REPO" >&2
-            exit 1
-          fi
-          helm upgrade {{ .CTRL_RELEASE }} "$REPO/charts/slim-control-plane" \
+        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
+        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+          CHART_ROOT="${SLIM_REPO_PATH}/charts"
+        fi
+        if [ -d "${CHART_ROOT}/slim-control-plane" ]; then
+          helm upgrade {{ .CTRL_RELEASE }} "${CHART_ROOT}/slim-control-plane" \
             --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
             -f helm/values/controller.yaml \
             --namespace {{ .NS_ADMIN }} \
@@ -243,17 +269,17 @@ tasks:
         fi
 
   helm:install:slim:a:
+    desc: Helm slim chart on cluster A
     cmds:
       - |
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_A }} {{ .NS_A }} {{ .SLIM_RELEASE_A }}
-        REPO='{{ .SLIM_REPO_PATH }}'
-        if [ -n "$REPO" ]; then
-          if [ ! -d "$REPO/charts/slim" ]; then
-            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
-            exit 1
-          fi
-          helm upgrade {{ .SLIM_RELEASE_A }} "$REPO/charts/slim" \
+        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
+        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+          CHART_ROOT="${SLIM_REPO_PATH}/charts"
+        fi
+        if [ -d "${CHART_ROOT}/slim" ]; then
+          helm upgrade {{ .SLIM_RELEASE_A }} "${CHART_ROOT}/slim" \
             --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
             -f helm/values/slim-cluster-a.yaml \
             --namespace {{ .NS_A }} \
@@ -276,17 +302,17 @@ tasks:
         fi
 
   helm:install:slim:b:
+    desc: Helm slim chart on cluster B
     cmds:
       - |
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_B }} {{ .NS_B }} {{ .SLIM_RELEASE_B }}
-        REPO='{{ .SLIM_REPO_PATH }}'
-        if [ -n "$REPO" ]; then
-          if [ ! -d "$REPO/charts/slim" ]; then
-            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
-            exit 1
-          fi
-          helm upgrade {{ .SLIM_RELEASE_B }} "$REPO/charts/slim" \
+        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
+        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+          CHART_ROOT="${SLIM_REPO_PATH}/charts"
+        fi
+        if [ -d "${CHART_ROOT}/slim" ]; then
+          helm upgrade {{ .SLIM_RELEASE_B }} "${CHART_ROOT}/slim" \
             --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
             -f helm/values/slim-cluster-b.yaml \
             --namespace {{ .NS_B }} \
@@ -307,11 +333,6 @@ tasks:
             --timeout 25m \
             --kube-context {{ .CTX_B }}
         fi
-
-  helm:install:slim:all:
-    cmds:
-      - task helm:install:slim:a
-      - task helm:install:slim:b
 
   default:
     cmd: task -l

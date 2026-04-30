@@ -8,7 +8,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOG_DIR="${ROOT}/coredns/.gen"
+LOG_DIR="${ROOT}/.gen"
 STDERR_LOG="${LOG_DIR}/cloud-provider-kind.stderr"
 
 mkdir -p "$LOG_DIR"

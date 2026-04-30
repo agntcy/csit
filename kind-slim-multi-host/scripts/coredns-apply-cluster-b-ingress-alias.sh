@@ -4,11 +4,11 @@
 #
 # Patch kube-system/coredns on cluster B so control.cluster-a.<zone> resolves to cluster A ingress LB IP.
 # Usage: coredns-apply-cluster-b-ingress-alias.sh <kubectl-context-cluster-b>
-# Requires: coredns/.gen/ingress-a.env (from discover-ingress-lb-ip-a.sh), jq
+# Requires: .gen/ingress-a.env (from discover-ingress-lb-ip-a.sh), jq
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ROOT}/coredns/.gen/ingress-a.env"
+ENV_FILE="${ROOT}/.gen/ingress-a.env"
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "ERROR: missing $ENV_FILE — run discover-ingress-lb-ip-a.sh first" >&2
   exit 1
