@@ -552,8 +552,8 @@ fn assert_extended_card_metadata(card: &AgentCard, kind: &str) -> Result<(), Str
     Ok(())
 }
 
-async fn wait_for_task_state(
-    client: &a2a_client::client::A2AClient,
+async fn wait_for_task_state<T: a2a_client::Transport>(
+    client: &a2a_client::client::A2AClient<T>,
     task_id: &str,
     expected_state: TaskState,
     kind: &str,
@@ -601,7 +601,7 @@ async fn run(args: Args) -> Result<(), String> {
         .await
         .map_err(|error| format!("agent card resolution failed: {error}"))?;
     let client = A2AClientFactory::builder()
-        .register(Arc::new(GrpcTransportFactory))
+        .register(Arc::new(GrpcTransportFactory {}))
         .preferred_bindings(vec![
             TRANSPORT_PROTOCOL_GRPC.to_string(),
             TRANSPORT_PROTOCOL_JSONRPC.to_string(),

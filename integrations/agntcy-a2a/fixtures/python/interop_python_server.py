@@ -50,11 +50,12 @@ from a2a.server.tasks import (
     InMemoryTaskStore,
 )
 from a2a.types import a2a_pb2
-from a2a.utils import TransportProtocol, get_message_text, new_task
+from a2a.helpers import get_message_text
+from a2a.utils import TransportProtocol
 from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH, PROTOCOL_VERSION_1_0, VERSION_HEADER
 from a2a.utils.error_handlers import rest_error_handler
 from a2a.utils.errors import TaskNotFoundError
-from a2a.utils.helpers import validate_version
+from a2a.utils.version_validator import validate_version
 
 
 LOGGER = logging.getLogger(__name__)
@@ -111,7 +112,11 @@ def build_task(context: RequestContext, state: int, text: str) -> a2a_pb2.Task:
     else:
         if context.message is None:
             raise RuntimeError('message is required to construct a task')
-        task = new_task(context.message)
+        task = a2a_pb2.Task(
+            id=context.task_id or str(uuid4()),
+            context_id=context.context_id or context.message.context_id or str(uuid4()),
+            history=[context.message],
+        )
 
     task.status.CopyFrom(
         a2a_pb2.TaskStatus(
