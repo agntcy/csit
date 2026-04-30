@@ -1,11 +1,13 @@
-# Two KinD clusters + CoreDNS peer names (slim)
+# Two KinD clusters + ingress LoadBalancer (slim)
 
-**Clusters:** KinD **csit-a** / **csit-b** on the Docker `kind` network; configs publish ingress on **127.0.0.1** (A **10080**/10443, B **9080**/9443). **`task up`** applies the in-cluster **`csit.peer`** CoreDNS stub (`node-a.csit.peer` / `node-b.csit.peer`).
+**Clusters:** KinD **csit-a** / **csit-b** on the Docker `kind` network; configs publish ingress on **127.0.0.1** (A **10080**/10443, B **9080**/9443).
 
-**What this does not do:** pods still cannot resolve the **other** cluster’s `*.svc.cluster.local` without extra plumbing—use **`csit.peer`** for node IPs and expose services accordingly (**NodePort**, **hostPort**, etc.).
+**Cross-cluster:** **`task up:with-ingress-apps`** starts [**cloud-provider-kind**](https://github.com/kubernetes-sigs/cloud-provider-kind), exposes cluster **A** **ingress-nginx** as a **LoadBalancer**, and patches CoreDNS on cluster **B** so **`control.cluster-a.csit.test`** resolves to that LoadBalancer IP (pods on **B** hit the same Ingress hostname as the slim/control-plane charts). See [`coredns/README.md`](coredns/README.md).
 
-- **`task up`** — clusters + **`csit.peer`** patch only.
-- **`task up:with-ingress-apps`** — also ingress-nginx, host edge nginx, Docker **local DNS helper** ([`optional/with-ingress/dns`](optional/with-ingress/dns)), Helm (Ingress via [`helm/values/`](helm/values/) + upstream slim charts).
+**What this does not do:** remote **`*.svc.cluster.local`** is not mirrored—only the explicit **`control.cluster-a.csit.test`** edge for the controller.
+
+- **`task up`** — create both clusters only (no ingress / no CoreDNS cross-cluster patches).
+- **`task up:with-ingress-apps`** — **`task up`** then **`optional:with-ingress:full`**: cloud-provider-kind → ingress-nginx → **LoadBalancer on A** → CoreDNS alias on **B** → edge nginx → local DNS helper → Helm ([`helm/values/`](helm/values/) + upstream slim charts).
 
 CI runs **`up:with-ingress-apps`** / **`down:with-ingress-apps`**. Run all tasks from this directory.
 
@@ -15,11 +17,11 @@ Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflo
 
 | Trigger | Behavior |
 |---------|----------|
-| `push` to `main` | Installs tooling via [`.github/actions/setup-k8s`](../.github/actions/setup-k8s), then `task prereq` → `task up:with-ingress-apps` → checks → `task down:with-ingress-apps`. Path filters: `kind-slim-multi-host/**`, this workflow, and `setup-k8s` action. |
+| `push` to `main` | Installs `setup-k8s`, **Go**, Task; `task prereq` → `task up` → load images → `task optional:with-ingress:full` (same steps as **`up:with-ingress-apps`**) → checks → **`task down:with-ingress-apps`**. Path filters: `kind-slim-multi-host/**`, this workflow, `setup-k8s`. |
 | `pull_request` | Same as push, with the same path filters. |
 | `workflow_dispatch` | Same as push/pull_request (no extra inputs). |
 
-All triggers run the same latest full infra path (`task up:with-ingress-apps`) and the same cleanup path (`task down:with-ingress-apps`).
+All triggers run the same full infra path (`task up` + **`optional:with-ingress:full`**, equivalent to **`up:with-ingress-apps`**) and **`task down:with-ingress-apps`** for cleanup.
 
 ### Test the workflow locally
 
@@ -33,11 +35,12 @@ kubectl --context kind-csit-a get nodes
 kubectl --context kind-csit-b get nodes
 kubectl --context kind-csit-a -n ingress-nginx get pods
 kubectl --context kind-csit-b -n ingress-nginx get pods
-kubectl --context kind-csit-a get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-peer"
+kubectl --context kind-csit-a get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.type}' ; echo
+kubectl --context kind-csit-b get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' | grep -q "BEGIN csit-cross-cluster"
+source coredns/.gen/ingress-a.env && kubectl --context kind-csit-b run dns-verify-b -n default --rm --attach --restart=Never \
+  --image=docker.io/library/busybox:1.36 --command -- sh -c "nslookup control.cluster-a.csit.test | grep -F '${INGRESS_A_LB_IP}'"
 dig @127.0.0.1 -p 8053 +short control.cluster-a.csit.test
 dig +tcp @127.0.0.1 -p 8053 +short slim.cluster-b.csit.test
-kubectl --context kind-csit-a run dns-verify -n default --rm --attach --restart=Never \
-  --image=docker.io/library/busybox:1.36 --command -- nslookup node-b.csit.peer
 task down:with-ingress-apps
 ```
 
@@ -57,7 +60,7 @@ No workflow inputs are required for this job anymore. Full job parity is usually
 - [jq](https://jqlang.org/)
 - [Task](https://taskfile.dev/) (recommended)
 
-Helm is required for **`task up:with-ingress-apps`** / **`task apps:install`**; not for bare **`task up`**.
+Helm and **Go** are required for **`task up:with-ingress-apps`** / **`optional:with-ingress:full`** (cloud-provider-kind runs `go run`). Helm alone suffices for **`task apps:install`** after ingress is ready manually.
 
 ## Quick start
 
@@ -68,17 +71,17 @@ task prereq
 task up
 ```
 
-This creates clusters **csit-a** and **csit-b** (contexts `kind-csit-a`, `kind-csit-b`), writes `coredns/.gen/peers.env`, patches CoreDNS on both clusters, and restarts the CoreDNS Deployment when it exists.
+This creates clusters **csit-a** and **csit-b** (contexts `kind-csit-a`, `kind-csit-b`) only.
 
-### Verify
+### Verify (full ingress stack)
 
-From cluster A:
+After **`task up:with-ingress-apps`**, from cluster **B**:
 
 ```bash
-kubectl --context kind-csit-a run -n default --rm -it --restart=Never dns-test --image=busybox:1.36 -- nslookup node-b.csit.peer
+source coredns/.gen/ingress-a.env
+kubectl --context kind-csit-b run -n default --rm -it --restart=Never dns-test \
+  --image=busybox:1.36 --command -- sh -c "nslookup control.cluster-a.csit.test | grep -F '${INGRESS_A_LB_IP}'"
 ```
-
-You should see the Docker IP of `csit-b-control-plane`.
 
 ### Tear down
 
@@ -86,7 +89,7 @@ You should see the Docker IP of `csit-b-control-plane`.
 task teardown
 ```
 
-Deletes both Kind clusters. Generated files under `coredns/.gen/` can be removed manually; they are gitignored.
+Deletes both Kind clusters. Generated files under `coredns/.gen/` (`ingress-a.env`, etc.) can be removed manually; they are gitignored.
 
 ### Local: slim + controller exposed through Ingress
 
@@ -97,20 +100,21 @@ Use this when you want **ingress-nginx** gRPC Ingress objects, **edge nginx** on
 ```mermaid
 flowchart LR
   subgraph H["Host"]
+    CP["cloud-provider-kind"]
     D["DNS helper<br/>*.csit.test -> 127.0.0.1"]
     E["edge nginx :80"]
   end
   D --> E
+  CP --> LBA["ingress LB VIP on A"]
 
-  subgraph A["Cluster A (csit-a)"]
-    ACD["CoreDNS (csit.peer)"]
+  subgraph clusterA ["Cluster A (csit-a)"]
     AIN["ingress-nginx"]
     CTR["slim controller"]
     SLA["slim"]
   end
 
-  subgraph B["Cluster B (csit-b)"]
-    BCD["CoreDNS (csit.peer)"]
+  subgraph clusterB ["Cluster B (csit-b)"]
+    BCD["CoreDNS csit.test zone"]
     BIN["ingress-nginx"]
     SLB["slim"]
   end
@@ -118,18 +122,19 @@ flowchart LR
   E -->|"control.cluster-a.csit.test"| AIN
   E -->|"slim.cluster-a.csit.test"| AIN
   E -->|"slim.cluster-b.csit.test"| BIN
+  LBA --> AIN
   AIN --> CTR
   AIN --> SLA
   BIN --> SLB
-  SLB -->|"controller client"| E
-  ACD <-->|"peer node names"| BCD
+  SLB -->|"controller client"| LBA
+  BCD -->|"resolve controller hostname"| SLB
 ```
 
-- **DNS helper:** resolves local `*.csit.test` names to loopback for host access.
-- **edge nginx:** host entrypoint that routes by hostname to cluster A or B ingress.
-- **ingress-nginx:** receives routed traffic and forwards to slim/controller services.
-- **CoreDNS (`csit.peer`):** enables cross-cluster peer node-name resolution.
-- **slim + controller:** controller runs on A; slim runs on both clusters, with B reaching controller through host DNS/edge/ingress.
+- **DNS helper:** resolves local `*.csit.test` names to loopback for **host** access.
+- **edge nginx:** host entrypoint that routes by hostname to cluster A or B ingress port maps.
+- **cloud-provider-kind:** assigns a **LoadBalancer IP** to ingress on A so **pods on B** can route to the same Ingress VIP (not loopback).
+- **CoreDNS on B:** **`control.cluster-a.csit.test` → LoadBalancer IP** (`csit-cross-cluster` block).
+- **slim + controller:** controller runs on A; slim on B uses that hostname through ingress on A.
 
 1. **macOS split-DNS (recommended):** create `/etc/resolver/csit.test` (requires admin) so `*.csit.test` hits the local DNS helper. Use the **same port** as `CSIT_LOCAL_DNS_HOST_PORT` (default **8053** — avoids **53** and macOS **5353**/mDNS):
 
@@ -148,9 +153,9 @@ flowchart LR
 task up:with-ingress-apps
 ```
 
-This runs `task up` then `task optional:with-ingress:full` (ingress-nginx on both clusters → edge → local DNS helper → Helm; Ingress rules come from [`helm/values/`](helm/values/) via slim/control-plane charts).
+This runs `task up` then `task optional:with-ingress:full` (cloud-provider-kind → ingress → LoadBalancer on A → CoreDNS on B → edge → local DNS helper → Helm; Ingress rules come from [`helm/values/`](helm/values/) via slim/control-plane charts).
 
-4. **Cluster B → cluster A controller:** default Helm values use `control.cluster-a.csit.test:80` (through edge). That works well from the **host** with split-DNS. **Slim pods on B** may not resolve `csit.test` the same way; on **Docker Desktop** you can reinstall slim on B with the optional overlay [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) (see comments in that file).
+4. **Cluster B → cluster A controller:** slim values use **`http://control.cluster-a.csit.test`**; pods resolve it via **CoreDNS on B** to cluster **A** ingress **LoadBalancer IP**. On **Docker Desktop**, if the LB VIP is not reachable from pods, merge [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml).
 
 **Tear down everything (Helm, compose, Kind):**
 
@@ -162,15 +167,17 @@ task down:with-ingress-apps
 
 | Task | Purpose |
 |------|---------|
-| `task up` | `prereq` → create both clusters → `coredns:discover` → `coredns:apply:all` |
-| `task up:with-ingress-apps` | `task up` then optional ingress + edge + local DNS helper + Helm (Ingress via chart values in [`helm/values/`](helm/values/)) |
+| `task up` | `prereq` → create both clusters |
+| `task up:with-ingress-apps` | `task up` then optional stack (LoadBalancer + CoreDNS on B + edge + DNS helper + Helm) |
 | `task down:with-ingress-apps` | `apps:uninstall` → edge/dns compose down → `teardown` |
-| `task coredns:discover` | Refresh `coredns/.gen/peers.env` from Docker |
-| `task coredns:apply:a` / `coredns:apply:b` | Patch CoreDNS on one context |
-| `task coredns:apply:all` | Both clusters |
+| `task kind:cloud-provider-kind:up` | Start cloud-provider-kind (background); needed before **`optional:with-ingress:ingress:lb:a`** |
+| `task optional:with-ingress:ingress:lb:a` | Patch cluster **A** ingress Service to **LoadBalancer** |
+| `task ingress:a:wait-lb-ip` | Wait for LB IP → `coredns/.gen/ingress-a.env` |
+| `task coredns:apply:cluster-b:ingress-alias` | Merge **`control.cluster-a.csit.test`** zone into CoreDNS on **B** |
+| `task coredns:strip:legacy-peer` | Remove old **`csit.peer`** blocks after upgrading from older layouts |
 | `task teardown` | `kind:delete:all` |
 
-Environment overrides: `CLUSTER_A`, `CLUSTER_B`, `KIND_DOCKER_NETWORK` (default `kind`) — see `scripts/discover-peer-ips.sh`. Optional stack: **`CSIT_LOCAL_DNS_HOST_PORT`** (default `8053`) for DNS-helper compose + macOS resolver `port`. The DNS **`Corefile`** under `optional/with-ingress/dns/` is **generated** (gitignored); created by `task optional:with-ingress:dns:render` or before compose via `task optional:with-ingress:dns:up`.
+Environment overrides: `CLUSTER_A`, `CLUSTER_B`, **`CSIT_DNS_ZONE`** (default `csit.test`), **`INGRESS_SVC`** (default `ingress-nginx-controller`). Optional stack: **`CSIT_LOCAL_DNS_HOST_PORT`** (default `8053`). The DNS **`Corefile`** under `optional/with-ingress/dns/` is **generated** (gitignored); created by `task optional:with-ingress:dns:render` or before compose via `task optional:with-ingress:dns:up`.
 
 ## Helm values (optional)
 
@@ -180,8 +187,8 @@ Charts install with **`task up:with-ingress-apps`** or, after **`task up`**, `ta
 |------|------|
 | [`helm/values/controller.yaml`](helm/values/controller.yaml) | slim-control-plane on A |
 | [`helm/values/slim-cluster-a.yaml`](helm/values/slim-cluster-a.yaml) | Slim on A |
-| [`helm/values/slim-cluster-b.yaml`](helm/values/slim-cluster-b.yaml) | Slim on B; controller client → `control.cluster-a.csit.test:80` (edge + local DNS helper / split-DNS) |
-| [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) | Optional overlay for pod-on-B → A via `host.docker.internal:10080` |
+| [`helm/values/slim-cluster-b.yaml`](helm/values/slim-cluster-b.yaml) | Slim on B; controller client → **`http://control.cluster-a.csit.test`** (ingress LB + CoreDNS on B) |
+| [`helm/values/slim-cluster-b.docker-desktop.yaml`](helm/values/slim-cluster-b.docker-desktop.yaml) | Optional fallback when LB VIP is not reachable from pods (`host.docker.internal:10080`) |
 
 ## Optional: Ingress, edge, local DNS helper
 
@@ -197,6 +204,6 @@ task optional:with-ingress:full
 
 ## Limitations
 
-- **Stub zone only:** `csit.peer` maps to **Kind node container IPs**, not remote Service DNS.
-- **Reachability:** pod → peer node IP must use a port that routing allows (often NodePort or a published port on that node).
-- **Kind/CoreDNS versions:** the apply script expects a `deployment/coredns` in `kube-system`; if your Kind version differs, adjust the rollout target to match your cluster.
+- **Explicit hostname only:** only **`control.cluster-a.csit.test`** is wired for controller ingress from **B**; remote **`*.svc.cluster.local`** is not mirrored.
+- **Go + sudo (Darwin):** **`kind:cloud-provider-kind:up`** runs `go run`; Docker Desktop may require **`sudo`** so the cloud controller can reach Docker.
+- **Kind/CoreDNS:** merge scripts expect `deployment/coredns` in `kube-system`; adjust if your Kind layout differs.

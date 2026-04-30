@@ -6,14 +6,14 @@ This is the **authoritative** local multicluster testbed in this repository.
 
 | Piece | Role |
 |--------|------|
-| **KinD** | Two clusters **csit-a** / **csit-b** (`kind/cluster-*.yaml`): ingress on host **127.0.0.1** at **10080**/10443 (A) and **9080**/9443 (B); in-cluster **CoreDNS** gets a **`csit.peer`** stub (`node-a.csit.peer`, `node-b.csit.peer`) via `scripts/coredns-apply-peer.sh`. |
+| **KinD** | Two clusters **csit-a** / **csit-b** (`kind/cluster-*.yaml`): ingress on host **127.0.0.1** at **10080**/10443 (A) and **9080**/9443 (B); cluster **A** **ingress-nginx** uses **LoadBalancer** (cloud-provider-kind); CoreDNS on **B** maps **`control.cluster-a.csit.test`** → LB IP (`scripts/coredns-apply-cluster-b-ingress-alias.sh`). |
 | **ingress-nginx** | Installed per cluster; receives traffic from the host edge proxy. |
 | **Edge nginx** | Host **:80** routes by `Host` to the correct KinD ingress port (`optional/with-ingress/edge/`). |
 | **Local DNS helper** | Docker **CoreDNS** + generated **`Corefile`** (`scripts/render-local-dns-corefile.sh`), published at **`127.0.0.1:${CSIT_LOCAL_DNS_HOST_PORT:-8053}`** → `*.csit.test` → **127.0.0.1** (macOS: `/etc/resolver/csit.test` + matching `port`). |
 | **Helm + Ingress YAML** | `task up:with-ingress-apps` installs slim + controller and applies gRPC Ingress manifests. |
-| **CI** | [`../../.github/workflows/kind-slim-multicluster.yml`](../../.github/workflows/kind-slim-multicluster.yml) runs **`task up:with-ingress-apps`** / **`task down:with-ingress-apps`** and verifies clusters, ingress, peer DNS, host DNS, and Helm releases. |
+| **CI** | [`../../.github/workflows/kind-slim-multicluster.yml`](../../.github/workflows/kind-slim-multicluster.yml) runs **`task up`** → **`task optional:with-ingress:full`** (equivalent to **`up:with-ingress-apps`**) / teardown and verifies clusters, LoadBalancer, CoreDNS alias on B, host DNS, and Helm releases. |
 
-**Tasks:** **`task up`** = clusters + **`csit.peer`** only. **`task up:with-ingress-apps`** = full stack above. See [`kind-slim-multi-host/README.md`](../../kind-slim-multi-host/README.md).
+**Tasks:** **`task up`** = clusters only. **`task up:with-ingress-apps`** = full stack above. See [`kind-slim-multi-host/README.md`](../../kind-slim-multi-host/README.md).
 
 **Generated (not committed):** `optional/with-ingress/dns/Corefile` (see `optional/with-ingress/dns/.gitignore`).
 
@@ -44,5 +44,5 @@ If each KinD mapping binds ingress to a **different** host address (e.g. **127.0
 |-------|----------------------------------|
 | Clusters | 2× KinD, contexts `kind-csit-a` / `kind-csit-b` |
 | Ingress collision | Host **127.0.0.1** + distinct **hostPort** maps + **edge nginx** by `Host` |
-| DNS | **`csit.peer`** in-cluster; **`*.csit.test`** on host via CoreDNS helper + split DNS |
-| Slim → controller from B | `control.cluster-a.csit.test:80` (edge); pods may need [`slim-cluster-b.docker-desktop.yaml`](../../kind-slim-multi-host/helm/values/slim-cluster-b.docker-desktop.yaml) overlay on Docker Desktop |
+| DNS | **`control.cluster-a.csit.test`** → ingress LB IP on cluster **B** CoreDNS; **`*.csit.test`** on host via CoreDNS helper + split DNS |
+| Slim → controller from B | **`http://control.cluster-a.csit.test`** through ingress **LoadBalancer**; Docker Desktop fallback: [`slim-cluster-b.docker-desktop.yaml`](../../kind-slim-multi-host/helm/values/slim-cluster-b.docker-desktop.yaml) |

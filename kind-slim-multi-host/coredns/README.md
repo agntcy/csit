@@ -1,15 +1,12 @@
-# CoreDNS peer stub zone (`csit.peer`)
+# CoreDNS cross-cluster controller hostname (`csit.test`)
 
-Each Kind cluster’s **in-cluster CoreDNS** only resolves that cluster’s `*.svc.cluster.local`. Cross-cluster Kubernetes Service DNS is **not** provided here.
-
-This bundle adds a **dedicated stub zone** `csit.peer` so pods can resolve stable names for the **other** cluster’s Kind node (Docker network IP):
-
-- On cluster **A**: `node-b.csit.peer` → IPv4 of `${CLUSTER_B}-control-plane`
-- On cluster **B**: `node-a.csit.peer` → IPv4 of `${CLUSTER_A}-control-plane`
+Cluster **B** pods resolve **`control.cluster-a.csit.test`** to cluster **A**’s **ingress-nginx LoadBalancer IP**, assigned by [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind) on the host.
 
 Implementation:
 
-1. `scripts/discover-peer-ips.sh` writes `coredns/.gen/peers.env` (gitignored).
-2. `scripts/coredns-apply-peer.sh` merges a marked block (`# BEGIN csit-peer` … `# END csit-peer`) into `kube-system/coredns` ConfigMap `Corefile`, then restarts `deployment/coredns` when present.
+1. [`scripts/discover-ingress-lb-ip-a.sh`](../scripts/discover-ingress-lb-ip-a.sh) waits for `ingress-nginx-controller` **LoadBalancer** on cluster A and writes **`coredns/.gen/ingress-a.env`** (`INGRESS_A_LB_IP=…`, gitignored).
+2. [`scripts/coredns-apply-cluster-b-ingress-alias.sh`](../scripts/coredns-apply-cluster-b-ingress-alias.sh) merges a **`# BEGIN csit-cross-cluster`** … **`# END csit-cross-cluster`** block into **cluster B** only (`kube-system/coredns` `Corefile`), defining zone **`csit.test`** with a **`hosts`** entry for **`control.cluster-a.csit.test`**, then restarts CoreDNS.
 
-Pods that call the peer must still use a **port reachable across Docker** (for example **NodePort**, **hostPort**, or a listener on that node IP)—same as any simple multi-network test rig.
+Legacy **`csit.peer`** stubs (**`node-a.csit.peer`**) are removed from this repo; upgrades can run **`task coredns:strip:legacy-peer`** once to drop old CoreDNS blocks.
+
+In-cluster **`*.svc.cluster.local`** for the remote cluster is still **not** provided—only this explicit **`*.csit.test`** hostname for the controller ingress edge.

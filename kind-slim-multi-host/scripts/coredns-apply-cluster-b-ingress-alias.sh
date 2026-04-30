@@ -2,52 +2,43 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Patch kube-system/coredns to add csit.peer stub zone pointing at the other Kind node.
-# Usage: coredns-apply-peer.sh <kubectl-context> <a|b>
-# Requires: coredns/.gen/peers.env (from discover-peer-ips.sh), jq
+# Patch kube-system/coredns on cluster B so control.cluster-a.<zone> resolves to cluster A ingress LB IP.
+# Usage: coredns-apply-cluster-b-ingress-alias.sh <kubectl-context-cluster-b>
+# Requires: coredns/.gen/ingress-a.env (from discover-ingress-lb-ip-a.sh), jq
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ROOT}/coredns/.gen/peers.env"
+ENV_FILE="${ROOT}/coredns/.gen/ingress-a.env"
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo "ERROR: missing $ENV_FILE — run task coredns:discover first" >&2
+  echo "ERROR: missing $ENV_FILE — run discover-ingress-lb-ip-a.sh first" >&2
   exit 1
 fi
 # shellcheck source=/dev/null
 source "$ENV_FILE"
 
-CTX="${1:?context}"
-ROLE="${2:?role a or b}"
+CTX="${1:?kubectl context for cluster B}"
+ZONE="${CSIT_DNS_ZONE:-csit.test}"
+CONTROL_HOST="control.cluster-a.${ZONE}"
+IP="${INGRESS_A_LB_IP:?missing INGRESS_A_LB_IP in ingress-a.env}"
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 1; }
 
-if [[ "$ROLE" == "a" ]]; then
-  PEER_FQDN="node-b.csit.peer"
-  PEER_IP="$PEER_B_IP"
-elif [[ "$ROLE" == "b" ]]; then
-  PEER_FQDN="node-a.csit.peer"
-  PEER_IP="$PEER_A_IP"
-else
-  echo "ERROR: role must be a or b" >&2
-  exit 1
-fi
-
-BLOCK="# BEGIN csit-peer
-csit.peer:53 {
+BLOCK="# BEGIN csit-cross-cluster
+${ZONE}:53 {
     errors
     cache 30
     hosts {
-        ${PEER_IP} ${PEER_FQDN}
+        ${IP} ${CONTROL_HOST}
         fallthrough
     }
     forward . /etc/resolv.conf {
         max_concurrent 1000
     }
 }
-# END csit-peer"
+# END csit-cross-cluster"
 
 CURRENT=$(kubectl --context "$CTX" get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}')
-STRIPPED=$(printf '%s' "$CURRENT" | sed '/^# BEGIN csit-peer$/,/^# END csit-peer$/d')
+STRIPPED=$(printf '%s' "$CURRENT" | sed '/^# BEGIN csit-cross-cluster$/,/^# END csit-cross-cluster$/d')
 MERGED="${STRIPPED}
 ${BLOCK}
 "
@@ -64,4 +55,4 @@ else
   echo "WARN: no deployment/coredns; restart CoreDNS pods manually if needed" >&2
 fi
 
-echo "CoreDNS updated on $CTX: ${PEER_FQDN} -> ${PEER_IP}"
+echo "CoreDNS updated on $CTX: ${CONTROL_HOST} -> ${IP}"

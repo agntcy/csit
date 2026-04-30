@@ -36,6 +36,7 @@ vars:
   NS_B: '{{ .NS_B | default "cluster-b" }}'
   # Host loopback port for local *.csit.test DNS helper (macOS often uses 5353 for mDNS; 53 is blocked/unavailable in Docker).
   CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT | default "8053" }}'
+  INGRESS_SVC: '{{ .INGRESS_SVC | default "ingress-nginx-controller" }}'
 
 tasks:
   prereq:
@@ -45,12 +46,13 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/discover-peer-ips.sh scripts/coredns-apply-peer.sh scripts/ensure-slim-headless-service.sh
+      - chmod +x scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/coredns-strip-legacy-peer.sh scripts/ensure-slim-headless-service.sh
 
   prereq:apps:
-    desc: Check helm (optional app installs)
+    desc: Check helm, Go (optional app installs + ingress LB via cloud-provider-kind)
     cmds:
       - command -v helm
+      - command -v go
 
   kind:create:a:
     desc: Create KinD cluster A (minimal config)
@@ -107,34 +109,31 @@ tasks:
         fi
         echo "Cloud provider started in background"
 
-  coredns:discover:
-    desc: Discover Kind node IPs on Docker network → coredns/.gen/peers.env
+  optional:with-ingress:ingress:lb:a:
+    desc: Expose cluster A ingress-nginx via LoadBalancer (requires cloud-provider-kind)
     cmds:
-      - CLUSTER_A={{ .CLUSTER_A }} CLUSTER_B={{ .CLUSTER_B }} ./scripts/discover-peer-ips.sh
+      - kubectl --context {{ .CTX_A }} patch svc {{ .INGRESS_SVC }} -n ingress-nginx -p '{"spec":{"type":"LoadBalancer"}}'
 
-  coredns:apply:a:
-    desc: Patch CoreDNS on cluster A with node-b.csit.peer
+  ingress:a:wait-lb-ip:
+    desc: Wait for cluster A ingress LoadBalancer IP → coredns/.gen/ingress-a.env
     cmds:
-      - ./scripts/coredns-apply-peer.sh {{ .CTX_A }} a
+      - INGRESS_SVC={{ .INGRESS_SVC }} ./scripts/discover-ingress-lb-ip-a.sh {{ .CTX_A }}
 
-  coredns:apply:b:
-    desc: Patch CoreDNS on cluster B with node-a.csit.peer
+  coredns:apply:cluster-b:ingress-alias:
+    desc: Patch CoreDNS on cluster B — control.cluster-a.csit.test → cluster A ingress LB IP
     cmds:
-      - ./scripts/coredns-apply-peer.sh {{ .CTX_B }} b
+      - ./scripts/coredns-apply-cluster-b-ingress-alias.sh {{ .CTX_B }}
 
-  coredns:apply:all:
-    desc: Patch CoreDNS on both clusters
+  coredns:strip:legacy-peer:
+    desc: Remove legacy csit-peer CoreDNS block from both clusters (after upgrades from older layouts)
     cmds:
-      - task coredns:apply:a
-      - task coredns:apply:b
+      - ./scripts/coredns-strip-legacy-peer.sh {{ .CTX_A }} {{ .CTX_B }}
 
   up:
-    desc: Create both clusters and apply CoreDNS peer stub zone (csit.peer)
+    desc: Create both KinD clusters (no CoreDNS cross-cluster patches)
     cmds:
       - task prereq
       - task kind:create:all
-      - task coredns:discover
-      - task coredns:apply:all
 
   teardown:
     desc: Delete both KinD clusters (no Helm)
@@ -142,7 +141,7 @@ tasks:
       - task kind:delete:all
 
   up:with-ingress-apps:
-    desc: KinD + CoreDNS peer + ingress-nginx + edge + local DNS helper + Helm (slim, controller, Ingress YAML)
+    desc: KinD + cloud-provider-kind + ingress LB + CoreDNS on B + edge + local DNS helper + Helm
     cmds:
       - task up
       - task optional:with-ingress:full
@@ -157,10 +156,15 @@ tasks:
 
   # --- Optional Helm + Ingress (see optional/with-ingress/) ---
   optional:with-ingress:full:
-    desc: ingress-nginx + edge + local DNS helper + Helm slim/controller (optional stack)
+    desc: cloud-provider-kind + ingress-nginx + LB on A + CoreDNS alias on B + edge + DNS helper + Helm
     cmds:
       - task prereq:apps
+      - task kind:cloud-provider-kind:up
+      - sleep 5
       - task optional:with-ingress:ingress:install:all
+      - task optional:with-ingress:ingress:lb:a
+      - task ingress:a:wait-lb-ip
+      - task coredns:apply:cluster-b:ingress-alias
       - task optional:with-ingress:edge:up
       - task optional:with-ingress:dns:up
       - task apps:install

@@ -1,10 +1,11 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 # agntcy slim — KinD cluster B, namespace cluster-b
-# Controller on cluster A via Ingress host (edge nginx on :80 → KinD :10080). Requires
-# `task up:with-ingress-apps` (or equivalent) + macOS `/etc/resolver/csit.test` with `port` = CSIT_LOCAL_DNS_HOST_PORT (default 8053).
-# For slim pods on B reaching the host-mapped port from inside the cluster, see
-# helm/values/slim-cluster-b.docker-desktop.yaml.
+# Controller on cluster A via cluster-A ingress (nginx). Pods resolve control.cluster-a.csit.test
+# to the ingress LoadBalancer IP (cloud-provider-kind); CoreDNS on B is patched by
+# task optional:with-ingress:full / up:with-ingress-apps.
+# Host browsers still use optional edge nginx + local DNS helper (*.csit.test → loopback).
+# If pods cannot reach the LB VIP (some Docker Desktop setups), merge slim-cluster-b.docker-desktop.yaml.
 slim:
   replicaCount: 1
   daemonset: false
@@ -35,9 +36,9 @@ slim:
                 insecure: true
         controller:
           clients:
-            - endpoint: "http://control.cluster-a.csit.peer"
+            - endpoint: "http://control.cluster-a.csit.test"
               tls:
-                insecure: false
+                insecure: true
 
   ingresses:
     - portName: data-plane-0

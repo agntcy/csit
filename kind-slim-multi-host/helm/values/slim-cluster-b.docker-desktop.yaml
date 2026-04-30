@@ -1,13 +1,12 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Optional overlay for cluster B when slim pods must reach cluster A's ingress from inside
-# KinD (Docker Desktop). Merge with slim-cluster-b.yaml, e.g.:
+# Fallback overlay when slim pods on B cannot route to the cloud-provider-kind LoadBalancer IP.
+# Prefer the default slim-cluster-b.yaml (ingress LB + CoreDNS alias on B).
+# Merge with slim-cluster-b.yaml, e.g.:
 #   helm upgrade ... -f helm/values/slim-cluster-b.yaml -f helm/values/slim-cluster-b.docker-desktop.yaml
 #
-# Uses the host-published ingress port (see kind/cluster-a.yaml extraPortMappings → :10080).
-# gRPC :authority may not match the Ingress host; if connections fail, use NodePort + CoreDNS
-# instead or run tests from the host with control.cluster-a.csit.test:80 + local DNS helper.
+# Targets host-published ingress (:10080); tls insecure aligns with plaintext HTTP/2 to nginx.
 slim:
   overrideConfig:
     services:
