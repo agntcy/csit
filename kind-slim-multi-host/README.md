@@ -123,6 +123,7 @@ Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflo
 
 ## Limitations
 
+- **Dataplane `external_endpoint` (cluster A):** values use the in-cluster Service (**`agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357`**) so controllers and other pods reach the dataplane over the cluster network. **`*.csit.test` → 127.0.0.1** is for the **host** (resolver + KinD port maps); **pods** must not dial that name if it resolves to loopback (TCP **connection refused**). Host-side or off-cluster access uses ingress (**`slim.cluster-a.csit.test`**) on KinD host ports **10080** / **10443** (see [`kind/cluster-a.yaml`](kind/cluster-a.yaml)).
 - **Snippet annotations:** [`helm/values/controller.yaml`](helm/values/controller.yaml) uses **`server-snippet`**; [`helm/values/ingress-nginx-kind.yaml`](helm/values/ingress-nginx-kind.yaml) sets **`allowSnippetAnnotations`** and **`enableAnnotationValidations: false`**.
 - **Hostname:** only **`control.cluster-a.csit.test`** is wired from **B**; remote **`*.svc.cluster.local`** is not mirrored.
 - **macOS cpkind:** **`kind:cloud-provider-kind:up`** may prompt for **sudo**; logs **`.gen/cloud-provider-kind.stderr`**.

@@ -2,7 +2,8 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Patch kube-system/coredns on cluster B so control.cluster-a.<zone> resolves to cluster A ingress LB IP.
+# Patch kube-system/coredns on cluster B so control.cluster-a.<zone> and slim.cluster-a.<zone>
+# resolve to cluster A ingress-nginx LoadBalancer IP (HTTPS / gRPC on :443).
 # Usage: coredns-apply-cluster-b-ingress-alias.sh <kubectl-context-cluster-b>
 # Requires: .gen/ingress-a.env (from discover-ingress-lb-ip-a.sh), jq
 set -euo pipefail
@@ -19,6 +20,7 @@ source "$ENV_FILE"
 CTX="${1:?kubectl context for cluster B}"
 ZONE="${CSIT_DNS_ZONE:-csit.test}"
 CONTROL_HOST="control.cluster-a.${ZONE}"
+SLIM_HOST="slim.cluster-a.${ZONE}"
 IP="${INGRESS_A_LB_IP:?missing INGRESS_A_LB_IP in ingress-a.env}"
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 1; }
@@ -29,6 +31,7 @@ ${ZONE}:53 {
     cache 30
     hosts {
         ${IP} ${CONTROL_HOST}
+        ${IP} ${SLIM_HOST}
         fallthrough
     }
     forward . /etc/resolv.conf {
@@ -55,4 +58,4 @@ else
   echo "WARN: no deployment/coredns; restart CoreDNS pods manually if needed" >&2
 fi
 
-echo "CoreDNS updated on $CTX: ${CONTROL_HOST} -> ${IP}"
+echo "CoreDNS updated on $CTX: ${CONTROL_HOST} ${SLIM_HOST} -> ${IP}"
