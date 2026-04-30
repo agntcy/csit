@@ -19,6 +19,7 @@ slim:
       drain_timeout: 10s
     services:
       slim/0:
+        node_id: ${env:SLIM_SVC_ID}
         group_name: cluster-a
         dataplane:
           servers:
@@ -31,7 +32,8 @@ slim:
                 insecure: true
         controller:
           clients:
-            - endpoint: "slim-control.admin.svc.cluster.local:50051"
+            # URI scheme required (slim parses endpoint as a URL; bare host:port => "invalid endpoint scheme")
+            - endpoint: "https://slim-control.admin.svc.cluster.local:50052"
               tls:
                 insecure: true
 

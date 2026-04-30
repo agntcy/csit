@@ -35,9 +35,9 @@ slim:
                 insecure: true
         controller:
           clients:
-            - endpoint: "control.cluster-a.csit.test:80"
+            - endpoint: "http://control.cluster-a.csit.peer"
               tls:
-                insecure: true
+                insecure: false
 
   ingresses:
     - portName: data-plane-0

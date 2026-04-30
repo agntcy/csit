@@ -16,12 +16,12 @@ vars:
 
   SLIM_CHART: '{{ .SLIM_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim" }}'
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.7.0" }}'
-  # Prefer CLI/task var, then OS env (CI sets SLIM_IMAGE_TAG / CTRL_IMAGE_TAG), then default chart tag.
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default (env "SLIM_IMAGE_TAG") | default "0.7.2-dev.1" }}'
+  # Prefer CLI/task var, then OS env (CI sets SLIM_IMAGE_TAG / CTRL_IMAGE_TAG), then default tags.
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default (env "SLIM_IMAGE_TAG") | default "1.3.0-dev03" }}'
 
   CTRL_CHART: '{{ .CTRL_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-control-plane" }}'
   CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
-  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default "0.7.2-dev.1" }}'
+  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default (env "SLIM_CONTROLLER_IMAGE_TAG") | default "1.0.0-dev.07" }}'
 
   # Absolute path to agntcy/slim repo root (charts/slim, charts/slim-control-plane). Empty = OCI + *_CHART_TAG (integrations/agntcy-slim pattern).
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
@@ -45,7 +45,7 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/discover-peer-ips.sh scripts/coredns-apply-peer.sh
+      - chmod +x scripts/discover-peer-ips.sh scripts/coredns-apply-peer.sh scripts/ensure-slim-headless-service.sh
 
   prereq:apps:
     desc: Check helm (optional app installs)
@@ -87,6 +87,25 @@ tasks:
     cmds:
       - task kind:delete:b
       - task kind:delete:a
+
+  # LoadBalancer — https://github.com/kubernetes-sigs/cloud-provider-kind (requires Go)
+  kind:cloud-provider-kind:up:
+    desc: Start cloud-provider-kind in background for LoadBalancer Services (Darwin uses sudo for Docker)
+    cmds:
+      - |
+        set -euo pipefail
+        command -v go >/dev/null || { echo "ERROR: go is required for cloud-provider-kind" >&2; exit 1; }
+        echo "Starting Kind cloud provider for LoadBalancer support..."
+        OS="$(uname -s)"
+        if [[ "$OS" == "Darwin" ]]; then
+          sudo go run sigs.k8s.io/cloud-provider-kind@latest > /dev/null 2>&1 &
+        elif [[ "$OS" == "Linux" ]]; then
+          go run sigs.k8s.io/cloud-provider-kind@latest > /dev/null 2>&1 &
+        else
+          echo "Unknown OS"
+          exit 1
+        fi
+        echo "Cloud provider started in background"
 
   coredns:discover:
     desc: Discover Kind node IPs on Docker network → coredns/.gen/peers.env
@@ -185,7 +204,7 @@ tasks:
       - docker compose down
 
   apps:install:
-    desc: Helm install slim + controller + apply optional Ingress manifests (requires prereq:apps)
+    desc: Helm install slim + controller (Ingress via chart values; headless Service workaround — scripts/ensure-slim-headless-service.sh)
     deps: [prereq:apps]
     cmds:
       - task helm:install:controller
@@ -195,7 +214,9 @@ tasks:
     desc: Remove optional Helm releases (Ingress objects owned by Helm releases)
     cmds:
       - helm uninstall {{ .SLIM_RELEASE_B }} --namespace {{ .NS_B }} --kube-context {{ .CTX_B }} || true
+      - kubectl --context {{ .CTX_B }} -n {{ .NS_B }} delete service {{ .SLIM_RELEASE_B }}-slim-headless --ignore-not-found
       - helm uninstall {{ .SLIM_RELEASE_A }} --namespace {{ .NS_A }} --kube-context {{ .CTX_A }} || true
+      - kubectl --context {{ .CTX_A }} -n {{ .NS_A }} delete service {{ .SLIM_RELEASE_A }}-slim-headless --ignore-not-found
       - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true
 
   helm:install:controller:
@@ -235,6 +256,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
+        ./scripts/ensure-slim-headless-service.sh {{ .CTX_A }} {{ .NS_A }} {{ .SLIM_RELEASE_A }}
         REPO='{{ .SLIM_REPO_PATH }}'
         if [ -n "$REPO" ]; then
           if [ ! -d "$REPO/charts/slim" ]; then
@@ -267,6 +289,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
+        ./scripts/ensure-slim-headless-service.sh {{ .CTX_B }} {{ .NS_B }} {{ .SLIM_RELEASE_B }}
         REPO='{{ .SLIM_REPO_PATH }}'
         if [ -n "$REPO" ]; then
           if [ ! -d "$REPO/charts/slim" ]; then
