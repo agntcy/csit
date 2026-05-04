@@ -162,8 +162,8 @@ tasks:
       - task ingress:a:wait-lb-ip
       - task coredns:apply:cluster-b:ingress-alias
       - task apps:install:cluster-b
-      - task compose:edge:up
-      - task compose:dns:up
+      # - task compose:edge:up
+      # - task compose:dns:up
 
   stack:up:
     desc: cluster:up + stack:install (full dev environment)
@@ -333,6 +333,29 @@ tasks:
             --timeout 25m \
             --kube-context {{ .CTX_B }}
         fi
+
+  echo-agent:server:deploy:
+    desc: |
+      Deploy echo A2A server on cluster-a (slima2a from PyPI on container start; see client_apps/a2a/echo-agent-server.yaml).
+      Requires Slim dataplane Service slim.slim (run cluster-a:deploy-all first). Optional NAMESPACE (default default).
+    dir: "{{.TASKFILE_DIR}}"
+    vars:
+      TEMPLATE: '{{ .TEMPLATE | default "agents/echo-agent-server.yaml" }}'
+      NAMESPACE: '{{ .NAMESPACE | default "default" }}'
+    cmds:      
+      - kubectl apply --context {{ .CTX_A }} -n {{ .NS_A }} -f {{ .TEMPLATE }}
+
+  echo-agent:client:deploy:
+    desc: |
+      Deploy echo A2A client on cluster-b (slima2a from PyPI on container start; see client_apps/a2a/echo-agent-client.yaml).
+      Requires Slim dataplane on cluster-b and federation path to the echo server on cluster-a.
+      Optional NAMESPACE (default default).
+    dir: "{{.TASKFILE_DIR}}"
+    vars:
+      TEMPLATE: '{{ .TEMPLATE | default "agents/echo-agent-client.yaml" }}'
+      NAMESPACE: '{{ .NAMESPACE | default "default" }}'
+    cmds:      
+      - kubectl apply --context {{ .CTX_B }} -n {{ .NS_B }} -f {{ .TEMPLATE }}        
 
   default:
     cmd: task -l

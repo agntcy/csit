@@ -35,7 +35,7 @@ slim:
                 insecure: true
         controller:
           clients:
-            - endpoint: "https://control.cluster-a.csit.test"
+            - endpoint: "https://control.cluster-a.csit.test:443"
               keepalive:
                 tcp_keepalive: 20s
                 http2_keepalive: 20s
