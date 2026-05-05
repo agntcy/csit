@@ -1,7 +1,7 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# KinD cluster A (csit-a) with host port maps for ingress-nginx + optional edge proxy.
+# KinD cluster A (csit-a) with host port maps for ingress-nginx (optional loopback 10080/10443).
 # Cross-cluster controller reachability uses ingress LoadBalancer (cloud-provider-kind); see README.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4

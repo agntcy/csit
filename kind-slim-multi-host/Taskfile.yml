@@ -51,7 +51,7 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/coredns-strip-legacy-peer.sh scripts/ensure-slim-headless-service.sh
+      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/verify-local-dns-helper.sh scripts/ensure-slim-headless-service.sh
 
   prereq:stack:
     desc: prereq + helm + go (Helm installs and cloud-provider-kind)
@@ -136,11 +136,6 @@ tasks:
     cmds:
       - ./scripts/coredns-apply-cluster-b-ingress-alias.sh {{ .CTX_B }}
 
-  coredns:strip:legacy-peer:
-    desc: Remove legacy csit-peer CoreDNS block from both clusters (after upgrades from older layouts)
-    cmds:
-      - ./scripts/coredns-strip-legacy-peer.sh {{ .CTX_A }} {{ .CTX_B }}
-
   cluster:up:
     desc: Create both KinD clusters (prereq + kind)
     cmds:
@@ -153,7 +148,7 @@ tasks:
       - task kind:delete:all
 
   stack:install:
-    desc: cloud-provider-kind + ingress-nginx (A) + Helm apps + LB wait + CoreDNS B + host edge + DNS helper
+    desc: cloud-provider-kind + ingress-nginx (A) + Helm apps + LB wait + CoreDNS B + host DNS helper (LB IP)
     cmds:
       - task prereq:stack
       - task kind:cloud-provider-kind:up
@@ -162,8 +157,8 @@ tasks:
       - task ingress:a:wait-lb-ip
       - task coredns:apply:cluster-b:ingress-alias
       - task apps:install:cluster-b
-      # - task compose:edge:up
-      # - task compose:dns:up
+      - task compose:dns:up
+      - task compose:dns:verify
 
   stack:up:
     desc: cluster:up + stack:install (full dev environment)
@@ -175,21 +170,8 @@ tasks:
     desc: Helm uninstall slim stack, compose down, delete KinD clusters
     cmds:
       - task apps:uninstall
-      - task compose:edge:down
       - task compose:dns:down
       - task cluster:teardown
-
-  compose:edge:up:
-    desc: Start host edge nginx (compose/edge)
-    dir: compose/edge
-    cmds:
-      - docker compose up -d
-
-  compose:edge:down:
-    desc: Stop host edge nginx
-    dir: compose/edge
-    cmds:
-      - docker compose down
 
   compose:dns:render:
     desc: Write compose/dns/Corefile for local *.csit.test
@@ -213,6 +195,13 @@ tasks:
       CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
     cmds:
       - docker compose down
+
+  compose:dns:verify:
+    desc: Assert host DNS helper resolves cluster-A ingress names to INGRESS_A_LB_IP (dig @127.0.0.1 CSIT_LOCAL_DNS_HOST_PORT)
+    env:
+      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+    cmds:
+      - ./scripts/verify-local-dns-helper.sh
 
   apps:install:cluster-a:
     desc: Helm controller + slim on cluster A only (creates Ingress in admin + cluster-a before LB VIP / cluster-B DNS)

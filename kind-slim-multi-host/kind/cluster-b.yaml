@@ -1,7 +1,7 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# KinD cluster B (csit-b) with host port maps (optional edge → :9080; no in-cluster ingress-nginx).
+# KinD cluster B (csit-b) with host port maps 9080/9443 → node :80/:443 (no ingress-nginx on B).
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: csit-b

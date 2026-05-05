@@ -4,7 +4,7 @@
 # Controller on cluster A via cluster-A ingress (nginx). Pods resolve control.cluster-a.csit.test
 # to the ingress LoadBalancer IP (cloud-provider-kind); CoreDNS on B is patched by
 # task stack:install / stack:up.
-# Host browsers still use optional edge nginx + local DNS helper (*.csit.test → loopback).
+# From the host: local DNS resolves slim.cluster-b.csit.test → loopback; use ports 9080/9443 (KinD maps).
 # If pods cannot reach the LB VIP (some Docker Desktop setups), merge slim-cluster-b.docker-desktop.yaml.
 slim:
   replicaCount: 1

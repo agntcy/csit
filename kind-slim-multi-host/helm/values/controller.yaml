@@ -39,6 +39,17 @@ ingressNorth:
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Match south ingress gRPC tuning — helps host/LB clients that saw resets or slow streams.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-stream-timeout: "3600"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      grpc_socket_keepalive on;
+      grpc_read_timeout 3600s;
+      grpc_send_timeout 3600s;
+      http2_max_concurrent_streams 128;
   hosts:
     - host: control.nb.cluster-a.csit.test
       paths:
@@ -71,7 +82,3 @@ ingressSouth:
         - path: /
           pathType: Prefix
           port: 50052
-  tls:
-    - secretName: slim-control-tls
-      hosts:
-        - control.cluster-a.csit.test 

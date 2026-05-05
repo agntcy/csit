@@ -181,10 +181,7 @@ jobs:
           done
 
       - name: Verify host DNS helper
-        run: |
-          set -euo pipefail
-          dig @127.0.0.1 -p 8053 +short control.cluster-a.csit.test | grep -q '^127\.0\.0\.1$'
-          dig +tcp @127.0.0.1 -p 8053 +short slim.cluster-b.csit.test | grep -q '^127\.0\.0\.1$'
+        run: ./scripts/verify-local-dns-helper.sh
 
       - name: Verify DNS resolution (cluster B → controller hostname)
         run: |

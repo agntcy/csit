@@ -18,4 +18,8 @@ services:
         source: ./Corefile
         target: /etc/coredns/Corefile
         read_only: true
+      - type: bind
+        source: ./csittest.zone
+        target: /etc/coredns/csittest.zone
+        read_only: true
     command: ["-conf", "/etc/coredns/Corefile"]
