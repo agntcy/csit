@@ -6,6 +6,10 @@ version: "3"
 
 silent: true
 
+includes:
+  tests:client-server: 
+    taskfile: ./tests/conformance/Taskfile.yml
+
 vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 

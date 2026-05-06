@@ -1,0 +1,21 @@
+name: dir-suites-default
+
+services:
+  daemon:
+    image: "ghcr.io/agntcy/dir-ctl:v1.2.0"
+    ports:
+      - 8888:8888 # API server
+      - 8890:8890 # OCI registry
+      - 9090:9090 # DHT
+    command:
+      - daemon
+      - start
+      - --config=/config/dir-daemon-config.yaml
+      - --data-dir=/tmp
+    volumes:
+      - "./dir-daemon-config.yaml:/config/dir-daemon-config.yaml:ro"
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure

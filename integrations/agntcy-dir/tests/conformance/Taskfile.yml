@@ -1,0 +1,97 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+version: "3"
+
+vars:
+  CONFORMANCE_SERVER_VERSIONS: ["v1.3.0", "v1.2.0"]
+  CONFORMANCE_CLIENT_VERSIONS: ["v1.3.0"]
+  CONFORMANCE_CLIENT_TEST_PKG: 'github.com/agntcy/dir/tests/e2e/client'
+
+tasks:
+  up:
+    vars:
+      CLIENT_VERSION: '{{.CLIENT_VERSION}}'
+      TMP_PATH: '{{ .TMP_PATH | default "/tmp/tests/client-server" }}'
+
+      COMPOSE_FILE: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/server/{{.CLIENT_VERSION}}/docker-compose.yaml'
+    cmds:
+      # Prepare suite
+      - |
+        mkdir -p {{.TMP_PATH}}
+        cd {{.TMP_PATH}}
+
+        echo -e "module testing\ngo 1.26.2\n" > go.mod
+        go mod tidy
+        go get -t {{.CONFORMANCE_CLIENT_TEST_PKG}}@{{.CLIENT_VERSION}}
+
+      # Start dependencies
+      - docker compose -f {{.COMPOSE_FILE}} up --wait -d
+  
+  down:
+    vars:
+      CLIENT_VERSION: '{{.CLIENT_VERSION}}'
+      TMP_PATH: '{{ .TMP_PATH | default "/tmp/tests/client-server" }}'
+
+      COMPOSE_FILE: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/server/{{.CLIENT_VERSION}}/docker-compose.yaml'
+    cmds:
+      # Stop dependencies
+      - docker compose -f {{.COMPOSE_FILE}} down
+
+      # Clean up suite
+      - rm -rf {{.TMP_PATH}}
+
+  test:
+    vars:
+      SERVER_VERSION: '{{.SERVER_VERSION | default "v1.3.0" }}'
+      CLIENT_VERSION: '{{.CLIENT_VERSION | default "v1.3.0" }}'
+
+      CLIENT_CONFIG: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/client/{{.CLIENT_VERSION}}/test-config.yaml'
+      REPORTS_PATH: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/reports'
+
+      REPORTS_NAME: 'Server-{{.SERVER_VERSION}}-Client-{{.CLIENT_VERSION}}'
+      TMP_PATH: '/tmp/tests/{{.REPORTS_NAME}}'
+    cmds:
+      # Setup env
+      - defer:
+          task: down
+          vars:
+            CLIENT_VERSION: '{{.CLIENT_VERSION}}'
+            TMP_PATH: '{{.TMP_PATH}}'
+      - task: up
+        vars:
+          CLIENT_VERSION: '{{.CLIENT_VERSION}}'
+          TMP_PATH: '{{.TMP_PATH}}'
+
+      # Run test package
+      - |
+        mkdir -p {{.REPORTS_PATH}}
+        cd {{.TMP_PATH}}
+        go test {{.CONFORMANCE_CLIENT_TEST_PKG}} \
+          -v -failfast -test.v -test.paniconexit0 -timeout 2h \
+          -ginkgo.timeout 2h -ginkgo.v \
+          -ginkgo.json-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.json \
+          -ginkgo.junit-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.xml \
+          -test-config {{.CLIENT_CONFIG}}
+
+  test:all:
+    vars:
+      REPORTS_PATH: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/reports'
+      SUMMARY_HTML: '{{.ROOT_DIR}}/summary.html'
+
+    cmds:
+      - for:
+          matrix:
+            SERVER_VERSION: { ref: '.CONFORMANCE_SERVER_VERSIONS' }
+            CLIENT_VERSION: { ref: '.CONFORMANCE_CLIENT_VERSIONS' }
+        task: test
+        vars:
+          SERVER_VERSION: '{{.ITEM.SERVER_VERSION}}'
+          CLIENT_VERSION: '{{.ITEM.CLIENT_VERSION}}'
+          REPORTS_PATH: '{{.REPORTS_PATH}}'
+
+      - |
+        go run {{.ROOT_DIR}}/integrations/agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir {{.REPORTS_PATH}} \
+          --output {{.SUMMARY_HTML}} \
+          --title "DIR Conformance"

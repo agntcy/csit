@@ -58,6 +58,7 @@ type failureLocation struct {
 type dashboardView struct {
 	GeneratedAt string
 	ReportDir   string
+	ReportTitle string
 	HasReports  bool
 	Summary     summaryView
 	Reports     []reportView
@@ -117,9 +118,10 @@ type specView struct {
 func main() {
 	reportsDir := flag.String("reports-dir", "./reports", "directory containing Ginkgo JSON and JUnit XML reports")
 	outputPath := flag.String("output", "./reports/index.html", "path to the generated HTML dashboard")
+	reportTitle := flag.String("title", "A2A Interop Dashboard", "Dashboard title (optional)")
 	flag.Parse()
 
-	view, err := buildDashboard(*reportsDir)
+	view, err := buildDashboard(*reportTitle, *reportsDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "build dashboard: %v\n", err)
 		os.Exit(1)
@@ -144,7 +146,7 @@ func main() {
 	fmt.Printf("wrote %s\n", *outputPath)
 }
 
-func buildDashboard(reportsDir string) (dashboardView, error) {
+func buildDashboard(reportsTitle, reportsDir string) (dashboardView, error) {
 	jsonFiles, err := filepath.Glob(filepath.Join(reportsDir, "*.json"))
 	if err != nil {
 		return dashboardView{}, fmt.Errorf("find report files: %w", err)
@@ -153,6 +155,7 @@ func buildDashboard(reportsDir string) (dashboardView, error) {
 	view := dashboardView{
 		GeneratedAt: time.Now().Format("2006-01-02 15:04:05 MST"),
 		ReportDir:   reportsDir,
+		ReportTitle: reportsTitle,
 	}
 
 	reports := make([]reportView, 0, len(jsonFiles))
@@ -550,7 +553,7 @@ const dashboardTemplate = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>A2A Interop Dashboard</title>
+  <title>{{.ReportTitle}}</title>
   <style>
     :root {
       --bg: #f4efe6;
@@ -1134,7 +1137,7 @@ const dashboardTemplate = `<!DOCTYPE html>
   <main class="page">
     <section class="hero">
       <p class="eyebrow">AGNTCY CSIT</p>
-      <h1>A2A Interop Dashboard</h1>
+      <h1>{{.ReportTitle}}</h1>
       <p class="lead">A static HTML view over the Ginkgo JSON and JUnit XML artifacts under {{.ReportDir}}. The dashboard groups every saved run, highlights failures, and keeps the raw machine-readable files one click away.</p>
       <div class="hero-meta">
         <span class="meta-chip">Rendered <code>{{.GeneratedAt}}</code></span>
