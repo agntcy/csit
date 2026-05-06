@@ -12,6 +12,7 @@
 # Optional env:
 #   HAS_A2A             "true" to include the A2A interoperability card
 #   HAS_BENCHMARKS      "true" to include the SLIM benchmarks card
+#   HAS_DIRECTORY       "true" to include the Directory conformance card
 #   OUTPUT              destination path  (default: site/index.html)
 #   INTEGRATIONS_RUN_ID run ID of the test-integrations workflow (footer link)
 #   BENCHMARK_RUN_ID    run ID of the test-benchmarks-slim workflow (footer link)
@@ -20,6 +21,7 @@ set -euo pipefail
 
 HAS_A2A="${HAS_A2A:-false}"
 HAS_BENCHMARKS="${HAS_BENCHMARKS:-false}"
+HAS_DIRECTORY="${HAS_DIRECTORY:-false}"
 OUTPUT="${OUTPUT:-site/index.html}"
 INTEGRATIONS_RUN_ID="${INTEGRATIONS_RUN_ID:-}"
 BENCHMARK_RUN_ID="${BENCHMARK_RUN_ID:-}"
@@ -129,6 +131,16 @@ if [[ "$HAS_BENCHMARKS" == "true" ]]; then
       <a class="report-card" href="./benchmarks/slim/">
         <h2>SLIM benchmarks</h2>
         <p>Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.</p>
+        <span>Open report</span>
+      </a>
+HTML
+fi
+
+if [[ "$HAS_DIRECTORY" == "true" ]]; then
+  cat >> "$OUTPUT" <<'HTML'
+      <a class="report-card" href="./directory/">
+        <h2>Directory conformance</h2>
+        <p>Client/server conformance results across supported Directory client and server versions.</p>
         <span>Open report</span>
       </a>
 HTML

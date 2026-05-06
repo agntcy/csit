@@ -106,11 +106,26 @@ jobs:
           fi
 
           has_a2a=false
+          has_directory_conformance=false
           if [[ -n "$integrations_run_id" ]]; then
             integrations_artifacts_json=$(run_artifacts "$integrations_run_id")
             if has_matching_artifact "$integrations_artifacts_json" '^a2a-interop-test-result-'; then
               has_a2a=true
             fi
+            if has_matching_artifact "$integrations_artifacts_json" '^directory-conformance-test-result$'; then
+              has_directory_conformance=true
+            fi
+          fi
+
+          # If integrations_run_id was resolved purely from a2a artifacts, also try
+          # to find a recent run that produced the directory conformance artifact.
+          if [[ "$has_directory_conformance" != "true" && -z "${INPUT_INTEGRATIONS_RUN_ID}" ]]; then
+            directory_conformance_run_id="$(resolve_run_with_artifact test-integrations.yaml '^directory-conformance-test-result$' || true)"
+            if [[ -n "$directory_conformance_run_id" ]]; then
+              has_directory_conformance=true
+            fi
+          else
+            directory_conformance_run_id="$integrations_run_id"
           fi
 
           has_benchmark_smoke=false
@@ -130,8 +145,10 @@ jobs:
           fi
 
           echo "integrations-run-id=$integrations_run_id" >> "$GITHUB_OUTPUT"
+          echo "directory-conformance-run-id=$directory_conformance_run_id" >> "$GITHUB_OUTPUT"
           echo "benchmark-run-id=$benchmark_run_id" >> "$GITHUB_OUTPUT"
           echo "has-a2a=$has_a2a" >> "$GITHUB_OUTPUT"
+          echo "has-directory-conformance=$has_directory_conformance" >> "$GITHUB_OUTPUT"
           echo "has-benchmark-smoke=$has_benchmark_smoke" >> "$GITHUB_OUTPUT"
           echo "has-benchmark-capacity=$has_benchmark_capacity" >> "$GITHUB_OUTPUT"
           echo "has-benchmark-basic=$has_benchmark_basic" >> "$GITHUB_OUTPUT"
@@ -171,6 +188,30 @@ jobs:
           go run ./agntcy-a2a/tools/report_dashboard.go \
             --reports-dir ../site/a2a \
             --output ../site/a2a/index.html
+
+      - name: Download Directory conformance artifact
+        if: ${{ steps.resolve.outputs.has-directory-conformance == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.directory-conformance-run-id || steps.resolve.outputs.integrations-run-id }}
+          name: directory-conformance-test-result
+          path: site/directory-conformance-tmp
+
+      - name: Stage Directory conformance summary
+        if: ${{ steps.resolve.outputs.has-directory-conformance == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/directory
+          if [[ -f site/directory-conformance-tmp/summary.html ]]; then
+            cp site/directory-conformance-tmp/summary.html site/directory/index.html
+          else
+            echo "summary.html not found in directory conformance artifact" >&2
+            exit 1
+          fi
+          rm -rf site/directory-conformance-tmp
 
       - name: Download SLIM benchmark smoke bundle
         if: ${{ steps.resolve.outputs.has-benchmark-smoke == 'true' }}
@@ -275,6 +316,7 @@ jobs:
         run: |
           HAS_A2A="$([ -f site/a2a/index.html ] && echo true || echo false)" \
           HAS_BENCHMARKS="$([ -f site/benchmarks/slim/index.html ] && echo true || echo false)" \
+          HAS_DIRECTORY="$([ -f site/directory/index.html ] && echo true || echo false)" \
           bash .github/scripts/build-site-landing-page.sh
 
       - name: Setup Pages
