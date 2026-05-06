@@ -47,6 +47,8 @@ cat >"${ZONE_FILE}" <<ZEOF
 control.cluster-a    IN A ${IP_A}
 control.nb.cluster-a IN A ${IP_A}
 slim.cluster-a       IN A ${IP_A}
+spire.cluster-a      IN A ${IP_A}
+spire-bundle.cluster-a IN A ${IP_A}
 slim.cluster-b       IN A ${IP_B}
 *                    IN A ${WILDCARD_IP}
 ZEOF

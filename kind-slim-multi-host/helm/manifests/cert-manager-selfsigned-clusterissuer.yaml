@@ -1,0 +1,11 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Used by SPIRE ingress TLS (spire-cluster-a-values.yaml cert-manager.io/cluster-issuer).
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}

@@ -43,6 +43,15 @@ vars:
   CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT | default "8053" }}'
   INGRESS_SVC: '{{ .INGRESS_SVC | default "ingress-nginx-controller" }}'
 
+  # cert-manager + SPIRE (cluster-a root, cluster-b downstream via charts/slim-spire)
+  CERT_MANAGER_HELM_VERSION: '{{ .CERT_MANAGER_HELM_VERSION | default "v1.20.1" }}'
+  SPIRE_CHART_VERSION: '{{ .SPIRE_CHART_VERSION | default "0.28.3" }}'
+  SPIRE_CRDS_CHART_VERSION: '{{ .SPIRE_CRDS_CHART_VERSION | default "0.5.0" }}'
+  SPIRE_TRUST_DOMAIN: '{{ .SPIRE_TRUST_DOMAIN | default "cluster-a.example" }}'
+  SPIRE_CLUSTER_B_BOOTSTRAP_SLUG: '{{ .SPIRE_CLUSTER_B_BOOTSTRAP_SLUG | default "cluster-b" }}'
+  # Optional; else minted via kubectl exec on cluster-a spire-server (see spire:deploy:cluster-b).
+  SPIRE_JOIN_TOKEN: '{{ .SPIRE_JOIN_TOKEN | default "" }}'
+
 tasks:
   prereq:
     desc: Check kind, kubectl, docker, jq
@@ -132,9 +141,111 @@ tasks:
       - INGRESS_SVC={{ .INGRESS_SVC }} ./scripts/discover-ingress-lb-ip-a.sh {{ .CTX_A }}
 
   coredns:apply:cluster-b:ingress-alias:
-    desc: Patch CoreDNS on cluster B — control.cluster-a.csit.test → cluster A ingress LB IP
+    desc: Patch CoreDNS on cluster B — control/slim/spire hostnames under cluster-a.csit.test → cluster A ingress LB IP
     cmds:
       - ./scripts/coredns-apply-cluster-b-ingress-alias.sh {{ .CTX_B }}
+
+  cert-manager:install:a:
+    desc: Install cert-manager on cluster A and apply selfsigned ClusterIssuer (SPIRE ingress TLS)
+    deps: [prereq:stack]
+    cmds:
+      - helm repo add jetstack https://charts.jetstack.io 2>/dev/null || true
+      - helm repo update
+      - |
+        set -euo pipefail
+        helm upgrade --install cert-manager jetstack/cert-manager \
+          --namespace cert-manager \
+          --create-namespace \
+          --version {{ .CERT_MANAGER_HELM_VERSION }} \
+          --set crds.enabled=true \
+          --kube-context {{ .CTX_A }} \
+          --wait \
+          --wait-for-jobs \
+          --timeout 15m
+      - kubectl apply --context {{ .CTX_A }} -f helm/manifests/cert-manager-selfsigned-clusterissuer.yaml
+
+  spire:deploy:cluster-a:
+    desc: Root SPIRE on cluster-a (spire-crds + spire-root; namespace spire-system). Requires ingress-nginx and cert-manager.
+    deps: [ingress:install:a, cert-manager:install:a]
+    cmds:
+      - helm repo add spiffe https://spiffe.github.io/helm-charts-hardened/ 2>/dev/null || true
+      - helm repo update
+      - |
+        set -euo pipefail
+        helm upgrade --install spire-crds spiffe/spire-crds \
+          --namespace spire-system \
+          --create-namespace \
+          --version "{{ .SPIRE_CRDS_CHART_VERSION }}" \
+          --kube-context {{ .CTX_A }} \
+          --wait \
+          --wait-for-jobs \
+          --timeout 15m
+      - |
+        set -euo pipefail
+        helm upgrade --install spire-root spiffe/spire \
+          --namespace spire-system \
+          --create-namespace \
+          --version "{{ .SPIRE_CHART_VERSION }}" \
+          -f helm/values/spire-cluster-a-values.yaml \
+          --kube-context {{ .CTX_A }} \
+          --wait \
+          --wait-for-jobs \
+          --timeout 25m
+
+  spire:deploy:cluster-b:
+    desc: Downstream SPIRE on cluster-b (spire-crds + slim-spire). Requires spire on cluster-a; set SLIM_CHARTS_PATH or SLIM_REPO_PATH to a checkout containing charts/slim-spire.
+    deps: [spire:deploy:cluster-a]
+    cmds:
+      - |
+        set -euo pipefail
+        CTX_A="{{ .CTX_A }}"
+        CTX_B="{{ .CTX_B }}"
+        helm repo add spiffe https://spiffe.github.io/helm-charts-hardened/ 2>/dev/null || true
+        helm repo update
+        helm upgrade --install spire-crds spiffe/spire-crds \
+          --namespace spire-system \
+          --create-namespace \
+          --version "{{ .SPIRE_CRDS_CHART_VERSION }}" \
+          --kube-context "$CTX_B" \
+          --wait \
+          --wait-for-jobs \
+          --timeout 15m
+        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
+        if [ ! -d "${CHART_ROOT}/slim-spire" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim-spire" ]; then
+          CHART_ROOT="${SLIM_REPO_PATH}/charts"
+        fi
+        if [ ! -d "${CHART_ROOT}/slim-spire" ]; then
+          echo "ERROR: slim-spire chart not found under ${CHART_ROOT} (set SLIM_CHARTS_PATH or SLIM_REPO_PATH to agntcy/slim charts directory)" >&2
+          exit 1
+        fi
+        helm dependency build --skip-refresh "${CHART_ROOT}/slim-spire"
+        SPIFFE_ID="spiffe://{{ .SPIRE_TRUST_DOMAIN }}/bootstrap/upstream-agent/{{ .SPIRE_CLUSTER_B_BOOTSTRAP_SLUG }}"
+        MANUAL_TOKEN='{{ .SPIRE_JOIN_TOKEN }}'
+        if [ -z "$MANUAL_TOKEN" ] && [ -n "${SPIRE_JOIN_TOKEN:-}" ]; then
+          MANUAL_TOKEN="${SPIRE_JOIN_TOKEN}"
+        fi
+        if [ -n "$MANUAL_TOKEN" ]; then
+          TOKEN="$MANUAL_TOKEN"
+        else
+          POD=$(kubectl --context "$CTX_A" get pod -n spire-system -l app.kubernetes.io/component=server -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          if [ -z "$POD" ]; then
+            echo "No spire-server pod on cluster-a; set SPIRE_JOIN_TOKEN or re-run after spire:deploy:cluster-a" >&2
+            exit 1
+          fi
+          TOKEN=$(kubectl --context "$CTX_A" exec -n spire-system "$POD" -c spire-server -- \
+            spire-server token generate -spiffeID "$SPIFFE_ID" | sed 's/^Token:[[:space:]]*//' | tr -d '\r\n ')
+        fi
+        kubectl --context "$CTX_B" create namespace spire-system --dry-run=client -o yaml | kubectl --context "$CTX_B" apply -f -
+        kubectl --context "$CTX_B" delete secret spire-upstream-bootstrap-token -n spire-system --ignore-not-found=true
+        kubectl --context "$CTX_B" create secret generic spire-upstream-bootstrap-token -n spire-system --from-literal=token="$TOKEN"
+        helm upgrade --install spire-downstream "${CHART_ROOT}/slim-spire" \
+          --namespace spire-system \
+          --create-namespace \
+          -f helm/values/spire-cluster-b-values.yaml \
+          --kube-context "$CTX_B" \
+          --wait \
+          --wait-for-jobs \
+          --timeout 25m
 
   cluster:up:
     desc: Create both KinD clusters (prereq + kind)
@@ -148,14 +259,17 @@ tasks:
       - task kind:delete:all
 
   stack:install:
-    desc: cloud-provider-kind + ingress-nginx (A) + Helm apps + LB wait + CoreDNS B + host DNS helper (LB IP)
+    desc: cloud-provider-kind + ingress (A) + cert-manager + LB wait + CoreDNS B + SPIRE (A/B) + Helm apps + host DNS helper
     cmds:
       - task prereq:stack
       - task kind:cloud-provider-kind:up
       - task ingress:install:a
-      - task apps:install:cluster-a
+      - task cert-manager:install:a
       - task ingress:a:wait-lb-ip
       - task coredns:apply:cluster-b:ingress-alias
+      - task spire:deploy:cluster-a
+      - task spire:deploy:cluster-b
+      - task apps:install:cluster-a
       - task apps:install:cluster-b
       - task compose:dns:up
       - task compose:dns:verify
@@ -197,14 +311,14 @@ tasks:
       - docker compose down
 
   compose:dns:verify:
-    desc: Assert host DNS helper resolves cluster-A ingress names to INGRESS_A_LB_IP (dig @127.0.0.1 CSIT_LOCAL_DNS_HOST_PORT)
+    desc: Assert host DNS helper resolves cluster-A ingress and SPIRE names to INGRESS_A_LB_IP (dig @127.0.0.1 CSIT_LOCAL_DNS_HOST_PORT)
     env:
       CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
     cmds:
       - ./scripts/verify-local-dns-helper.sh
 
   apps:install:cluster-a:
-    desc: Helm controller + slim on cluster A only (creates Ingress in admin + cluster-a before LB VIP / cluster-B DNS)
+    desc: Helm controller + slim on cluster A only (Ingress in admin + cluster-a; requires ingress-nginx on A)
     deps: [ingress:install:a]
     cmds:
       - task helm:install:controller
@@ -219,6 +333,10 @@ tasks:
   apps:uninstall:
     desc: Remove optional Helm releases (Ingress objects owned by Helm releases)
     cmds:
+      - helm uninstall spire-downstream --namespace spire-system --kube-context {{ .CTX_B }} || true
+      - helm uninstall spire-crds --namespace spire-system --kube-context {{ .CTX_B }} || true
+      - helm uninstall spire-root --namespace spire-system --kube-context {{ .CTX_A }} || true
+      - helm uninstall spire-crds --namespace spire-system --kube-context {{ .CTX_A }} || true
       - helm uninstall {{ .SLIM_RELEASE_B }} --namespace {{ .NS_B }} --kube-context {{ .CTX_B }} || true
       - kubectl --context {{ .CTX_B }} -n {{ .NS_B }} delete service {{ .SLIM_RELEASE_B }}-slim-headless --ignore-not-found
       - helm uninstall {{ .SLIM_RELEASE_A }} --namespace {{ .NS_A }} --kube-context {{ .CTX_A }} || true

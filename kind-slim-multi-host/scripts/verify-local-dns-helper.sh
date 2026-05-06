@@ -52,7 +52,7 @@ dig_a() {
 
 verify_all() {
   local h got want
-  for h in "control.cluster-a.${ZONE}" "control.nb.cluster-a.${ZONE}" "slim.cluster-a.${ZONE}"; do
+  for h in "control.cluster-a.${ZONE}" "control.nb.cluster-a.${ZONE}" "slim.cluster-a.${ZONE}" "spire.cluster-a.${ZONE}" "spire-bundle.cluster-a.${ZONE}"; do
     got=$(dig_a "${h}")
     want="${EXPECT_CLUSTER_A}"
     if [[ "${got}" != "${want}" ]]; then
@@ -70,7 +70,7 @@ verify_all() {
 
 for ((i = 1; i <= RETRIES; i++)); do
   if verify_all; then
-    echo "verify-local-dns-helper: OK — cluster A ingress names → ${EXPECT_CLUSTER_A}; slim.cluster-b.${ZONE} → 127.0.0.1 (dig @127.0.0.1:${PORT})"
+    echo "verify-local-dns-helper: OK — cluster A ingress + SPIRE names → ${EXPECT_CLUSTER_A}; slim.cluster-b.${ZONE} → 127.0.0.1 (dig @127.0.0.1:${PORT})"
     exit 0
   fi
   if [[ "${i}" -lt "${RETRIES}" ]]; then
