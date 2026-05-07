@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # KinD multicluster + ingress LoadBalancer (cloud-provider-kind) + optional Helm stack via Task.
-# Builds slim dataplane, control-plane, and bindings-examples images (same steps as
-# test-integrations run-tests-slim-topology), loads them into both clusters, then
+# Builds slim dataplane and control-plane images, loads them into both clusters, then
 # task cluster:up → task stack:install (same as task stack:up with built tags).
 name: kind-slim-multicluster
 
@@ -14,7 +13,6 @@ on:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
       - ".github/actions/setup-k8s/**"
-      - "integrations/agntcy-slim/examples/Dockerfile"
   push:
     branches:
       - main
@@ -22,7 +20,6 @@ on:
       - "kind-slim-multi-host/**"
       - ".github/workflows/kind-slim-multicluster.yml"
       - ".github/actions/setup-k8s/**"
-      - "integrations/agntcy-slim/examples/Dockerfile"
 
 permissions:
   contents: read
@@ -49,7 +46,6 @@ jobs:
           tag="local-${GITHUB_SHA:0:12}"
           echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "examples_tag=local" >> "$GITHUB_OUTPUT"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -89,22 +85,6 @@ jobs:
             --file slim-src/control-plane/Dockerfile \
             slim-src
 
-      - name: Build slim bindings examples image (linux/amd64)
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          EXAMPLES_TAG: ${{ steps.resolve-slim-tags.outputs.examples_tag }}
-        run: |
-          set -euo pipefail
-          cp integrations/agntcy-slim/examples/Dockerfile slim-src/data-plane/bindings/python/Dockerfile
-
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --tag "ghcr.io/agntcy/slim/bindings-examples:${EXAMPLES_TAG}" \
-            --file slim-src/data-plane/bindings/python/Dockerfile \
-            slim-src
-
       - name: Setup Kubernetes tooling
         uses: ./.github/actions/setup-k8s
         with:
@@ -137,14 +117,12 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
-          EXAMPLES_TAG: ${{ steps.resolve-slim-tags.outputs.examples_tag }}
         run: |
           set -euo pipefail
           for cluster in csit-a csit-b; do
             for img in \
               "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-              "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
-              "ghcr.io/agntcy/slim/bindings-examples:${EXAMPLES_TAG}"; do
+              "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}"; do
               kind load docker-image "${img}" --name "${cluster}"
             done
           done
