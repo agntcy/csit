@@ -27,6 +27,13 @@ vars:
   # If .../slim is missing, tasks fall back to $SLIM_REPO_PATH/charts (e.g. CI) or OCI.
   SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default "/Users/lpuskas/prj/outshift/agntcy/slim/charts" }}'
 
+  # agntcy/slim repo root for cargo build of data-plane/slimctl (slimctl:build).
+  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+  # Must match SLIMCTL_PF_LOCAL_PORT when overriding local port (e.g. http://localhost:150051).
+  SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL | default "http://localhost:50051" }}'
+  SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT | default "50051" }}'
+
   # ingress-nginx official chart (KinD values in helm/values/ingress-nginx-kind.yaml).
   INGRESS_NGINX_HELM_REPO: '{{ .INGRESS_NGINX_HELM_REPO | default "https://kubernetes.github.io/ingress-nginx" }}'
   INGRESS_NGINX_HELM_CHART: '{{ .INGRESS_NGINX_HELM_CHART | default "ingress-nginx" }}'
@@ -68,6 +75,81 @@ tasks:
     cmds:
       - command -v helm
       - command -v go
+
+  prereq:slimctl:
+    desc: Check Rust toolchain (cargo, rustc) for slimctl:build
+    cmds:
+      - command -v cargo
+      - command -v rustc
+
+  slimctl:build:
+    desc: Build slimctl from SLIM_REPO_PATH data-plane/slimctl (cargo release); copy to SLIMCTL_PATH
+    deps: [prereq:slimctl]
+    dir: "{{.TASKFILE_DIR}}"
+    cmds:
+      - |
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -z "$REPO" ]; then
+          echo "Set SLIM_REPO_PATH to the root of an agntcy/slim checkout (contains data-plane/slimctl)" >&2
+          exit 1
+        fi
+        CRATE_DIR="$REPO/data-plane/slimctl"
+        if [ ! -d "$CRATE_DIR" ]; then
+          echo "Not found: $CRATE_DIR" >&2
+          exit 1
+        fi
+        OUT='{{ .SLIMCTL_PATH }}'
+        OUT_DIR=$(dirname "$OUT")
+        mkdir -p "$OUT_DIR"
+        (cd "$CRATE_DIR" && cargo build --release)
+        cp "$REPO/.dist/bin/slimctl" "$OUT"
+        chmod +x "$OUT"
+        echo "Built slimctl -> $OUT"
+
+  slimctl:controller:link:outline:
+    desc: |
+      Port-forward svc/slim-control northbound to localhost, then slimctl controller link outline.
+      Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
+    deps: [slimctl:build]
+    dir: "{{.TASKFILE_DIR}}"
+    cmds:
+      - |
+        set -euo pipefail
+        SLIMCTL='{{ .SLIMCTL_PATH }}'
+        case "$SLIMCTL" in
+          /*) ;;
+          *) SLIMCTL="$PWD/$SLIMCTL" ;;
+        esac
+        kubectl port-forward --context {{ .CTX_A }} svc/{{ .CTRL_RELEASE }} -n {{ .NS_ADMIN }} \
+          {{ .SLIMCTL_PF_LOCAL_PORT }}:50051 &
+        PF_PID=$!
+        cleanup() { kill "$PF_PID" 2>/dev/null || true; }
+        trap cleanup EXIT
+        sleep 2
+        "$SLIMCTL" -s '{{ .SLIM_CONTROLLER_HTTP_URL }}' controller link outline
+
+  slimctl:controller:route:outline:
+    desc: |
+      Port-forward svc/slim-control northbound to localhost, then slimctl controller route outline.
+      Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
+    deps: [slimctl:build]
+    dir: "{{.TASKFILE_DIR}}"
+    cmds:
+      - |
+        set -euo pipefail
+        SLIMCTL='{{ .SLIMCTL_PATH }}'
+        case "$SLIMCTL" in
+          /*) ;;
+          *) SLIMCTL="$PWD/$SLIMCTL" ;;
+        esac
+        kubectl port-forward --context {{ .CTX_A }} svc/{{ .CTRL_RELEASE }} -n {{ .NS_ADMIN }} \
+          {{ .SLIMCTL_PF_LOCAL_PORT }}:50051 &
+        PF_PID=$!
+        cleanup() { kill "$PF_PID" 2>/dev/null || true; }
+        trap cleanup EXIT
+        sleep 2
+        "$SLIMCTL" -s '{{ .SLIM_CONTROLLER_HTTP_URL }}' controller route outline
 
   kind:create:a:
     desc: Create KinD cluster A (minimal config)
@@ -273,6 +355,10 @@ tasks:
       - task apps:install:cluster-b
       - task compose:dns:up
       - task compose:dns:verify
+      - task echo-agent:server:deploy
+      - task echo-agent:client:deploy
+      - task slimctl:controller:link:outline
+      - task slimctl:controller:route:outline
 
   stack:up:
     desc: cluster:up + stack:install (full dev environment)

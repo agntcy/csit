@@ -133,6 +133,7 @@ jobs:
           SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
           SLIM_CHARTS_PATH: ${{ github.workspace }}/slim-src/charts
+          SLIM_REPO_PATH: ${{ github.workspace }}/slim-src
         run: task stack:install
 
       - name: Verify clusters
