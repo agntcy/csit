@@ -103,7 +103,7 @@ tasks:
         OUT_DIR=$(dirname "$OUT")
         mkdir -p "$OUT_DIR"
         (cd "$CRATE_DIR" && cargo build --release)
-        cp "$REPO/.dist/bin/slimctl" "$OUT"
+        cp "$REPO/../target/release/slimctl" "$OUT"
         chmod +x "$OUT"
         echo "Built slimctl -> $OUT"
 
