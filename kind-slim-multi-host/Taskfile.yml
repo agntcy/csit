@@ -103,7 +103,16 @@ tasks:
         OUT_DIR=$(dirname "$OUT")
         mkdir -p "$OUT_DIR"
         (cd "$CRATE_DIR" && cargo build --release)
-        cp "$REPO/../target/release/slimctl" "$OUT"
+        # Workspace lives under data-plane/; artifacts go to data-plane/target (not $REPO/target).
+        BIN=""
+        for p in "$REPO/data-plane/target/release/slimctl" "$REPO/target/release/slimctl"; do
+          if [ -f "$p" ]; then BIN="$p"; break; fi
+        done
+        if [ -z "$BIN" ]; then
+          echo "slimctl binary not found after cargo build (looked under $REPO/data-plane/target/release and $REPO/target/release)" >&2
+          exit 1
+        fi
+        cp "$BIN" "$OUT"
         chmod +x "$OUT"
         echo "Built slimctl -> $OUT"
 
