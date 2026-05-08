@@ -67,7 +67,7 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/verify-local-dns-helper.sh scripts/ensure-slim-headless-service.sh
+      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/verify-local-dns-helper.sh scripts/ensure-slim-headless-service.sh scripts/slimctl-controller-via-port-forward.sh
 
   prereq:stack:
     desc: prereq + helm + go (Helm installs and cloud-provider-kind)
@@ -122,21 +122,15 @@ tasks:
       Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
     deps: [slimctl:build]
     dir: "{{.TASKFILE_DIR}}"
+    env:
+      SLIMCTL_PATH: '{{ .SLIMCTL_PATH }}'
+      CTX_A: '{{ .CTX_A }}'
+      CTRL_RELEASE: '{{ .CTRL_RELEASE }}'
+      NS_ADMIN: '{{ .NS_ADMIN }}'
+      SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT }}'
+      SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL }}'
     cmds:
-      - |
-        set -euo pipefail
-        SLIMCTL='{{ .SLIMCTL_PATH }}'
-        case "$SLIMCTL" in
-          /*) ;;
-          *) SLIMCTL="$PWD/$SLIMCTL" ;;
-        esac
-        kubectl port-forward --context {{ .CTX_A }} svc/{{ .CTRL_RELEASE }} -n {{ .NS_ADMIN }} \
-          {{ .SLIMCTL_PF_LOCAL_PORT }}:50051 &
-        PF_PID=$!
-        cleanup() { kill "$PF_PID" 2>/dev/null || true; }
-        trap cleanup EXIT
-        sleep 2
-        "$SLIMCTL" -s '{{ .SLIM_CONTROLLER_HTTP_URL }}' controller link outline
+      - bash scripts/slimctl-controller-via-port-forward.sh link
 
   slimctl:controller:route:outline:
     desc: |
@@ -144,21 +138,15 @@ tasks:
       Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
     deps: [slimctl:build]
     dir: "{{.TASKFILE_DIR}}"
+    env:
+      SLIMCTL_PATH: '{{ .SLIMCTL_PATH }}'
+      CTX_A: '{{ .CTX_A }}'
+      CTRL_RELEASE: '{{ .CTRL_RELEASE }}'
+      NS_ADMIN: '{{ .NS_ADMIN }}'
+      SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT }}'
+      SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL }}'
     cmds:
-      - |
-        set -euo pipefail
-        SLIMCTL='{{ .SLIMCTL_PATH }}'
-        case "$SLIMCTL" in
-          /*) ;;
-          *) SLIMCTL="$PWD/$SLIMCTL" ;;
-        esac
-        kubectl port-forward --context {{ .CTX_A }} svc/{{ .CTRL_RELEASE }} -n {{ .NS_ADMIN }} \
-          {{ .SLIMCTL_PF_LOCAL_PORT }}:50051 &
-        PF_PID=$!
-        cleanup() { kill "$PF_PID" 2>/dev/null || true; }
-        trap cleanup EXIT
-        sleep 2
-        "$SLIMCTL" -s '{{ .SLIM_CONTROLLER_HTTP_URL }}' controller route outline
+      - bash scripts/slimctl-controller-via-port-forward.sh route
 
   kind:create:a:
     desc: Create KinD cluster A (minimal config)
