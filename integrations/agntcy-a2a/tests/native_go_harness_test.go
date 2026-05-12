@@ -27,7 +27,7 @@ import (
 
 type goSDKHarness struct{}
 
-func (goSDKHarness) AssertUnaryStreaming(ctx context.Context, target interopTarget) {
+func (goSDKHarness) AssertTaskStreaming(ctx context.Context, target interopTarget) {
 	client, err := newGoClient(ctx, target.baseURL)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -167,19 +167,20 @@ func newInteropPushConfig() *a2a.PushConfig {
 	}
 }
 
-func assertTaskPushConfig(config *a2a.TaskPushConfig, taskID a2a.TaskID, expected *a2a.PushConfig, kind string) {
+func assertTaskPushConfig(config *a2a.PushConfig, taskID a2a.TaskID, expected *a2a.PushConfig, kind string) {
 	gomega.Expect(config).NotTo(gomega.BeNil(), kind)
 	gomega.Expect(config.TaskID).To(gomega.Equal(taskID), kind)
-	gomega.Expect(config.Config).To(gomega.Equal(*expected), kind)
+	gomega.Expect(config.ID).To(gomega.Equal(expected.ID), kind)
+	gomega.Expect(config.URL).To(gomega.Equal(expected.URL), kind)
+	gomega.Expect(config.Token).To(gomega.Equal(expected.Token), kind)
+	gomega.Expect(config.Auth).To(gomega.Equal(expected.Auth), kind)
 }
 
 func goClientAssertPushLifecycle(ctx context.Context, client *a2aclient.Client, taskID a2a.TaskID) {
 	pushConfig := newInteropPushConfig()
 
-	createdConfig, err := client.CreateTaskPushConfig(ctx, &a2a.CreateTaskPushConfigRequest{
-		TaskID: taskID,
-		Config: *pushConfig,
-	})
+	pushConfig.TaskID = taskID
+	createdConfig, err := client.CreateTaskPushConfig(ctx, pushConfig)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	assertTaskPushConfig(createdConfig, taskID, pushConfig, "created push config")
 
@@ -220,10 +221,8 @@ func goClientAssertPushUnsupported(ctx context.Context, client *a2aclient.Client
 		), kind)
 	}
 
-	_, err := client.CreateTaskPushConfig(ctx, &a2a.CreateTaskPushConfigRequest{
-		TaskID: taskID,
-		Config: *pushConfig,
-	})
+	pushConfig.TaskID = taskID
+	_, err := client.CreateTaskPushConfig(ctx, pushConfig)
 	expectUnsupportedError(err, "create push config unsupported")
 
 	_, err = client.GetTaskPushConfig(ctx, &a2a.GetTaskPushConfigRequest{

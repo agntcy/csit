@@ -16,7 +16,7 @@ import (
 
 const dotNetPushUnsupportedCode = -32003
 
-var _ = ginkgo.Describe("A2A Rust and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-rust-dotnet"), func() {
+var _ = ginkgo.Describe("Rust+.NET", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-rust-dotnet"), func() {
 	var binaries rustDotNetFixtureBinaries
 
 	runtime := newInteropSuiteRuntime()

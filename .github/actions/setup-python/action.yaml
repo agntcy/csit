@@ -18,23 +18,35 @@ inputs:
     description: 'Poetry version to use'
     required: false
     default: "1.7.1"
+  uv-only:
+    description: 'Only install uv (skip CPython and Poetry)'
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
   steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        python-version: ${{ inputs.py-version }}
+
     - name: Setup Python
+      if: ${{ inputs.uv-only != 'true' }}
       id: setup-python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.py-version }}
 
     - name: Load cached Poetry Binary
+      if: ${{ inputs.uv-only != 'true' }}
       uses: actions/cache@v4
       with:
         path: ~/.local
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ inputs.py-poetry-version }}
 
     - name: Install Poetry
+      if: ${{ inputs.uv-only != 'true' }}
       shell: bash
       run: |
         if [[ -f ~/.local/bin/poetry ]]; then
@@ -43,12 +55,8 @@ runs:
           curl -sSL https://install.python-poetry.org | POETRY_VERSION=${{ inputs.py-poetry-version }} python3 -
         fi
 
-    - name: Install uv
-      shell: bash
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${HOME}/.local/bin" sh
-
     - name: Load cached venv
+      if: ${{ inputs.uv-only != 'true' }}
       uses: actions/cache@v4
       with:
         path: ~/.cache/pypoetry/virtualenvs

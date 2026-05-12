@@ -70,12 +70,6 @@ STREAMING_REQUEST_TEXT = 'streaming'
 LONG_RUNNING_REQUEST_TEXT = 'long-running'
 DATA_TYPES_REQUEST_TEXT = 'data-types'
 EXTENDED_CARD_SCHEME_ID = 'bearer_token'
-JSONRPC_PUSH_COMPAT_METHODS = {
-    'CreateTaskPushNotificationConfig',
-    'GetTaskPushNotificationConfig',
-    'ListTaskPushNotificationConfigs',
-    'DeleteTaskPushNotificationConfig',
-}
 
 
 def build_text_part(text: str) -> a2a_pb2.Part:
@@ -258,119 +252,10 @@ class InteropPushNotificationConfigStore(InMemoryPushNotificationConfigStore):
         await super().set_info(task_id, notification_config, context)
 
 
-def rewrite_jsonrpc_request_payload(payload: dict[str, object]) -> dict[str, object]:
-    rewritten_payload = payload
-    if payload.get('version') == '0.3':
-        rewritten_payload = dict(payload)
-        rewritten_payload['version'] = PROTOCOL_VERSION_1_0
-
-    if payload.get('method') != 'CreateTaskPushNotificationConfig':
-        return rewritten_payload
-
-    params = rewritten_payload.get('params')
-    if not isinstance(params, dict) or 'config' not in params:
-        return rewritten_payload
-
-    config = params.get('config')
-    if not isinstance(config, dict):
-        return rewritten_payload
-
-    rewritten_payload = dict(rewritten_payload)
-    rewritten_params = dict(params)
-    rewritten_config = dict(config)
-
-    config_id = rewritten_params.pop('configId', None)
-    if isinstance(config_id, str) and config_id and 'id' not in rewritten_config:
-        rewritten_config['id'] = config_id
-
-    if 'auth' in rewritten_config and 'authentication' not in rewritten_config:
-        rewritten_config['authentication'] = rewritten_config.pop('auth')
-
-    rewritten_params.pop('config', None)
-    for key in ('id', 'url', 'token', 'authentication'):
-        if key in rewritten_config and key not in rewritten_params:
-            rewritten_params[key] = rewritten_config[key]
-
-    rewritten_payload['params'] = rewritten_params
-    return rewritten_payload
 
 
-def build_go_compat_push_config(payload: dict[str, object]) -> dict[str, object]:
-    if 'config' in payload and isinstance(payload['config'], dict):
-        return payload
-
-    config: dict[str, object] = {}
-    for key in ('id', 'url', 'token', 'authentication'):
-        if key in payload:
-            config[key] = payload[key]
-    if 'auth' in payload and 'authentication' not in config:
-        config['authentication'] = payload['auth']
-
-    return {
-        'taskId': payload.get('taskId', ''),
-        'config': config,
-    }
 
 
-def build_go_compat_push_config_list(payload: object) -> list[dict[str, object]]:
-    if isinstance(payload, dict):
-        configs = payload.get('configs', [])
-    elif isinstance(payload, list):
-        configs = payload
-    else:
-        configs = []
-
-    compat_configs: list[dict[str, object]] = []
-    if not isinstance(configs, list):
-        return compat_configs
-
-    for entry in configs:
-        if isinstance(entry, dict):
-            compat_configs.append(build_go_compat_push_config(entry))
-
-    return compat_configs
-
-
-def rewrite_jsonrpc_response_payload(method: str, payload: dict[str, object]) -> dict[str, object]:
-    rewritten_payload = dict(payload)
-
-    error = rewritten_payload.get('error')
-    if isinstance(error, dict) and isinstance(error.get('data'), str):
-        rewritten_error = dict(error)
-        rewritten_error['data'] = {'detail': rewritten_error['data']}
-        rewritten_payload['error'] = rewritten_error
-        return rewritten_payload
-
-    if 'error' in rewritten_payload:
-        return rewritten_payload
-
-    result = rewritten_payload.get('result')
-    if method in {'CreateTaskPushNotificationConfig', 'GetTaskPushNotificationConfig'}:
-        if isinstance(result, dict):
-            rewritten_payload['result'] = build_go_compat_push_config(result)
-        return rewritten_payload
-
-    if method == 'ListTaskPushNotificationConfigs':
-        rewritten_payload['result'] = build_go_compat_push_config_list(result)
-
-    return rewritten_payload
-
-
-def rewrite_rest_push_config_payload(payload: dict[str, object]) -> dict[str, object]:
-    if 'config' not in payload or not isinstance(payload['config'], dict):
-        return payload
-
-    rewritten_payload = dict(payload)
-    rewritten_config = dict(rewritten_payload.pop('config'))
-    config_id = rewritten_payload.pop('configId', None)
-    if isinstance(config_id, str) and config_id and 'id' not in rewritten_config:
-        rewritten_config['id'] = config_id
-    if 'auth' in rewritten_config and 'authentication' not in rewritten_config:
-        rewritten_config['authentication'] = rewritten_config.pop('auth')
-    for key in ('id', 'url', 'token', 'authentication'):
-        if key in rewritten_config and key not in rewritten_payload:
-            rewritten_payload[key] = rewritten_config[key]
-    return rewritten_payload
 
 
 def clone_request_with_body(
@@ -403,19 +288,6 @@ def clone_request_with_body(
 
     return Request(scope, receive)
 
-
-async def read_response_body(response: Response) -> bytes:
-    body = getattr(response, 'body', None)
-    if isinstance(body, bytes):
-        return body
-
-    chunks: list[bytes] = []
-    async for chunk in response.body_iterator:
-        if isinstance(chunk, bytes):
-            chunks.append(chunk)
-        else:
-            chunks.append(chunk.encode())
-    return b''.join(chunks)
 
 
 def forward_response_headers(response: Response) -> dict[str, str]:
@@ -475,47 +347,8 @@ def create_jsonrpc_routes_with_compat(request_handler: LegacyRequestHandler) -> 
 
     async def endpoint(request: Request) -> Response:
         body = await request.body()
-
-        try:
-            payload = json.loads(body)
-        except json.JSONDecodeError:
-            return await dispatcher.handle_requests(
-                clone_request_with_body(request, body, version_header)
-            )
-
-        method = ''
-        rewritten_payload = payload
-        if isinstance(payload, dict):
-            method = str(payload.get('method') or '')
-            rewritten_payload = rewrite_jsonrpc_request_payload(payload)
-
-        rewritten_body = body
-        if rewritten_payload is not payload:
-            rewritten_body = json.dumps(rewritten_payload).encode('utf-8')
-
-        response = await dispatcher.handle_requests(
-            clone_request_with_body(request, rewritten_body, version_header)
-        )
-        if method not in JSONRPC_PUSH_COMPAT_METHODS:
-            return response
-
-        response_body = await read_response_body(response)
-        if not response_body:
-            return response
-
-        try:
-            response_payload = json.loads(response_body)
-        except json.JSONDecodeError:
-            return response
-
-        rewritten_response_payload = rewrite_jsonrpc_response_payload(
-            method,
-            response_payload,
-        )
-        return JSONResponse(
-            rewritten_response_payload,
-            status_code=response.status_code,
-            headers=forward_response_headers(response),
+        return await dispatcher.handle_requests(
+            clone_request_with_body(request, body, version_header)
         )
 
     return [Route(path='/rpc', endpoint=endpoint, methods=['POST'])]
@@ -537,15 +370,13 @@ def create_rest_routes_with_compat(request_handler: LegacyRequestHandler) -> lis
         if body:
             payload = json.loads(body)
             if isinstance(payload, dict):
-                ParseDict(rewrite_rest_push_config_payload(payload), params)
+                ParseDict(payload, params)
         response = await request_handler.on_create_task_push_notification_config(
             params,
             build_context(request),
         )
         return JSONResponse(
-            content=build_go_compat_push_config(
-                MessageToDict(response, preserving_proto_field_name=False)
-            )
+            content=MessageToDict(response, preserving_proto_field_name=False)
         )
 
     async def get_push_config_endpoint(request: Request) -> Response:
@@ -557,9 +388,7 @@ def create_rest_routes_with_compat(request_handler: LegacyRequestHandler) -> lis
             build_context(request),
         )
         return JSONResponse(
-            content=build_go_compat_push_config(
-                MessageToDict(response, preserving_proto_field_name=False)
-            )
+            content=MessageToDict(response, preserving_proto_field_name=False)
         )
 
     async def list_push_configs_endpoint(request: Request) -> Response:
@@ -577,9 +406,7 @@ def create_rest_routes_with_compat(request_handler: LegacyRequestHandler) -> lis
             build_context(request),
         )
         return JSONResponse(
-            content=build_go_compat_push_config_list(
-                MessageToDict(response, preserving_proto_field_name=False)
-            )
+            content=MessageToDict(response, preserving_proto_field_name=False)
         )
 
     @rest_error_handler

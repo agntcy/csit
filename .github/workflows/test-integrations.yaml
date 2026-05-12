@@ -377,6 +377,7 @@ jobs:
             task: integrations:a2a:test:rust-go
             artifact-name: a2a-interop-test-result-rust-go
             setup-python: 'false'
+            setup-uv: 'true'
             setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'false'
@@ -385,7 +386,8 @@ jobs:
             display-name: Python/Go
             task: integrations:a2a:test:python-go
             artifact-name: a2a-interop-test-result-python-go
-            setup-python: 'true'
+            setup-python: 'false'
+            setup-uv: 'true'
             setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'false'
@@ -394,8 +396,9 @@ jobs:
             display-name: Rust/Python
             task: integrations:a2a:test:rust-python
             artifact-name: a2a-interop-test-result-rust-python
-            setup-python: 'true'
-            setup-go: 'false'
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'false'
             dotnet-version: '8.0.x'
@@ -404,6 +407,7 @@ jobs:
             task: integrations:a2a:test:rust-dotnet
             artifact-name: a2a-interop-test-result-rust-dotnet
             setup-python: 'false'
+            setup-uv: 'true'
             setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'true'
@@ -413,6 +417,7 @@ jobs:
             task: integrations:a2a:test:go-dotnet
             artifact-name: a2a-interop-test-result-go-dotnet
             setup-python: 'false'
+            setup-uv: 'true'
             setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'true'
@@ -421,8 +426,49 @@ jobs:
             display-name: Python/C#
             task: integrations:a2a:test:python-dotnet
             artifact-name: a2a-interop-test-result-python-dotnet
-            setup-python: 'true'
-            setup-go: 'false'
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'true'
+            dotnet-version: '8.0.x'
+          - id: self-go
+            display-name: Self Go
+            task: integrations:a2a:test:self-go
+            artifact-name: a2a-interop-test-result-self-go
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: self-rust
+            display-name: Self Rust
+            task: integrations:a2a:test:self-rust
+            artifact-name: a2a-interop-test-result-self-rust
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: self-python
+            display-name: Self Python
+            task: integrations:a2a:test:self-python
+            artifact-name: a2a-interop-test-result-self-python
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
+            go-version: '1.24.4'
+            setup-dotnet: 'false'
+            dotnet-version: '8.0.x'
+          - id: self-dotnet
+            display-name: Self C#
+            task: integrations:a2a:test:self-dotnet
+            artifact-name: a2a-interop-test-result-self-dotnet
+            setup-python: 'false'
+            setup-uv: 'true'
+            setup-go: 'true'
             go-version: '1.24.4'
             setup-dotnet: 'true'
             dotnet-version: '8.0.x'
@@ -442,6 +488,7 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           python: ${{ matrix.setup-python }}
+          uv: ${{ matrix.setup-uv }}
           go: ${{ matrix.setup-go }}
           go-version: ${{ matrix.go-version }}
           dotnet: ${{ matrix.setup-dotnet }}
@@ -451,8 +498,76 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run A2A ${{ matrix.display-name }} interoperability tests
+        id: run-tests
         run: task ${{ matrix.task }}
         shell: bash
+        continue-on-error: true
+
+      - name: Generate test summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### A2A ${{ matrix.display-name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          reports_dir="./integrations/agntcy-a2a/reports"
+          if [[ -d "$reports_dir" ]]; then
+            mapfile -t xmls < <(find "$reports_dir" -name "*.xml" 2>/dev/null | sort)
+            if [[ ${#xmls[@]} -gt 0 ]]; then
+              total_passed=0 total_failures=0 total_errors=0 total_skipped=0
+              echo "| Report | Passed | Failed | Errors | Skipped | Time |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|--------|--------|--------|--------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+              for xml in "${xmls[@]}"; do
+                name=$(basename "$xml" .xml)
+                tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1 || echo "0")
+                failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1 || echo "0")
+                errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1 || echo "0")
+                skipped=$(grep -c '<skipped' "$xml" || echo "0")
+                time=$(grep -oP 'time="\K[0-9.]+' "$xml" | head -1 || echo "0")
+                passed=$((tests - failures - errors - skipped))
+                echo "| $name | $passed | $failures | $errors | $skipped | ${time}s |" >> "$GITHUB_STEP_SUMMARY"
+                total_passed=$((total_passed + passed))
+                total_failures=$((total_failures + failures))
+                total_errors=$((total_errors + errors))
+                total_skipped=$((total_skipped + skipped))
+              done
+              echo "| **Total** | **$total_passed** | **$total_failures** | **$total_errors** | **$total_skipped** | |" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+
+              # Print failed test details
+              all_failures=""
+              for xml in "${xmls[@]}"; do
+                while IFS= read -r line; do
+                  [[ -n "$line" ]] && all_failures+="$line"$'\n'
+                done < <(sed -n '/<testcase/,/<\/testcase>/p' "$xml" | awk '
+                  /<testcase/ { name=""; match($0, /name="([^"]*)"/, m); name=m[1] }
+                  /<failure/ {
+                    match($0, /message="([^"]*)"/, m)
+                    msg = m[1]
+                    sub(/&#10;.*/, "", msg)
+                    sub(/\\n.*/, "", msg)
+                    if (length(msg) > 300) msg = substr(msg, 1, 300) "..."
+                    print "- **" name "**: `" msg "`"
+                  }
+                ')
+              done
+              if [[ -n "$all_failures" ]]; then
+                echo "<details><summary>❌ Failed tests</summary>" >> "$GITHUB_STEP_SUMMARY"
+                echo "" >> "$GITHUB_STEP_SUMMARY"
+                echo "$all_failures" >> "$GITHUB_STEP_SUMMARY"
+                echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            else
+              echo "No JUnit XML reports found." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "No reports directory found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Propagate test result
+        if: ${{ steps.run-tests.outcome == 'failure' }}
+        shell: bash
+        run: exit 1
 
       - name: Create artifact from integrations test reports
         uses: ./.github/actions/create-artifact
@@ -506,3 +621,93 @@ jobs:
         uses: ./.github/actions/collect-reports
         with:
           combined-artifact-name: "combined-test-reports"
+
+      - name: Generate test summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "## Integration Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          status_icon() {
+            case "$1" in
+              success)   echo "✅ success" ;;
+              failure)   echo "❌ failure" ;;
+              skipped)   echo "⏭️ skipped" ;;
+              cancelled) echo "🚫 cancelled" ;;
+              *)         echo "⚪ not run" ;;
+            esac
+          }
+
+          emit_section() {
+            local title="$1" status="$2" pattern="$3"
+            echo "### $title — $(status_icon "$status")" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+
+            local artifacts_dir="downloaded-individual-artifacts"
+            if [[ -d "$artifacts_dir" ]]; then
+              mapfile -t xmls < <(find "$artifacts_dir" -name "*.xml" 2>/dev/null | grep -E "$pattern" | sort)
+              if [[ ${#xmls[@]} -gt 0 ]]; then
+                local section_passed=0 section_failures=0 section_errors=0 section_skipped=0
+                echo "| Report | Passed | Failed | Errors | Skipped | Time |" >> "$GITHUB_STEP_SUMMARY"
+                echo "|--------|--------|--------|--------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+                for xml in "${xmls[@]}"; do
+                  name=$(basename "$xml" .xml)
+                  tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1 || echo "0")
+                  failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1 || echo "0")
+                  errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1 || echo "0")
+                  skipped=$(grep -c '<skipped' "$xml" || echo "0")
+                  time=$(grep -oP 'time="\K[0-9.]+' "$xml" | head -1 || echo "0")
+                  passed=$((tests - failures - errors - skipped))
+                  echo "| $name | $passed | $failures | $errors | $skipped | ${time}s |" >> "$GITHUB_STEP_SUMMARY"
+                  section_passed=$((section_passed + passed))
+                  section_failures=$((section_failures + failures))
+                  section_errors=$((section_errors + errors))
+                  section_skipped=$((section_skipped + skipped))
+                done
+                echo "| **Total** | **$section_passed** | **$section_failures** | **$section_errors** | **$section_skipped** | |" >> "$GITHUB_STEP_SUMMARY"
+                echo "" >> "$GITHUB_STEP_SUMMARY"
+
+                # Print failed test details
+                local all_failures=""
+                for xml in "${xmls[@]}"; do
+                  while IFS= read -r line; do
+                    [[ -n "$line" ]] && all_failures+="$line"$'\n'
+                  done < <(sed -n '/<testcase/,/<\/testcase>/p' "$xml" | awk '
+                    /<testcase/ { name=""; match($0, /name="([^"]*)"/, m); name=m[1] }
+                    /<failure/ {
+                      match($0, /message="([^"]*)"/, m)
+                      msg = m[1]
+                      sub(/&#10;.*/, "", msg)
+                      sub(/\\n.*/, "", msg)
+                      if (length(msg) > 300) msg = substr(msg, 1, 300) "..."
+                      print "- **" name "**: `" msg "`"
+                    }
+                  ')
+                done
+                if [[ -n "$all_failures" ]]; then
+                  echo "<details><summary>❌ Failed tests</summary>" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "$all_failures" >> "$GITHUB_STEP_SUMMARY"
+                  echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+                fi
+              fi
+            fi
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          emit_section "Slim / Topology" \
+            "${{ needs.run-tests-slim-topology.result }}" \
+            "report-slim-"
+
+          emit_section "Directory" \
+            "${{ needs.run-tests-directory.result }}" \
+            "report-agntcy-dir[^-]"
+
+          emit_section "Directory / Conformance" \
+            "${{ needs.run-tests-directory-conformance.result }}" \
+            "report-agntcy-dir-conformance|report-.*conformance"
+
+          emit_section "A2A / Interop" \
+            "${{ needs.run-tests-a2a.result }}" \
+            "report-agntcy-a2a-"

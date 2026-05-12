@@ -1,0 +1,12 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+[project]
+name = "agntcy-a2a-csit-python-fixture"
+version = "0.1.0"
+description = "Python interop fixture for A2A CSIT"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk[grpc,http-server]>=1.0.0",
+    "uvicorn>=0.35.0",
+]

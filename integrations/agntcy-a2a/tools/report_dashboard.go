@@ -61,7 +61,29 @@ type dashboardView struct {
 	ReportTitle string
 	HasReports  bool
 	Summary     summaryView
+	Matrix      matrixView
 	Reports     []reportView
+}
+
+type matrixCell struct {
+	State      string
+	StateClass string
+}
+
+type matrixRow struct {
+	Suite     string
+	Direction string
+	Cells     []matrixCell
+}
+
+type matrixColumn struct {
+	Transport string
+	Behavior  string
+}
+
+type matrixView struct {
+	Columns []matrixColumn
+	Rows    []matrixRow
 }
 
 type summaryView struct {
@@ -112,6 +134,7 @@ type specView struct {
 	Duration        string
 	Labels          string
 	FailureMessage  string
+	FailureDetail   string
 	FailureLocation string
 }
 
@@ -159,6 +182,7 @@ func buildDashboard(reportsTitle, reportsDir string) (dashboardView, error) {
 	}
 
 	reports := make([]reportView, 0, len(jsonFiles))
+	var allSpecs []specReport
 	latestRun := time.Time{}
 	for _, jsonFile := range jsonFiles {
 		suites, err := readSuiteReports(jsonFile)
@@ -178,6 +202,7 @@ func buildDashboard(reportsTitle, reportsDir string) (dashboardView, error) {
 			if report.SortTime.After(latestRun) {
 				latestRun = report.SortTime
 			}
+			allSpecs = append(allSpecs, suite.SpecReports...)
 		}
 	}
 
@@ -190,6 +215,7 @@ func buildDashboard(reportsTitle, reportsDir string) (dashboardView, error) {
 
 	view.Reports = reports
 	view.HasReports = len(reports) > 0
+	view.Matrix = buildMatrix(allSpecs)
 	if !latestRun.IsZero() {
 		view.Summary.LatestRun = latestRun.Format("2006-01-02 15:04:05 MST")
 	}
@@ -209,6 +235,207 @@ func readSuiteReports(path string) ([]suiteReportFile, error) {
 	}
 
 	return reports, nil
+}
+
+var canonicalTransports = []string{"jsonrpc", "rest", "grpc"}
+var canonicalBehaviors = []string{"task-streaming", "task-lifecycle", "push-config", "scenario-parity"}
+
+func buildMatrix(specs []specReport) matrixView {
+	type coord struct {
+		suite     string
+		direction string
+		colIdx    int
+	}
+
+	allColumns := make([]matrixColumn, 0, len(canonicalTransports)*len(canonicalBehaviors))
+	colIndex := map[string]int{}
+	for _, t := range canonicalTransports {
+		for _, b := range canonicalBehaviors {
+			key := t + "|" + b
+			colIndex[key] = len(allColumns)
+			allColumns = append(allColumns, matrixColumn{
+				Transport: transportDisplayName(t),
+				Behavior:  b,
+			})
+		}
+	}
+
+	type rowKey struct {
+		suite     string
+		direction string
+	}
+	cellMap := map[rowKey]map[int]string{}
+	colUsed := map[int]bool{}
+
+	for _, spec := range specs {
+		state := normalizeState(spec.State)
+		if state == "skipped" || state == "pending" {
+			continue
+		}
+
+		labels := collectAllLabels(spec)
+		transport := findLabel(labels, canonicalTransports)
+		behavior := findBehaviorLabel(labels)
+		suite := findSuiteLabel(spec)
+		direction := findDirectionLabel(labels)
+
+		if transport == "" || behavior == "" || suite == "" || direction == "" {
+			continue
+		}
+
+		// Skip self-pairs from cross-SDK suites (stale reports may include them).
+		if !strings.Contains(suite, "Self") && isSelfPairDirection(direction) {
+			continue
+		}
+
+		key := transport + "|" + behavior
+		ci, ok := colIndex[key]
+		if !ok {
+			continue
+		}
+
+		rk := rowKey{suite: suite, direction: direction}
+		if cellMap[rk] == nil {
+			cellMap[rk] = map[int]string{}
+		}
+
+		existing := cellMap[rk][ci]
+		cellMap[rk][ci] = worstState(existing, state)
+		colUsed[ci] = true
+	}
+
+	var usedColIndices []int
+	var columns []matrixColumn
+	for i, col := range allColumns {
+		if colUsed[i] {
+			usedColIndices = append(usedColIndices, i)
+			columns = append(columns, col)
+		}
+	}
+
+	var rowKeys []rowKey
+	for rk := range cellMap {
+		rowKeys = append(rowKeys, rk)
+	}
+	sort.Slice(rowKeys, func(i, j int) bool {
+		if rowKeys[i].suite != rowKeys[j].suite {
+			return rowKeys[i].suite < rowKeys[j].suite
+		}
+		return rowKeys[i].direction < rowKeys[j].direction
+	})
+
+	rows := make([]matrixRow, 0, len(rowKeys))
+	for _, rk := range rowKeys {
+		cells := make([]matrixCell, len(usedColIndices))
+		for ci, origIdx := range usedColIndices {
+			state := cellMap[rk][origIdx]
+			if state == "" {
+				cells[ci] = matrixCell{State: "", StateClass: "empty"}
+			} else {
+				cells[ci] = matrixCell{State: displayState(state), StateClass: stateClass(state)}
+			}
+		}
+		rows = append(rows, matrixRow{
+			Suite:     rk.suite,
+			Direction: rk.direction,
+			Cells:     cells,
+		})
+	}
+
+	return matrixView{Columns: columns, Rows: rows}
+}
+
+func transportDisplayName(t string) string {
+	if d, ok := knownTransports[t]; ok {
+		return d
+	}
+	return t
+}
+
+func collectAllLabels(spec specReport) map[string]bool {
+	labels := map[string]bool{}
+	for _, group := range spec.ContainerHierarchyLabels {
+		for _, l := range group {
+			if l != "" {
+				labels[l] = true
+			}
+		}
+	}
+	for _, l := range spec.LeafNodeLabels {
+		if l != "" {
+			labels[l] = true
+		}
+	}
+	return labels
+}
+
+func findLabel(labels map[string]bool, candidates []string) string {
+	for _, c := range candidates {
+		if labels[c] {
+			return c
+		}
+	}
+	return ""
+}
+
+func findBehaviorLabel(labels map[string]bool) string {
+	for l := range labels {
+		if strings.HasPrefix(l, "behavior-") && l != "behavior-core" {
+			return strings.TrimPrefix(l, "behavior-")
+		}
+	}
+	return ""
+}
+
+func findSuiteLabel(spec specReport) string {
+	for _, group := range spec.ContainerHierarchyLabels {
+		for _, l := range group {
+			if strings.HasPrefix(l, "suite-") {
+				slug := strings.TrimPrefix(l, "suite-")
+				groups := parseReportSlug(slug)
+				return strings.Join(groups, "+")
+			}
+		}
+	}
+	return ""
+}
+
+func findDirectionLabel(labels map[string]bool) string {
+	for l := range labels {
+		if strings.HasPrefix(l, "suite-") || strings.HasPrefix(l, "behavior-") {
+			continue
+		}
+		if l == "jsonrpc" || l == "rest" || l == "grpc" {
+			continue
+		}
+		parts := strings.SplitN(l, "-", 2)
+		if len(parts) == 2 && isSDKToken(parts[0]) && isSDKToken(parts[1]) {
+			return prettyToken(parts[0]) + "→" + prettyToken(parts[1])
+		}
+	}
+	return ""
+}
+
+func isSelfPairDirection(direction string) bool {
+	parts := strings.SplitN(direction, "→", 2)
+	return len(parts) == 2 && parts[0] == parts[1]
+}
+
+func isSDKToken(s string) bool {
+	for _, sdk := range knownSDKs {
+		if s == sdk.token {
+			return true
+		}
+	}
+	return false
+}
+
+func worstState(a, b string) string {
+	rank := map[string]int{"": 0, "passed": 1, "skipped": 2, "failed": 3}
+	if rank[b] > rank[a] {
+		return b
+	}
+	return a
 }
 
 func buildReportView(jsonFile string, updatedAt time.Time, suite suiteReportFile, index int) reportView {
@@ -234,9 +461,17 @@ func buildReportView(jsonFile string, updatedAt time.Time, suite suiteReportFile
 		SortTime:    pickSortTime(suite.EndTime, updatedAt),
 	}
 
+	isSelfSuite := strings.Contains(name, "self")
 	labelsForSearch := []string{report.Title, report.Suite, report.LabelFilter, report.Name}
 	for _, spec := range suite.SpecReports {
 		state := normalizeState(spec.State)
+		if !isSelfSuite {
+			dir := findDirectionLabel(collectAllLabels(spec))
+			if isSelfPairDirection(dir) {
+				report.Skipped++
+				continue
+			}
+		}
 		specView := buildSpecView(spec)
 
 		switch state {
@@ -277,15 +512,61 @@ func buildSpecView(spec specReport) specView {
 		primaryFailure = spec.AdditionalFailures[0]
 	}
 
+	fullMessage := strings.TrimSpace(primaryFailure.Message)
+
 	return specView{
 		Name:            specDisplayName(spec),
 		State:           displayState(spec.State),
 		StateClass:      stateClass(spec.State),
 		Duration:        formatDuration(time.Duration(spec.RunTime)),
 		Labels:          strings.Join(collectLabels(spec), ", "),
-		FailureMessage:  strings.TrimSpace(primaryFailure.Message),
+		FailureMessage:  summarizeFailure(fullMessage),
+		FailureDetail:   fullMessage,
 		FailureLocation: formatLocation(primaryFailure.Location),
 	}
+}
+
+func summarizeFailure(msg string) string {
+	if msg == "" {
+		return ""
+	}
+
+	lines := strings.Split(msg, "\n")
+
+	var summary string
+	var location string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "at ") || strings.HasPrefix(line, "{ ") || strings.HasPrefix(line, "msg:") || strings.HasPrefix(line, "err:") {
+			if location == "" && strings.HasPrefix(line, "at ") {
+				location = line
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "Unexpected error:") || strings.HasPrefix(line, "<*") {
+			continue
+		}
+		if summary == "" {
+			summary = line
+		}
+	}
+
+	if summary == "" {
+		summary = lines[0]
+	}
+
+	if location != "" {
+		summary += " (" + location + ")"
+	}
+
+	if len(summary) > 400 {
+		summary = summary[:400] + "…"
+	}
+
+	return summary
 }
 
 func accumulateSummary(summary *summaryView, report reportView) {
@@ -367,6 +648,86 @@ func collectLabels(spec specReport) []string {
 	return labels
 }
 
+var knownSDKs = []struct {
+	token   string
+	display string
+}{
+	{"dotnet", ".NET"},
+	{"python", "Python"},
+	{"rust", "Rust"},
+	{"go", "Go"},
+}
+
+var knownTransports = map[string]string{
+	"jsonrpc": "JSON-RPC",
+	"rest":    "REST",
+	"grpc":    "gRPC",
+}
+
+var knownBehaviorKeywords = map[string]bool{
+	"behavior": true, "core": true, "unary": true, "streaming": true,
+	"push": true, "config": true, "parity": true, "lifecycle": true,
+}
+
+func parseReportSlug(slug string) []string {
+	tokens := strings.Split(slug, "-")
+	var groups []string
+	var firstPairKey string
+	i := 0
+	for i < len(tokens) {
+		if sdk, ok := matchSDKPair(tokens, i); ok {
+			pairKey := tokens[i] + "-" + tokens[i+1]
+			if firstPairKey == "" {
+				groups = append(groups, sdk.plus)
+				firstPairKey = pairKey
+			} else if pairKey != firstPairKey {
+				groups = append(groups, sdk.arrow)
+			}
+			i += 2
+			continue
+		}
+		if display, ok := knownTransports[tokens[i]]; ok {
+			groups = append(groups, display)
+			i++
+			continue
+		}
+		if knownBehaviorKeywords[tokens[i]] {
+			var bw []string
+			for i < len(tokens) && knownBehaviorKeywords[tokens[i]] {
+				bw = append(bw, prettyToken(tokens[i]))
+				i++
+			}
+			groups = append(groups, strings.Join(bw, " "))
+			continue
+		}
+		groups = append(groups, prettyToken(tokens[i]))
+		i++
+	}
+	return groups
+}
+
+type sdkPairMatch struct {
+	plus  string
+	arrow string
+}
+
+func matchSDKPair(tokens []string, start int) (sdkPairMatch, bool) {
+	for _, client := range knownSDKs {
+		if tokens[start] != client.token {
+			continue
+		}
+		for _, server := range knownSDKs {
+			if start+1 < len(tokens) && tokens[start+1] == server.token {
+				return sdkPairMatch{
+					plus:  client.display + "+" + server.display,
+					arrow: client.display + "→" + server.display,
+				}, true
+			}
+		}
+	}
+	return sdkPairMatch{}, false
+}
+
 func titleFromReport(name string, labelFilter string) string {
 	trimmed := strings.TrimPrefix(name, "report-")
 	trimmed = strings.TrimPrefix(trimmed, "agntcy-a2a")
@@ -378,13 +739,8 @@ func titleFromReport(name string, labelFilter string) string {
 		return "A2A Interop Overview"
 	}
 
-	parts := strings.Split(trimmed, "-")
-	pretty := make([]string, 0, len(parts))
-	for _, part := range parts {
-		pretty = append(pretty, prettyToken(part))
-	}
-
-	return strings.Join(pretty, " / ")
+	groups := parseReportSlug(trimmed)
+	return strings.Join(groups, " / ")
 }
 
 func titleFromLabelFilter(labelFilter string) string {
@@ -399,13 +755,8 @@ func titleFromLabelFilter(labelFilter string) string {
 			continue
 		}
 
-		parts := strings.Split(suiteName, "-")
-		pretty := make([]string, 0, len(parts))
-		for _, part := range parts {
-			pretty = append(pretty, prettyToken(part))
-		}
-
-		return strings.Join(pretty, " / ")
+		groups := parseReportSlug(suiteName)
+		return strings.Join(groups, " / ")
 	}
 
 	return ""
@@ -429,6 +780,8 @@ func prettyToken(token string) string {
 		return "REST"
 	case "rust":
 		return "Rust"
+	case "self":
+		return "Self"
 	case "behavior":
 		return "Behavior"
 	case "unary":
@@ -690,6 +1043,111 @@ const dashboardTemplate = `<!DOCTYPE html>
     .summary-item span {
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .section-heading {
+      margin: 0 0 16px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .matrix-section {
+      margin-top: 22px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(16px);
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 6px 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .matrix-corner {
+      width: 140px;
+    }
+
+    .matrix-col-head {
+      vertical-align: bottom;
+      min-width: 62px;
+    }
+
+    .matrix-transport {
+      display: block;
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    .matrix-behavior {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .matrix-row-head {
+      text-align: left;
+      white-space: nowrap;
+      padding-left: 14px;
+    }
+
+    .matrix-direction {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .matrix-suite {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .matrix-cell {
+      width: 48px;
+      height: 36px;
+      vertical-align: middle;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    .dot.pass {
+      background: var(--accent);
+    }
+
+    .dot.fail {
+      background: var(--danger);
+    }
+
+    .dot.skip {
+      background: var(--muted);
+      opacity: 0.4;
+    }
+
+    .matrix-cell.empty {
+      color: var(--muted);
+      opacity: 0.3;
     }
 
     .toolbar {
@@ -1061,6 +1519,33 @@ const dashboardTemplate = `<!DOCTYPE html>
       word-break: break-word;
     }
 
+    .failure-detail {
+      margin-top: 8px;
+    }
+
+    .failure-detail summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .failure-detail pre {
+      margin: 8px 0 0;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      background: rgba(23, 49, 42, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
     .empty-state {
       margin-top: 18px;
       padding: 26px;
@@ -1179,6 +1664,42 @@ const dashboardTemplate = `<!DOCTYPE html>
       </article>
     </section>
 
+    {{if .Matrix.Rows}}
+    <section class="matrix-section">
+      <h2 class="section-heading">Compatibility Matrix</h2>
+      <div class="matrix-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="matrix-corner"></th>
+              {{range .Matrix.Columns}}
+              <th class="matrix-col-head">
+                <span class="matrix-transport">{{.Transport}}</span>
+                <span class="matrix-behavior">{{.Behavior}}</span>
+              </th>
+              {{end}}
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Matrix.Rows}}
+            <tr>
+              <td class="matrix-row-head">
+                <span class="matrix-direction">{{.Direction}}</span>
+                <span class="matrix-suite">{{.Suite}}</span>
+              </td>
+              {{range .Cells}}
+              <td class="matrix-cell {{.StateClass}}" title="{{.State}}">
+                {{if eq .StateClass "empty"}}&mdash;{{else}}<span class="dot {{.StateClass}}"></span>{{end}}
+              </td>
+              {{end}}
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {{end}}
+
     {{if .HasReports}}
     <section class="toolbar">
       <label>
@@ -1294,6 +1815,12 @@ const dashboardTemplate = `<!DOCTYPE html>
                     <strong>{{.Name}}</strong>
                     <div>{{.FailureMessage}}</div>
                     {{if .FailureLocation}}<code>{{.FailureLocation}}</code>{{end}}
+                    {{if .FailureDetail}}
+                    <details class="failure-detail">
+                      <summary>Full stack trace</summary>
+                      <pre>{{.FailureDetail}}</pre>
+                    </details>
+                    {{end}}
                   </div>
                   {{end}}
                 </div>
@@ -1324,6 +1851,12 @@ const dashboardTemplate = `<!DOCTYPE html>
                         <div>{{.Name}}</div>
                         {{if .FailureMessage}}
                         <div class="footer-note">{{.FailureMessage}}</div>
+                        {{if .FailureDetail}}
+                        <details class="failure-detail">
+                          <summary>Full output</summary>
+                          <pre>{{.FailureDetail}}</pre>
+                        </details>
+                        {{end}}
                         {{end}}
                       </td>
                       <td>{{.Duration}}</td>

@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("A2A Go and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-go-dotnet"), func() {
+var _ = ginkgo.Describe("Go+.NET", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-go-dotnet"), func() {
 	var (
 		goAssets     fixtureBinaries
 		dotNetAssets dotNetFixtureBinaries

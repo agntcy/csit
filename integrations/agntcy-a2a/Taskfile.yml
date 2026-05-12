@@ -10,21 +10,76 @@ vars:
   G_BEHAVIOR_LABELS:
     map:
       core: behavior-core
-      unary-streaming: behavior-unary-streaming
+      task-streaming: behavior-task-streaming
       lifecycle: behavior-lifecycle
       push-config: behavior-push-config
       parity: behavior-parity
 
 tasks:
+  deps:update:
+    desc: Update all SDK dependencies to their latest versions
+    cmds:
+      - task: deps:update:go
+      - task: deps:update:rust
+      - task: deps:update:python
+      - task: deps:update:dotnet
+
+  deps:update:go:
+    desc: Update Go SDK to latest version
+    cmds:
+      - go get github.com/a2aproject/a2a-go/v2@latest && go mod tidy
+    status:
+      - '! command -v go'
+
+  deps:update:rust:
+    desc: Update Rust SDK crates to latest versions
+    dir: fixtures/rust
+    cmds:
+      - cargo update
+    status:
+      - '! command -v cargo'
+
+  deps:update:python:
+    desc: Update Python SDK to latest compatible version
+    dir: fixtures/python
+    cmds:
+      - uv lock --upgrade
+    status:
+      - '! command -v uv'
+
+  deps:update:dotnet:
+    desc: Update .NET SDK packages to latest versions
+    dir: fixtures/dotnet
+    cmds:
+      - dotnet nuget locals http-cache --clear
+      - cd InteropServer && dotnet add package A2A.AspNetCore --prerelease
+      - cd InteropProbe && dotnet add package A2A --prerelease
+    status:
+      - '! command -v dotnet'
+
   test:
     desc: Default A2A interoperability tests
     cmds:
+      - task: test:self-go
+        ignore_error: true
+      - task: test:self-rust
+        ignore_error: true
+      - task: test:self-python
+        ignore_error: true
+      - task: test:self-dotnet
+        ignore_error: true
       - task: test:rust-go
+        ignore_error: true
       - task: test:rust-dotnet
+        ignore_error: true
       - task: test:go-dotnet
+        ignore_error: true
       - task: test:python-go
+        ignore_error: true
       - task: test:rust-python
+        ignore_error: true
       - task: test:python-dotnet
+        ignore_error: true
 
   reports:dashboard:
     desc: Render the A2A HTML dashboard from the reports directory
@@ -80,14 +135,54 @@ tasks:
           LABEL_FILTER: suite-python-dotnet
           REPORT_NAME: report-agntcy-a2a-python-dotnet
 
+  test:self:
+    desc: Self-compatibility tests for all SDKs (Go, Rust, Python, .NET)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-self-go || suite-self-rust || suite-self-python || suite-self-dotnet'
+          REPORT_NAME: report-agntcy-a2a-self
+
+  test:self-go:
+    desc: Go self-compatibility test
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-self-go
+          REPORT_NAME: report-agntcy-a2a-self-go
+
+  test:self-rust:
+    desc: Rust self-compatibility test
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-self-rust
+          REPORT_NAME: report-agntcy-a2a-self-rust
+
+  test:self-python:
+    desc: Python self-compatibility test
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-self-python
+          REPORT_NAME: report-agntcy-a2a-self-python
+
+  test:self-dotnet:
+    desc: .NET self-compatibility test
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-self-dotnet
+          REPORT_NAME: report-agntcy-a2a-self-dotnet
+
   'test:behavior:*':
-    desc: Shared behavior slice task. Use test:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Shared behavior slice task. Use test:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: '{{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported shared behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -96,13 +191,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:rust-go:behavior:*':
-    desc: Rust and Go behavior slice task. Use test:rust-go:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Rust and Go behavior slice task. Use test:rust-go:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-rust-go && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-rust-go-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Rust and Go behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -111,13 +206,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:rust-dotnet:behavior:*':
-    desc: Rust and .NET behavior slice task. Use test:rust-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Rust and .NET behavior slice task. Use test:rust-dotnet:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-rust-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-rust-dotnet-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Rust and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -126,13 +221,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:go-dotnet:behavior:*':
-    desc: Go and .NET behavior slice task. Use test:go-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Go and .NET behavior slice task. Use test:go-dotnet:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-go-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-go-dotnet-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Go and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -141,13 +236,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:python-go:behavior:*':
-    desc: Python and Go behavior slice task. Use test:python-go:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Python and Go behavior slice task. Use test:python-go:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-python-go && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-python-go-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Python and Go behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -156,13 +251,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:rust-python:behavior:*':
-    desc: Rust and Python behavior slice task. Use test:rust-python:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Rust and Python behavior slice task. Use test:rust-python:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-rust-python && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-rust-python-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Rust and Python behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -171,13 +266,13 @@ tasks:
           REPORT_NAME: '{{.REPORT_NAME}}'
 
   'test:python-dotnet:behavior:*':
-    desc: Python and .NET behavior slice task. Use test:python-dotnet:behavior:<core|unary-streaming|lifecycle|push-config|parity>.
+    desc: Python and .NET behavior slice task. Use test:python-dotnet:behavior:<core|task-streaming|lifecycle|push-config|parity>.
     vars:
       BEHAVIOR: '{{index .MATCH 0}}'
       LABEL_FILTER: 'suite-python-dotnet && {{index .G_BEHAVIOR_LABELS .BEHAVIOR}}'
       REPORT_NAME: 'report-agntcy-a2a-python-dotnet-behavior-{{.BEHAVIOR}}'
     preconditions:
-      - sh: 'case "{{.BEHAVIOR}}" in core|unary-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
+      - sh: 'case "{{.BEHAVIOR}}" in core|task-streaming|lifecycle|push-config|parity) exit 0 ;; *) exit 1 ;; esac'
         msg: 'Unsupported Python and .NET behavior "{{.BEHAVIOR}}".'
     cmds:
       - task: test:interop:run
@@ -395,6 +490,8 @@ tasks:
 
   test:interop:run:
     internal: true
+    deps:
+      - deps:update
     cmds:
       - mkdir -p ./reports
       - |

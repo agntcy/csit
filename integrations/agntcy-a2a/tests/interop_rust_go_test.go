@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("A2A Rust and Go interoperability", ginkgo.Ordered, ginkgo.Label("suite-rust-go"), func() {
+var _ = ginkgo.Describe("Rust+Go", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-rust-go"), func() {
 	var binaries fixtureBinaries
 
 	runtime := newInteropSuiteRuntime()

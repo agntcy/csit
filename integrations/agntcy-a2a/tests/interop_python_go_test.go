@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, ginkgo.Label("suite-python-go"), func() {
+var _ = ginkgo.Describe("Python+Go", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-python-go"), func() {
 	var (
 		goAssets     fixtureBinaries
 		pythonAssets pythonFixtureAssets
@@ -98,7 +98,6 @@ var _ = ginkgo.Describe("A2A Python and Go interoperability", ginkgo.Ordered, gi
 
 	ginkgo.AfterAll(func() {
 		runtime.stopFixtures(fixtures)
-		removeTempDir(pythonAssets.tempDir)
 		removeTempDir(goAssets.tempDir)
 	})
 

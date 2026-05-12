@@ -25,7 +25,7 @@ type interopTarget struct {
 }
 
 type interopHarness interface {
-	AssertUnaryStreaming(ctx context.Context, target interopTarget)
+	AssertTaskStreaming(ctx context.Context, target interopTarget)
 	AssertTaskLifecycle(ctx context.Context, target interopTarget)
 	AssertPushConfig(ctx context.Context, target interopTarget)
 	AssertScenarioParity(ctx context.Context, target interopTarget)
@@ -60,28 +60,28 @@ type interopServerMatrixSpec struct {
 
 var sharedInteropBehaviorSpecs = []interopBehaviorSpec{
 	{
-		name:   "covers unary and streaming requests",
-		labels: []string{"behavior-core", "behavior-unary-streaming"},
+		name:   "task-streaming",
+		labels: []string{"behavior-core", "behavior-task-streaming"},
 		run: func(ctx context.Context, harness interopHarness, target interopTarget) {
-			harness.AssertUnaryStreaming(ctx, target)
+			harness.AssertTaskStreaming(ctx, target)
 		},
 	},
 	{
-		name:   "covers task lifecycle behavior",
+		name:   "task-lifecycle",
 		labels: []string{"behavior-core", "behavior-lifecycle"},
 		run: func(ctx context.Context, harness interopHarness, target interopTarget) {
 			harness.AssertTaskLifecycle(ctx, target)
 		},
 	},
 	{
-		name:   "covers push-config behavior",
+		name:   "push-config",
 		labels: []string{"behavior-core", "behavior-push-config"},
 		run: func(ctx context.Context, harness interopHarness, target interopTarget) {
 			harness.AssertPushConfig(ctx, target)
 		},
 	},
 	{
-		name:   "covers scenario parity behavior",
+		name:   "scenario-parity",
 		labels: []string{"behavior-parity"},
 		run: func(ctx context.Context, harness interopHarness, target interopTarget) {
 			harness.AssertScenarioParity(ctx, target)
@@ -135,7 +135,7 @@ func registerInteropTransportMatrix(
 	servers []interopServerMatrixSpec,
 	pairLabelOverrides map[string]string,
 ) {
-	registerInteropTransportMatrixWithOverrides(protocols, clients, servers, pairLabelOverrides, nil)
+	registerInteropTransportMatrixFull(protocols, clients, servers, pairLabelOverrides, nil, true)
 }
 
 func registerInteropTransportMatrixWithOverrides(
@@ -145,9 +145,28 @@ func registerInteropTransportMatrixWithOverrides(
 	pairLabelOverrides map[string]string,
 	harnessOverrides map[string]interopHarness,
 ) {
+	registerInteropTransportMatrixFull(protocols, clients, servers, pairLabelOverrides, harnessOverrides, true)
+}
+
+func registerInteropSelfTestMatrix(
+	protocols []transportProtocol,
+	clients []interopClientMatrixSpec,
+	servers []interopServerMatrixSpec,
+) {
+	registerInteropTransportMatrixFull(protocols, clients, servers, nil, nil, false)
+}
+
+func registerInteropTransportMatrixFull(
+	protocols []transportProtocol,
+	clients []interopClientMatrixSpec,
+	servers []interopServerMatrixSpec,
+	pairLabelOverrides map[string]string,
+	harnessOverrides map[string]interopHarness,
+	skipSelfPairs bool,
+) {
 	for _, protocol := range protocols {
 		protocol := protocol
-		cases := interopCasesForProtocol(protocol, clients, servers, pairLabelOverrides, harnessOverrides)
+		cases := interopCasesForProtocol(protocol, clients, servers, pairLabelOverrides, harnessOverrides, skipSelfPairs)
 		if len(cases) == 0 {
 			continue
 		}
@@ -164,10 +183,14 @@ func interopCasesForProtocol(
 	servers []interopServerMatrixSpec,
 	pairLabelOverrides map[string]string,
 	harnessOverrides map[string]interopHarness,
+	skipSelfPairs bool,
 ) []interopSpecCase {
 	cases := make([]interopSpecCase, 0, len(clients)*len(servers))
 	for _, client := range clients {
 		for _, server := range servers {
+			if skipSelfPairs && client.label == server.label {
+				continue
+			}
 			pairKey := interopPairKey(client.label, server.label)
 			getBaseURL := server.urls[protocol]
 			if getBaseURL == nil {
@@ -192,28 +215,11 @@ func interopCasesForProtocol(
 }
 
 func interopTransportContextName(protocol transportProtocol) string {
-	switch protocol {
-	case transportJSONRPC:
-		return "JSON-RPC transport"
-	case transportREST:
-		return "HTTP+JSON transport"
-	case transportGRPC:
-		return "gRPC transport"
-	default:
-		return fmt.Sprintf("%s transport", protocol)
-	}
+	return string(protocol)
 }
 
-func interopCaseName(protocol transportProtocol, clientDisplayName string, serverDisplayName string) string {
-	baseName := fmt.Sprintf("lets the %s client call the %s fixture", clientDisplayName, serverDisplayName)
-	switch protocol {
-	case transportREST:
-		return baseName + " over REST"
-	case transportGRPC:
-		return baseName + " over gRPC"
-	default:
-		return baseName
-	}
+func interopCaseName(_ transportProtocol, clientDisplayName string, serverDisplayName string) string {
+	return fmt.Sprintf("%s→%s", clientDisplayName, serverDisplayName)
 }
 
 func interopPairLabel(clientLabel string, serverLabel string, overrides map[string]string) string {
@@ -260,8 +266,8 @@ func (harness externalProbeHarness) assertScenario(
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), output)
 }
 
-func (harness externalProbeHarness) AssertUnaryStreaming(ctx context.Context, target interopTarget) {
-	harness.assertScenario(ctx, target, probeScenarioUnaryStreaming)
+func (harness externalProbeHarness) AssertTaskStreaming(ctx context.Context, target interopTarget) {
+	harness.assertScenario(ctx, target, probeScenarioTaskStreaming)
 }
 
 func (harness externalProbeHarness) AssertTaskLifecycle(ctx context.Context, target interopTarget) {

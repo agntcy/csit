@@ -328,7 +328,7 @@ impl a2a_server::RequestHandler for InteropHandler {
     async fn create_push_config(
         &self,
         params: &a2a_server::ServiceParams,
-        req: CreateTaskPushNotificationConfigRequest,
+        req: TaskPushNotificationConfig,
     ) -> Result<TaskPushNotificationConfig, A2AError> {
         self.inner.create_push_config(params, req).await
     }

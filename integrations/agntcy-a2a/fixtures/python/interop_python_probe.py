@@ -232,71 +232,33 @@ def primary_interface(card: a2a_pb2.AgentCard) -> a2a_pb2.AgentInterface:
     return card.supported_interfaces[0]
 
 
-def normalize_push_config_json(payload: dict[str, Any]) -> dict[str, Any]:
-    normalized = dict(payload)
-
-    if 'config' in normalized and isinstance(normalized['config'], dict):
-        config = dict(normalized.pop('config'))
-        if 'auth' in config and 'authentication' not in config:
-            config['authentication'] = config.pop('auth')
-        if 'id' not in normalized and 'id' in config:
-            normalized['id'] = config['id']
-        for key in ('url', 'token', 'authentication'):
-            if key not in normalized and key in config:
-                normalized[key] = config[key]
-
-    if 'auth' in normalized and 'authentication' not in normalized:
-        normalized['authentication'] = normalized.pop('auth')
-
-    return normalized
-
-
 def build_create_push_config_params(
     config: a2a_pb2.TaskPushNotificationConfig,
 ) -> dict[str, Any]:
-    config_payload = MessageToDict(config, preserving_proto_field_name=False)
-    config_payload.pop('tenant', None)
-    config_payload.pop('taskId', None)
-    return {
-        'taskId': config.task_id,
-        'config': config_payload,
-    }
+    return MessageToDict(config, preserving_proto_field_name=False)
 
 
 def build_rest_create_push_config_payload(
     config: a2a_pb2.TaskPushNotificationConfig,
-    *,
-    nested_config: bool,
-    include_task_id: bool,
 ) -> dict[str, Any]:
-    config_payload = build_create_push_config_params(config)['config']
-    if nested_config:
-        return {'config': config_payload}
-
-    flat_payload = dict(config_payload)
-    if include_task_id:
-        flat_payload['taskId'] = config.task_id
-    else:
-        flat_payload.pop('taskId', None)
+    flat_payload = MessageToDict(config, preserving_proto_field_name=False)
+    flat_payload.pop('taskId', None)
     return flat_payload
 
 
 def parse_push_config_entry(payload: dict[str, Any]) -> a2a_pb2.TaskPushNotificationConfig:
     return ParseDict(
-        normalize_push_config_json(payload),
+        payload,
         a2a_pb2.TaskPushNotificationConfig(),
     )
 
 
 def parse_push_config_list_result(result: Any) -> list[a2a_pb2.TaskPushNotificationConfig]:
-    if isinstance(result, list):
-        entries = result
-    elif isinstance(result, dict):
-        entries = result.get('configs')
-        if not isinstance(entries, list):
-            raise AssertionError(f'list push configs: unexpected JSON-RPC result {result!r}')
-    else:
-        raise AssertionError(f'list push configs: unexpected JSON-RPC result {result!r}')
+    if not isinstance(result, dict):
+        raise AssertionError(f'list push configs: unexpected result {result!r}')
+    entries = result.get('configs', [])
+    if not isinstance(entries, list):
+        raise AssertionError(f'list push configs: unexpected configs field {result!r}')
 
     configs: list[a2a_pb2.TaskPushNotificationConfig] = []
     for entry in entries:
@@ -428,18 +390,11 @@ async def delete_task_push_config_jsonrpc(
 async def create_task_push_config_rest(
     base_url: str,
     config: a2a_pb2.TaskPushNotificationConfig,
-    *,
-    nested_config: bool,
-    include_task_id: bool,
 ) -> a2a_pb2.TaskPushNotificationConfig:
     result = await send_rest_request(
         'POST',
         f"{base_url.rstrip('/')}/tasks/{config.task_id}/pushNotificationConfigs",
-        json_body=build_rest_create_push_config_payload(
-            config,
-            nested_config=nested_config,
-            include_task_id=include_task_id,
-        ),
+        json_body=build_rest_create_push_config_payload(config),
     )
     if not isinstance(result, dict):
         raise AssertionError(f'create push config: unexpected REST result {result!r}')
@@ -576,7 +531,7 @@ async def wait_for_task_state(client: Client, task_id: str, expected_state: int)
     raise AssertionError(f'timed out waiting for task {task_id} to reach state {expected_state}')
 
 
-async def assert_unary_streaming(card_url: str, server_prefix: str) -> None:
+async def assert_task_streaming(card_url: str, server_prefix: str) -> None:
     unary_client = await create_probe_client(card_url, streaming=False)
     try:
         unary_responses = await collect_responses(unary_client, new_request(REQUEST_TEXT, False))
@@ -679,8 +634,6 @@ async def assert_push_config(
         agent_interface = primary_interface(card)
         uses_grpc = agent_interface.protocol_binding == TransportProtocol.GRPC.value
         uses_jsonrpc = agent_interface.protocol_binding == TransportProtocol.JSONRPC.value
-        uses_nested_rest_push_config = server_prefix in {'go', 'python'}
-        uses_rest_push_task_id = server_prefix == 'rust'
 
         completed_task = expect_task_response(
             (await collect_responses(client, new_request(REQUEST_TEXT, False)))[0],
@@ -713,8 +666,6 @@ async def assert_push_config(
                     await create_task_push_config_rest(
                         agent_interface.url,
                         push_config,
-                        nested_config=uses_nested_rest_push_config,
-                        include_task_id=uses_rest_push_task_id,
                     )
             except Exception as exc:  # noqa: BLE001
                 if not relaxed_error_checks and expected_push_error_code != 0:
@@ -756,8 +707,6 @@ async def assert_push_config(
             created_config = await create_task_push_config_rest(
                 agent_interface.url,
                 push_config,
-                nested_config=uses_nested_rest_push_config,
-                include_task_id=uses_rest_push_task_id,
             )
         assert_task_push_config(created_config, completed_task.id, push_config, 'created push config')
 
@@ -936,7 +885,7 @@ async def assert_scenario_parity(card_url: str, server_prefix: str) -> None:
 
 async def run_scenario(args: argparse.Namespace) -> None:
     if args.scenario == 'core':
-        await assert_unary_streaming(args.card_url, args.server_prefix)
+        await assert_task_streaming(args.card_url, args.server_prefix)
         await assert_task_lifecycle(args.card_url, args.server_prefix)
         await assert_push_config(
             args.card_url,
@@ -946,8 +895,8 @@ async def run_scenario(args: argparse.Namespace) -> None:
             args.relaxed_error_checks,
         )
         return
-    if args.scenario == 'unary-streaming':
-        await assert_unary_streaming(args.card_url, args.server_prefix)
+    if args.scenario == 'task-streaming':
+        await assert_task_streaming(args.card_url, args.server_prefix)
         return
     if args.scenario == 'task-lifecycle':
         await assert_task_lifecycle(args.card_url, args.server_prefix)
@@ -974,7 +923,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--scenario',
         default='core',
-        choices=('core', 'unary-streaming', 'task-lifecycle', 'push-config', 'parity'),
+        choices=('core', 'task-streaming', 'task-lifecycle', 'push-config', 'parity'),
     )
     parser.add_argument('--expect-push-supported', action='store_true')
     parser.add_argument('--expect-push-unsupported', action='store_true')

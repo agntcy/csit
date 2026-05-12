@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 )
 
 func buildRustFixtures(root string, targetDir string) error {
@@ -87,88 +86,44 @@ func buildFixtureBinaries() (fixtureBinaries, error) {
 	return binaries, nil
 }
 
-func venvPythonCommand(venvDir string) string {
-	if runtime.GOOS == "windows" {
-		return filepath.Join(venvDir, "Scripts", executableName("python"))
-	}
 
-	return filepath.Join(venvDir, "bin", executableName("python"))
-}
-
-func validatePythonCommand(path string) error {
-	cmd := exec.Command(path, "-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("validate python executable %s: %w\n%s", path, err, string(output))
-	}
-
-	return nil
-}
-
-func resolvePythonCommand() (string, error) {
-	if configured := os.Getenv("PYTHON"); configured != "" {
-		if err := validatePythonCommand(configured); err != nil {
-			return "", fmt.Errorf("validate configured PYTHON: %w", err)
-		}
+func resolveUvCommand() (string, error) {
+	if configured := os.Getenv("UV"); configured != "" {
 		return configured, nil
 	}
 
-	for _, candidate := range []string{"python3.13", "python3.12", "python3.11", "python3.10", "python3"} {
-		path, err := exec.LookPath(candidate)
-		if err != nil {
-			continue
-		}
-		if err := validatePythonCommand(path); err == nil {
-			return path, nil
-		}
+	path, err := exec.LookPath("uv")
+	if err != nil {
+		return "", errors.New("uv not found; install uv (https://docs.astral.sh/uv/) or set UV to its path")
 	}
 
-	return "", errors.New("python 3.10+ executable not found; install Python 3.10+ or set PYTHON to its path")
+	return path, nil
 }
 
 func buildPythonFixtureAssets() (pythonFixtureAssets, error) {
 	root := componentRoot()
-	pythonCommand, err := resolvePythonCommand()
+
+	uvCommand, err := resolveUvCommand()
 	if err != nil {
 		return pythonFixtureAssets{}, err
 	}
 
-	tempDir, err := os.MkdirTemp("", "agntcy-a2a-python-")
-	if err != nil {
-		return pythonFixtureAssets{}, fmt.Errorf("create temp dir: %w", err)
-	}
+	fixtureDir := filepath.Join(root, "fixtures", "python")
 
-	venvDir := filepath.Join(tempDir, "venv")
 	buildCtx, cancel := context.WithTimeout(context.Background(), 2*buildTimeout)
 	defer cancel()
 
-	createVenv := exec.CommandContext(buildCtx, pythonCommand, "-m", "venv", venvDir)
-	createVenv.Dir = root
-	if output, err := createVenv.CombinedOutput(); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return pythonFixtureAssets{}, fmt.Errorf("create python fixture venv: %w\n%s", err, string(output))
-	}
-
-	venvPython := venvPythonCommand(venvDir)
-	installRequirements := exec.CommandContext(
-		buildCtx,
-		venvPython,
-		"-m",
-		"pip",
-		"install",
-		"-r",
-		filepath.Join(root, "fixtures", "python", "requirements.txt"),
-	)
-	installRequirements.Dir = root
-	if output, err := installRequirements.CombinedOutput(); err != nil {
-		_ = os.RemoveAll(tempDir)
-		return pythonFixtureAssets{}, fmt.Errorf("install python fixture requirements: %w\n%s", err, string(output))
+	syncCmd := exec.CommandContext(buildCtx, uvCommand, "sync")
+	syncCmd.Dir = fixtureDir
+	if output, err := syncCmd.CombinedOutput(); err != nil {
+		return pythonFixtureAssets{}, fmt.Errorf("uv sync python fixture: %w\n%s", err, string(output))
 	}
 
 	return pythonFixtureAssets{
-		tempDir:       tempDir,
-		pythonCommand: venvPython,
-		serverScript:  filepath.Join(root, "fixtures", "python", "interop_python_server.py"),
-		probeScript:   filepath.Join(root, "fixtures", "python", "interop_python_probe.py"),
+		uvCommand:    uvCommand,
+		fixtureDir:   fixtureDir,
+		serverScript: filepath.Join(fixtureDir, "interop_python_server.py"),
+		probeScript:  filepath.Join(fixtureDir, "interop_python_probe.py"),
 	}, nil
 }
 
@@ -304,6 +259,7 @@ func startFixtureProcess(name string, dir string, readyURL string, command strin
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Dir = dir
+	setProcessGroup(cmd)
 
 	logs := &lockedBuffer{}
 	cmd.Stdout = logs
@@ -394,10 +350,10 @@ func startPythonFixture(assets pythonFixtureAssets, port int, protocol transport
 	args, grpcAddress := protocolFixtureArgs(port, protocol)
 	process, err := startFixtureProcess(
 		fmt.Sprintf("python-%s-server", protocol),
-		componentRoot(),
+		assets.fixtureDir,
 		baseURL+"/.well-known/agent-card.json",
-		assets.pythonCommand,
-		append([]string{assets.serverScript}, args...)...,
+		assets.uvCommand,
+		append([]string{"run", assets.serverScript}, args...)...,
 	)
 	if err != nil {
 		return nil, "", err
@@ -492,15 +448,15 @@ func runPythonProbe(
 	serverPrefix string,
 	options rustProbeOptions,
 ) (string, error) {
-	args := append([]string{assets.probeScript}, appendProbeOptions([]string{
+	args := append([]string{"run", assets.probeScript}, appendProbeOptions([]string{
 		"--card-url",
 		baseURL,
 		"--server-prefix",
 		serverPrefix,
 	}, options)...)
 
-	cmd := exec.CommandContext(ctx, assets.pythonCommand, args...)
-	cmd.Dir = componentRoot()
+	cmd := exec.CommandContext(ctx, assets.uvCommand, args...)
+	cmd.Dir = assets.fixtureDir
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -72,17 +72,17 @@ impl Scenario {
         match value {
             "all" => Ok(Self::All),
             "core" => Ok(Self::Core),
-            "unary-streaming" => Ok(Self::UnaryStreaming),
+            "task-streaming" => Ok(Self::UnaryStreaming),
             "task-lifecycle" => Ok(Self::TaskLifecycle),
             "push-config" => Ok(Self::PushConfig),
             "parity" => Ok(Self::Parity),
             _ => Err(format!(
-                "--scenario must be one of all, core, unary-streaming, task-lifecycle, push-config, or parity; got {value}"
+                "--scenario must be one of all, core, task-streaming, task-lifecycle, push-config, or parity; got {value}"
             )),
         }
     }
 
-    fn runs_unary_streaming(self) -> bool {
+    fn runs_task_streaming(self) -> bool {
         matches!(self, Self::All | Self::Core | Self::UnaryStreaming)
     }
 
@@ -102,7 +102,7 @@ impl Scenario {
         match self {
             Self::All => "all",
             Self::Core => "core",
-            Self::UnaryStreaming => "unary-streaming",
+            Self::UnaryStreaming => "task-streaming",
             Self::TaskLifecycle => "task-lifecycle",
             Self::PushConfig => "push-config",
             Self::Parity => "parity",
@@ -242,7 +242,7 @@ fn assert_failed<T>(result: Result<T, A2AError>, kind: &str) -> Result<(), Strin
 fn assert_push_config(
     actual: &TaskPushNotificationConfig,
     task_id: &str,
-    expected: &PushNotificationConfig,
+    expected: &TaskPushNotificationConfig,
     kind: &str,
 ) -> Result<(), String> {
     if actual.task_id != task_id {
@@ -252,10 +252,10 @@ fn assert_push_config(
         ));
     }
 
-    if actual.config != *expected {
+    if actual.url != expected.url || actual.id != expected.id || actual.token != expected.token || actual.authentication != expected.authentication {
         return Err(format!(
             "unexpected {kind} push config: got {:?}, want {:?}",
-            actual.config, expected
+            actual, expected
         ));
     }
 
@@ -332,7 +332,7 @@ fn request_with_payload_ids(
         message,
         configuration: Some(SendMessageConfiguration {
             accepted_output_modes: None,
-            push_notification_config: None,
+            task_push_notification_config: None,
             history_length: None,
             return_immediately: Some(return_immediately),
         }),
@@ -625,7 +625,7 @@ async fn run(args: Args) -> Result<(), String> {
     let expected_long_running_complete_text = expected_scenario_text(&args.server_prefix, "long-running complete");
     let expected_data_types_text = expected_scenario_text(&args.server_prefix, "data-types ready");
 
-    if args.scenario.runs_unary_streaming() {
+    if args.scenario.runs_task_streaming() {
         let request = request_with_payload(REQUEST_TEXT, false);
 
         let response = client
@@ -855,21 +855,19 @@ async fn run(args: Args) -> Result<(), String> {
         assert_task_history(&completed_task, REQUEST_TEXT, "push-config setup")?;
 
         if args.expect_push_unsupported {
-            let push_config = PushNotificationConfig {
+            let push_config = TaskPushNotificationConfig {
+                task_id: completed_task.id.clone(),
                 url: "https://example.invalid/webhook".to_string(),
                 id: Some("interop-config".to_string()),
                 token: None,
                 authentication: None,
+                tenant: None,
             };
 
             if args.relaxed_error_checks {
                 assert_failed(
                     client
-                        .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                            task_id: completed_task.id.clone(),
-                            config: push_config.clone(),
-                            tenant: None,
-                        })
+                        .create_push_config(&push_config)
                         .await,
                     "create_push_config",
                 )?;
@@ -910,11 +908,7 @@ async fn run(args: Args) -> Result<(), String> {
             } else {
                 assert_error_code(
                     client
-                        .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                            task_id: completed_task.id.clone(),
-                            config: push_config.clone(),
-                            tenant: None,
-                        })
+                        .create_push_config(&push_config)
                         .await,
                     args.expected_push_error_code,
                     "create_push_config",
@@ -958,7 +952,8 @@ async fn run(args: Args) -> Result<(), String> {
                 )?;
             }
         } else if args.expect_push_supported {
-            let push_config = PushNotificationConfig {
+            let push_config = TaskPushNotificationConfig {
+                task_id: completed_task.id.clone(),
                 url: "https://example.invalid/webhook".to_string(),
                 id: Some("interop-config".to_string()),
                 token: Some("interop-token".to_string()),
@@ -966,14 +961,11 @@ async fn run(args: Args) -> Result<(), String> {
                     scheme: "Bearer".to_string(),
                     credentials: Some("interop-credential".to_string()),
                 }),
+                tenant: None,
             };
 
             let created_push_config = client
-                .create_push_config(&CreateTaskPushNotificationConfigRequest {
-                    task_id: completed_task.id.clone(),
-                    config: push_config.clone(),
-                    tenant: None,
-                })
+                .create_push_config(&push_config)
                 .await
                 .map_err(|error| format!("create_push_config failed: {error}"))?;
             assert_push_config(

@@ -64,7 +64,7 @@ type probeScenario string
 
 const (
 	probeScenarioCore           probeScenario = "core"
-	probeScenarioUnaryStreaming probeScenario = "unary-streaming"
+	probeScenarioTaskStreaming probeScenario = "task-streaming"
 	probeScenarioTaskLifecycle  probeScenario = "task-lifecycle"
 	probeScenarioPushConfig     probeScenario = "push-config"
 	probeScenarioParity         probeScenario = "parity"
@@ -102,10 +102,10 @@ type rustDotNetFixtureBinaries struct {
 }
 
 type pythonFixtureAssets struct {
-	tempDir       string
-	pythonCommand string
-	serverScript  string
-	probeScript   string
+	uvCommand    string
+	fixtureDir   string
+	serverScript string
+	probeScript  string
 }
 
 func (binaries rustDotNetFixtureBinaries) dotNetAssets() dotNetFixtureBinaries {
@@ -154,9 +154,7 @@ func (process *fixtureProcess) stop() error {
 	case <-time.After(stopTimeout):
 	}
 
-	if process.cmd.Process != nil {
-		_ = process.cmd.Process.Kill()
-	}
+	_ = killProcessGroup(process.cmd)
 
 	select {
 	case err := <-process.done:

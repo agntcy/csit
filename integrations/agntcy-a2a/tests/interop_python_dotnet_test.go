@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("A2A Python and .NET interoperability", ginkgo.Ordered, ginkgo.Label("suite-python-dotnet"), func() {
+var _ = ginkgo.Describe("Python+.NET", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-python-dotnet"), func() {
 	var (
 		pythonAssets pythonFixtureAssets
 		dotNetAssets dotNetFixtureBinaries
@@ -102,7 +102,6 @@ var _ = ginkgo.Describe("A2A Python and .NET interoperability", ginkgo.Ordered, 
 	ginkgo.AfterAll(func() {
 		runtime.stopFixtures(fixtures)
 		removeTempDir(dotNetAssets.tempDir)
-		removeTempDir(pythonAssets.tempDir)
 	})
 
 	registerInteropTransportMatrixWithOverrides(

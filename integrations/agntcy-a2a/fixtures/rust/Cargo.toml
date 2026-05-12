@@ -5,11 +5,11 @@ edition = "2024"
 publish = false
 
 [dependencies]
-a2a = { package = "a2a-lf", version = "0.2.4" }
-a2a-client = { package = "a2a-client-lf", version = "0.1.15", default-features = false }
-a2a-grpc = { package = "a2a-grpc", version = "0.2.1", default-features = false }
-a2a-pb = { package = "a2a-pb", version = "0.1.7" }
-a2a-server = { package = "a2a-server-lf", version = "0.2.7", default-features = false }
+a2a = { package = "a2a-lf", version = ">=0.3" }
+a2a-client = { package = "a2a-client-lf", version = ">=0.1", default-features = false }
+a2a-grpc = { package = "a2a-grpc", version = ">=0.2", default-features = false }
+a2a-pb = { package = "a2a-pb", version = ">=0.1" }
+a2a-server = { package = "a2a-server-lf", version = ">=0.3", default-features = false }
 async-trait = "0.1"
 axum = "0.8"
 futures = "0.3"

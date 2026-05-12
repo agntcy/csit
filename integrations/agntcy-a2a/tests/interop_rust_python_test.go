@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, ginkgo.Label("suite-rust-python"), func() {
+var _ = ginkgo.Describe("Rust+Python", ginkgo.Ordered, ginkgo.ContinueOnFailure, ginkgo.Label("suite-rust-python"), func() {
 	var (
 		rustAssets   fixtureBinaries
 		pythonAssets pythonFixtureAssets
@@ -103,7 +103,6 @@ var _ = ginkgo.Describe("A2A Rust and Python interoperability", ginkgo.Ordered, 
 
 	ginkgo.AfterAll(func() {
 		runtime.stopFixtures(fixtures)
-		removeTempDir(pythonAssets.tempDir)
 		removeTempDir(rustAssets.tempDir)
 	})
 

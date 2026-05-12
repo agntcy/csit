@@ -412,7 +412,7 @@ internal static class Program
                 },
             },
             Configuration = returnImmediately
-                ? new SendMessageConfiguration { Blocking = false }
+                ? new SendMessageConfiguration { ReturnImmediately = true }
                 : null,
         };
     }
@@ -1258,11 +1258,12 @@ internal static class Program
             throw new InvalidOperationException($"unexpected {kind} task id: got '{actual.TaskId}', want '{taskId}'");
         }
 
-        if (!string.Equals(actual.Config.Id, expected.Id, StringComparison.Ordinal)
-            || !string.Equals(actual.Config.Url, expected.Url, StringComparison.Ordinal)
-            || !string.Equals(actual.Config.Token, expected.Token, StringComparison.Ordinal)
-            || !string.Equals(actual.Config.Authentication?.Scheme, expected.Authentication?.Scheme, StringComparison.Ordinal)
-            || !string.Equals(actual.Config.Authentication?.Credentials, expected.Authentication?.Credentials, StringComparison.Ordinal))
+        var config = actual.GetConfig();
+        if (!string.Equals(config.Id, expected.Id, StringComparison.Ordinal)
+            || !string.Equals(config.Url, expected.Url, StringComparison.Ordinal)
+            || !string.Equals(config.Token, expected.Token, StringComparison.Ordinal)
+            || !string.Equals(config.Authentication?.Scheme, expected.Authentication?.Scheme, StringComparison.Ordinal)
+            || !string.Equals(config.Authentication?.Credentials, expected.Authentication?.Credentials, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"unexpected {kind} push config result");
         }
@@ -1348,7 +1349,22 @@ internal sealed class CompatibleTaskPushNotificationConfig
 {
     public string TaskId { get; set; } = string.Empty;
 
-    public PushNotificationConfig Config { get; set; } = new();
+    public PushNotificationConfig? Config { get; set; }
+
+    // Flat fields for v1 format
+    public string? Id { get; set; }
+    public string? Url { get; set; }
+    public string? Token { get; set; }
+    public AuthenticationInfo? Authentication { get; set; }
+
+    public PushNotificationConfig GetConfig() =>
+        Config ?? new PushNotificationConfig
+        {
+            Id = Id,
+            Url = Url ?? string.Empty,
+            Token = Token,
+            Authentication = Authentication,
+        };
 }
 
 internal sealed class CompatibleListTaskPushNotificationConfigResponse
@@ -1489,10 +1505,10 @@ internal static class ProbeScenarioParser
     {
         "all" => ProbeScenario.All,
         "core" => ProbeScenario.Core,
-        "unary-streaming" => ProbeScenario.UnaryStreaming,
+        "task-streaming" => ProbeScenario.UnaryStreaming,
         "task-lifecycle" => ProbeScenario.TaskLifecycle,
         "push-config" => ProbeScenario.PushConfig,
         "parity" => ProbeScenario.Parity,
-        _ => throw new ArgumentException($"--scenario must be one of all, core, unary-streaming, task-lifecycle, push-config, or parity; got {value}"),
+        _ => throw new ArgumentException($"--scenario must be one of all, core, task-streaming, task-lifecycle, push-config, or parity; got {value}"),
     };
 }
