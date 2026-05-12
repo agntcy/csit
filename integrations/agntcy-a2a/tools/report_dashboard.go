@@ -238,7 +238,7 @@ func readSuiteReports(path string) ([]suiteReportFile, error) {
 }
 
 var canonicalTransports = []string{"jsonrpc", "rest", "grpc"}
-var canonicalBehaviors = []string{"task-streaming", "task-lifecycle", "push-config", "scenario-parity"}
+var canonicalBehaviors = []string{"task-streaming", "lifecycle", "push-config", "parity"}
 
 func buildMatrix(specs []specReport) matrixView {
 	type coord struct {
