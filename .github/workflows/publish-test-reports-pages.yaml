@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == github.event.repository.default_branch) }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.head_branch == github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -82,7 +82,7 @@ jobs:
             local pattern="$2"
             local runs_json run_ids run_id artifacts_json
 
-            runs_json=$(api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs?branch=${DEFAULT_BRANCH}&status=success&per_page=15")
+            runs_json=$(api_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs?branch=${DEFAULT_BRANCH}&status=completed&per_page=15")
             run_ids=$(echo "$runs_json" | jq -r '.workflow_runs[].id')
 
             for run_id in $run_ids; do
