@@ -8,8 +8,6 @@ vars:
 
 tasks:
   up:
-    cmd: |
-      docker compose -f {{.COMPOSE_FILE}} up --wait -d
+    cmd: docker compose -f {{.COMPOSE_FILE}} up --wait -d
   down:
-    cmd: |
-      docker compose -f {{.COMPOSE_FILE}} down --volumes
+    cmd: docker compose -f {{.COMPOSE_FILE}} down --volumes

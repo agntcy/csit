@@ -1,0 +1,61 @@
+name: v130-spire-dir
+
+services:
+  oasf-server:
+    image: "ghcr.io/agntcy/oasf-server:v1.0.3"
+    ports:
+      - 8095:8080
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+  daemon:
+    image: "ghcr.io/agntcy/dir-ctl:v1.3.0"
+    ports:
+      - 8888:8888 # API server
+      - 8890:8890 # OCI registry
+      - 9090:9090 # DHT
+    command:
+      - daemon
+      - start
+      - --config=/config/dir-daemon-config.yaml
+      - --data-dir=/tmp
+    volumes:
+      - "./dir-daemon-config.yaml:/config/dir-daemon-config.yaml:ro"
+      - "spire-agent-public:/tmp/spire-agent/public"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "./dirctl",
+          "--auth-mode=x509",
+          "--spiffe-socket-path=unix:///tmp/spire-agent/public/api.sock",
+          "--server-addr=127.0.0.1:8888",
+          "routing",
+          "info",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      oasf-server:
+        condition: service_healthy
+volumes:
+  spire-agent-public:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPIRE_AGENT_DOCKER_PUBLIC_DIR}

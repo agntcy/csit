@@ -1,0 +1,409 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+version: "3"
+
+vars:
+  BIN_DIR: '{{ .ROOT_DIR }}/.bin'
+  COMPOSE_SPIRE: "{{ .TASKFILE_DIR }}/docker-compose.spire.yaml"
+  COMPOSE_DIR: "{{ .TASKFILE_DIR }}/docker-compose.dir.yaml"
+  UNIX_UID: { sh: id -u } # Unix user ID of the current user
+  ENV_FILE: "{{ .TASKFILE_DIR }}/.env"
+  SPIRE_HELPER_DOCKERFILE: "{{ .TASKFILE_DIR }}/spire-helper/Dockerfile"
+  # Templates
+  TEMPLATES_DIR: "{{ .TASKFILE_DIR }}/templates"
+  ENV_FILE_TMPL: "{{ .TEMPLATES_DIR }}/.env.tmpl"
+  SPIRE_SERVER_CONF_TMPL: "{{ .TEMPLATES_DIR }}/server.conf.tmpl"
+  SPIRE_AGENT_DOCKER_CONF_TMPL: "{{ .TEMPLATES_DIR }}/agent-docker.conf.tmpl"
+  SPIRE_AGENT_HOST_CONF_TMPL: "{{ .TEMPLATES_DIR }}/agent-host.conf.tmpl"
+  # SPIRE
+  SPIRE_VERSION: '{{ .SPIRE_VERSION | default "1.14.5" }}'
+  SPIRE_REPO: "{{ .BIN_DIR }}/spire-{{ .SPIRE_VERSION }}"
+  SPIRE_AGENT_BIN: "{{ .BIN_DIR }}/spire-agent-{{ .SPIRE_VERSION }}"
+  TRUST_DOMAIN: "example.org"
+  # SPIRE join tokens
+  SPIRE_TOKEN_DIR: "/tmp/spire/token"
+  SPIRE_AGENT_HOST_TOKEN_FILENAME: "host-agent-token.txt"
+  SPIRE_AGENT_HOST_TOKEN: "{{ .SPIRE_TOKEN_DIR }}/{{ .SPIRE_AGENT_HOST_TOKEN_FILENAME }}"
+  SPIRE_AGENT_DOCKER_TOKEN_FILENAME: "docker-agent-token.txt"
+  SPIRE_AGENT_DOCKER_TOKEN: "{{ .SPIRE_TOKEN_DIR }}/{{ .SPIRE_AGENT_DOCKER_TOKEN_FILENAME }}"
+  # SPIRE server
+  SPIRE_SERVER_DIR: "/tmp/spire-server"
+  SPIRE_SERVER_CONF: "{{ .SPIRE_SERVER_DIR }}/server.conf"
+  # SPIRE agent (Docker)
+  SPIRE_AGENT_DOCKER_DIR: "/tmp/spire-agent-docker"
+  SPIRE_AGENT_DOCKER_PUBLIC_DIR: "{{ .SPIRE_AGENT_DOCKER_DIR }}/public"
+  SPIRE_AGENT_DOCKER_CONF: "{{ .SPIRE_AGENT_DOCKER_DIR }}/agent.conf"
+  SPIRE_AGENT_DOCKER_SPIFFE_ID: "spiffe://{{ .TRUST_DOMAIN }}/nodes/docker-agent"
+  # SPIRE agent (host)
+  SPIRE_AGENT_HOST_DIR: "/tmp/spire-agent-host"
+  SPIRE_AGENT_HOST_PUBLIC_DIR: "{{ .SPIRE_AGENT_HOST_DIR }}/public"
+  SPIRE_AGENT_HOST_SOCKET: "{{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}/api.sock"
+  SPIRE_AGENT_HOST_DATA_DIR: "{{ .SPIRE_AGENT_HOST_DIR }}/data"
+  SPIRE_AGENT_HOST_CONF: "{{ .SPIRE_AGENT_HOST_DIR }}/agent.conf"
+  SPIRE_AGENT_HOST_PID: "{{ .SPIRE_AGENT_HOST_DIR }}/agent.pid"
+  SPIRE_AGENT_HOST_LOG: "{{ .SPIRE_AGENT_HOST_DIR }}/agent.log"
+  SPIRE_AGENT_HOST_SPIFFE_ID: "spiffe://{{ .TRUST_DOMAIN }}/nodes/host-agent"
+
+tasks:
+  up:
+    desc: "Start the SPIRE test environment"
+    env:
+      UNIX_UID: "{{ .UNIX_UID }}"
+      SPIRE_AGENT_DOCKER_CONF: "{{ .SPIRE_AGENT_DOCKER_CONF }}"
+      SPIRE_AGENT_DOCKER_PUBLIC_DIR: "{{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}"
+      SPIRE_AGENT_DOCKER_SPIFFE_ID: "{{ .SPIRE_AGENT_DOCKER_SPIFFE_ID }}"
+      SPIRE_AGENT_DOCKER_TOKEN_FILENAME: "{{ .SPIRE_AGENT_DOCKER_TOKEN_FILENAME }}"
+      SPIRE_AGENT_HOST_SPIFFE_ID: "{{ .SPIRE_AGENT_HOST_SPIFFE_ID }}"
+      SPIRE_AGENT_HOST_TOKEN_FILENAME: "{{ .SPIRE_AGENT_HOST_TOKEN_FILENAME }}"
+      SPIRE_SERVER_CONF: "{{ .SPIRE_SERVER_CONF }}"
+      SPIRE_TOKEN_DIR: "{{ .SPIRE_TOKEN_DIR }}"
+      SPIRE_VERSION: "{{ .SPIRE_VERSION }}"
+    cmds:
+      # Create SPIRE directories
+      - task: deps:spire-token-dir
+      - task: deps:spire-server-dir
+      - task: deps:spire-agent-host-dir
+      - task: deps:spire-agent-host-public-dir
+      - task: deps:spire-agent-host-data-dir
+      - task: deps:spire-agent-docker-dir
+      - task: deps:spire-agent-docker-public-dir
+      # Create SPIRE configs
+      - task: deps:spire-server-conf
+      - task: deps:spire-agent-host-conf
+      - task: deps:spire-agent-docker-conf
+      - task: deps:env-file
+      - task: deps:spire-helper-dockerfile
+      # Start SPIRE & Directory processes
+      - docker compose --file {{ .COMPOSE_SPIRE }} up --wait -d spire-server
+      - docker compose --file {{ .COMPOSE_SPIRE }} run --rm --build spire-server-token-generate
+      - task: spire-agent:start
+      - docker compose --file {{ .COMPOSE_SPIRE }} up --wait -d spire-agent
+      - docker compose --file {{ .COMPOSE_SPIRE }} run --rm --build spire-server-entry-create
+      - docker compose --file {{ .COMPOSE_DIR }} up --wait -d
+      - task: spire-agent:wait-for-identity
+
+  down:
+    desc: "Stop the SPIRE test environment"
+    env:
+      UNIX_UID: "{{ .UNIX_UID }}"
+      SPIRE_AGENT_DOCKER_CONF: "{{ .SPIRE_AGENT_DOCKER_CONF }}"
+      SPIRE_AGENT_DOCKER_PUBLIC_DIR: "{{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}"
+      SPIRE_AGENT_DOCKER_SPIFFE_ID: "{{ .SPIRE_AGENT_DOCKER_SPIFFE_ID }}"
+      SPIRE_AGENT_DOCKER_TOKEN_FILENAME: "{{ .SPIRE_AGENT_DOCKER_TOKEN_FILENAME }}"
+      SPIRE_AGENT_HOST_SPIFFE_ID: "{{ .SPIRE_AGENT_HOST_SPIFFE_ID }}"
+      SPIRE_AGENT_HOST_TOKEN_FILENAME: "{{ .SPIRE_AGENT_HOST_TOKEN_FILENAME }}"
+      SPIRE_SERVER_CONF: "{{ .SPIRE_SERVER_CONF }}"
+      SPIRE_TOKEN_DIR: "{{ .SPIRE_TOKEN_DIR }}"
+      SPIRE_VERSION: "{{ .SPIRE_VERSION }}"
+    cmds:
+      # Delete SPIRE directories
+      - defer: { task: deps:spire-token-dir:delete }
+      - defer: { task: deps:spire-server-dir:delete }
+      - defer: { task: deps:spire-agent-host-dir:delete }
+      - defer: { task: deps:spire-agent-host-public-dir:delete }
+      - defer: { task: deps:spire-agent-host-data-dir:delete }
+      - defer: { task: deps:spire-agent-docker-dir:delete }
+      - defer: { task: deps:spire-agent-docker-public-dir:delete }
+      # Delete SPIRE configs
+      - defer: { task: deps:spire-agent-docker-conf:delete }
+      - defer: { task: deps:spire-agent-host-conf:delete }
+      - defer: { task: deps:spire-server-conf:delete }
+      - defer: { task: deps:env-file:delete }
+      # Stop SPIRE & Directory processes
+      - defer: docker compose --file {{ .COMPOSE_DIR }} down --volumes
+      - defer: { task: spire-agent:stop }
+      - defer: docker compose --file {{ .COMPOSE_SPIRE }} down --volumes
+
+  bin-dir:
+    desc: "Create {{ .BIN_DIR }}"
+    status:
+      - test -d {{ .BIN_DIR }}
+    cmds:
+      - mkdir -p {{ .BIN_DIR }}
+
+  # SPIRE directories
+  deps:spire-server-dir:
+    desc: "Create {{ .SPIRE_SERVER_DIR }}"
+    cmds:
+      - echo "Creating {{ .SPIRE_SERVER_DIR }}/"
+      - mkdir -p {{ .SPIRE_SERVER_DIR }}
+    status:
+      - test -d {{ .SPIRE_SERVER_DIR }}
+
+  deps:spire-server-dir:delete:
+    desc: "Delete {{ .SPIRE_SERVER_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_SERVER_DIR }}/"
+      - rm -r {{ .SPIRE_SERVER_DIR }}
+
+  deps:spire-agent-host-dir:
+    desc: "Create {{ .SPIRE_AGENT_HOST_DIR }}"
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_HOST_DIR }}/"
+      - mkdir -p {{ .SPIRE_AGENT_HOST_DIR }}
+    status:
+      - test -d {{ .SPIRE_AGENT_HOST_DIR }}
+
+  deps:spire-agent-host-dir:delete:
+    desc: "Delete {{ .SPIRE_AGENT_HOST_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_HOST_DIR }}/"
+      - rm -r {{ .SPIRE_AGENT_HOST_DIR }}
+
+  deps:spire-agent-docker-dir:
+    desc: "Create {{ .SPIRE_AGENT_DOCKER_DIR }}"
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_DOCKER_DIR }}/"
+      - mkdir -p {{ .SPIRE_AGENT_DOCKER_DIR }}
+    status:
+      - test -d {{ .SPIRE_AGENT_DOCKER_DIR }}
+
+  deps:spire-agent-docker-dir:delete:
+    desc: "Delete {{ .SPIRE_AGENT_DOCKER_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_DOCKER_DIR }}/"
+      - rm -r {{ .SPIRE_AGENT_DOCKER_DIR }}
+
+  deps:spire-agent-docker-public-dir:
+    desc: "Create {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}"
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}/"
+      - mkdir -p {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}
+    status:
+      - test -d {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}
+
+  deps:spire-agent-docker-public-dir:delete:
+    desc: "Delete {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}/"
+      - rm -r {{ .SPIRE_AGENT_DOCKER_PUBLIC_DIR }}
+
+  deps:spire-token-dir:
+    desc: "Create {{ .SPIRE_TOKEN_DIR }}"
+    cmds:
+      - echo "Creating {{ .SPIRE_TOKEN_DIR }}/"
+      - mkdir -p {{ .SPIRE_TOKEN_DIR }}
+    status:
+      - test -d {{ .SPIRE_TOKEN_DIR }}
+
+  deps:spire-token-dir:delete:
+    desc: "Delete {{ .SPIRE_TOKEN_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_TOKEN_DIR }}/"
+      - rm -r {{ .SPIRE_TOKEN_DIR }}
+
+  deps:spire-agent-host-public-dir:
+    desc: "Create {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}"
+    deps:
+      - deps:spire-agent-host-dir
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}/"
+      - mkdir -p {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}
+    status:
+      - test -d {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}
+
+  deps:spire-agent-host-public-dir:delete:
+    desc: "Delete {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}/"
+      - rm -r {{ .SPIRE_AGENT_HOST_PUBLIC_DIR }}
+
+  deps:spire-agent-host-data-dir:
+    desc: "Create {{ .SPIRE_AGENT_HOST_DATA_DIR }}"
+    deps:
+      - deps:spire-agent-host-dir
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_HOST_DATA_DIR }}/"
+      - mkdir -p {{ .SPIRE_AGENT_HOST_DATA_DIR }}
+    status:
+      - test -d {{ .SPIRE_AGENT_HOST_DATA_DIR }}
+
+  deps:spire-agent-host-data-dir:delete:
+    desc: "Delete {{ .SPIRE_AGENT_HOST_DATA_DIR }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_HOST_DATA_DIR }}/"
+      - rm -r {{ .SPIRE_AGENT_HOST_DATA_DIR }}
+
+  # SPIRE configs
+  deps:spire-server-conf:
+    desc: "Create {{ .SPIRE_SERVER_CONF }}"
+    deps:
+      - deps:spire-server-dir
+    env:
+      TRUST_DOMAIN: "{{ .TRUST_DOMAIN }}"
+    preconditions:
+      - which gomplate
+    cmds:
+      - echo "Creating {{ .SPIRE_SERVER_CONF }}"
+      - gomplate --file {{ .SPIRE_SERVER_CONF_TMPL }} > {{ .SPIRE_SERVER_CONF }}
+
+  deps:spire-server-conf:delete:
+    desc: "Delete {{ .SPIRE_SERVER_CONF }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_SERVER_CONF }}"
+      - rm {{ .SPIRE_SERVER_CONF }}
+
+  deps:spire-agent-host-conf:
+    desc: "Create {{ .SPIRE_AGENT_HOST_CONF }}"
+    deps:
+      - deps:spire-agent-host-dir
+    env:
+      SPIRE_AGENT_HOST_DATA_DIR: "{{ .SPIRE_AGENT_HOST_DATA_DIR }}"
+      SPIRE_AGENT_HOST_SOCKET: "{{ .SPIRE_AGENT_HOST_SOCKET }}"
+      TRUST_DOMAIN: "{{ .TRUST_DOMAIN }}"
+    preconditions:
+      - which gomplate
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_HOST_CONF }}"
+      - gomplate --file {{ .SPIRE_AGENT_HOST_CONF_TMPL }} > {{ .SPIRE_AGENT_HOST_CONF }}
+
+  deps:spire-agent-host-conf:delete:
+    desc: "Delete {{ .SPIRE_AGENT_HOST_CONF }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_HOST_CONF }}"
+      - rm {{ .SPIRE_AGENT_HOST_CONF }}
+
+  deps:spire-agent-docker-conf:
+    desc: "Create {{ .SPIRE_AGENT_DOCKER_CONF }}"
+    deps:
+      - deps:spire-agent-docker-dir
+    env:
+      TRUST_DOMAIN: "{{ .TRUST_DOMAIN }}"
+    preconditions:
+      - which gomplate
+    cmds:
+      - echo "Creating {{ .SPIRE_AGENT_DOCKER_CONF }}"
+      - gomplate --file {{ .SPIRE_AGENT_DOCKER_CONF_TMPL }} > {{ .SPIRE_AGENT_DOCKER_CONF }}
+
+  deps:spire-agent-docker-conf:delete:
+    desc: "Delete {{ .SPIRE_AGENT_DOCKER_CONF }}"
+    cmds:
+      - echo "Deleting {{ .SPIRE_AGENT_DOCKER_CONF }}"
+      - rm {{ .SPIRE_AGENT_DOCKER_CONF }}
+
+  deps:env-file:
+    desc: "Create {{ .ENV_FILE }}"
+    env:
+      SPIRE_AGENT_HOST_SOCKET: "{{ .SPIRE_AGENT_HOST_SOCKET }}"
+    preconditions:
+      - which gomplate
+    cmds:
+      - echo "Creating {{ .ENV_FILE }}"
+      - gomplate --file {{ .ENV_FILE_TMPL }} > {{ .ENV_FILE }}
+
+  deps:env-file:delete:
+    desc: "Delete {{ .ENV_FILE }}"
+    cmds:
+      - echo "Deleting {{ .ENV_FILE }}"
+      - rm {{ .ENV_FILE }}
+
+  deps:spire-helper-dockerfile:
+    desc: "Update {{ .SPIRE_HELPER_DOCKERFILE }}"
+    cmds:
+      - |
+        echo "Updating {{ .SPIRE_HELPER_DOCKERFILE }}"
+        tmp=$(mktemp)
+        sed 's/spire-server:[0-9.]\+/spire-server:{{ .SPIRE_VERSION }}/' {{ .SPIRE_HELPER_DOCKERFILE }} > "$tmp"
+        mv "$tmp" {{ .SPIRE_HELPER_DOCKERFILE }}
+
+  # SPIRE repo
+  deps:spire-repo:
+    desc: "Clone the SPIRE repository"
+    deps:
+      - bin-dir
+    status:
+      - test -d {{ .SPIRE_REPO }}
+    preconditions:
+      - which git
+    cmd: |
+      git \
+        -c advice.detachedHead=false \
+        clone \
+        --single-branch \
+        --branch v{{ .SPIRE_VERSION }} \
+        https://github.com/spiffe/spire.git \
+        {{ .SPIRE_REPO }}
+
+  deps:spire-repo:delete:
+    desc: "Delete the SPIRE repository"
+    cmds:
+      - echo "Deleting {{ .SPIRE_REPO }}"
+      - rm -r {{ .SPIRE_REPO }}
+
+  # SPIRE agent (host)
+  spire-agent:build:
+    desc: "Build the SPIRE agent"
+    deps:
+      - deps:spire-repo
+    status:
+      - test -x {{ .SPIRE_AGENT_BIN }}
+    cmds:
+      - defer: { task: deps:spire-repo:delete }
+      - echo "Building {{ .SPIRE_AGENT_BIN }}..."
+      - cd {{ .SPIRE_REPO }} && go build -o {{ .SPIRE_AGENT_BIN }} ./cmd/spire-agent
+
+  spire-agent:start:
+    desc: "Start the SPIRE agent"
+    internal: true
+    deps:
+      - spire-agent:build
+    cmds:
+      - echo "Starting SPIRE agent..."
+      - |
+        if [ -f {{ .SPIRE_AGENT_HOST_PID }} ]; then
+          echo "SPIRE agent is already running (pid $(cat {{ .SPIRE_AGENT_HOST_PID }}))" 1>&2;
+          exit 1
+        fi
+      - |
+        : > {{ .SPIRE_AGENT_HOST_LOG }}
+        {{ .SPIRE_AGENT_BIN }} run \
+          -config {{ .SPIRE_AGENT_HOST_CONF }} \
+          -joinTokenFile {{ .SPIRE_AGENT_HOST_TOKEN }} \
+          >> {{ .SPIRE_AGENT_HOST_LOG }} 2>&1 &
+        pgrep -n -f '{{ .SPIRE_AGENT_BIN }}' > {{ .SPIRE_AGENT_HOST_PID }}
+      - |
+        for i in $(seq 1 10); do
+          if [ -S {{ .SPIRE_AGENT_HOST_SOCKET }} ] && \
+             {{ .SPIRE_AGENT_BIN }} healthcheck -socketPath {{ .SPIRE_AGENT_HOST_SOCKET }}; then
+            echo "SPIRE agent is ready"
+            exit 0
+          fi
+          echo "Waiting for SPIRE agent to be ready..."
+          sleep 1
+        done
+        echo "SPIRE agent failed to become ready" >&2
+        tail -50 {{ .SPIRE_AGENT_HOST_LOG }} >&2 || true
+        exit 1
+
+  spire-agent:stop:
+    desc: "Stop the SPIRE agent"
+    internal: true
+    cmds:
+      - echo "Stopping SPIRE agent..."
+      - |
+        if [ ! -f {{ .SPIRE_AGENT_HOST_PID }} ]; then
+          echo "SPIRE agent is not running" 1>&2;
+          exit 1
+        fi
+      - |
+        pkill -f '{{ .SPIRE_AGENT_BIN }}'
+        rm {{ .SPIRE_AGENT_HOST_PID }}
+
+  spire-agent:wait-for-identity:
+    desc: "Wait for SPIRE identity to be issued"
+    internal: true
+    cmd: |
+      for i in $(seq 1 10); do
+        if {{ .SPIRE_AGENT_BIN }} api fetch x509 \
+          -socketPath {{ .SPIRE_AGENT_HOST_SOCKET }} >/dev/null 2>&1; then
+          echo "SPIRE identity issued"
+          exit 0
+        fi
+        echo "Waiting for SPIRE identity to be issued..."
+        sleep 1
+      done
+      echo "SPIRE identity not issued" >&2
+      {{ .SPIRE_AGENT_BIN }} api fetch x509 \
+        -socketPath {{ .SPIRE_AGENT_HOST_SOCKET }} 2>&1 | tail -5 >&2 || true
+      exit 1

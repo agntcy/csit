@@ -1,0 +1,321 @@
+// Copyright AGNTCY Contributors (https://github.com/agntcy)
+// SPDX-License-Identifier: Apache-2.0
+
+package utils
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"reflect"
+	"time"
+
+	corev1 "github.com/agntcy/dir/api/core/v1"
+	routingv1 "github.com/agntcy/dir/api/routing/v1"
+	clicmd "github.com/agntcy/dir/cli/cmd"
+	searchcmd "github.com/agntcy/dir/cli/cmd/search"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
+	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
+)
+
+const (
+	TimeoutInterval = 2 * time.Minute
+)
+
+// Ptr creates a pointer to the given value.
+//
+// nolint
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+// CollectItems collects all items from a channel into a slice.
+// This generic utility eliminates the repetitive pattern of iterating over channels
+// and works with any channel type.
+func CollectItems[T any](itemsChan <-chan T) []T {
+	var items []T
+	for item := range itemsChan {
+		items = append(items, item)
+	}
+
+	return items
+}
+
+// CollectListItems collects all list items from a channel into a slice.
+// Wrapper around generic CollectItems for routing list operations.
+func CollectListItems(itemsChan <-chan *routingv1.ListResponse) []*routingv1.ListResponse {
+	return CollectItems(itemsChan)
+}
+
+// CollectSearchItems collects all search items from a channel into a slice.
+// Wrapper around generic CollectItems for routing search operations.
+func CollectSearchItems(searchChan <-chan *routingv1.SearchResponse) []*routingv1.SearchResponse {
+	return CollectItems(searchChan)
+}
+
+// CompareOASFRecords compares two OASF JSON records with version-aware logic.
+// This function automatically detects OASF versions and uses appropriate comparison logic.
+//
+//nolint:wrapcheck
+func CompareOASFRecords(json1, json2 []byte) (bool, error) {
+	record1, err := corev1.UnmarshalRecord(json1)
+	if err != nil {
+		return false, err
+	}
+
+	record2, err := corev1.UnmarshalRecord(json2)
+	if err != nil {
+		return false, err
+	}
+
+	return reflect.DeepEqual(record1, record2), nil
+}
+
+// ResetCobraFlags resets all CLI command flags to their default values.
+// This ensures clean state between test executions.
+func ResetCobraFlags() {
+	// Reset root command flags
+	resetCommandFlags(clicmd.RootCmd)
+
+	// Walk through all subcommands and reset their flags
+	for _, cmd := range clicmd.RootCmd.Commands() {
+		resetCommandFlags(cmd)
+
+		// Also reset any nested subcommands
+		resetNestedCommandFlags(cmd)
+	}
+}
+
+// resetFlag resets a single flag to its zero/default value.
+//
+//nolint:errcheck
+func resetFlag(flag *pflag.Flag) {
+	if flag.Value == nil {
+		return
+	}
+
+	if sv, ok := flag.Value.(pflag.SliceValue); ok {
+		sv.Replace([]string{})
+
+		flag.DefValue = "[]"
+	} else {
+		flag.Value.Set(flag.DefValue)
+	}
+
+	flag.Changed = false
+}
+
+// resetCommandFlags resets flags for a specific command.
+func resetCommandFlags(cmd *cobra.Command) {
+	cmd.Flags().VisitAll(resetFlag)
+	cmd.PersistentFlags().VisitAll(resetFlag)
+}
+
+// resetNestedCommandFlags recursively resets flags for nested commands.
+func resetNestedCommandFlags(cmd *cobra.Command) {
+	for _, subCmd := range cmd.Commands() {
+		resetCommandFlags(subCmd)
+		resetNestedCommandFlags(subCmd)
+	}
+}
+
+// isGrpcServerReady checks whether the given gRPC server reports SERVING
+// on the gRPC health check endpoint.
+func isGrpcServerReady(ctx context.Context, addr string, spiffeSocketPath string) error {
+	if spiffeSocketPath != "" {
+		return isGrpcServerReadyWithWorkloadAPI(ctx, addr, spiffeSocketPath)
+	}
+
+	return isGrpcServerReadyInsecure(ctx, addr)
+}
+
+func isGrpcServerReadyWithWorkloadAPI(ctx context.Context, addr, spiffeSocketPath string) error {
+	source, bundleSrc, err := getWorkloadAPISources(ctx, spiffeSocketPath)
+	if err != nil {
+		return fmt.Errorf("failed to get Workload API sources: %w", err)
+	}
+
+	creds := grpccredentials.MTLSClientCredentials(source, bundleSrc, tlsconfig.AuthorizeAny())
+
+	client, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s with SPIFFE Workload API TLS: %w", addr, err)
+	}
+
+	defer client.Close()
+
+	return checkGrpcHealth(ctx, client, addr)
+}
+
+func getWorkloadAPISources(ctx context.Context, spiffeSocketPath string) (*workloadapi.X509Source, *workloadapi.BundleSource, error) {
+	var (
+		source    *workloadapi.X509Source
+		bundleSrc *workloadapi.BundleSource
+		err       error
+	)
+
+	client, err := workloadapi.New(ctx, workloadapi.WithAddr(spiffeSocketPath))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create SPIFFE Workload API client: %w", err)
+	}
+
+	source, err = workloadapi.NewX509Source(ctx, workloadapi.WithClient(client))
+	if err != nil {
+		_ = client.Close()
+
+		return nil, nil, fmt.Errorf("failed to create X509 source: %w", err)
+	}
+
+	bundleSrc, err = workloadapi.NewBundleSource(ctx, workloadapi.WithClient(client))
+	if err != nil {
+		_ = source.Close()
+		_ = client.Close()
+
+		return nil, nil, fmt.Errorf("failed to create bundle source: %w", err)
+	}
+
+	return source, bundleSrc, nil
+}
+
+func isGrpcServerReadyInsecure(ctx context.Context, addr string) error {
+	client, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", addr, err)
+	}
+	defer client.Close()
+
+	return checkGrpcHealth(ctx, client, addr)
+}
+
+func checkGrpcHealth(ctx context.Context, client *grpc.ClientConn, addr string) error {
+	healthClient := grpc_health_v1.NewHealthClient(client)
+
+	resp, err := healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+	if err != nil {
+		return fmt.Errorf("health check failed for %s: %w", addr, err)
+	}
+
+	if resp.GetStatus() != grpc_health_v1.HealthCheckResponse_SERVING {
+		return fmt.Errorf("server %s is not serving: %s", addr, resp.GetStatus().String())
+	}
+
+	return nil
+}
+
+// WaitForGrpcServerReady waits until the gRPC server at the given address reports SERVING on the health check endpoint.
+func WaitForGrpcServerReady(ctx context.Context, addr string) {
+	spiffeSocketPath := os.Getenv("SPIFFE_SOCKET_PATH")
+	ginkgo.GinkgoWriter.Printf("Waiting for gRPC server at %s...\n", addr)
+	gomega.Eventually(isGrpcServerReady).
+		WithArguments(addr, spiffeSocketPath).
+		WithPolling(PollingInterval).
+		WithTimeout(TimeoutInterval).
+		WithContext(ctx).
+		Should(gomega.Succeed())
+	ginkgo.GinkgoWriter.Printf("gRPC server at %s is ready\n", addr)
+}
+
+// ResetCLIState provides a comprehensive reset of CLI state.
+// This combines flag reset with any other state that needs to be cleared.
+func ResetCLIState() {
+	ResetCobraFlags()
+
+	// Reset command args
+	clicmd.RootCmd.SetArgs(nil)
+
+	// Clear any output buffers by setting output to default
+	clicmd.RootCmd.SetOut(nil)
+	clicmd.RootCmd.SetErr(nil)
+
+	// Reset search command global state
+	ResetSearchCommandState()
+
+	// Force complete re-initialization of routing command flags to clear accumulated state
+	resetRoutingCommandFlags()
+}
+
+// ResetSearchCommandState resets the global state in search command.
+//
+//nolint:errcheck
+func ResetSearchCommandState() {
+	if cmd := searchcmd.Command; cmd != nil {
+		// Reset flags to default values
+		cmd.Flags().Set("format", "cid")
+		cmd.Flags().Set("limit", "100")
+		cmd.Flags().Set("offset", "0")
+
+		// Reset all string array flags
+		resetStringArrayFlag(cmd, "name")
+		resetStringArrayFlag(cmd, "version")
+		resetStringArrayFlag(cmd, "skill-id")
+		resetStringArrayFlag(cmd, "skill")
+		resetStringArrayFlag(cmd, "locator")
+		resetStringArrayFlag(cmd, "module")
+		resetStringArrayFlag(cmd, "domain-id")
+		resetStringArrayFlag(cmd, "domain")
+		resetStringArrayFlag(cmd, "created-at")
+		resetStringArrayFlag(cmd, "author")
+		resetStringArrayFlag(cmd, "schema-version")
+		resetStringArrayFlag(cmd, "module-id")
+	}
+}
+
+// resetRoutingCommandFlags aggressively resets routing command flags and their underlying variables.
+// The key insight is that Cobra StringArrayVar flags are bound to Go slice variables that persist
+// across command executions. We need to reset both the flag state AND the underlying variables.
+func resetRoutingCommandFlags() {
+	// Import the routing package to access the global option variables
+	// Since we can't import the routing package directly (circular dependency),
+	// we need to reset the flags in a way that also clears the underlying slices
+	// Find the routing command
+	for _, cmd := range clicmd.RootCmd.Commands() {
+		if cmd.Name() == "routing" {
+			// Reset all routing subcommands
+			for _, subCmd := range cmd.Commands() {
+				switch subCmd.Name() {
+				case "list":
+					// Reset list command flags and underlying variables
+					resetStringArrayFlag(subCmd, "skill")
+					resetStringArrayFlag(subCmd, "locator")
+					resetStringArrayFlag(subCmd, "domain")
+					resetStringArrayFlag(subCmd, "module")
+				case "search":
+					// Reset search command flags and underlying variables
+					resetStringArrayFlag(subCmd, "skill")
+					resetStringArrayFlag(subCmd, "locator")
+					resetStringArrayFlag(subCmd, "domain")
+					resetStringArrayFlag(subCmd, "module")
+				}
+			}
+		}
+	}
+}
+
+// resetStringArrayFlag completely resets a StringArrayVar flag by clearing its underlying slice.
+func resetStringArrayFlag(cmd *cobra.Command, flagName string) {
+	if flag := cmd.Flags().Lookup(flagName); flag != nil {
+		// For StringArrayVar flags, we need to clear the underlying slice completely
+		// The flag.Value is a pointer to a stringArrayValue that wraps the actual slice
+		// Method 1: Set to empty string (should clear the slice)
+		_ = flag.Value.Set("") // Ignore error - flag reset is best effort
+
+		// Method 2: Reset all flag metadata
+		flag.DefValue = ""
+		flag.Changed = false
+
+		// Method 3: If the flag has a slice interface, try to clear it directly
+		if sliceValue, ok := flag.Value.(interface{ Replace([]string) error }); ok {
+			sliceValue.Replace([]string{}) //nolint:errcheck
+		}
+	}
+}

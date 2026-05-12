@@ -1,0 +1,24 @@
+agent {
+    data_dir = "{{ env.Env.SPIRE_AGENT_HOST_DATA_DIR }}"
+    log_level = "DEBUG"
+    server_address = "127.0.0.1"
+    server_port = "8894"
+    socket_path = "{{ env.Env.SPIRE_AGENT_HOST_SOCKET }}"
+    insecure_bootstrap = true
+    trust_domain = "{{ env.Env.TRUST_DOMAIN }}"
+}
+
+plugins {
+    NodeAttestor "join_token" {
+        plugin_data {
+        }
+    }
+    KeyManager "memory" {
+        plugin_data {
+        }
+    }
+    WorkloadAttestor "unix" {
+        plugin_data {
+        }
+    }
+}

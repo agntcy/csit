@@ -1,0 +1,27 @@
+server {
+    bind_address = "0.0.0.0"
+    bind_port = 8894
+    trust_domain = "{{ env.Env.TRUST_DOMAIN }}"
+    data_dir = "/run/spire/data"
+    log_level = "DEBUG"
+    ca_subject = {
+        country = ["US"]
+        organization = ["SPIRE"]
+        common_name = ""
+    }
+}
+
+plugins {
+    DataStore "sql" {
+        plugin_data {
+            database_type = "sqlite3"
+            connection_string = "/run/spire/data/datastore.sqlite3"
+        }
+    }
+    KeyManager "memory" {
+        plugin_data {}
+    }
+    NodeAttestor "join_token" {
+        plugin_data {}
+    }
+}

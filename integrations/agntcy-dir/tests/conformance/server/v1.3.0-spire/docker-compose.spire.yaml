@@ -1,0 +1,113 @@
+name: v1.3.0-spire-spire
+
+services:
+  spire-server:
+    image: ghcr.io/spiffe/spire-server:${SPIRE_VERSION}
+    user: "0:0"
+    command: ["-config", "/run/spire/server/server.conf"]
+    volumes:
+      - ${SPIRE_SERVER_CONF}:/run/spire/server/server.conf
+      - spire-server-data:/run/spire/data
+      - spire-server-private:/tmp/spire-server/private
+    ports:
+      - "8894:8894"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/spire/bin/spire-server",
+          "healthcheck",
+          "-socketPath",
+          "/tmp/spire-server/private/api.sock"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  spire-server-token-generate:
+    build:
+      context: ./spire-helper
+      dockerfile: Dockerfile
+    entrypoint: ["/spire-server-token-generate.sh"]
+    user: "0:0"
+    restart: no
+    depends_on:
+      spire-server:
+        condition: service_healthy
+    environment:
+      SPIRE_TOKEN_DIR: "/run/spire/token"
+      SPIRE_SERVER_PRIVATE_DIR: "/tmp/spire-server/private"
+      SPIRE_AGENT_DOCKER_SPIFFE_ID: ${SPIRE_AGENT_DOCKER_SPIFFE_ID}
+      SPIRE_AGENT_DOCKER_TOKEN_FILENAME: ${SPIRE_AGENT_DOCKER_TOKEN_FILENAME}
+      SPIRE_AGENT_HOST_SPIFFE_ID: ${SPIRE_AGENT_HOST_SPIFFE_ID}
+      SPIRE_AGENT_HOST_TOKEN_FILENAME: ${SPIRE_AGENT_HOST_TOKEN_FILENAME}
+    volumes:
+      - spire-server-private:/tmp/spire-server/private:ro
+      - spire-token:/run/spire/token
+  spire-agent:
+    image: ghcr.io/spiffe/spire-agent:${SPIRE_VERSION}
+    user: "0:0"
+    restart: unless-stopped
+    pid: host
+    privileged: true
+    command:
+      [
+        "-config",
+        "/run/spire/agent/agent.conf",
+        "-joinTokenFile",
+        "/run/spire/token/${SPIRE_AGENT_DOCKER_TOKEN_FILENAME}"
+      ]
+    depends_on:
+      spire-server-token-generate:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${SPIRE_AGENT_DOCKER_CONF}:/run/spire/agent/agent.conf:ro
+      - spire-token:/run/spire/token:ro
+      - spire-agent-public:/tmp/spire-agent/public
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/spire/bin/spire-agent",
+          "healthcheck",
+          "-socketPath",
+          "/tmp/spire-agent/public/api.sock"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  spire-server-entry-create:
+    build:
+      context: ./spire-helper
+      dockerfile: Dockerfile
+    entrypoint: ["/spire-server-entry-create.sh"]
+    user: "0:0"
+    restart: no
+    depends_on:
+      spire-agent:
+        condition: service_healthy
+    environment:
+      COMPOSE_PROJECT: "v130-spire-dir"
+      SPIRE_AGENT_DOCKER_SPIFFE_ID: ${SPIRE_AGENT_DOCKER_SPIFFE_ID}
+      SPIRE_AGENT_HOST_SPIFFE_ID: ${SPIRE_AGENT_HOST_SPIFFE_ID}
+      SPIRE_SERVER_PRIVATE_DIR: "/tmp/spire-server/private"
+      UNIX_UID: ${UNIX_UID}
+    volumes:
+      - spire-server-private:/tmp/spire-server/private:ro
+volumes:
+  spire-server-data:
+  spire-server-private:
+  spire-token:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPIRE_TOKEN_DIR}
+  spire-agent-public:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPIRE_AGENT_DOCKER_PUBLIC_DIR}

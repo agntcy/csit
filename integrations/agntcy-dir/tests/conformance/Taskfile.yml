@@ -13,13 +13,18 @@ includes:
     taskfile: "./server/v1.2.0/Taskfile.yml"
   server:v1.3.0:
     taskfile: "./server/v1.3.0/Taskfile.yml"
+  server:v1.3.0-spire:
+    taskfile: "./server/v1.3.0-spire/Taskfile.yml"
 
 tasks:
   up:
     vars:
       SERVER_VERSION: '{{.SERVER_VERSION}}'
-      CLIENT_VERSION: '{{.CLIENT_VERSION}}'
+      # e.g. if CLIENT_ENV=v1.3.0-spire then CLIENT_VERSION=v1.3.0
+      CLIENT_VERSION: '{{ splitList "-" .CLIENT_VERSION | first }}'
+      CLIENT_VERSION_FULL: '{{.CLIENT_VERSION}}'
       TMP_PATH: '{{ .TMP_PATH | default "/tmp/tests/client-server" }}'
+      PATCH_FILE: '{{.TASKFILE_DIR}}/patches/e2e-shared-utils-common.go'
     cmds:
       # Prepare suite
       - |
@@ -29,6 +34,19 @@ tasks:
         echo -e "module testing\ngo 1.26.2\n" > go.mod
         go mod tidy
         go get -t {{.CONFORMANCE_CLIENT_TEST_PKG}}@{{.CLIENT_VERSION}}
+
+        if echo "{{.SERVER_VERSION}}" | grep -q spire; then
+          OVERLAY="{{.TMP_PATH}}/dir-tests-overlay"
+          TESTS_MOD="$(go env GOMODCACHE)/github.com/agntcy/dir/tests@{{.CLIENT_VERSION}}"
+          rm -rf "$OVERLAY"
+          mkdir -p "$OVERLAY"
+          cp -R "$TESTS_MOD/." "$OVERLAY/"
+          chmod -R u+w "$OVERLAY"
+          cp "{{.PATCH_FILE}}" "$OVERLAY/e2e/shared/utils/common.go"
+          go mod edit -require=github.com/agntcy/dir/tests@{{.CLIENT_VERSION}}
+          go mod edit -replace github.com/agntcy/dir/tests="$OVERLAY"
+          go get -t {{.CONFORMANCE_CLIENT_TEST_PKG}}@{{.CLIENT_VERSION}}
+        fi
 
       # Start dependencies
       - task: server:{{.SERVER_VERSION}}:up
@@ -50,8 +68,8 @@ tasks:
       SERVER_VERSION: '{{.SERVER_VERSION | default "v1.3.0" }}'
       CLIENT_VERSION: '{{.CLIENT_VERSION | default "v1.3.0" }}'
 
-      CLIENT_CONFIG: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/client/{{.CLIENT_VERSION}}/test-config.yaml'
-      REPORTS_PATH: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/reports'
+      CLIENT_CONFIG: '{{.TASKFILE_DIR}}/client/{{.CLIENT_VERSION}}/test-config.yaml'
+      REPORTS_PATH: '{{.TASKFILE_DIR}}/reports'
 
       REPORTS_NAME: 'Server-{{.SERVER_VERSION}}-Client-{{.CLIENT_VERSION}}'
       TMP_PATH: '/tmp/tests/{{.REPORTS_NAME}}'
@@ -71,11 +89,24 @@ tasks:
 
       # Run test package
       - |
+        echo "Testing {{.REPORTS_NAME}}..."
         mkdir -p {{.REPORTS_PATH}}
         cd {{.TMP_PATH}}
+
+        # If there's an .env file, use it
+        ENV_FILE="{{ .TASKFILE_DIR }}/server/{{ .SERVER_VERSION }}/.env"
+        if [ -f "$ENV_FILE" ]; then
+          echo "Using $ENV_FILE"
+          . "$ENV_FILE"
+        fi
+
+        if echo "{{.SERVER_VERSION}}" | grep -q spire; then
+          export SPIFFE_SOCKET_PATH="${SPIFFE_SOCKET_PATH:-unix:///tmp/spire-agent-host/public/api.sock}"
+        fi
+
         go test {{.CONFORMANCE_CLIENT_TEST_PKG}} \
-          -v -test.v -test.paniconexit0 -timeout 2h \
-          -ginkgo.timeout 2h -ginkgo.v \
+          -v -test.v -test.paniconexit0 -timeout 45m \
+          -ginkgo.timeout 45m -ginkgo.v \
           -ginkgo.json-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.json \
           -ginkgo.junit-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.xml \
           -test-config {{.CLIENT_CONFIG}}

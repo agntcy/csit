@@ -1,0 +1,6 @@
+client:
+  run_rate_limit_tests: false
+  client_options:
+    server_address: "localhost:8888"
+    auth_mode: "x509"
+    spiffe_socket_path: "unix:///tmp/spire-agent-host/public/api.sock"

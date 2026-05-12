@@ -7,7 +7,7 @@ version: "3"
 silent: true
 
 includes:
-  tests:client-server: 
+  tests:client-server:
     taskfile: ./tests/conformance/Taskfile.yml
 
 vars:
@@ -316,6 +316,14 @@ tasks:
 
         # NOTE: The attribute may removed already, silent errors
         xattr -d com.apple.quarantine "{{.DIRCTL_BIN_PATH}}/dirctl" &> /dev/null || true
+
+  download:gomplate:
+    desc: "Install gomplate"
+    vars:
+      GOMPLATE_VERSION: "5.1.0"
+    cmd: go install github.com/hairyhenderson/gomplate/v5/cmd/gomplate@v{{ .GOMPLATE_VERSION }}
+    status:
+      - "! command -v gomplate"
 
   default:
     cmd: task -l

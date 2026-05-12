@@ -1,0 +1,29 @@
+agent {
+    data_dir = "/run/spire/data"
+    log_level = "DEBUG"
+    server_address = "host.docker.internal"
+    server_port = "8894"
+    socket_path = "/tmp/spire-agent/public/api.sock"
+    insecure_bootstrap = true
+    trust_domain = "{{ env.Env.TRUST_DOMAIN }}"
+}
+
+plugins {
+    NodeAttestor "join_token" {
+        plugin_data {
+        }
+    }
+    KeyManager "memory" {
+        plugin_data {
+        }
+    }
+    WorkloadAttestor "unix" {
+        plugin_data {
+        }
+    }
+    WorkloadAttestor "docker" {
+        plugin_data {
+            docker_socket_path = "unix:///var/run/docker.sock"
+        }
+    }
+}
