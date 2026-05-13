@@ -4,10 +4,20 @@
 # ingress-nginx Helm chart values for KinD (aligned with provider/kind static manifest).
 # Used by task ingress:install:a (ingress only on cluster A).
 #
+# Chart `INGRESS_NGINX_HELM_VERSION` (Taskfile) pins the controller app; `controller.image.digest`
+# pins the exact registry image (bundled NGINX). When bumping the chart, copy tag+digest from:
+#   helm show values ingress-nginx --version <CHART> --repo https://kubernetes.github.io/ingress-nginx
+#
 # Service uses NodePort so `helm --wait` does not block on LoadBalancer IP assignment
 # (cloud-provider-kind can take a long time or appear stalled). Cluster A is patched to
 # LoadBalancer after install in the Taskfile for cross-cluster VIP + ingress:a:wait-lb-ip.
 controller:
+  image:
+    registry: registry.k8s.io
+    image: ingress-nginx/controller
+    tag: "v1.15.1"
+    digest: sha256:594ceea76b01c592858f803f9ff4d2cb40542cae2060410b2c95f75907d659e1
+
   allowSnippetAnnotations: true
 
   # Required for nginx.ingress.kubernetes.io/ssl-passthrough (SPIRE gRPC to root server).

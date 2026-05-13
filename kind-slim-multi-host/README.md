@@ -13,7 +13,7 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 | [`kind/`](kind/) | KinD cluster configs |
 | [`helm/values/`](helm/values/) | ingress-nginx, slim, slim-control-plane values |
 | [`compose/dns/`](compose/dns/) | Local `*.csit.test` DNS helper (generated `Corefile` + `csittest.zone` → LB IP for cluster A) |
-| [`scripts/`](scripts/) | cpkind, LB wait, CoreDNS merge, local DNS verification, headless Service helper |
+| [`scripts/`](scripts/) | cpkind, LB wait, CoreDNS merge, DNS verify, macOS resolver install, headless Service, slimctl port-forward helper |
 | **`.gen/`** | Generated: `ingress-a.env`, `cloud-provider-kind.stderr` (gitignored) |
 
 ## Tasks (canonical)
@@ -28,6 +28,7 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 | **`task cluster:teardown`** | Delete both clusters (no Helm) |
 | **`task compose:dns:up`** / **`compose:dns:down`** | Render Corefile + Compose for [`compose/dns`](compose/dns) |
 | **`task compose:dns:verify`** | **`dig`** cluster-A ingress names @ **`127.0.0.1:${CSIT_LOCAL_DNS_HOST_PORT:-8053}`** vs **`.gen/ingress-a.env`** (also runs at end of **`stack:install`**) |
+| **`task compose:dns:resolver:install`** | **macOS:** write **`/etc/resolver/csit.test`** → **`127.0.0.1:${CSIT_LOCAL_DNS_HOST_PORT:-8053}`** (requires **`sudo`**) |
 | **`task ingress:install:a`** | Helm **ingress-nginx** on cluster **A** |
 | **`task ingress:a:wait-lb-ip`** | Wait for LB IP → **`.gen/ingress-a.env`** |
 | **`task apps:install:cluster-a`** / **`apps:install:cluster-b`** | Slim / controller Helm (order matters; use **`stack:install`** for the full sequence) |
@@ -42,30 +43,45 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 
 ### macOS host DNS for `*.csit.test`
 
-Create `/etc/resolver/csit.test` (admin) matching **`CSIT_LOCAL_DNS_HOST_PORT`** (default **8053**):
+After **`task compose:dns:up`**, install split DNS once (writes **`/etc/resolver/csit.test`**; matches **`CSIT_LOCAL_DNS_HOST_PORT`**, default **8053**):
 
+```bash
+task compose:dns:resolver:install
 ```
-nameserver 127.0.0.1
-port 8053
+
+Then flush the DNS cache: **`sudo dscacheutil -flushcache`** and **`sudo killall -HUP mDNSResponder`**.
+
+Verify the helper (always use **`@127.0.0.1 -p …`** — macOS **`dig`** without **`@`** often ignores **`/etc/resolver/`**):
+
+```bash
+dig @127.0.0.1 -p "${CSIT_LOCAL_DNS_HOST_PORT:-8053}" +short control.nb.cluster-a.csit.test A
 ```
 
-### Host `slimctl` via DNS → LoadBalancer (Option A)
+### Host `slimctl` via DNS → ingress (northbound)
 
-Use this when **`control.nb.cluster-a.csit.test`** resolves to **`INGRESS_A_LB_IP`** (default from **`./scripts/render-local-dns-corefile.sh`** after **`task ingress:a:wait-lb-ip`**, then **`task compose:dns:up`** and recreate **`local-dns`** if you changed the zone). A clean **`task stack:install`** / **`stack:up`** ends with **`task compose:dns:verify`**, which asserts **`dig @127.0.0.1 -p "${CSIT_LOCAL_DNS_HOST_PORT:-8053}"`** matches **`.gen/ingress-a.env`** for **`control.cluster-a`**, **`control.nb.cluster-a`**, and **`slim.cluster-a`**.
+Use when **`control.nb.cluster-a.csit.test`** resolves to the cluster **A** ingress target (LB VIP by default, or **`127.0.0.1`** when using the loopback DNS override — see **Limitations**). **`task stack:install`** ends with **`compose:dns:verify`**.
 
-1. **Check DNS helper:**  
-   `dig @127.0.0.1 -p "${CSIT_LOCAL_DNS_HOST_PORT:-8053}" +short control.nb.cluster-a.csit.test A`  
-   must match **`source .gen/ingress-a.env && echo "$INGRESS_A_LB_IP"`**.
+1. **DNS helper:** **`dig @127.0.0.1 -p "${CSIT_LOCAL_DNS_HOST_PORT:-8053}" +short control.nb.cluster-a.csit.test A`** should match **`source .gen/ingress-a.env && echo "$INGRESS_A_LB_IP"`** unless you set **`CSIT_INGRESS_IP_A=127.0.0.1`** for Docker Desktop (then expect **`127.0.0.1`** and use **`:10080`** in step 3).
 
-2. **Apply controller Ingress values** (north Ingress picks up gRPC-oriented timeouts from [`helm/values/controller.yaml`](helm/values/controller.yaml)):  
-   `task helm:install:controller`  
-   (or your equivalent **`helm upgrade`** for **`slim-control`** on **`kind-csit-a`**.)
+2. **Controller Helm / Ingress:** **`task helm:install:controller`** (or your **`helm upgrade`** for **`slim-control`** on **`kind-csit-a`**).
 
-3. **Run slimctl** (plaintext northbound on port **80**):  
-   `slimctl -s http://control.nb.cluster-a.csit.test:80 controller node list`  
-   If **`~/.config/slimctl`** sets **`tls_insecure_skip_verify: true`**, use a minimal **`SLIMCTL_CONFIG`** with **`tls_insecure_skip_verify: false`** for **`http://`** endpoints.
+3. **Run `slimctl`** (plaintext gRPC to ingress **:80**, or **:10080** when DNS points at loopback — KinD maps **`127.0.0.1:10080` → node :80**):
 
-4. **If it still fails**, capture **`kubectl -n ingress-nginx logs deploy/ingress-nginx-controller`** while reproducing; confirm **`nc -vz "$INGRESS_A_LB_IP" 80`** from the host. Docker Desktop sometimes mishandles LB VIP paths — see the fallback under Limitations.
+   ```bash
+   unset SLIMCTL_COMMON_OPTS_TLS_INSECURE SLIMCTL_COMMON_OPTS_TLS_INSECURE_SKIP_VERIFY
+   SLIMCTL_CONFIG=/dev/null ./slimctl -s 'http://control.nb.cluster-a.csit.test:80' controller node list
+   ```
+
+   Use **`…:10080`** instead of **`:80`** only with **`CSIT_INGRESS_IP_A=127.0.0.1`** and **`task compose:dns:up`** after re-rendering the zone.
+
+4. **Timeouts to the VIP:** if **`nc -vz "$INGRESS_A_LB_IP" 80`** from the host fails (common on Docker Desktop), use the loopback DNS path above; do not mix LB IP with port **10080**.
+
+5. **Still failing:** **`kubectl -n ingress-nginx logs deploy/ingress-nginx-controller`** while reproducing. North ingress enables **`http2 on`** for cleartext gRPC (**[`helm/values/controller.yaml`](helm/values/controller.yaml)**).
+
+### Optional demos (not part of `stack:install`)
+
+- **`task echo-agent:server:deploy`** / **`task echo-agent:client:deploy`** — sample A2A workloads on the slim dataplane.
+- **`task slimctl:controller:link:outline`** / **`task slimctl:controller:route:outline`** — **`slimctl`** via port-forward (requires **`SLIM_REPO_PATH`**, **`slimctl:build`**).
 
 ## Quick start
 

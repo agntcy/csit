@@ -25,7 +25,8 @@ vars:
 
   # Directory containing slim/ and slim-control-plane/ chart folders. Default = local agntcy/slim checkout.
   # If .../slim is missing, tasks fall back to $SLIM_REPO_PATH/charts (e.g. CI) or OCI.
-  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default "/Users/lpuskas/prj/outshift/agntcy/slim/charts" }}'
+  # Local checkout of agntcy/slim `charts/` (slim, slim-control-plane, slim-spire). CI sets this explicitly.
+  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default "" }}'
 
   # agntcy/slim repo root for cargo build of data-plane/slimctl (slimctl:build).
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
@@ -34,7 +35,7 @@ vars:
   SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL | default "http://localhost:50051" }}'
   SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT | default "50051" }}'
 
-  # ingress-nginx official chart (KinD values in helm/values/ingress-nginx-kind.yaml).
+  # ingress-nginx Helm chart (KinD: helm/values/ingress-nginx-kind.yaml). Bump chart + sync controller.image digest there.
   INGRESS_NGINX_HELM_REPO: '{{ .INGRESS_NGINX_HELM_REPO | default "https://kubernetes.github.io/ingress-nginx" }}'
   INGRESS_NGINX_HELM_CHART: '{{ .INGRESS_NGINX_HELM_CHART | default "ingress-nginx" }}'
   INGRESS_NGINX_HELM_VERSION: '{{ .INGRESS_NGINX_HELM_VERSION | default "4.15.1" }}'
@@ -67,7 +68,7 @@ tasks:
       - command -v kubectl
       - command -v docker
       - command -v jq
-      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/verify-local-dns-helper.sh scripts/ensure-slim-headless-service.sh scripts/slimctl-controller-via-port-forward.sh
+      - chmod +x scripts/run-cloud-provider-kind.sh scripts/discover-ingress-lb-ip-a.sh scripts/coredns-apply-cluster-b-ingress-alias.sh scripts/verify-local-dns-helper.sh scripts/ensure-slim-headless-service.sh scripts/slimctl-controller-via-port-forward.sh scripts/install-macos-resolver-csit.sh
 
   prereq:stack:
     desc: prereq + helm + go (Helm installs and cloud-provider-kind)
@@ -290,7 +291,7 @@ tasks:
           --wait-for-jobs \
           --timeout 15m
         CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if [ ! -d "${CHART_ROOT}/slim-spire" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim-spire" ]; then
+        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim-spire" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim-spire" ]; then
           CHART_ROOT="${SLIM_REPO_PATH}/charts"
         fi
         if [ ! -d "${CHART_ROOT}/slim-spire" ]; then
@@ -338,7 +339,7 @@ tasks:
       - task kind:delete:all
 
   stack:install:
-    desc: cloud-provider-kind + ingress (A) + cert-manager + LB wait + CoreDNS B + SPIRE (A/B) + Helm apps + host DNS helper
+    desc: cloud-provider-kind + ingress (A) + cert-manager + LB wait + CoreDNS B + SPIRE (A/B) + Helm apps + host DNS helper + verify
     cmds:
       - task prereq:stack
       - task kind:cloud-provider-kind:up
@@ -400,6 +401,13 @@ tasks:
     cmds:
       - ./scripts/verify-local-dns-helper.sh
 
+  compose:dns:resolver:install:
+    desc: macOS only — install /etc/resolver/csit.test for split DNS to local-dns (sudo; matches CSIT_LOCAL_DNS_HOST_PORT)
+    env:
+      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+    cmds:
+      - ./scripts/install-macos-resolver-csit.sh
+
   apps:install:cluster-a:
     desc: Helm controller + slim on cluster A only (Ingress in admin + cluster-a; requires ingress-nginx on A)
     deps: [ingress:install:a]
@@ -432,7 +440,7 @@ tasks:
       - |
         set -euo pipefail
         CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
           CHART_ROOT="${SLIM_REPO_PATH}/charts"
         fi
         if [ -d "${CHART_ROOT}/slim-control-plane" ]; then
@@ -465,7 +473,7 @@ tasks:
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_A }} {{ .NS_A }} {{ .SLIM_RELEASE_A }}
         CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
           CHART_ROOT="${SLIM_REPO_PATH}/charts"
         fi
         if [ -d "${CHART_ROOT}/slim" ]; then
@@ -498,7 +506,7 @@ tasks:
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_B }} {{ .NS_B }} {{ .SLIM_RELEASE_B }}
         CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if [ ! -d "${CHART_ROOT}/slim" ] && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
+        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
           CHART_ROOT="${SLIM_REPO_PATH}/charts"
         fi
         if [ -d "${CHART_ROOT}/slim" ]; then

@@ -45,7 +45,9 @@ ingressNorth:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-stream-timeout: "3600"
+    # Cleartext gRPC (h2c) from host→nginx needs HTTP/2 on :80 (nginx 1.25+; controller v1.10+).
     nginx.ingress.kubernetes.io/server-snippet: |
+      http2 on;
       grpc_socket_keepalive on;
       grpc_read_timeout 3600s;
       grpc_send_timeout 3600s;
