@@ -23,13 +23,12 @@ vars:
   CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
   CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default (env "SLIM_CONTROLLER_IMAGE_TAG") | default "1.0.0-dev.07" }}'
 
-  # Directory containing slim/ and slim-control-plane/ chart folders. Default = local agntcy/slim checkout.
-  # If .../slim is missing, tasks fall back to $SLIM_REPO_PATH/charts (e.g. CI) or OCI.
-  # Local checkout of agntcy/slim `charts/` (slim, slim-control-plane, slim-spire). CI sets this explicitly.
-  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default "" }}'
+  # Default local layout: `slim` checkout is a sibling of the `csit` repo (…/agntcy/csit/kind-slim-multi-host → …/agntcy/slim).
+  # Override with SLIM_REPO_PATH / SLIM_CHARTS_PATH (env or `task VAR=…`). CI sets these explicitly.
+  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default (printf "%s/../../slim/charts" .TASKFILE_DIR) }}'
 
-  # agntcy/slim repo root for cargo build of data-plane/slimctl (slimctl:build).
-  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default "" }}'
+  # agntcy/slim repo root (cargo slimctl:build, charts fallback). Same sibling default as SLIM_CHARTS_PATH.
+  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default (printf "%s/../../slim" .TASKFILE_DIR) }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
   # Must match SLIMCTL_PF_LOCAL_PORT when overriding local port (e.g. http://localhost:150051).
   SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL | default "http://localhost:50051" }}'

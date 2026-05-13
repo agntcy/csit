@@ -40,6 +40,7 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 - Docker, [kind](https://kind.sigs.k8s.io/), kubectl, jq, [Task](https://taskfile.dev/)
 - **`dig`** (bind / dnsutils) — required for **`task compose:dns:verify`** and recommended when debugging host DNS
 - **Helm** + **Go** for **`stack:up`** / **`stack:install`** (cloud-provider-kind uses `go run`)
+- **Local chart source:** by default **`SLIM_REPO_PATH`** and **`SLIM_CHARTS_PATH`** resolve to an **agntcy/slim** checkout **sibling** of the **csit** repo (e.g. `…/agntcy/{csit,slim}` — computed from this directory as **`../../slim`** and **`../../slim/charts`**). Set env **`SLIM_REPO_PATH`** / **`SLIM_CHARTS_PATH`** (or **`task VAR=…`**) if your layout differs. CI sets them explicitly.
 
 ### macOS host DNS for `*.csit.test`
 
@@ -150,7 +151,7 @@ flowchart LR
 
 **`apps:install:cluster-a`** runs after **`ingress:install:a`** (ingress chart pull may hit **`INGRESS_NGINX_HELM_REPO`** on first run unless cached).
 
-Environment overrides: `CLUSTER_*`, `CTX_*`, **`CSIT_DNS_ZONE`**, **`CSIT_INGRESS_IP_A`** / **`CSIT_INGRESS_IP_B`**, **`CSIT_DNS_CATCHALL_IP`** (wildcard `*.csit.test` in zone file), **`INGRESS_SVC`**, **`INGRESS_NGINX_*`**, **`SLIM_CHARTS_PATH`** / **`SLIM_REPO_PATH`**, **`CSIT_LOCAL_DNS_HOST_PORT`**.
+Environment overrides: `CLUSTER_*`, `CTX_*`, **`CSIT_DNS_ZONE`**, **`CSIT_INGRESS_IP_A`** / **`CSIT_INGRESS_IP_B`**, **`CSIT_DNS_CATCHALL_IP`** (wildcard `*.csit.test` in zone file), **`INGRESS_SVC`**, **`INGRESS_NGINX_*`**, **`SLIM_CHARTS_PATH`** / **`SLIM_REPO_PATH`** (defaults: sibling **`slim`** repo; see Prerequisites), **`CSIT_LOCAL_DNS_HOST_PORT`**.
 
 ## GitHub Actions
 

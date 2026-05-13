@@ -25,6 +25,10 @@ cleanup() { kill "$PF_PID" 2>/dev/null || true; }
 trap cleanup EXIT
 sleep 2
 
+# Plain http:// controller URL conflicts with global TLS client flags from env/config;
+# slimctl then errors after printing output. Clear only the common env overrides for this hop.
+unset SLIMCTL_COMMON_OPTS_TLS_INSECURE_SKIP_VERIFY SLIMCTL_COMMON_OPTS_TLS_INSECURE 2>/dev/null || true
+
 case "$ACTION" in
   link)
     "$SLIMCTL" -s "${SLIM_CONTROLLER_HTTP_URL:?}" controller link outline
