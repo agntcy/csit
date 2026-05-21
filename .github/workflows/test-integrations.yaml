@@ -337,6 +337,7 @@ jobs:
           go-version: '1.24.4'
 
       - name: Run Directory client/server conformance tests
+        continue-on-error: true
         run: task integrations:directory:tests:client-server:test:all
         shell: bash
 

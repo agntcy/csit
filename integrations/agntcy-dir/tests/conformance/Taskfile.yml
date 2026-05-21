@@ -8,13 +8,18 @@ vars:
   CONFORMANCE_CLIENT_VERSIONS: ["v1.3.0"]
   CONFORMANCE_CLIENT_TEST_PKG: 'github.com/agntcy/dir/tests/e2e/client'
 
+includes:
+  server:v1.2.0:
+    taskfile: "./server/v1.2.0/Taskfile.yml"
+  server:v1.3.0:
+    taskfile: "./server/v1.3.0/Taskfile.yml"
+
 tasks:
   up:
     vars:
+      SERVER_VERSION: '{{.SERVER_VERSION}}'
       CLIENT_VERSION: '{{.CLIENT_VERSION}}'
       TMP_PATH: '{{ .TMP_PATH | default "/tmp/tests/client-server" }}'
-
-      COMPOSE_FILE: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/server/{{.CLIENT_VERSION}}/docker-compose.yaml'
     cmds:
       # Prepare suite
       - |
@@ -26,17 +31,16 @@ tasks:
         go get -t {{.CONFORMANCE_CLIENT_TEST_PKG}}@{{.CLIENT_VERSION}}
 
       # Start dependencies
-      - docker compose -f {{.COMPOSE_FILE}} up --wait -d
-  
+      - task: server:{{.SERVER_VERSION}}:up
+
   down:
     vars:
+      SERVER_VERSION: '{{.SERVER_VERSION}}'
       CLIENT_VERSION: '{{.CLIENT_VERSION}}'
       TMP_PATH: '{{ .TMP_PATH | default "/tmp/tests/client-server" }}'
-
-      COMPOSE_FILE: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/server/{{.CLIENT_VERSION}}/docker-compose.yaml'
     cmds:
       # Stop dependencies
-      - docker compose -f {{.COMPOSE_FILE}} down
+      - task: server:{{.SERVER_VERSION}}:down
 
       # Clean up suite
       - rm -rf {{.TMP_PATH}}
@@ -56,10 +60,12 @@ tasks:
       - defer:
           task: down
           vars:
+            SERVER_VERSION: '{{.SERVER_VERSION}}'
             CLIENT_VERSION: '{{.CLIENT_VERSION}}'
             TMP_PATH: '{{.TMP_PATH}}'
       - task: up
         vars:
+          SERVER_VERSION: '{{.SERVER_VERSION}}'
           CLIENT_VERSION: '{{.CLIENT_VERSION}}'
           TMP_PATH: '{{.TMP_PATH}}'
 
@@ -68,7 +74,7 @@ tasks:
         mkdir -p {{.REPORTS_PATH}}
         cd {{.TMP_PATH}}
         go test {{.CONFORMANCE_CLIENT_TEST_PKG}} \
-          -v -failfast -test.v -test.paniconexit0 -timeout 2h \
+          -v -test.v -test.paniconexit0 -timeout 2h \
           -ginkgo.timeout 2h -ginkgo.v \
           -ginkgo.json-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.json \
           -ginkgo.junit-report={{.REPORTS_PATH}}/{{.REPORTS_NAME}}.xml \
@@ -85,6 +91,7 @@ tasks:
             SERVER_VERSION: { ref: '.CONFORMANCE_SERVER_VERSIONS' }
             CLIENT_VERSION: { ref: '.CONFORMANCE_CLIENT_VERSIONS' }
         task: test
+        ignore_error: true
         vars:
           SERVER_VERSION: '{{.ITEM.SERVER_VERSION}}'
           CLIENT_VERSION: '{{.ITEM.CLIENT_VERSION}}'

@@ -1,0 +1,15 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+version: "3"
+
+vars:
+  COMPOSE_FILE: "{{.TASKFILE_DIR}}/docker-compose.yaml"
+
+tasks:
+  up:
+    cmd: |
+      docker compose -f {{.COMPOSE_FILE}} up --wait -d
+  down:
+    cmd: |
+      docker compose -f {{.COMPOSE_FILE}} down --volumes
