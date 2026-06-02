@@ -1,0 +1,44 @@
+version: "3"
+
+silent: true
+
+vars:
+  REPORTS_DIR: '{{.REPORTS_DIR | default "../benchmarks/agntcy-slim/reports"}}'
+  PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
+
+tasks:
+  c1:prepare:
+    desc: Create analitics publish directories
+    cmds:
+      - mkdir -p "{{.PUBLISHED_DIR}}/smoke"
+
+  c1:sync:markdown:
+    desc: Sync smoke markdown outputs from benchmark reports
+    deps: [c1:prepare]
+    cmds:
+      - |
+        for file in ci-smoke-report.md suite_summary.md technical_report.md; do
+          if [ -f "{{.REPORTS_DIR}}/$file" ]; then
+            cp "{{.REPORTS_DIR}}/$file" "{{.PUBLISHED_DIR}}/smoke/$file"
+          fi
+        done
+
+  c1:render:summary:
+    desc: Render C1 summary markdown from template and report data
+    deps: [c1:prepare]
+    cmds:
+      - |
+        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
+        TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
+        bash ./scripts/render-c1-summary.sh
+
+  c1:build:
+    desc: Build C1 markdown publish artifacts
+    deps: [c1:sync:markdown, c1:render:summary]
+
+  c1:clean:
+    desc: Remove generated markdown publish artifacts
+    cmds:
+      - rm -f "{{.PUBLISHED_DIR}}/c1-evidence-summary.md"
+      - rm -f "{{.PUBLISHED_DIR}}/smoke/ci-smoke-report.md" "{{.PUBLISHED_DIR}}/smoke/suite_summary.md" "{{.PUBLISHED_DIR}}/smoke/technical_report.md"
