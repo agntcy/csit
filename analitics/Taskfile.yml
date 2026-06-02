@@ -7,14 +7,14 @@ vars:
   PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
 
 tasks:
-  c1:prepare:
+  dashboard:prepare:
     desc: Create analitics publish directories
     cmds:
       - mkdir -p "{{.PUBLISHED_DIR}}/smoke"
 
-  c1:sync:markdown:
+  dashboard:sync:markdown:
     desc: Sync smoke markdown outputs from benchmark reports
-    deps: [c1:prepare]
+    deps: [dashboard:prepare]
     cmds:
       - |
         for file in ci-smoke-report.md suite_summary.md technical_report.md; do
@@ -23,9 +23,19 @@ tasks:
           fi
         done
 
-  c1:render:summary:
-    desc: Render C1 summary markdown from template and report data
-    deps: [c1:prepare]
+  dashboard:render:
+    desc: Render static HTML evidence dashboard
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
+        TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
+        bash ./scripts/render-dashboard.sh
+
+  dashboard:render:summary:
+    desc: Render optional C1 markdown summary
+    deps: [dashboard:prepare]
     cmds:
       - |
         REPORTS_DIR="{{.REPORTS_DIR}}" \
@@ -33,12 +43,18 @@ tasks:
         TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
         bash ./scripts/render-c1-summary.sh
 
-  c1:build:
-    desc: Build C1 markdown publish artifacts
-    deps: [c1:sync:markdown, c1:render:summary]
+  dashboard:build:
+    desc: Sync evidence markdown and render static HTML dashboard
+    deps: [dashboard:sync:markdown, dashboard:render, dashboard:render:summary]
 
-  c1:clean:
-    desc: Remove generated markdown publish artifacts
+  dashboard:clean:
+    desc: Remove generated publish artifacts
     cmds:
+      - rm -f "{{.PUBLISHED_DIR}}/index.html"
       - rm -f "{{.PUBLISHED_DIR}}/c1-evidence-summary.md"
       - rm -f "{{.PUBLISHED_DIR}}/smoke/ci-smoke-report.md" "{{.PUBLISHED_DIR}}/smoke/suite_summary.md" "{{.PUBLISHED_DIR}}/smoke/technical_report.md"
+
+  # Backward-compatible aliases
+  c1:build:
+    desc: Alias for dashboard:build
+    deps: [dashboard:build]

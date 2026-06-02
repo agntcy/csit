@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSIT SLIM Evidence — Agentic Systems Taxonomy</title>
+  <style>
+    :root {
+      --bg: #f4f6f8; --panel: #fff; --text: #1a2332; --muted: #5a6b7d;
+      --accent: #0d6e6e; --accent-soft: rgba(13,110,110,.1);
+      --ok: #1d6b3a; --ok-bg: #e8f5ec; --fail: #9b2c2c; --fail-bg: #fdecec;
+      --partial: #8a6116; --partial-bg: #fef6e8; --planned: #4a5568; --planned-bg: #edf2f7;
+      --unknown: #5a6b7d; --unknown-bg: #eef1f5; --border: #dde3ea;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.55;
+      color: var(--text); background: var(--bg); padding: 2rem 1.25rem 4rem; }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    .badge { display: inline-block; font-size: .75rem; font-weight: 600; text-transform: uppercase;
+      color: var(--accent); background: var(--accent-soft); padding: .25rem .6rem; border-radius: 4px; margin-bottom: .75rem; }
+    h1 { margin: 0 0 .5rem; font-size: clamp(1.75rem, 4vw, 2.25rem); }
+    h2 { margin: 0 0 .75rem; font-size: 1.35rem; }
+    h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
+    p { margin: 0 0 1rem; color: var(--muted); }
+    .hero-lead { font-size: 1.05rem; color: var(--text); max-width: 70ch; }
+    .hero-lead strong { color: var(--accent); }
+    .meta { font-size: .875rem; margin-bottom: 2rem; }
+    .meta a { color: var(--accent); }
+    section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(26,35,50,.08); padding: 1.5rem 1.75rem; margin-bottom: 1.5rem; }
+    .agentic-class { border-left: 4px solid var(--accent); }
+    .class-tag { font-size: .75rem; font-weight: 700; letter-spacing: .04em; color: var(--accent);
+      text-transform: uppercase; margin-bottom: .35rem; }
+    .class-def { font-size: .9375rem; margin-bottom: 1.25rem; max-width: 72ch; }
+    .class-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem; margin-bottom: .5rem; }
+    table.use-grid { width: 100%; border-collapse: collapse; font-size: .9375rem; margin-bottom: 1.25rem; }
+    .use-grid th, .use-grid td { text-align: left; padding: .75rem .5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .use-grid th { font-weight: 600; color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+    .use-name { font-weight: 600; color: var(--text); }
+    .use-meta { font-size: .875rem; color: var(--muted); margin-top: .15rem; }
+    .evidence-links { list-style: none; padding: 0; margin: 0; font-size: .875rem; }
+    .evidence-links li { margin: .2rem 0; }
+    .evidence-links a { color: var(--accent); }
+    .status { display: inline-block; font-size: .8125rem; font-weight: 600; padding: .2rem .55rem; border-radius: 6px; white-space: nowrap; }
+    .status-verified { background: var(--ok-bg); color: var(--ok); }
+    .status-failed { background: var(--fail-bg); color: var(--fail); }
+    .status-partial { background: var(--partial-bg); color: var(--partial); }
+    .status-planned { background: var(--planned-bg); color: var(--planned); }
+    .status-unknown { background: var(--unknown-bg); color: var(--unknown); }
+    .scenario-card { border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; background: #fafbfc; margin-top: .5rem; }
+    .scenario-card h3 { margin-top: 0; }
+    .scenario-meta { font-size: .75rem; color: var(--muted); margin-bottom: .75rem; }
+    .topology { font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45;
+      background: #1a2332; color: #e2e8f0; padding: 1rem; border-radius: 8px; margin: .75rem 0 1rem; overflow-x: auto; }
+    .rerun { font-size: .8125rem; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: .5rem .65rem; margin-top: .75rem; }
+    .rerun code { font-size: .8rem; word-break: break-all; }
+    details.appendix { border: 1px dashed var(--border); border-radius: 12px; background: var(--panel); }
+    details.appendix summary { cursor: pointer; padding: 1rem 1.5rem; font-weight: 600; }
+    .appendix-body { padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--border); }
+    .appendix-note { font-size: .9rem; font-style: italic; color: var(--muted); margin-bottom: 1rem; }
+    footer { margin-top: 2rem; font-size: .8125rem; color: var(--muted); text-align: center; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="badge">Generated evidence dashboard</p>
+
+    <section>
+      <h1>SLIM evidence by agentic system class</h1>
+      <p class="hero-lead"><strong>SLIM</strong> is the messaging layer for agent systems. This page maps CSIT test evidence to the agentic-system taxonomy: each <strong>class</strong> section lists related <strong>use cases</strong>, and each use case links to test-derived <strong>evidence</strong>.</p>
+      <p class="meta">Last updated: {{GENERATED_AT}} · Contract: <a href="../docs/plans/slim-c1-evidence-contract-v1.md">C1 evidence v1</a> · <a href="https://github.com/agntcy/csit/discussions/195">Discussion #195</a></p>
+    </section>
+
+    <!-- C1 — Centralized -->
+    <section class="agentic-class" id="c1-centralized">
+      <p class="class-tag">C1 · Centralized</p>
+      <div class="class-head">
+        <h2>Single authority controls routing and invocation</h2>
+        {{C1_CLASS_STATUS_SPAN}}
+      </div>
+      <p class="class-def">Hub-and-spoke coordination through one SLIM node or control-plane entry. Agents connect through that authority rather than negotiating peers independently.</p>
+
+      <table class="use-grid">
+        <thead>
+          <tr>
+            <th>Use case</th>
+            <th>SLIM mechanism</th>
+            <th>Status</th>
+            <th>Test / scenario</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="c1-request-reply">
+            <td>
+              <div class="use-name">Agent A calls B and waits for a reply</div>
+              <div class="use-meta">Named endpoints with synchronous round-trip on one node</div>
+            </td>
+            <td><code>request-reply</code></td>
+            <td>{{C1_RR_STATUS_SPAN}}<div class="use-meta">{{C1_RR_ROWS}} runs in results.tsv</div></td>
+            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="smoke/suite_summary.md">Suite summary</a></li>
+                <li><a href="smoke/technical_report.md">Technical report</a></li>
+                <li><a href="c1-evidence-summary.md">C1 summary (md)</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr id="c1-fire-and-forget">
+            <td>
+              <div class="use-name">Agent fires event; consumer handles async</div>
+              <div class="use-meta">One-way delivery through a single SLIM authority with sink observation</div>
+            </td>
+            <td><code>fire-and-forget</code></td>
+            <td>{{C1_FF_STATUS_SPAN}}<div class="use-meta">{{C1_FF_ROWS}} runs in results.tsv</div></td>
+            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="smoke/suite_summary.md">Suite summary</a></li>
+                <li><a href="smoke/technical_report.md">Technical report</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr id="c1-write">
+            <td>
+              <div class="use-name">Publish into mesh without paired responder</div>
+              <div class="use-meta">Ingress/write path without a bound responder process</div>
+            </td>
+            <td><code>write</code></td>
+            <td>{{C1_W_STATUS_SPAN}}<div class="use-meta">{{C1_W_ROWS}} runs in results.tsv</div></td>
+            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="smoke/suite_summary.md">Suite summary</a></li>
+                <li><a href="smoke/technical_report.md">Technical report</a></li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <article class="scenario-card" id="c1-scenario-smoke">
+        <h3>Test evidence: local messaging smoke</h3>
+        <p class="scenario-meta">Single-node · task benchmarks:slim:benchmark:ci:suite-smoke</p>
+        <p>Proves all three C1 messaging modes on one local <code>slimctl</code> node. Status per row is evaluated from <code>results.tsv</code> (zero sender/sink errors).</p>
+        <div class="rerun"><strong>Rerun:</strong><br><code>task benchmarks:slim:deps:slimctl-download SLIMCTL_PATH="$HOME/.local/bin/slimctl"</code><br><code>export PATH="$HOME/.local/bin:$PATH"</code><br><code>task benchmarks:slim:benchmark:ci:suite-smoke</code><br><code>task -t analitics/Taskfile.yml dashboard:build</code></div>
+      </article>
+    </section>
+
+    <!-- C2 — Decentralized -->
+    <section class="agentic-class" id="c2-decentralized">
+      <p class="class-tag">C2 · Decentralized</p>
+      <div class="class-head">
+        <h2>Workflow or route graph coordinates agents</h2>
+        <span class="status status-partial">Partial</span>
+      </div>
+      <p class="class-def">No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order.</p>
+
+      <table class="use-grid">
+        <thead>
+          <tr>
+            <th>Use case</th>
+            <th>SLIM mechanism</th>
+            <th>Status</th>
+            <th>Test / scenario</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="c2-topology-routing">
+            <td>
+              <div class="use-name">Multi-agent scenario with fixed routes (Alice/Bob)</div>
+              <div class="use-meta">Named multi-hop delivery across SLIM servers</div>
+            </td>
+            <td><code>declarative routes</code></td>
+            <td><span class="status status-partial">Partial</span></td>
+            <td>Topology test<br><span class="use-meta">integrations/agntcy-slim</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="../../integrations/agntcy-slim/TopologyTest.md">TopologyTest.md</a></li>
+                <li><span class="use-meta">Dashboard row: August</span></li>
+              </ul>
+            </td>
+          </tr>
+          <tr id="c2-workflow-app">
+            <td>
+              <div class="use-name">Multi-step app driven by workflow manager</div>
+              <div class="use-meta">SLIM under external workflow steps</div>
+            </td>
+            <td><code>workflow + SLIM</code></td>
+            <td><span class="status status-planned">Planned</span></td>
+            <td>agntcy-apps campaigns<br><span class="use-meta">integrations/agntcy-apps</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><span class="use-meta">Narrative only — evidence TBD</span></li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <article class="scenario-card" id="c2-scenario-topology">
+        <h3>Test evidence: topology routing (planned integration)</h3>
+        <p class="scenario-meta">Multi-node · integrations/agntcy-slim topology Ginkgo suite</p>
+        <p>Will link topology test reports when wired into the analitics publish flow.</p>
+        <div class="rerun"><strong>Rerun (dev):</strong><br><code>task integrations:slim:test:topology</code></div>
+      </article>
+    </section>
+
+    <!-- C3 — Distributed -->
+    <section class="agentic-class" id="c3-distributed">
+      <p class="class-tag">C3 · Distributed</p>
+      <div class="class-head">
+        <h2>Peers across clusters; control plane establishes links</h2>
+        <span class="status status-verified">Verified</span>
+      </div>
+      <p class="class-def">Dataplanes operate as peers across hosts or clusters. Paths are established via control-plane links and policy, not a fixed workflow script.</p>
+
+      <table class="use-grid">
+        <thead>
+          <tr>
+            <th>Use case</th>
+            <th>SLIM mechanism</th>
+            <th>Status</th>
+            <th>Test / scenario</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="c3-mesh-join">
+            <td>
+              <div class="use-name">Downstream cluster joins controller mesh</div>
+              <div class="use-meta">Node Connected, link APPLIED B → A</div>
+            </td>
+            <td><code>controller link</code></td>
+            <td><span class="status status-verified">Verified</span></td>
+            <td>Multicluster controller link<br><span class="use-meta">kind-slim-multicluster</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="../../integrations/kind-slim-multicluster/">Integration suite</a></li>
+                <li><a href="../../kind-slim-multi-host/README.md">KinD stack README</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr id="c3-link-persistence">
+            <td>
+              <div class="use-name">Control plane survives rollout; same link ID</div>
+              <div class="use-meta">Link persistence after controller restart</div>
+            </td>
+            <td><code>link persistence</code></td>
+            <td><span class="status status-verified">Verified</span></td>
+            <td>Same multicluster suite</td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="../../integrations/kind-slim-multicluster/">Integration suite</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr id="c3-autonomous-peers">
+            <td>
+              <div class="use-name">Autonomous peers across hosts (no fixed WFSM)</div>
+              <div class="use-meta">Federation + optional routes</div>
+            </td>
+            <td><code>federation</code></td>
+            <td><span class="status status-partial">Refine</span></td>
+            <td>Multicluster / peer-to-peer config</td>
+            <td>
+              <ul class="evidence-links">
+                <li><span class="use-meta">Evidence contract TBD</span></li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <article class="scenario-card" id="c3-scenario-multicluster">
+        <h3>Test evidence: multicluster controller link</h3>
+        <p class="scenario-meta">kind-slim-multi-host + integrations/kind-slim-multicluster</p>
+        <pre class="topology">cluster A: controller + root node
+cluster B: downstream node
+Link B → A: APPLIED · node B: Connected</pre>
+        <div class="rerun"><strong>Rerun:</strong><br><code>CSIT_KIND_SLIM_MULTICLUSTER=1 go test ./integrations/kind-slim-multicluster/... -ginkgo.label-filter=kind-slim-multicluster</code></div>
+      </article>
+    </section>
+
+    <details class="appendix">
+      <summary>Performance benchmarks (appendix only)</summary>
+      <div class="appendix-body">
+        <p class="appendix-note">Throughput and latency numbers support capacity planning; they do not replace class-level use-case evidence above.</p>
+        <p><a href="../../benchmarks/agntcy-slim/">benchmarks/agntcy-slim</a> · Published via <code>report_dashboard.go</code> on GitHub Pages.</p>
+      </div>
+    </details>
+
+    <footer>
+      Generated by <code>analitics/scripts/render-dashboard.sh</code> ·
+      <a href="https://github.com/agntcy/csit/discussions/195">Discussion #195</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -166,4 +166,4 @@ mode	clients	size	rate	repeat	...	sender_runtime_errors	...	sink_errors	...
 
 - `benchmarks/agntcy-slim/tools/report_dashboard.go` — smoke section artifact list
 - `benchmarks/agntcy-slim/README.md` — suite and CI smoke description
-- Mockup: [`../../analitics/test-dashboard.html`](../../analitics/test-dashboard.html)
+- Dashboard: [`../../analitics/published/index.html`](../../analitics/published/index.html)

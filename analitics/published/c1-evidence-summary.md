@@ -1,6 +1,6 @@
 # C1 Evidence Summary
 
-**Generated at:** 2026-06-02T13:45:49Z  
+**Generated at:** 2026-06-02T16:29:20Z  
 **Scope:** C1 use cases only (`request-reply`, `fire-and-forget`, `write`)  
 **Source contract:** `docs/plans/slim-c1-evidence-contract-v1.md`
 

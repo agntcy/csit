@@ -4,7 +4,7 @@
 
 **End goal:** Publish `site/benchmarks/slim/index.html` so readers see which **classes of agentic systems** and **use cases** SLIM addresses, backed by CSIT evidence — not benchmark leaderboards.
 
-**Context:** [Discussion #195](https://github.com/agntcy/csit/discussions/195) · deadline **2026-07-31** · mockup: [`../../analitics/test-dashboard.html`](../../analitics/test-dashboard.html)
+**Context:** [Discussion #195](https://github.com/agntcy/csit/discussions/195) · deadline **2026-07-31** · dashboard: [`../../analitics/published/index.html`](../../analitics/published/index.html)
 
 ---
 
@@ -86,13 +86,13 @@ Three categories by **who controls message flow and agent coordination** — not
 | Agent A calls B and waits for reply | C1 | `request-reply` | `benchmarks/agntcy-slim` smoke | Proven |
 | Agent fires event; consumer handles async | C1 | `fire-and-forget` | Same | Proven |
 | Publish into mesh without paired responder | C1 | `write` | Same | Proven |
-
-**C1 rows (frozen):** see [`slim-c1-evidence-contract-v1.md`](slim-c1-evidence-contract-v1.md) for row IDs, artifact contract, and dashboard metadata mapping.
 | Multi-agent scenario with fixed routes (Alice/Bob) | C2 | Declarative routes + servers | `integrations/agntcy-slim` topology | Partial / Aug |
 | Multi-step app driven by workflow manager | C2 | SLIM under workflow steps | `integrations/agntcy-apps` | Gap / narrative only |
 | Downstream cluster joins controller mesh | C3 | Node **Connected**, link **APPLIED** | `kind-slim-multicluster` | Proven (July) |
 | Control plane survives rollout; same link ID | C3 | Link persistence | Same suite | Proven |
 | Autonomous peers across hosts (no fixed WFSM) | C3 | Federation + optional routes | Multicluster and/or peer-to-peer config | Refine |
+
+**C1 rows (frozen):** see [`slim-c1-evidence-contract-v1.md`](slim-c1-evidence-contract-v1.md). **Dashboard:** [`analitics/published/index.html`](../../analitics/published/index.html).
 
 **Deliverable (next iteration):** expand C2/C3 rows and gaps; C1 slice is frozen in [`slim-c1-evidence-contract-v1.md`](slim-c1-evidence-contract-v1.md).
 
@@ -146,7 +146,7 @@ Existing benchmark HTML; disclaimer: perf supports capacity planning, not **clas
 Goal: ship a minimum, rerunnable C1 evidence loop that produces linkable artifacts and a clean dashboard shell without waiting for C2/C3 expansion.
 
 **Implementation base directory:** `analitics/` (repo root)  
-**Main summary markdown:** `analitics/README.md`
+**Generated dashboard:** `analitics/published/index.html`
 
 ### Scope boundaries (slice 1)
 
@@ -162,7 +162,7 @@ Execution detail lives in GitHub issues (titles, bodies, acceptance criteria). T
 |------------|----------------------|-----------------|
 | C1 scope + evidence contract | 3 C1 rows frozen; artifact + row-metadata contract `v1` | `slim-c1-scope-and-evidence-contract` → [`slim-c1-evidence-contract-v1.md`](slim-c1-evidence-contract-v1.md) |
 | Runbook + verification | Repeatable smoke rerun; reviewer checklist | `slim-c1-runbook-and-verification` |
-| Dashboard template | C1-first `test-dashboard.html`; C2/C3 placeholders | `slim-c1-dashboard-template` |
+| Dashboard template | Taxonomy-structured static HTML; C1 live status | `slim-c1-dashboard-template` → `analitics/templates/dashboard.html.tmpl` |
 | Pages / link wiring | Published + fallback links stable per row | `slim-c1-pages-wiring` |
 
 **Critical path:** scope/contract → (runbook ∥ template scaffold) → template finalize + pages validation.
@@ -211,7 +211,7 @@ Frozen in [`slim-c1-evidence-contract-v1.md`](slim-c1-evidence-contract-v1.md):
 
 ### Clean initial dashboard template (C1-first)
 
-Template structure to implement in `analitics/test-dashboard.html`:
+Template structure in `analitics/templates/dashboard.html.tmpl` (output: `analitics/published/index.html`):
 
 1. **Header/context**
    - short statement of C1 scope for slice 1

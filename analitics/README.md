@@ -1,82 +1,73 @@
-# C1 Analitics Implementation (Draft)
+# SLIM analitics — evidence dashboard
 
-This directory is the base for the first C1-focused implementation slice.
-It packages planning, evidence contracts, templates, and generated markdown
-artifacts used to publish and review CSIT evidence for SLIM.
+This directory builds a **static HTML evidence dashboard** organized by agentic-system
+taxonomy (C1 / C2 / C3). Each class section lists use cases; each use case links to
+test-derived evidence artifacts.
 
-## Initial goal summary
+## Structure
 
-Starting from the agentic systems taxonomy:
+```text
+Class (C1 / C2 / C3)
+  └── Use cases (table rows)
+        └── Evidence links (markdown reports, integration docs, rerun commands)
+```
 
-- **C1 Centralized:** a single authority controls routing/invocation.
-- **C2 Decentralized:** workflow/route graph coordinates agents.
-- **C3 Distributed:** federated peers across hosts/clusters.
+## Primary output
 
-This implementation focuses on **C1** use cases and their evidence:
+After build, open:
 
-- `request-reply`
-- `fire-and-forget`
-- `write`
+- **`published/index.html`** — generated static dashboard
 
-Evidence source is the smoke benchmark workflow and artifacts documented in:
+Optional:
 
-- `docs/plans/slim-c1-evidence-contract-v1.md`
+- **`published/c1-evidence-summary.md`** — C1-only markdown summary
+- **`published/smoke/*.md`** — synced smoke benchmark reports
 
-## Scope of this scaffolding
+## Build
 
-- Define a reusable local build flow for C1 evidence markdown.
-- Sync smoke markdown outputs from benchmark reports.
-- Render a C1 summary markdown page for publishing/review.
-- Keep implementation artifacts under this `analitics` base directory (repo root).
+From repo root:
 
-## Directory layout
+```bash
+task -t analitics/Taskfile.yml dashboard:build
+```
+
+Steps:
+
+1. Sync smoke markdown from `benchmarks/agntcy-slim/reports/`
+2. Evaluate C1 row status from `results.tsv`
+3. Render `published/index.html` from `templates/dashboard.html.tmpl`
+
+## Layout
 
 ```text
 analitics/
 ├── README.md
 ├── Taskfile.yml
-├── dsu-3.txt
-├── test-dashboard.html
+├── test-dashboard.html          # legacy mockup reference
 ├── templates/
+│   ├── dashboard.html.tmpl    # static HTML source template
 │   └── c1-summary.md.tmpl
 ├── scripts/
+│   ├── evidence-lib.sh
+│   ├── render-dashboard.sh
 │   └── render-c1-summary.sh
 └── published/
-    ├── README.md
+    ├── index.html             # generated dashboard
     ├── c1-evidence-summary.md
     └── smoke/
-        └── README.md
 ```
 
-## Resources
-
-- **Task files**
-  - `analitics/Taskfile.yml` (C1 sync/render workflow)
-  - Existing benchmark tasks under `benchmarks/agntcy-slim/Taskfile.yml`
-- **Templates**
-  - `analitics/templates/c1-summary.md.tmpl`
-  - HTML mockup `analitics/test-dashboard.html`
-- **Published pages / markdown outputs**
-  - `analitics/published/c1-evidence-summary.md`
-  - `analitics/published/smoke/*.md` (synced from reports when available)
-
-## How to run
-
-From repo root:
-
-```bash
-task -t analitics/Taskfile.yml c1:build
-```
-
-This will:
-
-1. create publish folders under `analitics/published/`,
-2. sync smoke markdown reports from `benchmarks/agntcy-slim/reports/`,
-3. render `published/c1-evidence-summary.md` from template + report data.
-
-## Relationship to prior planning
+## Planning references
 
 - Epic: `docs/plans/slim-dashboard-epic.md`
 - C1 contract: `docs/plans/slim-c1-evidence-contract-v1.md`
 
-This directory is the implementation-facing layer for those planning artifacts.
+## Status evaluation (C1)
+
+C1 use-case status is derived from `benchmarks/agntcy-slim/reports/results.tsv`:
+
+- `verified` — all rows for the mode have zero sender/sink errors
+- `failed` — any row has errors
+- `unknown` — no rows for the mode
+
+C2/C3 rows use static status until their test evidence is wired into the build flow.
