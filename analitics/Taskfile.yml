@@ -2,6 +2,12 @@ version: "3"
 
 silent: true
 
+includes:
+  slim:
+    taskfile: ../benchmarks/agntcy-slim/Taskfile.yml
+    dir: ../benchmarks/agntcy-slim
+    excludes: [default]
+
 vars:
   REPORTS_DIR: '{{.REPORTS_DIR | default "../benchmarks/agntcy-slim/reports"}}'
   PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
@@ -12,9 +18,13 @@ tasks:
     cmds:
       - mkdir -p "{{.PUBLISHED_DIR}}/smoke"
 
+  dashboard:run:smoke:
+    desc: Run SLIM CI smoke suite (imported from benchmarks/agntcy-slim)
+    deps: [slim:benchmark:ci:suite-smoke]
+
   dashboard:sync:markdown:
     desc: Sync smoke markdown outputs from benchmark reports
-    deps: [dashboard:prepare]
+    deps: [dashboard:prepare, dashboard:run:smoke]
     cmds:
       - |
         for file in ci-smoke-report.md suite_summary.md technical_report.md; do
@@ -25,7 +35,7 @@ tasks:
 
   dashboard:render:
     desc: Render static HTML evidence dashboard
-    deps: [dashboard:prepare]
+    deps: [dashboard:prepare, dashboard:run:smoke]
     cmds:
       - |
         REPORTS_DIR="{{.REPORTS_DIR}}" \
@@ -35,7 +45,7 @@ tasks:
 
   dashboard:render:summary:
     desc: Render optional C1 markdown summary
-    deps: [dashboard:prepare]
+    deps: [dashboard:prepare, dashboard:run:smoke]
     cmds:
       - |
         REPORTS_DIR="{{.REPORTS_DIR}}" \
@@ -44,8 +54,43 @@ tasks:
         bash ./scripts/render-c1-summary.sh
 
   dashboard:build:
-    desc: Sync evidence markdown and render static HTML dashboard
+    desc: Run smoke tests, sync evidence markdown, render static HTML dashboard
     deps: [dashboard:sync:markdown, dashboard:render, dashboard:render:summary]
+
+  dashboard:build:only:
+    desc: Render dashboard from existing benchmark reports (skip smoke run)
+    deps: [dashboard:sync:only, dashboard:render:only, dashboard:render:summary:only]
+
+  dashboard:sync:only:
+    desc: Sync smoke markdown without re-running tests
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        for file in ci-smoke-report.md suite_summary.md technical_report.md; do
+          if [ -f "{{.REPORTS_DIR}}/$file" ]; then
+            cp "{{.REPORTS_DIR}}/$file" "{{.PUBLISHED_DIR}}/smoke/$file"
+          fi
+        done
+
+  dashboard:render:only:
+    desc: Render HTML dashboard without re-running tests
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
+        TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
+        bash ./scripts/render-dashboard.sh
+
+  dashboard:render:summary:only:
+    desc: Render C1 markdown summary without re-running tests
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
+        TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
+        bash ./scripts/render-c1-summary.sh
 
   dashboard:clean:
     desc: Remove generated publish artifacts

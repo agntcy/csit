@@ -28,14 +28,22 @@ Optional:
 From repo root:
 
 ```bash
+# Full pipeline: run SLIM smoke tests, then render dashboard
 task -t analitics/Taskfile.yml dashboard:build
+
+# Fast rebuild from existing benchmark reports (no test run)
+task -t analitics/Taskfile.yml dashboard:build:only
 ```
+
+`dashboard:build` depends on `slim:benchmark:ci:suite-smoke`, imported from
+`benchmarks/agntcy-slim/Taskfile.yml` (same task used in CI).
 
 Steps:
 
-1. Sync smoke markdown from `benchmarks/agntcy-slim/reports/`
-2. Evaluate C1 row status from `results.tsv`
-3. Render `published/index.html` from `templates/dashboard.html.tmpl`
+1. Run `benchmark:ci:suite-smoke` → writes `benchmarks/agntcy-slim/reports/`
+2. Sync smoke markdown into `published/smoke/`
+3. Evaluate C1 row status from `results.tsv`
+4. Render `published/index.html`
 
 ## Layout
 
