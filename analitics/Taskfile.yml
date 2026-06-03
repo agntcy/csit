@@ -55,7 +55,11 @@ tasks:
 
   dashboard:build:
     desc: Run smoke tests, sync evidence markdown, render static HTML dashboard
-    deps: [dashboard:sync:markdown, dashboard:render, dashboard:render:summary]
+    deps: [dashboard:prepare, dashboard:run:smoke]
+    cmds:
+      - task: dashboard:sync:only
+      - task: dashboard:render:only
+      - task: dashboard:render:summary:only
 
   dashboard:build:only:
     desc: Render dashboard from existing benchmark reports (skip smoke run)
