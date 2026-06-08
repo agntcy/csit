@@ -13,14 +13,6 @@ on:
         description: "Kind version"
         required: false
         default: "0.24.0"
-      override_directory_image_tag:
-        description: "Override Directory image tag"
-        required: false
-        default: ""
-      override_directory_chart_tag:
-        description: "Override Directory chart tag"
-        required: false
-        default: ""
       override_slim_image_tag:
         description: "Override Slim image tag"
         required: false
@@ -255,57 +247,6 @@ jobs:
         with:
           artifact-name: "slim-test-result"
 
-  run-tests-directory:
-    if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_directory_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-directory == 'true') }}
-    needs: [detect-changes, set-kind-version]
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: "read"
-      id-token: "write"
-      packages: "read"
-      attestations: "read"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          python: true
-          go: false
-
-      - name: Setup K8S Tools
-        uses: ./.github/actions/setup-k8s
-        with:
-          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
-
-      - name: Deploy Directory
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-directory: "true"
-          directory-image-tag: ${{ inputs.override_directory_image_tag}}
-          directory-chart-tag: ${{ inputs.override_directory_chart_tag }}
-
-      - name: Run Directory tests
-        run: task integrations:directory:test
-        shell: bash
-
-      - name: Create artifact from integrations test reports
-        uses: ./.github/actions/create-artifact
-        with:
-          artifact-name: "directory-test-result"
-
   run-tests-directory-conformance:
     if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_directory_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-directory == 'true') }}
     needs: [detect-changes]
@@ -334,7 +275,7 @@ jobs:
         with:
           python: false
           go: true
-          go-version: '1.24.4'
+          go-version: "1.24.4"
 
       - name: Run Directory client/server conformance tests
         continue-on-error: true
@@ -363,102 +304,102 @@ jobs:
             display-name: Rust/Go
             task: integrations:a2a:test:rust-go
             artifact-name: a2a-interop-test-result-rust-go
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: python-go
             display-name: Python/Go
             task: integrations:a2a:test:python-go
             artifact-name: a2a-interop-test-result-python-go
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: rust-python
             display-name: Rust/Python
             task: integrations:a2a:test:rust-python
             artifact-name: a2a-interop-test-result-rust-python
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: rust-dotnet
             display-name: Rust/C#
             task: integrations:a2a:test:rust-dotnet
             artifact-name: a2a-interop-test-result-rust-dotnet
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'true'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
           - id: go-dotnet
             display-name: Go/C#
             task: integrations:a2a:test:go-dotnet
             artifact-name: a2a-interop-test-result-go-dotnet
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'true'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
           - id: python-dotnet
             display-name: Python/C#
             task: integrations:a2a:test:python-dotnet
             artifact-name: a2a-interop-test-result-python-dotnet
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'true'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
           - id: self-go
             display-name: Self Go
             task: integrations:a2a:test:self-go
             artifact-name: a2a-interop-test-result-self-go
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: self-rust
             display-name: Self Rust
             task: integrations:a2a:test:self-rust
             artifact-name: a2a-interop-test-result-self-rust
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: self-python
             display-name: Self Python
             task: integrations:a2a:test:self-python
             artifact-name: a2a-interop-test-result-self-python
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'false'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
           - id: self-dotnet
             display-name: Self C#
             task: integrations:a2a:test:self-dotnet
             artifact-name: a2a-interop-test-result-self-dotnet
-            setup-python: 'false'
-            setup-uv: 'true'
-            setup-go: 'true'
-            go-version: '1.24.4'
-            setup-dotnet: 'true'
-            dotnet-version: '8.0.x'
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
 
     name: A2A ${{ matrix.display-name }}
 
@@ -593,7 +534,6 @@ jobs:
     needs:
       [
         run-tests-slim-topology,
-        run-tests-directory,
         run-tests-directory-conformance,
         run-tests-a2a,
       ]
@@ -687,10 +627,6 @@ jobs:
           emit_section "Slim / Topology" \
             "${{ needs.run-tests-slim-topology.result }}" \
             "report-slim-"
-
-          emit_section "Directory" \
-            "${{ needs.run-tests-directory.result }}" \
-            "report-agntcy-dir[^-]"
 
           emit_section "Directory / Conformance" \
             "${{ needs.run-tests-directory-conformance.result }}" \
