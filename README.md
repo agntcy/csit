@@ -86,18 +86,6 @@ task: Available tasks for this project:
 * integrations:apps:get-marketing-campaign-cfgs:          Populate marketing campaign config file
 * integrations:apps:init-submodules:                      Initialize submodules
 * integrations:apps:run-marketing-campaign:               Run marketing campaign
-* integrations:directory:download:dirctl-bin:             Get dirctl binary from GitHub
-* integrations:directory:test:                            All directory test
-* integrations:directory:test-env:bootstrap:deploy:       Deploy Directory network peers
-* integrations:directory:test-env:cleanup:                Remove agntcy directory test env
-* integrations:directory:test-env:deploy:                 Deploy Agntcy directory test env
-* integrations:directory:test-env:network:cleanup:        Remove Directory network peers
-* integrations:directory:test-env:network:deploy:         Deploy Directory network peers
-* integrations:directory:test:compiler:                   Agntcy compiler test
-* integrations:directory:test:delete:                     Directory agent delete test
-* integrations:directory:test:list:                       Directory agent list test
-* integrations:directory:test:networking:                 Directory agent networking test
-* integrations:directory:test:push:                       Directory agent push test
 * integrations:slim:build:agentic-apps:                   Build agentic containers
 * integrations:slim:cert-manager:deploy:                  Deploy cert-manager
 * integrations:slim:cert-manager:remove:                  Remove cert-manager
