@@ -1,0 +1,156 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+  name: urban-traffic-reroute
+  domain: realtime-traffic-management
+  description: >
+    Highway I-5 northbound lane closure after accident; agents recompute routes,
+    adjust signals, and reroute transit. Corridor reopening ETA revision cancels
+    stale detour plans via context update.
+spec:
+  defaults:
+    completionTimeSec: 0.35
+    maxCompletionTimeSec: 2.0
+  maxRetries: 1
+
+agents:
+  - id: incident-detector
+    slimName: agntcy/bench/incident-detector
+    a2aPort: 9201
+  - id: flow-modeler
+    slimName: agntcy/bench/flow-modeler
+    a2aPort: 9202
+  - id: route-planner
+    slimName: agntcy/bench/route-planner
+    a2aPort: 9203
+  - id: signal-coordinator
+    slimName: agntcy/bench/signal-coordinator
+    a2aPort: 9204
+  - id: transit-dispatcher
+    slimName: agntcy/bench/transit-dispatcher
+    a2aPort: 9205
+  - id: alert-broadcaster
+    slimName: agntcy/bench/alert-broadcaster
+    a2aPort: 9206
+
+tasks:
+  - id: detect-lane-closure
+    name: Detect lane closure from camera and WIM sensor feed
+    agent: incident-detector
+    dependsOn: []
+    completionTimeSec: 0.2
+    maxCompletionTimeSec: 0.8
+    output: "highway=I-5 direction=northbound lanes_closed=2 location=mile-172 accident=true"
+
+  - id: estimate-queue-length
+    name: Estimate queue length and delay on affected corridor
+    agent: flow-modeler
+    dependsOn: [detect-lane-closure]
+    completionTimeSec: 0.45
+    maxCompletionTimeSec: 1.5
+    output: "queue_km=4.2 delay_min=38 reopening_eta_min=45 corridor=I-5-N"
+
+  - id: model-traffic-impedance
+    name: Model traffic impedance across downtown grid
+    agent: flow-modeler
+    dependsOn: [estimate-queue-length]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 1.8
+    output: "impedance_matrix=12x12 hotspots=3 max_delay_min=22"
+
+  - id: plan-detour-via-highway-99
+    name: Plan corridor-wide detour via Highway 99
+    agent: route-planner
+    dependsOn: [estimate-queue-length]
+    completionTimeSec: 0.7
+    maxCompletionTimeSec: 2.5
+    output: "detour=WA-99 added_distance_km=18 eta_min=52 status=proposed"
+
+  - id: plan-detour-via-surface-streets
+    name: Plan local detour via Aurora and surface streets
+    agent: route-planner
+    dependsOn: [estimate-queue-length]
+    completionTimeSec: 0.65
+    maxCompletionTimeSec: 2.5
+    output: "detour=aurora-ave added_distance_km=9 eta_min=41 status=proposed"
+
+  - id: recalc-northbound-routes
+    name: Recalculate northbound dynamic routes for active fleet
+    agent: route-planner
+    dependsOn: [model-traffic-impedance]
+    completionTimeSec: 0.55
+    maxCompletionTimeSec: 1.8
+    output: "direction=northbound routes_updated=12400 avg_delay_delta_min=+6"
+
+  - id: recalc-southbound-routes
+    name: Recalculate southbound dynamic routes for active fleet
+    agent: route-planner
+    dependsOn: [model-traffic-impedance]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 1.8
+    output: "direction=southbound routes_updated=11800 avg_delay_delta_min=+4"
+
+  - id: recalc-eastbound-routes
+    name: Recalculate eastbound dynamic routes for active fleet
+    agent: route-planner
+    dependsOn: [model-traffic-impedance]
+    completionTimeSec: 0.48
+    maxCompletionTimeSec: 1.8
+    output: "direction=eastbound routes_updated=9200 avg_delay_delta_min=+3"
+
+  - id: recalc-westbound-routes
+    name: Recalculate westbound dynamic routes for active fleet
+    agent: route-planner
+    dependsOn: [model-traffic-impedance]
+    completionTimeSec: 0.52
+    maxCompletionTimeSec: 1.8
+    output: "direction=westbound routes_updated=8900 avg_delay_delta_min=+3"
+
+  - id: adjust-signal-phasing
+    name: Adjust intersection signal phasing on alternate corridors
+    agent: signal-coordinator
+    dependsOn: [recalc-northbound-routes, recalc-southbound-routes]
+    completionTimeSec: 0.4
+    maxCompletionTimeSec: 1.5
+    output: "intersections=37 green_extension_sec=12 corridor_bias=north-south"
+
+  - id: reroute-bus-line-42
+    name: Reroute King County Metro bus line 42
+    agent: transit-dispatcher
+    dependsOn: [recalc-eastbound-routes, plan-detour-via-surface-streets]
+    completionTimeSec: 0.45
+    maxCompletionTimeSec: 1.6
+    output: "line=42 stops_bypassed=6 alternate=aurora-ave passengers_notified=820"
+
+  - id: reroute-rail-shuttle
+    name: Reroute Sound Transit shuttle feeders
+    agent: transit-dispatcher
+    dependsOn: [recalc-westbound-routes]
+    completionTimeSec: 0.42
+    maxCompletionTimeSec: 1.6
+    output: "shuttle=ST-Express-550 headway_min=8 alternate_hub=Northgate"
+
+  - id: publish-driver-alerts
+    name: Publish Waze and 511 driver alerts for I-5 closure
+    agent: alert-broadcaster
+    dependsOn: [adjust-signal-phasing, reroute-bus-line-42, reroute-rail-shuttle]
+    completionTimeSec: 0.3
+    maxCompletionTimeSec: 1.2
+    output: "channels=waze,511 recipients=840000 message=I-5NB_lane_closure_m172"
+
+  - id: sync-incident-dashboard
+    name: Sync traffic operations center incident dashboard
+    agent: incident-detector
+    dependsOn: [publish-driver-alerts]
+    completionTimeSec: 0.25
+    maxCompletionTimeSec: 1.0
+    output: "dashboard=TOC-West incident=TRF-9182 status=active mitigation=deployed"
+
+contextUpdates:
+  - afterTask: estimate-queue-length
+    payload: "reopening_eta_min=12 corridor=I-5-N cancel_detours=true priority=primary_corridor"
+    targetAgents: [route-planner, transit-dispatcher, signal-coordinator]
+
+  - afterTask: model-traffic-impedance
+    payload: "phase=route_recalc sync=all_directions timestamp=2026-06-04T14:32:00Z"
+    targetAgents: [route-planner, signal-coordinator, alert-broadcaster]

@@ -1,0 +1,140 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+  name: mobile-nav-assistant
+  domain: mobile-voice-navigation
+  description: >
+    Android user asks for pharmacy on the way to the airport; agents parse intent,
+    search POIs, and compute routes. Mid-flight command change to coffee-first
+    obsoletes pharmacy branch via context update.
+spec:
+  defaults:
+    completionTimeSec: 0.3
+    maxCompletionTimeSec: 2.0
+  maxRetries: 1
+
+agents:
+  - id: intent-parser
+    slimName: agntcy/bench/intent-parser
+    a2aPort: 9301
+  - id: poi-searcher
+    slimName: agntcy/bench/poi-searcher
+    a2aPort: 9302
+  - id: route-engine
+    slimName: agntcy/bench/route-engine
+    a2aPort: 9303
+  - id: traffic-watcher
+    slimName: agntcy/bench/traffic-watcher
+    a2aPort: 9304
+  - id: ui-composer
+    slimName: agntcy/bench/ui-composer
+    a2aPort: 9305
+  - id: session-tracker
+    slimName: agntcy/bench/session-tracker
+    a2aPort: 9306
+
+tasks:
+  - id: parse-voice-command
+    name: Parse voice command for pharmacy stop en route to airport
+    agent: intent-parser
+    dependsOn: []
+    completionTimeSec: 0.25
+    maxCompletionTimeSec: 1.0
+    output: "intent=navigate_with_stop destination=SEA_airport stop=pharmacy open_now=true"
+
+  - id: sync-user-location
+    name: Sync current GPS location and heading from Android device
+    agent: session-tracker
+    dependsOn: [parse-voice-command]
+    completionTimeSec: 0.15
+    maxCompletionTimeSec: 0.6
+    output: "lat=47.6062 lon=-122.3321 heading=145 speed_kmh=32 accuracy_m=8"
+
+  - id: geocode-airport-destination
+    name: Geocode Seattle-Tacoma International Airport destination
+    agent: poi-searcher
+    dependsOn: [parse-voice-command]
+    completionTimeSec: 0.2
+    maxCompletionTimeSec: 0.8
+    output: "poi=SEA_airport lat=47.4502 lon=-122.3088 place_id=ChIJSeaTac"
+
+  - id: search-pharmacy-near-route
+    name: Search open pharmacies along route to airport
+    agent: poi-searcher
+    dependsOn: [parse-voice-command, sync-user-location]
+    completionTimeSec: 0.55
+    maxCompletionTimeSec: 1.8
+    output: "poi=CVS_Queen_Anne lat=47.6234 lon=-122.3571 open=true detour_min=4"
+
+  - id: search-coffee-near-route
+    name: Search coffee shops along route to airport
+    agent: poi-searcher
+    dependsOn: [parse-voice-command, sync-user-location]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 1.8
+    output: "poi=Starbucks_Belltown lat=47.6145 lon=-122.3498 open=true detour_min=2"
+
+  - id: rank-stop-candidates
+    name: Rank stop candidates by detour time and user preferences
+    agent: intent-parser
+    dependsOn: [search-pharmacy-near-route, search-coffee-near-route]
+    completionTimeSec: 0.3
+    maxCompletionTimeSec: 1.0
+    output: "ranked=pharmacy,coffee preferred=pharmacy detour_budget_min=8"
+
+  - id: compute-route-to-airport-via-pharmacy
+    name: Compute turn-by-turn route to airport via CVS Queen Anne
+    agent: route-engine
+    dependsOn: [search-pharmacy-near-route, geocode-airport-destination]
+    completionTimeSec: 0.6
+    maxCompletionTimeSec: 2.0
+    output: "route_id=R-pharm-01 distance_km=28.4 eta_min=34 stops=1 via=CVS_Queen_Anne"
+
+  - id: compute-route-to-airport-via-coffee
+    name: Compute turn-by-turn route to airport via Starbucks Belltown
+    agent: route-engine
+    dependsOn: [search-coffee-near-route, geocode-airport-destination]
+    completionTimeSec: 0.55
+    maxCompletionTimeSec: 2.0
+    output: "route_id=R-coffee-01 distance_km=27.1 eta_min=31 stops=1 via=Starbucks_Belltown"
+
+  - id: refine-route-live-traffic
+    name: Refine active route with live traffic and incident data
+    agent: traffic-watcher
+    dependsOn: [compute-route-to-airport-via-pharmacy, compute-route-to-airport-via-coffee]
+    completionTimeSec: 0.45
+    maxCompletionTimeSec: 1.5
+    output: "route_id=R-coffee-01 eta_min=33 delay_min=+2 incident=I-5_slowdown"
+
+  - id: render-map-overlay
+    name: Render map overlay and stop markers on Android UI
+    agent: ui-composer
+    dependsOn: [refine-route-live-traffic, rank-stop-candidates]
+    completionTimeSec: 0.35
+    maxCompletionTimeSec: 1.2
+    output: "overlay=turn_by_turn markers=2 stop=coffee theme=night_mode"
+
+  - id: push-voice-prompt
+    name: Push voice prompt confirming coffee stop and updated ETA
+    agent: ui-composer
+    dependsOn: [render-map-overlay]
+    completionTimeSec: 0.2
+    maxCompletionTimeSec: 0.8
+    output: "tts=Routing via Starbucks Belltown. ETA 33 minutes. Say change stop to adjust."
+
+  - id: update-session-history
+    name: Update session history with amended navigation intent
+    agent: session-tracker
+    dependsOn: [push-voice-prompt]
+    completionTimeSec: 0.15
+    maxCompletionTimeSec: 0.6
+    output: "session=android-7f3a intent_history=2 priority=coffee-first destination=SEA_airport"
+
+contextUpdates:
+  - afterTask: parse-voice-command
+    payload: "user_amendment=actually_coffee_first priority=coffee-first cancel=pharmacy_branch"
+    targetAgents: [poi-searcher, route-engine, intent-parser, ui-composer]
+
+  - afterTask: refine-route-live-traffic
+    payload: "active_route=R-coffee-01 eta_min=33 sync=ui,voice session=android-7f3a"
+    targetAgents: [ui-composer, session-tracker, traffic-watcher]

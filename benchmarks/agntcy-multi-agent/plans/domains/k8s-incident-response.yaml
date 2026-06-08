@@ -1,0 +1,173 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+  name: k8s-incident-response
+  domain: kubernetes-troubleshooting
+  description: >
+    checkout-api deployment in CrashLoopBackOff; agents diagnose in parallel.
+    OOM root cause confirmed early cancels speculative network partition and
+    node-drain branches. probe-service-mesh injects failure to exercise abort propagation.
+spec:
+  defaults:
+    completionTimeSec: 0.3
+    maxCompletionTimeSec: 2.0
+  maxRetries: 1
+
+agents:
+  - id: cluster-scout
+    slimName: agntcy/bench/cluster-scout
+    a2aPort: 9101
+  - id: log-miner
+    slimName: agntcy/bench/log-miner
+    a2aPort: 9102
+  - id: metrics-analyst
+    slimName: agntcy/bench/metrics-analyst
+    a2aPort: 9103
+  - id: event-correlator
+    slimName: agntcy/bench/event-correlator
+    a2aPort: 9104
+  - id: network-prober
+    slimName: agntcy/bench/network-prober
+    a2aPort: 9105
+  - id: runbook-executor
+    slimName: agntcy/bench/runbook-executor
+    a2aPort: 9106
+
+tasks:
+  - id: fetch-pod-status
+    name: Fetch pod status for checkout-api deployment
+    agent: cluster-scout
+    dependsOn: []
+    completionTimeSec: 0.25
+    maxCompletionTimeSec: 1.0
+    output: "deployment=checkout-api phase=CrashLoopBackOff replicas=3/5 namespace=prod"
+
+  - id: list-recent-events
+    name: List Kubernetes events for checkout-api pods
+    agent: event-correlator
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.35
+    maxCompletionTimeSec: 1.2
+    output: "events=47 warning=BackOff reason=FailedScheduling count=12"
+
+  - id: scrape-container-logs
+    name: Scrape last 500 lines from crashing checkout-api pod
+    agent: log-miner
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.55
+    maxCompletionTimeSec: 1.5
+    output: "container=checkout-api OOMKilled exit=137 lastLine=java.lang.OutOfMemoryError"
+
+  - id: query-memory-metrics
+    name: Query Prometheus memory usage for checkout-api
+    agent: metrics-analyst
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.4
+    maxCompletionTimeSec: 1.3
+    output: "metric=container_memory_working_set_bytes value=512Mi limit=512Mi breached=true"
+
+  - id: query-cpu-metrics
+    name: Query Prometheus CPU throttling for checkout-api
+    agent: metrics-analyst
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.35
+    maxCompletionTimeSec: 1.2
+    output: "metric=container_cpu_cfs_throttled_seconds_total value=0.02 throttled=false"
+
+  - id: probe-dns-resolution
+    name: Probe cluster DNS resolution for checkout-api service
+    agent: network-prober
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.45
+    maxCompletionTimeSec: 1.4
+    output: "service=checkout-api.svc.cluster.local resolved=10.96.142.88 latency_ms=3"
+
+  - id: probe-service-mesh
+    name: Probe Istio sidecar connectivity for checkout-api pod
+    agent: network-prober
+    dependsOn: [fetch-pod-status]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 1.0
+    injectFailure: true
+    output: "sidecar=istio-proxy status=503 upstream=checkout-api:8080"
+
+  - id: analyze-gc-logs
+    name: Analyze JVM GC patterns in container logs
+    agent: log-miner
+    dependsOn: [scrape-container-logs]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 1.6
+    output: "gc=G1Full frequent=true heap=512Mi postGC=498Mi"
+
+  - id: correlate-oom-events
+    name: Correlate OOMKilled events with pod restart timeline
+    agent: event-correlator
+    dependsOn: [scrape-container-logs, list-recent-events]
+    completionTimeSec: 0.45
+    maxCompletionTimeSec: 1.5
+    output: "correlation=strong restarts=18 window=15m cause=OOMKilled"
+
+  - id: check-node-capacity
+    name: Check node allocatable memory on worker pool
+    agent: cluster-scout
+    dependsOn: [query-memory-metrics]
+    completionTimeSec: 0.4
+    maxCompletionTimeSec: 1.5
+    output: "node=worker-3 allocatable_memory=32Gi pressure=low"
+
+  - id: simulate-node-drain
+    name: Simulate cordon and drain of suspect worker node
+    agent: runbook-executor
+    dependsOn: [check-node-capacity, probe-service-mesh]
+    completionTimeSec: 0.8
+    maxCompletionTimeSec: 2.5
+    output: "node=worker-3 cordoned=false simulation=aborted"
+
+  - id: confirm-root-cause-oom
+    name: Confirm memory limit breach as root cause
+    agent: event-correlator
+    dependsOn: [correlate-oom-events, analyze-gc-logs, query-memory-metrics]
+    completionTimeSec: 0.3
+    maxCompletionTimeSec: 1.0
+    output: "root_cause=memory_limit_breach confidence=0.97 action=raise_limit"
+
+  - id: apply-memory-limit-patch
+    name: Patch deployment memory limit from 512Mi to 1Gi
+    agent: runbook-executor
+    dependsOn: [confirm-root-cause-oom]
+    completionTimeSec: 0.6
+    maxCompletionTimeSec: 2.0
+    output: "deployment=checkout-api memory_limit=1Gi patch=applied rollout=started"
+
+  - id: simulate-rollback
+    name: Simulate rollback to previous checkout-api revision
+    agent: runbook-executor
+    dependsOn: [probe-service-mesh]
+    completionTimeSec: 0.7
+    maxCompletionTimeSec: 2.0
+    output: "revision=checkout-api-42 rollback=skipped reason=upstream_probe_failed"
+
+  - id: verify-pod-health
+    name: Verify checkout-api pods reach Running state
+    agent: cluster-scout
+    dependsOn: [apply-memory-limit-patch]
+    completionTimeSec: 0.5
+    maxCompletionTimeSec: 2.5
+    output: "deployment=checkout-api phase=Running replicas=5/5 ready=true"
+
+  - id: publish-incident-summary
+    name: Publish incident timeline to status page
+    agent: event-correlator
+    dependsOn: [verify-pod-health]
+    completionTimeSec: 0.25
+    maxCompletionTimeSec: 1.0
+    output: "incident=INC-2847 status=resolved duration=23m root_cause=OOMKilled"
+
+contextUpdates:
+  - afterTask: fetch-pod-status
+    payload: "hypothesis=memory-pressure priority=high focus=checkout-api namespace=prod"
+    targetAgents: [log-miner, metrics-analyst, event-correlator, network-prober]
+
+  - afterTask: confirm-root-cause-oom
+    payload: "root_cause=memory_limit_breach cancel_speculative=true abort=node-drain,mesh-rollback"
+    targetAgents: [network-prober, runbook-executor, cluster-scout]
