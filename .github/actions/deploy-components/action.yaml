@@ -37,24 +37,8 @@ inputs:
     description: 'Set slim chart version (OCI only; ignored when slim-repo-path is set)'
     required: false
     default: ''
-  slim-repo-path:
-    description: 'Absolute path to agntcy/slim repo root with charts/; empty uses OCI charts'
-    required: false
-    default: ''
   slim-controller-image-tag:
     description: 'Set slim controller container image version'
-    required: false
-    default: ''
-  preload-slim-images:
-    description: 'Load prebuilt slim images into kind'
-    required: false
-    default: 'false'
-  slim-node-image:
-    description: 'Full slim node image reference to load into kind'
-    required: false
-    default: ''
-  slim-controller-image:
-    description: 'Full slim controller image reference to load into kind'
     required: false
     default: ''
   deploy-directory:
@@ -135,20 +119,6 @@ runs:
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:kind:create \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
-
-    - name: Load prebuilt slim images into kind
-      if: ${{ inputs.preload-slim-images != 'false' }}
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        if [ -z "${{ inputs.slim-node-image }}" ] || [ -z "${{ inputs.slim-controller-image }}" ]; then
-          echo "Both slim-node-image and slim-controller-image are required when preload-slim-images is enabled."
-          exit 1
-        fi
-
-        kind load docker-image "${{ inputs.slim-node-image }}" --name "${{ inputs.kind-cluster-name }}"
-        kind load docker-image "${{ inputs.slim-controller-image }}" --name "${{ inputs.kind-cluster-name }}"
 
     - name: Deploy SPIRE
       if: ${{ inputs.deploy-spire != 'false' }}      

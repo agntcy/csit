@@ -14,11 +14,11 @@ vars:
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
   SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
 
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.0.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.3.0-dev03" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
 
-  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.0.0" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.0.0-dev.07" }}'
+  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.4.0" }}'
+  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.4.0" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
   SLIM_CONTROLLER_LOCAL_ENDPOINT: '{{ .SLIM_CONTROLLER_LOCAL_ENDPOINT | default "localhost:50051" }}'

@@ -21,13 +21,9 @@ fullnameOverride: "slim-control"
 config:
   northbound:
     endpoint: "0.0.0.0:{{ .Values.service.north.port }}"
-    tls:
-      insecure: true
 
   southbound:
     endpoint: "0.0.0.0:{{ .Values.service.south.port }}"
-    tls:
-      insecure: true
     # tls:
     #   insecure: false
     #   useSpiffe: true
