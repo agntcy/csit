@@ -40,10 +40,6 @@ csit
 │   │   ├── agentic-apps
 │   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   │   └── tests
-│   ├── agntcy-apps                               # Integration tests for ([agntcy/agentic-apps](https://github.com/agntcy/agentic-apps))
-│   │   ├── agentic-apps
-│   │   ├── Taskfile.yml                          # Tasks for agentic-apps integration tests
-│   │   └──  tools
 │   ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
 │   │   ├── components
 │   │   ├── examples
@@ -82,10 +78,6 @@ task: Available tasks for this project:
 * integrations:a2a:test:rust-go:*:                       Rust and Go transport task. Use test:rust-go:<jsonrpc|rest|grpc>.
 * integrations:a2a:test:rust-go:*:*:                     Rust and Go per-case task. Use test:rust-go:<jsonrpc|rest|grpc>:<go-go|go-rust|rust-go|rust-rust>.
 * integrations:a2a:test:rust-python:                     Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
-* integrations:apps:download:wfsm-bin:                    Get wfsm binary from GitHub
-* integrations:apps:get-marketing-campaign-cfgs:          Populate marketing campaign config file
-* integrations:apps:init-submodules:                      Initialize submodules
-* integrations:apps:run-marketing-campaign:               Run marketing campaign
 * integrations:slim:build:agentic-apps:                   Build agentic containers
 * integrations:slim:cert-manager:deploy:                  Deploy cert-manager
 * integrations:slim:cert-manager:remove:                  Remove cert-manager
@@ -124,10 +116,6 @@ environment, deploying the components that will be tested, and running the tests
 │   ├── agentic-apps
 │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   └── tests
-├── agntcy-apps                               # Integration tests for ([agntcy/agentic-apps](https://github.com/agntcy/agentic-apps))
-│   ├── agentic-apps
-│   ├── Taskfile.yml                          # Tasks for agentic-apps integration tests
-│   └──  tools
 ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
 │   ├── components
 │   ├── examples

@@ -41,12 +41,6 @@ on:
         required: false
         default: false
         type: boolean
-      run_agentic_apps_test:
-        description: "Run agentic apps tests"
-        required: false
-        default: false
-        type: boolean
-
   schedule:
     - cron: "0 4 * * *"
 
@@ -467,31 +461,6 @@ jobs:
         with:
           artifact-name: ${{ matrix.artifact-name }}
           path-to-archive: "./integrations/agntcy-a2a/reports/*"
-
-  run-agentic-apps:
-    if: ${{ inputs.run_agentic_apps_test }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          python: true
-          go: false
-
-      - name: Run Agentic Apps
-        env:
-          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          TEST_ENV_VAR: "anything"
-        run: task integrations:apps:run-marketing-campaign
-        shell: bash
 
   combine-all-artifacts:
     # Ensure this job runs only after all jobs that produce artifacts have completed
