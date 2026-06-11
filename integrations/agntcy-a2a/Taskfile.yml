@@ -27,7 +27,7 @@ tasks:
   deps:update:go:
     desc: Update Go SDK to latest version
     cmds:
-      - go get github.com/a2aproject/a2a-go/v2@latest && go mod tidy
+      - go get github.com/a2aproject/a2a-go/v2@latest
     status:
       - '! command -v go'
 
