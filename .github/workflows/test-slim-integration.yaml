@@ -1,0 +1,170 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-slim-integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      kind_version:
+        description: "Kind version"
+        required: false
+        default: "0.24.0"
+      override_slim_image_tag:
+        description: "Override Slim image tag"
+        required: false
+        default: ""
+      override_slim_chart_tag:
+        description: "Override Slim chart tag"
+        required: false
+        default: ""
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: slim-integration
+
+  set-kind-version:
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      kind-version: ${{ steps.set-kind-version.outputs.kind-version }}
+    steps:
+      - name: Set KinD version
+        id: set-kind-version
+        env:
+          KIND_VERSION: "0.24.0"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
+              KIND_VERSION="${{ inputs.kind_version }}"
+          fi
+
+          echo "Set KinD version to: $KIND_VERSION"
+          echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
+
+  run-tests-slim-integration:
+    needs: [detect, set-kind-version]
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      attestations: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: false
+
+      - name: Setup K8S Tools
+        uses: ./.github/actions/setup-k8s
+        with:
+          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
+
+      - name: Resolve slim image tags
+        id: resolve-slim-tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.override_slim_image_tag }}" ]; then
+            tag="${{ inputs.override_slim_image_tag }}"
+          else
+            tag="local-${GITHUB_SHA:0:12}"
+          fi
+          echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout slim source
+        uses: actions/checkout@v4
+        with:
+          repository: agntcy/slim
+          fetch-depth: 1
+          path: slim-src
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build slim images (linux/amd64)
+        if: ${{ inputs.override_slim_image_tag == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SLIM_TAG="${{ steps.resolve-slim-tags.outputs.slim_tag }}"
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
+            --file slim-src/data-plane/Dockerfile \
+            slim-src
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
+            --file slim-src/control-plane/Dockerfile \
+            slim-src
+
+      - name: Deploy Slim with Controller
+        uses: ./.github/actions/deploy-components
+        with:
+          deploy-slim: "false"
+          deploy-spire: "true"
+          deploy-slim-topology: "true"
+          slim-config: "spire"
+          preload-slim-images: ${{ inputs.override_slim_image_tag == '' }}
+          slim-node-image: ghcr.io/agntcy/slim:${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          slim-controller-image: ghcr.io/agntcy/slim/control-plane:${{ steps.resolve-slim-tags.outputs.controller_tag }}
+          slim-image-tag: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          slim-controller-image-tag: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
+          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+          slim-repo-path: ${{ github.workspace }}/slim-src
+
+      - name: Pull slim bindings examples image into kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull ghcr.io/agntcy/slim/bindings-examples:latest
+          docker tag ghcr.io/agntcy/slim/bindings-examples:latest ghcr.io/agntcy/slim/bindings-examples:local
+          kind load docker-image ghcr.io/agntcy/slim/bindings-examples:local --name "agntcy-test"
+
+      - name: Run slim topology test
+        run: task integrations:slim:test:topology
+        shell: bash
+
+      - name: Create artifact from integrations test reports
+        if: always()
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: slim-integration-test-result
+          path-to-archive: |
+            ./integrations/agntcy-slim/reports/report-slim-*.json
+            ./integrations/agntcy-slim/reports/report-slim-*.xml

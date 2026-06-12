@@ -161,8 +161,9 @@ Define stable artifact names (publisher depends on these):
 | -------------------------------- | ------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------- |
 | `test-a2a`                       | `test-a2a.yaml`                       | `a2a-interop-test-result-{pair}` (10)          | `integrations/agntcy-a2a/reports/`*                                  |
 | `test-slim-integration`          | `test-slim-integration.yaml`          | `slim-integration-test-result`                 | `integrations/agntcy-slim/reports/report-slim-*.json` (+ xml)        |
-| `test-slim-benchmarks`           | `test-slim-benchmarks.yaml`           | `slim-benchmark-{smoke,capacity,basic}-report` | `benchmarks/agntcy-slim/published/`                                  |
+| `test-slim-benchmarks`           | `test-slim-benchmarks.yaml`           | `slim-benchmark-{smoke,capacity,basic}-report` | `benchmarks/agntcy-slim/published/{smoke,capacity,basic}/`             |
 | `test-slim-multicluster-private` | `test-slim-multicluster-private.yaml` | `slim-multicluster-private-test-result`        | `integrations/agntcy-slim/multicluster-private/reports/summary.html` |
+| `test-directory`                 | `test-directory.yaml`                 | `directory-test-result`                        | `integrations/agntcy-dir/reports/report-agntcy-dir.json` (+ xml)    |
 | `test-directory-conformance`     | `test-directory-conformance.yaml`     | `directory-conformance-test-result`            | `./summary.html`                                                     |
 
 

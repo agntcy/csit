@@ -1,0 +1,232 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-a2a
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: a2a
+
+  run-tests-a2a:
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: rust-go
+            display-name: Rust/Go
+            task: integrations:a2a:test:rust-go
+            artifact-name: a2a-interop-test-result-rust-go
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: python-go
+            display-name: Python/Go
+            task: integrations:a2a:test:python-go
+            artifact-name: a2a-interop-test-result-python-go
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: rust-python
+            display-name: Rust/Python
+            task: integrations:a2a:test:rust-python
+            artifact-name: a2a-interop-test-result-rust-python
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: rust-dotnet
+            display-name: Rust/C#
+            task: integrations:a2a:test:rust-dotnet
+            artifact-name: a2a-interop-test-result-rust-dotnet
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
+          - id: go-dotnet
+            display-name: Go/C#
+            task: integrations:a2a:test:go-dotnet
+            artifact-name: a2a-interop-test-result-go-dotnet
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
+          - id: python-dotnet
+            display-name: Python/C#
+            task: integrations:a2a:test:python-dotnet
+            artifact-name: a2a-interop-test-result-python-dotnet
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
+          - id: self-go
+            display-name: Self Go
+            task: integrations:a2a:test:self-go
+            artifact-name: a2a-interop-test-result-self-go
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: self-rust
+            display-name: Self Rust
+            task: integrations:a2a:test:self-rust
+            artifact-name: a2a-interop-test-result-self-rust
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: self-python
+            display-name: Self Python
+            task: integrations:a2a:test:self-python
+            artifact-name: a2a-interop-test-result-self-python
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "false"
+            dotnet-version: "8.0.x"
+          - id: self-dotnet
+            display-name: Self C#
+            task: integrations:a2a:test:self-dotnet
+            artifact-name: a2a-interop-test-result-self-dotnet
+            setup-python: "false"
+            setup-uv: "true"
+            setup-go: "true"
+            go-version: "1.24.4"
+            setup-dotnet: "true"
+            dotnet-version: "8.0.x"
+
+    name: A2A ${{ matrix.display-name }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: ${{ matrix.setup-python }}
+          uv: ${{ matrix.setup-uv }}
+          go: ${{ matrix.setup-go }}
+          go-version: ${{ matrix.go-version }}
+          dotnet: ${{ matrix.setup-dotnet }}
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run A2A ${{ matrix.display-name }} interoperability tests
+        id: run-tests
+        run: task ${{ matrix.task }}
+        shell: bash
+        continue-on-error: true
+
+      - name: Generate test summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### A2A ${{ matrix.display-name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          reports_dir="./integrations/agntcy-a2a/reports"
+          if [[ -d "$reports_dir" ]]; then
+            mapfile -t xmls < <(find "$reports_dir" -name "*.xml" 2>/dev/null | sort)
+            if [[ ${#xmls[@]} -gt 0 ]]; then
+              total_passed=0 total_failures=0 total_errors=0 total_skipped=0
+              echo "| Report | Passed | Failed | Errors | Skipped | Time |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|--------|--------|--------|--------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+              for xml in "${xmls[@]}"; do
+                name=$(basename "$xml" .xml)
+                tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1 || echo "0")
+                failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1 || echo "0")
+                errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1 || echo "0")
+                skipped=$(grep -c '<skipped' "$xml" || echo "0")
+                time=$(grep -oP 'time="\K[0-9.]+' "$xml" | head -1 || echo "0")
+                passed=$((tests - failures - errors - skipped))
+                echo "| $name | $passed | $failures | $errors | $skipped | ${time}s |" >> "$GITHUB_STEP_SUMMARY"
+                total_passed=$((total_passed + passed))
+                total_failures=$((total_failures + failures))
+                total_errors=$((total_errors + errors))
+                total_skipped=$((total_skipped + skipped))
+              done
+              echo "| **Total** | **$total_passed** | **$total_failures** | **$total_errors** | **$total_skipped** | |" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+
+              all_failures=""
+              for xml in "${xmls[@]}"; do
+                while IFS= read -r line; do
+                  [[ -n "$line" ]] && all_failures+="$line"$'\n'
+                done < <(sed -n '/<testcase/,/<\/testcase>/p' "$xml" | awk '
+                  /<testcase/ { name=""; match($0, /name="([^"]*)"/, m); name=m[1] }
+                  /<failure/ {
+                    match($0, /message="([^"]*)"/, m)
+                    msg = m[1]
+                    sub(/&#10;.*/, "", msg)
+                    sub(/\\n.*/, "", msg)
+                    if (length(msg) > 300) msg = substr(msg, 1, 300) "..."
+                    print "- **" name "**: `" msg "`"
+                  }
+                ')
+              done
+              if [[ -n "$all_failures" ]]; then
+                echo "<details><summary>❌ Failed tests</summary>" >> "$GITHUB_STEP_SUMMARY"
+                echo "" >> "$GITHUB_STEP_SUMMARY"
+                echo "$all_failures" >> "$GITHUB_STEP_SUMMARY"
+                echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            else
+              echo "No JUnit XML reports found." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "No reports directory found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Propagate test result
+        if: ${{ steps.run-tests.outcome == 'failure' }}
+        shell: bash
+        run: exit 1
+
+      - name: Create artifact from integrations test reports
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: ${{ matrix.artifact-name }}
+          path-to-archive: "./integrations/agntcy-a2a/reports/*"

@@ -1,0 +1,74 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-directory-conformance
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      override_directory_image_tag:
+        description: "Override Directory image tag"
+        required: false
+        default: ""
+      override_directory_chart_tag:
+        description: "Override Directory chart tag"
+        required: false
+        default: ""
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: directory-conformance
+
+  run-tests-directory-conformance:
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: false
+          go: true
+          go-version: '1.24.4'
+
+      - name: Run Directory client/server conformance tests
+        continue-on-error: true
+        run: task integrations:directory:tests:client-server:test:all
+        shell: bash
+
+      - name: Create artifact from conformance reports
+        if: always()
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: directory-conformance-test-result
+          path-to-archive: |
+            ./summary.html

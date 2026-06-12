@@ -1,0 +1,123 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Path-filter gate for split test workflows.
+# When adding a path that should re-run ALL suites (shared CI actions, root
+# Taskfiles, etc.), update ONLY the "shared" filter block below.
+#
+# Note: the legacy detect-changes action uses git diff on directory lists and
+# does not support shared CI fanout or path globs. Use this action for suite
+# gating instead.
+
+name: Detect suite changes
+description: Decide whether a test suite workflow should run based on path filters
+
+inputs:
+  suite:
+    description: "Suite identifier (a2a, slim-integration, directory, directory-conformance, slim-benchmarks, slim-multicluster-private)"
+    required: true
+
+outputs:
+  should-run:
+    description: "Whether the calling workflow should run its test jobs"
+    value: ${{ steps.compute.outputs.should-run }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Detect path changes
+      id: filter
+      if: ${{ github.event_name != 'workflow_dispatch' }}
+      uses: dorny/paths-filter@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        filters: |
+          a2a:
+            - integrations/agntcy-a2a/**
+          slim-integration:
+            - integrations/agntcy-slim/**
+          directory:
+            - integrations/agntcy-dir/**
+          directory-conformance:
+            - integrations/agntcy-dir/**
+          slim-benchmarks:
+            - benchmarks/agntcy-slim/**
+            - benchmarks/Taskfile.yml
+          slim-multicluster-private:
+            - kind-slim-multi-host/**
+          shared:
+            - .github/actions/detect-suite-changes/**
+            - .github/workflows/test-a2a.yaml
+            - .github/workflows/test-slim-integration.yaml
+            - .github/workflows/test-directory.yaml
+            - .github/workflows/test-directory-conformance.yaml
+            - .github/workflows/test-slim-benchmarks.yaml
+            - .github/workflows/test-slim-multicluster-private.yaml
+            - .github/workflows/test-integrations.yaml
+            - .github/workflows/test-benchmarks-slim.yaml
+            - .github/workflows/kind-slim-multicluster.yml
+            - Taskfile.yml
+            - integrations/Taskfile.yml
+            - benchmarks/Taskfile.yml
+            - .github/actions/setup-env/**
+            - .github/actions/setup-go/**
+            - .github/actions/setup-python/**
+            - .github/actions/setup-k8s/**
+            - .github/actions/deploy-components/**
+            - .github/actions/create-artifact/**
+            - .github/actions/collect-reports/**
+
+    - name: Compute suite selection
+      id: compute
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+      run: |
+        set -euo pipefail
+
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "should-run=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [[ "${{ steps.filter.outputs.shared }}" == "true" ]]; then
+          echo "should-run=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        suite_match=false
+        case "$SUITE" in
+          a2a)
+            [[ "${{ steps.filter.outputs.a2a }}" == "true" ]] && suite_match=true
+            ;;
+          slim-integration)
+            [[ "${{ steps.filter.outputs.slim-integration }}" == "true" ]] && suite_match=true
+            ;;
+          directory)
+            [[ "${{ steps.filter.outputs.directory }}" == "true" ]] && suite_match=true
+            ;;
+          directory-conformance)
+            [[ "${{ steps.filter.outputs.directory-conformance }}" == "true" ]] && suite_match=true
+            ;;
+          slim-benchmarks)
+            [[ "${{ steps.filter.outputs.slim-benchmarks }}" == "true" ]] && suite_match=true
+            ;;
+          slim-multicluster-private)
+            [[ "${{ steps.filter.outputs.slim-multicluster-private }}" == "true" ]] && suite_match=true
+            ;;
+          *)
+            echo "Unknown suite: $SUITE" >&2
+            exit 1
+            ;;
+        esac
+
+        if [[ "$suite_match" == "true" ]]; then
+          echo "should-run=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "should-run=false" >> "$GITHUB_OUTPUT"
+        fi
