@@ -25,6 +25,11 @@ jobs:
     outputs:
       should-run: ${{ steps.detect-suite.outputs.should-run }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - id: detect-suite
         uses: ./.github/actions/detect-suite-changes
         with:

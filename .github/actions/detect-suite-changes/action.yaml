@@ -2,12 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Path-filter gate for split test workflows.
-# When adding a path that should re-run ALL suites (shared CI actions, root
-# Taskfiles, etc.), update ONLY the "shared" filter block below.
-#
-# Note: the legacy detect-changes action uses git diff on directory lists and
-# does not support shared CI fanout or path globs. Use this action for suite
-# gating instead.
 
 name: Detect suite changes
 description: Decide whether a test suite workflow should run based on path filters
@@ -25,11 +19,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
     - name: Detect path changes
       id: filter
       if: ${{ github.event_name != 'workflow_dispatch' }}
