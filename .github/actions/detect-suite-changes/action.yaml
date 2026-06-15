@@ -24,7 +24,6 @@ runs:
       if: ${{ github.event_name != 'workflow_dispatch' }}
       uses: dorny/paths-filter@v3
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
         filters: |
           a2a:
             - integrations/agntcy-a2a/**
