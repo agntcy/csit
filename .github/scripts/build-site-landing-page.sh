@@ -11,6 +11,7 @@
 #
 # Optional env:
 #   HAS_A2A             "true" to include the A2A interoperability card
+#   HAS_A2A_SLIMRPC     "true" to include the A2A over SLIMRPC interoperability card
 #   HAS_BENCHMARKS      "true" to include the SLIM benchmarks card
 #   HAS_DIRECTORY       "true" to include the Directory conformance card
 #   OUTPUT              destination path  (default: site/index.html)
@@ -20,6 +21,7 @@
 set -euo pipefail
 
 HAS_A2A="${HAS_A2A:-false}"
+HAS_A2A_SLIMRPC="${HAS_A2A_SLIMRPC:-false}"
 HAS_BENCHMARKS="${HAS_BENCHMARKS:-false}"
 HAS_DIRECTORY="${HAS_DIRECTORY:-false}"
 OUTPUT="${OUTPUT:-site/index.html}"
@@ -121,6 +123,16 @@ if [[ "$HAS_A2A" == "true" ]]; then
       <a class="report-card" href="./a2a/">
         <h2>A2A interoperability</h2>
         <p>Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.</p>
+        <span>Open report</span>
+      </a>
+HTML
+fi
+
+if [[ "$HAS_A2A_SLIMRPC" == "true" ]]; then
+  cat >> "$OUTPUT" <<'HTML'
+      <a class="report-card" href="./a2a-slimrpc/">
+        <h2>A2A &mdash; SlimRPC interoperability</h2>
+        <p>Cross-language A2A-over-SLIMRPC interoperability results with merged JSON, XML, and HTML dashboard output.</p>
         <span>Open report</span>
       </a>
 HTML

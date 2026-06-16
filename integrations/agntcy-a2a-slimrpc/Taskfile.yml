@@ -44,7 +44,8 @@ tasks:
       - mkdir -p ./reports
       - |
         cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
-          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html
+          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html \
+          --title "A2A over SLIMRPC Interop Dashboard"
 
   test:go-main:
     desc: >-
@@ -86,7 +87,8 @@ tasks:
         )
         test_status=$?
         cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
-          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html
+          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html \
+          --title "A2A over SLIMRPC Interop Dashboard"
         dashboard_status=$?
         if [ "$test_status" -ne 0 ]; then
           exit "$test_status"

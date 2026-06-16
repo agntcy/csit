@@ -141,7 +141,7 @@ type specView struct {
 func main() {
 	reportsDir := flag.String("reports-dir", "./reports", "directory containing Ginkgo JSON and JUnit XML reports")
 	outputPath := flag.String("output", "./reports/index.html", "path to the generated HTML dashboard")
-	reportTitle := flag.String("title", "A2A Interop Dashboard", "Dashboard title (optional)")
+	reportTitle := flag.String("title", "A2A Interop Dashboard", "heading and page title for the dashboard")
 	flag.Parse()
 
 	view, err := buildDashboard(*reportTitle, *reportsDir)
@@ -774,6 +774,8 @@ func prettyToken(token string) string {
 		return "gRPC"
 	case "jsonrpc":
 		return "JSON-RPC"
+	case "slimrpc":
+		return "SlimRPC"
 	case "python":
 		return "Python"
 	case "rest":
