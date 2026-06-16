@@ -41,6 +41,15 @@ const (
 
 	probeText = "Hello there!"
 
+	// Probe scenario selectors (passed via --scenario). "echo" is the default
+	// round-trip behavior; the others drive non-echo server responses. The
+	// matching request-text sentinels live in the probe/server fixtures
+	// (fixtures/{go,python}) since those are separate binaries/processes.
+	scenarioEcho          = "echo"
+	scenarioMessageOnly   = "message-only"
+	scenarioTaskFailure   = "task-failure"
+	scenarioInputRequired = "input-required"
+
 	fixtureReadyTimeout = 90 * time.Second
 	probeTimeout        = 3 * time.Minute
 	buildTimeout        = 10 * time.Minute
@@ -54,9 +63,9 @@ const (
 )
 
 type lockedBuffer struct {
-	mu            sync.Mutex
-	buf           bytes.Buffer
-	streamPrefix  []byte // first logTruncateHeadBytes of the stream (ready marker lives here)
+	mu           sync.Mutex
+	buf          bytes.Buffer
+	streamPrefix []byte // first logTruncateHeadBytes of the stream (ready marker lives here)
 }
 
 func (lb *lockedBuffer) Write(p []byte) (int, error) {
@@ -694,7 +703,7 @@ func startServer(ctx context.Context, lang, slimURL, secret string, assets *fixt
 	}
 }
 
-func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID string, assets *fixtureAssets) (string, error) {
+func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID, scenario, text string, assets *fixtureAssets) (string, error) {
 	local := clientIdentity(clientLang)
 	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
@@ -706,7 +715,8 @@ func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID s
 			"--local", local,
 			"--remote", remoteServerID,
 			"--secret", secret,
-			"--text", probeText,
+			"--scenario", scenario,
+			"--text", text,
 		)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
@@ -717,7 +727,8 @@ func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID s
 			"--local", local,
 			"--remote", remoteServerID,
 			"--secret", secret,
-			"--text", probeText,
+			"--scenario", scenario,
+			"--text", text,
 		)
 		cmd.Dir = assets.pythonFixtureDir
 		out, err := cmd.CombinedOutput()

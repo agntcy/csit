@@ -74,26 +74,54 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 	})
 
 	langs := interopLanguages()
+	payloads := interopPayloads()
 	for _, srv := range langs {
 		for _, cli := range langs {
 			srv := srv
 			cli := cli
 
-			ginkgo.It(
-				fmt.Sprintf("SLIMRPC client %s calls server %s (%s)", cli, srv, probeText),
-				ginkgo.Label("behavior-core", "pair-"+cli+"-"+srv),
-				func() {
-					out, err := runInteropProbe(srv, cli)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
-					gomega.Expect(out).To(gomega.ContainSubstring(probeText))
-				},
-			)
+			for _, pc := range payloads {
+				pc := pc
+				ginkgo.It(
+					fmt.Sprintf("SLIMRPC client %s calls server %s and echoes the %s payload", cli, srv, pc.name),
+					ginkgo.Label("behavior-core", "pair-"+cli+"-"+srv, "payload-"+pc.name),
+					func() {
+						out, err := runInteropProbe(srv, cli, scenarioEcho, pc.text)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
+						gomega.Expect(out).To(gomega.ContainSubstring(pc.text), fmt.Sprintf("probe output:\n%s", out))
+					},
+				)
+			}
 
+			for _, sc := range interopScenarios() {
+				sc := sc
+				ginkgo.It(
+					fmt.Sprintf("SLIMRPC client %s observes the %s response from server %s", cli, sc.name, srv),
+					ginkgo.Label("behavior-scenario", "pair-"+cli+"-"+srv, "scenario-"+sc.name),
+					func() {
+						out, err := runInteropProbe(srv, cli, sc.scenario, "")
+						gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
+
+						kind, ok := parseProbeField(out, "CSIT_SLIM_RESULT_KIND")
+						gomega.Expect(ok).To(gomega.BeTrue(), fmt.Sprintf("probe output missing CSIT_SLIM_RESULT_KIND:\n%s", out))
+						gomega.Expect(kind).To(gomega.Equal(sc.wantKind), fmt.Sprintf("probe output:\n%s", out))
+
+						if sc.wantState != "" {
+							state, ok := parseProbeField(out, "CSIT_SLIM_TASK_STATE")
+							gomega.Expect(ok).To(gomega.BeTrue(), fmt.Sprintf("probe output missing CSIT_SLIM_TASK_STATE:\n%s", out))
+							gomega.Expect(state).To(gomega.Equal(sc.wantState), fmt.Sprintf("probe output:\n%s", out))
+						}
+					},
+				)
+			}
+
+			// Lifecycle assertions (terminal task state + echoed artifact presence) are
+			// payload-independent, so they run once per pair on the canonical ASCII payload.
 			ginkgo.It(
 				fmt.Sprintf("SLIMRPC client %s observes a completed task with an echoed artifact from server %s", cli, srv),
 				ginkgo.Label("behavior-lifecycle", "pair-"+cli+"-"+srv),
 				func() {
-					out, err := runInteropProbe(srv, cli)
+					out, err := runInteropProbe(srv, cli, scenarioEcho, probeText)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
 
 					state, ok := parseProbeField(out, "CSIT_SLIM_TASK_STATE")
@@ -114,9 +142,9 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 })
 
 // runInteropProbe starts the server fixture for srv, waits for its ready marker, runs the
-// cli probe against it, and returns the probe's combined output. Cleanup of the server
-// process is registered on the calling spec via ginkgo.DeferCleanup.
-func runInteropProbe(srv, cli string) (string, error) {
+// cli probe against it with the given outbound text, and returns the probe's combined output.
+// Cleanup of the server process is registered on the calling spec via ginkgo.DeferCleanup.
+func runInteropProbe(srv, cli, scenario, text string) (string, error) {
 	ctx := context.Background()
 	logs := &lockedBuffer{}
 	u := slimServerURL()
@@ -138,7 +166,50 @@ func runInteropProbe(srv, cli string) (string, error) {
 	}
 
 	remote := serverIdentity(srv)
-	return runProbe(ctx, cli, u, sec, remote, sharedAssets)
+	return runProbe(ctx, cli, u, sec, remote, scenario, text, sharedAssets)
+}
+
+// payloadCase is an echo payload variation exercised across every language pair.
+// Texts are deliberately single-line: probes emit CSIT_SLIM_* results as newline
+// delimited KEY=value lines, so an embedded newline would break parseProbeField.
+type payloadCase struct {
+	name string
+	text string
+}
+
+// interopPayloads returns the echo payloads driven through the behavior-core specs.
+// Each exercises wire-level text handling — UTF-8/emoji, shell/JSON metacharacters, and a
+// larger multi-KiB frame — round-tripped verbatim, since both echo executors return the
+// input text unchanged. Filter a single case with: ginkgo --label-filter 'payload-unicode'.
+func interopPayloads() []payloadCase {
+	return []payloadCase{
+		{name: "ascii", text: probeText},
+		{name: "unicode", text: "Ünïcödé こんにちは 🌐 ☃ Привет"},
+		{name: "symbols", text: "sym &<>\"'`%${}|;:!?#@*()[]/ end"},
+		{name: "long", text: strings.Repeat("slimrpc-echo-0123456789 ", 512)},
+	}
+}
+
+// scenarioCase is a non-echo server behavior exercised across every language pair.
+// scenario is the probe's --scenario selector; wantKind is the expected
+// CSIT_SLIM_RESULT_KIND ("message" or "task"); wantState is the expected terminal
+// CSIT_SLIM_TASK_STATE (empty for a bare message, which carries no task state).
+type scenarioCase struct {
+	name      string
+	scenario  string
+	wantKind  string
+	wantState string
+}
+
+// interopScenarios returns the unary scenario behaviors driven through the
+// behavior-scenario specs, mirroring the agntcy-a2a sibling taxonomy. Filter a single
+// case with: ginkgo --label-filter 'scenario-task-failure'.
+func interopScenarios() []scenarioCase {
+	return []scenarioCase{
+		{name: scenarioMessageOnly, scenario: scenarioMessageOnly, wantKind: "message", wantState: ""},
+		{name: scenarioTaskFailure, scenario: scenarioTaskFailure, wantKind: "task", wantState: "TASK_STATE_FAILED"},
+		{name: scenarioInputRequired, scenario: scenarioInputRequired, wantKind: "task", wantState: "TASK_STATE_INPUT_REQUIRED"},
+	}
 }
 
 // parseProbeField extracts the value of a `KEY=value` line emitted by the probe fixtures.

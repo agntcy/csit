@@ -22,6 +22,15 @@ import (
 
 const readyMarker = "CSIT_SLIM_SERVER_READY"
 
+// Scenario sentinels: the probe sends one of these as the request text to drive a
+// non-echo server response. Must match the sentinels in cmd/probe/main.go and the
+// Python fixtures byte-for-byte (they travel over the wire).
+const (
+	sentinelMessageOnly   = "csit-scenario:message-only"
+	sentinelTaskFailure   = "csit-scenario:task-failure"
+	sentinelInputRequired = "csit-scenario:input-required"
+)
+
 func main() {
 	endpoint := flag.String("slim-endpoint", envOr("SLIM_SERVER", "http://127.0.0.1:46357"), "SLIM node endpoint")
 	identity := flag.String("identity", "agntcy/a2a_csit_slim/server_go", "Full SLIM name ns/group/name")
@@ -92,20 +101,46 @@ var _ a2asrv.AgentExecutor = (*echoExecutor)(nil)
 
 func (e *echoExecutor) Execute(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
 	return func(yield func(a2a.Event, error) bool) {
-		if execCtx.StoredTask == nil {
-			if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
-				return
+		switch extractText(execCtx.Message) {
+		case sentinelMessageOnly:
+			// Bare message response: no task is created.
+			yield(a2a.NewMessage(a2a.MessageRoleAgent, a2a.NewTextPart("go server message-only response")), nil)
+		case sentinelTaskFailure:
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
 			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateFailed, nil), nil)
+		case sentinelInputRequired:
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateInputRequired, nil), nil)
+		default:
+			e.echo(execCtx, yield)
 		}
-		if !yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateWorking, nil), nil) {
-			return
-		}
-		text := extractText(execCtx.Message)
-		if !yield(a2a.NewArtifactEvent(execCtx, a2a.NewTextPart(text)), nil) {
-			return
-		}
-		yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 	}
+}
+
+// echo runs the default round-trip behavior: submit, work, emit the input text as an
+// artifact, and complete.
+func (e *echoExecutor) echo(execCtx *a2asrv.ExecutorContext, yield func(a2a.Event, error) bool) {
+	if execCtx.StoredTask == nil {
+		if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+			return
+		}
+	}
+	if !yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateWorking, nil), nil) {
+		return
+	}
+	text := extractText(execCtx.Message)
+	if !yield(a2a.NewArtifactEvent(execCtx, a2a.NewTextPart(text)), nil) {
+		return
+	}
+	yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 }
 
 func (e *echoExecutor) Cancel(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {

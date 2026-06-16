@@ -16,17 +16,51 @@ import (
 	slim_bindings "github.com/agntcy/slim-bindings-go"
 )
 
+// Scenario sentinels: outbound request text that drives a non-echo server response.
+// Must match the sentinels in cmd/server/main.go and the Python fixtures byte-for-byte.
+const (
+	scenarioEcho          = "echo"
+	sentinelMessageOnly   = "csit-scenario:message-only"
+	sentinelTaskFailure   = "csit-scenario:task-failure"
+	sentinelInputRequired = "csit-scenario:input-required"
+)
+
 func main() {
 	endpoint := flag.String("slim-endpoint", envOr("SLIM_SERVER", "http://127.0.0.1:46357"), "SLIM node endpoint")
 	local := flag.String("local", "agntcy/a2a_csit_slim/client_go", "Full local SLIM identity ns/group/name")
 	remote := flag.String("remote", "agntcy/a2a_csit_slim/server_go", "Full remote server identity")
 	secret := flag.String("secret", envOr("SLIM_SHARED_SECRET", "my_shared_secret_for_testing_purposes_only"), "Shared secret")
-	text := flag.String("text", "Hello there!", "Outbound text; response must contain this substring")
+	text := flag.String("text", "Hello there!", "Outbound text for the echo scenario; response must contain this substring")
+	scenario := flag.String("scenario", scenarioEcho, "Behavior to drive: echo, message-only, task-failure, input-required")
 	flag.Parse()
 
-	if err := run(*endpoint, *secret, *local, *remote, *text); err != nil {
+	want, enforceEcho, err := scenarioRequest(*scenario, *text)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "probe error: %v\n", err)
 		os.Exit(1)
+	}
+
+	if err := run(*endpoint, *secret, *local, *remote, want, enforceEcho); err != nil {
+		fmt.Fprintf(os.Stderr, "probe error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// scenarioRequest maps a scenario selector to the outbound request text and whether the
+// response must echo it. Non-echo scenarios send a fixed sentinel and only emit the
+// observation block (terminal state is asserted by the harness).
+func scenarioRequest(scenario, text string) (want string, enforceEcho bool, err error) {
+	switch scenario {
+	case scenarioEcho, "":
+		return text, true, nil
+	case "message-only":
+		return sentinelMessageOnly, false, nil
+	case "task-failure":
+		return sentinelTaskFailure, false, nil
+	case "input-required":
+		return sentinelInputRequired, false, nil
+	default:
+		return "", false, fmt.Errorf("unknown scenario %q", scenario)
 	}
 }
 
@@ -45,7 +79,7 @@ func parseIdentity(s string) (ns, group, name string, err error) {
 	return p[0], p[1], p[2], nil
 }
 
-func run(endpoint, secret, localFull, remoteFull, want string) error {
+func run(endpoint, secret, localFull, remoteFull, want string, enforceEcho bool) error {
 	lns, lgr, lnm, err := parseIdentity(localFull)
 	if err != nil {
 		return err
@@ -95,7 +129,7 @@ func run(endpoint, secret, localFull, remoteFull, want string) error {
 
 	obs := observe(result)
 	emitObservation(obs)
-	if !strings.Contains(obs.text, want) {
+	if enforceEcho && !strings.Contains(obs.text, want) {
 		return fmt.Errorf("response %q does not contain sent text %q", obs.text, want)
 	}
 	return nil

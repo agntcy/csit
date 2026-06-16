@@ -18,6 +18,31 @@ from slima2a import setup_slim_client
 from slima2a.client_transport import ClientConfig, SRPCTransport, slimrpc_channel_factory
 
 
+# Scenario sentinels: outbound request text that drives a non-echo server response.
+# Must match the sentinels in the Go fixtures and csit_echo_executor.py byte-for-byte.
+SCENARIO_ECHO = "echo"
+SENTINEL_MESSAGE_ONLY = "csit-scenario:message-only"
+SENTINEL_TASK_FAILURE = "csit-scenario:task-failure"
+SENTINEL_INPUT_REQUIRED = "csit-scenario:input-required"
+
+
+def _scenario_request(scenario: str, text: str) -> tuple[str, bool]:
+    """Map a scenario selector to (outbound text, enforce-echo).
+
+    Non-echo scenarios send a fixed sentinel and only emit the observation block; the
+    harness asserts the terminal state.
+    """
+    if scenario in (SCENARIO_ECHO, ""):
+        return text, True
+    if scenario == "message-only":
+        return SENTINEL_MESSAGE_ONLY, False
+    if scenario == "task-failure":
+        return SENTINEL_TASK_FAILURE, False
+    if scenario == "input-required":
+        return SENTINEL_INPUT_REQUIRED, False
+    raise SystemExit(f"unknown scenario {scenario!r}")
+
+
 def _split_identity(s: str) -> tuple[str, str, str]:
     p = [x for x in s.strip("/").split("/") if x]
     if len(p) != 3:
@@ -40,12 +65,16 @@ def _task_state_name(task) -> str:
             return ""
 
 
-async def collect_response(client, text: str) -> tuple[str, object, bool]:
+async def collect_response(
+    client, text: str, break_on_echo: bool = True
+) -> tuple[str, object, bool]:
     """Drain send_message until the stream ends.
 
     Returns the accumulated echoed text, the last observed task (for the
     terminal lifecycle state) and whether a text artifact was seen. Uses the
     non-streaming ClientConfig so send_message completes like the Go unary client.
+    For non-echo scenarios break_on_echo is False, so the iterator runs to
+    completion (a failed/input-required task arrives as a normal terminal result).
     """
     message = create_text_message_object(content=text)
     request = SendMessageRequest(message=message)
@@ -71,7 +100,7 @@ async def collect_response(client, text: str) -> tuple[str, object, bool]:
                 if part.WhichOneof("content") == "text":
                     out += part.text
                     artifact_present = True
-        if text in out:
+        if break_on_echo and text in out:
             break
     return out, last_task, artifact_present
 
@@ -101,10 +130,17 @@ async def main() -> None:
     parser.add_argument(
         "--text",
         default="Hello there!",
-        help="Outbound text; response must contain this substring",
+        help="Outbound text for the echo scenario; response must contain this substring",
+    )
+    parser.add_argument(
+        "--scenario",
+        default=SCENARIO_ECHO,
+        help="Behavior to drive: echo, message-only, task-failure, input-required",
     )
     parser.add_argument("--log-level", default="ERROR")
     args = parser.parse_args()
+
+    want, enforce_echo = _scenario_request(args.scenario, args.text)
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.ERROR))
 
@@ -139,7 +175,7 @@ async def main() -> None:
     probe_timeout_s = int(os.environ.get("CSIT_SLIM_PYTHON_PROBE_TIMEOUT", "180"))
     try:
         out, task, artifact_present = await asyncio.wait_for(
-            collect_response(client, args.text),
+            collect_response(client, want, break_on_echo=enforce_echo),
             timeout=probe_timeout_s,
         )
     except TimeoutError as e:
@@ -160,9 +196,9 @@ async def main() -> None:
     )
     sys.stdout.write(f"CSIT_SLIM_ARTIFACT_TEXT={out}\n")
     sys.stdout.write(out)
-    if args.text not in out:
+    if enforce_echo and want not in out:
         raise SystemExit(
-            f"response {out!r} does not contain sent text {args.text!r}",
+            f"response {out!r} does not contain sent text {want!r}",
         )
 
 
