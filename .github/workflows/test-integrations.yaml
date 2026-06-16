@@ -41,6 +41,17 @@ on:
         required: false
         default: false
         type: boolean
+      skip_slim_a2a_test:
+        description: "Skip A2A over SLIMRPC interoperability tests"
+        required: false
+        default: false
+        type: boolean
+      run_agentic_apps_test:
+        description: "Run agentic apps tests"
+        required: false
+        default: false
+        type: boolean
+
   schedule:
     - cron: "0 4 * * *"
 
@@ -49,6 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run-a2a: ${{ steps.compute.outputs.run-a2a }}
+      run-a2a-slimrpc: ${{ steps.compute.outputs.run-a2a-slimrpc }}
       run-slim: ${{ steps.compute.outputs.run-slim }}
       run-directory: ${{ steps.compute.outputs.run-directory }}
     steps:
@@ -66,6 +78,8 @@ jobs:
           filters: |
             a2a:
               - integrations/agntcy-a2a/**
+            a2a-slimrpc:
+              - integrations/agntcy-a2a-slimrpc/**
             slim:
               - integrations/agntcy-slim/**
             directory:
@@ -90,23 +104,28 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "schedule" ]]; then
             run_a2a=true
+            run_a2a_slimrpc=true
             run_slim=true
             run_directory=true
-          elif [[ "${{ steps.filter.outputs.a2a }}" == "true" || "${{ steps.filter.outputs.slim }}" == "true" || "${{ steps.filter.outputs.directory }}" == "true" ]]; then
+          elif [[ "${{ steps.filter.outputs.a2a }}" == "true" || "${{ steps.filter.outputs.a2a-slimrpc }}" == "true" || "${{ steps.filter.outputs.slim }}" == "true" || "${{ steps.filter.outputs.directory }}" == "true" ]]; then
             run_a2a=${{ steps.filter.outputs.a2a }}
+            run_a2a_slimrpc=${{ steps.filter.outputs.a2a-slimrpc }}
             run_slim=${{ steps.filter.outputs.slim }}
             run_directory=${{ steps.filter.outputs.directory }}
           elif [[ "${{ steps.filter.outputs.shared }}" == "true" ]]; then
             run_a2a=true
+            run_a2a_slimrpc=true
             run_slim=true
             run_directory=true
           else
             run_a2a=false
+            run_a2a_slimrpc=false
             run_slim=false
             run_directory=false
           fi
 
           echo "run-a2a=$run_a2a" >> "$GITHUB_OUTPUT"
+          echo "run-a2a-slimrpc=$run_a2a_slimrpc" >> "$GITHUB_OUTPUT"
           echo "run-slim=$run_slim" >> "$GITHUB_OUTPUT"
           echo "run-directory=$run_directory" >> "$GITHUB_OUTPUT"
 
@@ -462,6 +481,110 @@ jobs:
           artifact-name: ${{ matrix.artifact-name }}
           path-to-archive: "./integrations/agntcy-a2a/reports/*"
 
+  run-tests-a2a-slimrpc:
+    # A2A over SLIMRPC (Go + Python). Needs a running SLIM data-plane node, so we start
+    # the pinned released slim image as a background container (GitHub `services:` cannot
+    # pass the required `/slim --config ...` args, hence `docker run`).
+    if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_slim_a2a_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-a2a-slimrpc == 'true') }}
+    needs: [detect-changes]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: "read"
+      packages: "read"
+
+    env:
+      # Pinned released SLIM node; keep in sync with integrations/agntcy-a2a-slimrpc/Taskfile.yml (SLIM_IMAGE).
+      SLIM_IMAGE: "ghcr.io/agntcy/slim:1.4.0"
+      SLIM_SERVER: "http://127.0.0.1:46357"
+      # Test-only shared secret; must match the fixtures' default (not a real credential).
+      SLIM_SHARED_SECRET: "my_shared_secret_for_testing_purposes_only"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start pinned SLIM node
+        run: |
+          docker run -d --name slim-node \
+            -p 46357:46357 \
+            -v "${{ github.workspace }}/integrations/agntcy-a2a-slimrpc/ci/slim-server-config.yaml:/config.yaml:ro" \
+            "$SLIM_IMAGE" /slim --config /config.yaml
+
+      - name: Wait for SLIM node to accept connections
+        run: |
+          for i in $(seq 1 30); do
+            if timeout 1 bash -c '</dev/tcp/127.0.0.1/46357' >/dev/null 2>&1; then
+              echo "SLIM node is accepting connections on :46357"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "SLIM node did not open :46357 in time"
+          docker logs slim-node || true
+          exit 1
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: true
+          # Go fixtures (slim-a2a-go) require the go line in fixtures/go/go.mod.
+          go-version: "1.25.2"
+
+      - name: Run A2A SLIMRPC interoperability tests
+        run: task integrations:a2a-slimrpc:test
+        shell: bash
+
+      - name: SLIM node logs
+        if: always()
+        run: docker logs slim-node || true
+
+      - name: Stop SLIM node
+        if: always()
+        run: docker rm -f slim-node || true
+
+      - name: Create artifact from integrations test reports
+        if: always()
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: "a2a-slimrpc-test-result"
+          path-to-archive: "./integrations/agntcy-a2a-slimrpc/reports/*"
+
+  run-agentic-apps:
+    if: ${{ inputs.run_agentic_apps_test }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: false
+
+      - name: Run Agentic Apps
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          TEST_ENV_VAR: "anything"
+        run: task integrations:apps:run-marketing-campaign
+        shell: bash
+
   combine-all-artifacts:
     # Ensure this job runs only after all jobs that produce artifacts have completed
     needs:
@@ -469,6 +592,7 @@ jobs:
         run-tests-slim-topology,
         run-tests-directory-conformance,
         run-tests-a2a,
+        run-tests-a2a-slimrpc,
       ]
     if: ${{ always() }}
     runs-on: ubuntu-latest

@@ -12,6 +12,11 @@ includes:
     dir: ./agntcy-a2a
     excludes: [ default ]
 
+  a2a-slimrpc:
+    taskfile: ./agntcy-a2a-slimrpc/Taskfile.yml
+    dir: ./agntcy-a2a-slimrpc
+    excludes: [ default ]
+
   slim:
     taskfile: ./agntcy-slim/Taskfile.yml
     dir: ./agntcy-slim

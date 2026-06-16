@@ -1,0 +1,10 @@
+# slim-a2a-python (PyPI: slima2a) — https://github.com/agntcy/slim-a2a-python
+# For a slim binary from `main` when PyPI slim-bindings is too old, use requirements-slim-main.txt via
+# CSIT_SLIM_PYTHON_REQUIREMENTS (see README) and recreate `.cache/csit-slim-venv`.
+# 0.6.0 is the first release whose generated SLIMRPC handlers subclass the slim-bindings 1.4
+# UniFFI traits (UnaryUnaryHandler/UnaryStreamHandler); 0.5.0 server registration fails on 1.4.x.
+slima2a>=0.6.0,<0.7
+# Align with fixtures/go slim-bindings-go pin for Go↔Python SLIMRPC interop (released slim family).
+slim-bindings>=1.4.1,<1.5.0
+# a2a-sdk (pulled by slima2a) imports packaging
+packaging>=24.0

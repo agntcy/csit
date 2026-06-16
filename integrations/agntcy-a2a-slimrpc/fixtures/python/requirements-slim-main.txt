@@ -1,0 +1,5 @@
+# slim `main` currently publishes slim-bindings 2.0.x, while PyPI slima2a 0.5.0 requires slim-bindings~=1.1.
+# pip cannot resolve both. For a slim 2.0 / main-line node, run Go interop only:
+#   export CSIT_SLIM_GO_ONLY=1
+#   unset CSIT_SLIM_PYTHON_REQUIREMENTS
+# When slima2a supports slim-bindings 2.x, add install lines here (from the same slim commit as the node).

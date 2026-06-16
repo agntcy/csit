@@ -1,0 +1,97 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+# Single source of truth for the pinned, released SLIM baseline used both locally
+# (git checkout slim-v{{.SLIM_RELEASE}} + cargo run) and in CI (the same image).
+# Keep these aligned with:
+#   - slimBindingsSetupModule / slimBindingsCacheTag / CGO tier in tests/launchers_test.go
+#   - slim-bindings-go in fixtures/go/go.mod
+#   - slima2a / slim-bindings pins in fixtures/python/requirements.txt
+#   - the slim service in .github/workflows/test-integrations.yaml
+vars:
+  # Released slim node. There is no slim-v1.4.1 node tag; 1.4.0 is the closest node
+  # release to the slim-bindings 1.4.x family and shares its dataplane wire.
+  SLIM_RELEASE: '1.4.0'
+  SLIM_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_RELEASE}}'
+  # slim-bindings release tag (slim-bindings-setup tag + CGO cache tier; PyPI slim-bindings 1.4.x).
+  SLIM_BINDINGS_RELEASE: 'v1.4.1'
+
+tasks:
+  test:
+    desc: A2A over SLIMRPC interop (Go + Python via slim-a2a-go / slim-a2a-python) — requires a running SLIM node
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-slim-a2a
+          REPORT_NAME: report-agntcy-a2a-slimrpc
+
+  versions:
+    desc: Print the pinned released SLIM baseline (node image + bindings) used locally and in CI
+    cmds:
+      - |
+        echo "slim node image  : {{.SLIM_IMAGE}}"
+        echo "slim release tag  : slim-v{{.SLIM_RELEASE}} (git checkout for a local 'cargo run --bin slim')"
+        echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-setup tag + CGO tier; PyPI slim-bindings 1.4.x)"
+
+  reports:dashboard:
+    desc: Render HTML dashboard from reports (reuses agntcy-a2a tool)
+    cmds:
+      - mkdir -p ./reports
+      - |
+        cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html
+
+  test:go-main:
+    desc: >-
+      Dev-only: go→go interop against a slim node built from `main` (2.0). Validates that the
+      slim-main override env vars are set, then runs the suite. See README "Go native and slim main".
+    preconditions:
+      - sh: '[ "${CSIT_SLIM_GO_ONLY}" = "1" ]'
+        msg: 'set CSIT_SLIM_GO_ONLY=1 (PyPI slima2a is incompatible with slim-bindings 2.x on main)'
+      - sh: '[ -n "${CSIT_SLIM_BINDINGS_GO_REPLACE}" ]'
+        msg: 'set CSIT_SLIM_BINDINGS_GO_REPLACE=/path/to/slim/data-plane/bindings/go/slim_bindings (run `task generate PROFILE=release` there first)'
+      - sh: '[ -n "${CSIT_SLIM_NATIVE_LIB}" ]'
+        msg: 'set CSIT_SLIM_NATIVE_LIB to the libslim_bindings_<triple>.a built from the same slim commit as your running node'
+    cmds:
+      - |
+        echo "Running go→go SLIMRPC interop against slim 'main' with:"
+        echo "  CSIT_SLIM_GO_ONLY=${CSIT_SLIM_GO_ONLY}"
+        echo "  CSIT_SLIM_BINDINGS_GO_REPLACE=${CSIT_SLIM_BINDINGS_GO_REPLACE}"
+        echo "  CSIT_SLIM_NATIVE_LIB=${CSIT_SLIM_NATIVE_LIB}"
+        echo "  CSIT_SLIM_BINDINGS_CGO_VERSION=${CSIT_SLIM_BINDINGS_CGO_VERSION:-devel (default when REPLACE is set)}"
+        echo "Tip: clear the build cache after a bindings change: rm -rf .cache"
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: suite-slim-a2a
+          REPORT_NAME: report-agntcy-a2a-slimrpc
+
+  test:interop:run:
+    internal: true
+    cmds:
+      - mkdir -p ./reports
+      - |
+        set +e
+        (
+          cd .. &&
+          go test ./agntcy-a2a-slimrpc/tests -count=1 -v -failfast \
+            -ginkgo.timeout 30m -timeout 30m -ginkgo.v \
+            {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}} \
+            --ginkgo.json-report=./agntcy-a2a-slimrpc/reports/{{.REPORT_NAME}}.json \
+            --ginkgo.junit-report=./agntcy-a2a-slimrpc/reports/{{.REPORT_NAME}}.xml
+        )
+        test_status=$?
+        cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html
+        dashboard_status=$?
+        if [ "$test_status" -ne 0 ]; then
+          exit "$test_status"
+        fi
+        exit "$dashboard_status"
+
+  default:
+    cmd: task -l

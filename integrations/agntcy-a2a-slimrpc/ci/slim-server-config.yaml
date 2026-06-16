@@ -1,0 +1,25 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+# Minimal SLIM data-plane node config for CI (and a reference for local runs).
+# Mirrors slim's data-plane/config/base/server-config.yaml at the pinned release
+# (slim-v1.4.0). Insecure TLS on :46357 is intentional: this is an ephemeral,
+# loopback-only test node started inside the CI job, never exposed publicly.
+tracing:
+  log_level: info
+  display_thread_names: true
+  display_thread_ids: true
+
+runtime:
+  n_cores: 0
+  thread_name: "slim-data-plane"
+  drain_timeout: 10s
+
+services:
+  slim/0:
+    dataplane:
+      servers:
+        - endpoint: "0.0.0.0:46357"
+          tls:
+            insecure: true
+      clients: []
