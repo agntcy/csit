@@ -8,7 +8,7 @@ description: Decide whether a test suite workflow should run based on path filte
 
 inputs:
   suite:
-    description: "Suite identifier (a2a, slim-integration, directory, directory-conformance, slim-benchmarks, slim-multicluster-private)"
+    description: "Suite identifier (a2a, slim-integration, directory-conformance, slim-benchmarks, slim-multicluster-private)"
     required: true
 
 outputs:
@@ -27,28 +27,22 @@ runs:
         filters: |
           a2a:
             - integrations/agntcy-a2a/**
+            - .github/workflows/test-a2a.yaml
           slim-integration:
             - integrations/agntcy-slim/**
-          directory:
-            - integrations/agntcy-dir/**
+            - .github/workflows/test-slim-integration.yaml
           directory-conformance:
             - integrations/agntcy-dir/**
+            - .github/workflows/test-directory-conformance.yaml
           slim-benchmarks:
             - benchmarks/agntcy-slim/**
             - benchmarks/Taskfile.yml
+            - .github/workflows/test-slim-benchmarks.yaml
           slim-multicluster-private:
             - kind-slim-multi-host/**
+            - .github/workflows/test-slim-multicluster-private.yaml
           shared:
             - .github/actions/detect-suite-changes/**
-            - .github/workflows/test-a2a.yaml
-            - .github/workflows/test-slim-integration.yaml
-            - .github/workflows/test-directory.yaml
-            - .github/workflows/test-directory-conformance.yaml
-            - .github/workflows/test-slim-benchmarks.yaml
-            - .github/workflows/test-slim-multicluster-private.yaml
-            - .github/workflows/test-integrations.yaml
-            - .github/workflows/test-benchmarks-slim.yaml
-            - .github/workflows/kind-slim-multicluster.yml
             - Taskfile.yml
             - integrations/Taskfile.yml
             - benchmarks/Taskfile.yml
@@ -85,9 +79,6 @@ runs:
             ;;
           slim-integration)
             [[ "${{ steps.filter.outputs.slim-integration }}" == "true" ]] && suite_match=true
-            ;;
-          directory)
-            [[ "${{ steps.filter.outputs.directory }}" == "true" ]] && suite_match=true
             ;;
           directory-conformance)
             [[ "${{ steps.filter.outputs.directory-conformance }}" == "true" ]] && suite_match=true
