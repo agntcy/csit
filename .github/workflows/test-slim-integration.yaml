@@ -94,49 +94,19 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Resolve slim image tags
-        id: resolve-slim-tags
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${{ inputs.override_slim_image_tag }}" ]; then
-            tag="${{ inputs.override_slim_image_tag }}"
-          else
-            tag="local-${GITHUB_SHA:0:12}"
-          fi
-          echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout slim source
-        uses: actions/checkout@v4
-        with:
-          repository: agntcy/slim
-          fetch-depth: 1
-          path: slim-src
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build slim images (linux/amd64)
-        if: ${{ inputs.override_slim_image_tag == '' }}
+      - name: Build slim bindings examples image (linux/amd64)
         shell: bash
         run: |
           set -euo pipefail
-          SLIM_TAG="${{ steps.resolve-slim-tags.outputs.slim_tag }}"
-
           docker buildx build \
             --platform linux/amd64 \
             --load \
-            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-            --file slim-src/data-plane/Dockerfile \
-            slim-src
-
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
-            --file slim-src/control-plane/Dockerfile \
-            slim-src
+            --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
+            --file integrations/agntcy-slim/examples/Dockerfile \
+            integrations/agntcy-slim/examples
 
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
@@ -145,21 +115,15 @@ jobs:
           deploy-spire: "true"
           deploy-slim-topology: "true"
           slim-config: "spire"
-          preload-slim-images: ${{ inputs.override_slim_image_tag == '' }}
-          slim-node-image: ghcr.io/agntcy/slim:${{ steps.resolve-slim-tags.outputs.slim_tag }}
-          slim-controller-image: ghcr.io/agntcy/slim/control-plane:${{ steps.resolve-slim-tags.outputs.controller_tag }}
-          slim-image-tag: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
-          slim-controller-image-tag: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
+          slim-image-tag: ${{ inputs.override_slim_image_tag }}
+          slim-controller-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
-          slim-repo-path: ${{ github.workspace }}/slim-src
 
-      - name: Pull slim bindings examples image into kind
+      - name: Load slim bindings examples image into kind
         shell: bash
         run: |
           set -euo pipefail
-          docker pull ghcr.io/agntcy/slim/bindings-examples:latest
-          docker tag ghcr.io/agntcy/slim/bindings-examples:latest ghcr.io/agntcy/slim/bindings-examples:local
-          kind load docker-image ghcr.io/agntcy/slim/bindings-examples:local --name "agntcy-test"
+          kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:local" --name "agntcy-test"
 
       - name: Run slim topology test
         run: task integrations:slim:test:topology
