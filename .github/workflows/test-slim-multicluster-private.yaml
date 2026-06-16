@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # KinD multicluster + ingress LoadBalancer (cloud-provider-kind) + Helm stack via Task.
-# Builds slim dataplane and control-plane images, loads them into both clusters, then
-# task cluster:up → task stack:install (same as task stack:up with built tags).
+# Pulls published slim dataplane and control-plane images from GHCR, loads them into
+# both clusters, then task cluster:up → task stack:install.
 
 name: test-slim-multicluster-private
 
@@ -13,6 +13,19 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      override_slim_image_tag:
+        description: "Override Slim data-plane image tag"
+        required: false
+        default: ""
+      override_slim_controller_image_tag:
+        description: "Override Slim control-plane image tag"
+        required: false
+        default: ""
+      override_slim_chart_tag:
+        description: "Override Slim Helm chart version"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -53,9 +66,18 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          tag="local-${GITHUB_SHA:0:12}"
-          echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.override_slim_image_tag }}" ]; then
+            slim_tag="${{ inputs.override_slim_image_tag }}"
+          else
+            slim_tag="1.3.0-dev03"
+          fi
+          if [ -n "${{ inputs.override_slim_controller_image_tag }}" ]; then
+            controller_tag="${{ inputs.override_slim_controller_image_tag }}"
+          else
+            controller_tag="1.0.0-dev.07"
+          fi
+          echo "slim_tag=${slim_tag}" >> "$GITHUB_OUTPUT"
+          echo "controller_tag=${controller_tag}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -64,36 +86,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Pull slim images from GHCR
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          CTRL_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
+        run: |
+          set -euo pipefail
+          docker pull "ghcr.io/agntcy/slim:${SLIM_TAG}"
+          docker pull "ghcr.io/agntcy/slim/control-plane:${CTRL_TAG}"
+
       - name: Checkout slim source
         uses: actions/checkout@v4
         with:
           repository: agntcy/slim
           fetch-depth: 1
           path: slim-src
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build slim images (linux/amd64)
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
-        run: |
-          set -euo pipefail
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-            --file slim-src/data-plane/Dockerfile \
-            slim-src
-
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
-            --file slim-src/control-plane/Dockerfile \
-            slim-src
 
       - name: Setup Kubernetes tooling
         uses: ./.github/actions/setup-k8s
@@ -142,23 +151,27 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          CTRL_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
         run: |
           set -euo pipefail
           for cluster in csit-a csit-b; do
-            for img in \
-              "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-              "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}"; do
-              kind load docker-image "${img}" --name "${cluster}"
-            done
+            kind load docker-image "ghcr.io/agntcy/slim:${SLIM_TAG}" --name "${cluster}"
+            kind load docker-image "ghcr.io/agntcy/slim/control-plane:${CTRL_TAG}" --name "${cluster}"
           done
 
-      - name: Install ingress stack and Helm apps (built images)
+      - name: Install ingress stack and Helm apps
         env:
           SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
           SLIM_CHARTS_PATH: ${{ github.workspace }}/slim-src/charts
           SLIM_REPO_PATH: ${{ github.workspace }}/slim-src
-        run: task stack:install
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.override_slim_chart_tag }}" ]; then
+            task SLIM_CHART_TAG="${{ inputs.override_slim_chart_tag }}" stack:install
+          else
+            task stack:install
+          fi
 
       - name: Verify clusters
         run: |
