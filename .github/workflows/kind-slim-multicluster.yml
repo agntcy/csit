@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # KinD multicluster + ingress LoadBalancer (cloud-provider-kind) + Helm stack via Task.
-# Builds slim dataplane and control-plane images, loads them into both clusters, then
-# task cluster:up → task stack:install (same as task stack:up with built tags).
+# Builds slim dataplane and control-plane images from agntcy/slim source (multi-stage
+# data-plane/Dockerfile), loads them into both clusters, installs OCI Helm charts via Task.
 name: kind-slim-multicluster
 
 on:
@@ -74,6 +74,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64 \
             --load \
+            --target slim-release \
             --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
             --file slim-src/data-plane/Dockerfile \
             slim-src
@@ -81,8 +82,9 @@ jobs:
           docker buildx build \
             --platform linux/amd64 \
             --load \
+            --target control-plane-release \
             --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
-            --file slim-src/control-plane/Dockerfile \
+            --file slim-src/data-plane/Dockerfile \
             slim-src
 
       - name: Setup Kubernetes tooling
@@ -90,22 +92,22 @@ jobs:
         with:
           kind-version: "0.24.0"
           helm-version: "3.14.4"
-          
-      - name: Install C/C++ toolchain
-        if: runner.os == 'Linux'
+
+      - name: Install slimctl
+        id: install-slimctl
         shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SLIMCTL_VERSION: "1.4.0"
         run: |
-          sudo apt-get update
-          curl -L https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
-          chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh 19
-          sudo apt-get install -y \
-            pkg-config \
-            make \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            gcc-x86-64-linux-gnu \
-            g++-x86-64-linux-gnu
+          set -euo pipefail
+          tarball="slimctl-linux-amd64-gnu.tar.gz"
+          curl -fsSL -LO "https://github.com/agntcy/slim/releases/download/slimctl-v${SLIMCTL_VERSION}/${tarball}"
+          tar -xzf "${tarball}"
+          mkdir -p "${HOME}/.local/bin"
+          install -m 0755 slimctl "${HOME}/.local/bin/slimctl"
+          "${HOME}/.local/bin/slimctl" --help | head -1
+          echo "path=${HOME}/.local/bin/slimctl" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -143,13 +145,12 @@ jobs:
             done
           done
 
-      # Charts from checked-out agntcy/slim (charts/slim, charts/slim-control-plane); tags match kind-loaded images.
+      # OCI Helm charts (Task defaults); image tags match kind-loaded builds above.
       - name: Install ingress stack and Helm apps (built images)
         env:
           SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
           CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
-          SLIM_CHARTS_PATH: ${{ github.workspace }}/slim-src/charts
-          SLIM_REPO_PATH: ${{ github.workspace }}/slim-src
+          SLIMCTL_PATH: ${{ steps.install-slimctl.outputs.path }}
         run: task stack:install
 
       - name: Verify clusters
