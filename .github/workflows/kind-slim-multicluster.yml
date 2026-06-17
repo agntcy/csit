@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # KinD multicluster + ingress LoadBalancer (cloud-provider-kind) + Helm stack via Task.
-# Builds slim dataplane and control-plane images from agntcy/slim source (multi-stage
-# data-plane/Dockerfile), loads them into both clusters, installs OCI Helm charts via Task.
+# Pulls published slim images and OCI Helm charts; slimctl from GitHub releases.
+
 name: kind-slim-multicluster
 
 on:
@@ -37,15 +37,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Resolve slim image tags
-        id: resolve-slim-tags
+      - name: Resolve slim image and chart versions
+        id: resolve-slim-versions
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          tag="local-${GITHUB_SHA:0:12}"
-          echo "slim_tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "controller_tag=${tag}" >> "$GITHUB_OUTPUT"
+          slim_tag="1.4.0"
+          controller_tag="1.4.0"
+          slim_chart_version="v1.4.0"
+          ctrl_chart_version="v1.4.0"
+          slim_spire_chart_version="v1.4.0"
+          slimctl_version="1.4.0"
+          echo "slim_tag=${slim_tag}" >> "$GITHUB_OUTPUT"
+          echo "controller_tag=${controller_tag}" >> "$GITHUB_OUTPUT"
+          echo "slim_chart_version=${slim_chart_version}" >> "$GITHUB_OUTPUT"
+          echo "ctrl_chart_version=${ctrl_chart_version}" >> "$GITHUB_OUTPUT"
+          echo "slim_spire_chart_version=${slim_spire_chart_version}" >> "$GITHUB_OUTPUT"
+          echo "slimctl_version=${slimctl_version}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -54,38 +63,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout slim source
-        uses: actions/checkout@v4
-        with:
-          repository: agntcy/slim
-          fetch-depth: 1
-          path: slim-src
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build slim images (linux/amd64)
+      - name: Pull slim images from GHCR
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          SLIM_TAG: ${{ steps.resolve-slim-versions.outputs.slim_tag }}
+          CTRL_TAG: ${{ steps.resolve-slim-versions.outputs.controller_tag }}
         run: |
           set -euo pipefail
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --target slim-release \
-            --tag "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-            --file slim-src/data-plane/Dockerfile \
-            slim-src
-
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            --target control-plane-release \
-            --tag "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}" \
-            --file slim-src/data-plane/Dockerfile \
-            slim-src
+          docker pull "ghcr.io/agntcy/slim:${SLIM_TAG}"
+          docker pull "ghcr.io/agntcy/slim/control-plane:${CTRL_TAG}"
 
       - name: Setup Kubernetes tooling
         uses: ./.github/actions/setup-k8s
@@ -98,7 +85,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          SLIMCTL_VERSION: "1.4.0"
+          SLIMCTL_VERSION: ${{ steps.resolve-slim-versions.outputs.slimctl_version }}
         run: |
           set -euo pipefail
           tarball="slimctl-linux-amd64-gnu.tar.gz"
@@ -123,7 +110,6 @@ jobs:
       - name: Task prereq
         run: task prereq
 
-      # Ubuntu runners may not ship `dig` (bind-dnsutils); host DNS checks need it.
       - name: Install dnsutils
         run: sudo apt-get update && sudo apt-get install -y dnsutils
 
@@ -134,24 +120,27 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          SLIM_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
+          SLIM_TAG: ${{ steps.resolve-slim-versions.outputs.slim_tag }}
+          CTRL_TAG: ${{ steps.resolve-slim-versions.outputs.controller_tag }}
         run: |
           set -euo pipefail
           for cluster in csit-a csit-b; do
-            for img in \
-              "ghcr.io/agntcy/slim:${SLIM_TAG}" \
-              "ghcr.io/agntcy/slim/control-plane:${SLIM_TAG}"; do
-              kind load docker-image "${img}" --name "${cluster}"
-            done
+            kind load docker-image "ghcr.io/agntcy/slim:${SLIM_TAG}" --name "${cluster}"
+            kind load docker-image "ghcr.io/agntcy/slim/control-plane:${CTRL_TAG}" --name "${cluster}"
           done
 
-      # OCI Helm charts (Task defaults); image tags match kind-loaded builds above.
-      - name: Install ingress stack and Helm apps (built images)
+      - name: Install ingress stack and Helm apps
         env:
-          SLIM_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.slim_tag }}
-          CTRL_IMAGE_TAG: ${{ steps.resolve-slim-tags.outputs.controller_tag }}
+          SLIM_IMAGE_TAG: ${{ steps.resolve-slim-versions.outputs.slim_tag }}
+          CTRL_IMAGE_TAG: ${{ steps.resolve-slim-versions.outputs.controller_tag }}
           SLIMCTL_PATH: ${{ steps.install-slimctl.outputs.path }}
-        run: task stack:install
+        run: |
+          set -euo pipefail
+          task \
+            SLIM_CHART_VERSION="${{ steps.resolve-slim-versions.outputs.slim_chart_version }}" \
+            CTRL_CHART_VERSION="${{ steps.resolve-slim-versions.outputs.ctrl_chart_version }}" \
+            SLIM_SPIRE_CHART_VERSION="${{ steps.resolve-slim-versions.outputs.slim_spire_chart_version }}" \
+            stack:install
 
       - name: Verify clusters
         run: |
