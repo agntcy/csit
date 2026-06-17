@@ -26,7 +26,7 @@ vars:
   SLIM_SPIRE_CHART: '{{ .SLIM_SPIRE_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-spire" }}'
   SLIM_SPIRE_CHART_VERSION: '{{ .SLIM_SPIRE_CHART_VERSION | default .SLIM_CHART_VERSION | default "v1.4.0" }}'
 
-  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default (env "SLIMCTL_VERSION") | default "1.2.0" }}'
+  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default (env "SLIMCTL_VERSION") | default "1.4.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default (env "SLIMCTL_PATH") | default "./bin/slimctl" }}'
   # Must match SLIMCTL_PF_LOCAL_PORT when overriding local port (e.g. http://localhost:150051).
   SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL | default "http://localhost:50051" }}'
@@ -114,7 +114,15 @@ tasks:
             exit 1
             ;;
         esac
-        TARBALL="slimctl_${VERSION}_${OS}_${ARCH}.tar.gz"
+        ABI=""
+        if [ "$OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            ABI="-musl"
+          else
+            ABI="-gnu"
+          fi
+        fi
+        TARBALL="slimctl-${OS}-${ARCH}${ABI}.tar.gz"
         URL="https://github.com/agntcy/slim/releases/download/slimctl-v${VERSION}/${TARBALL}"
         TMP=$(mktemp -d)
         trap 'rm -rf "$TMP"' EXIT

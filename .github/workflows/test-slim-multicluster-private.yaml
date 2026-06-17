@@ -34,9 +34,9 @@ on:
         required: false
         default: ""
       slimctl_version:
-        description: "slimctl release version (e.g. 1.2.0)"
+        description: "slimctl release version (e.g. 1.4.0)"
         required: false
-        default: "1.2.0"
+        default: "1.4.0"
 
 permissions:
   contents: read
@@ -105,7 +105,7 @@ jobs:
           if [ -n "${{ inputs.slimctl_version }}" ]; then
             slimctl_version="${{ inputs.slimctl_version }}"
           else
-            slimctl_version="1.2.0"
+            slimctl_version="1.4.0"
           fi
           echo "slim_tag=${slim_tag}" >> "$GITHUB_OUTPUT"
           echo "controller_tag=${controller_tag}" >> "$GITHUB_OUTPUT"
@@ -146,8 +146,9 @@ jobs:
           SLIMCTL_VERSION: ${{ steps.resolve-slim-versions.outputs.slimctl_version }}
         run: |
           set -euo pipefail
-          curl -fsSL -LO "https://github.com/agntcy/slim/releases/download/slimctl-v${SLIMCTL_VERSION}/slimctl_${SLIMCTL_VERSION}_linux_amd64.tar.gz"
-          tar -xzf "slimctl_${SLIMCTL_VERSION}_linux_amd64.tar.gz"
+          tarball="slimctl-linux-amd64-gnu.tar.gz"
+          curl -fsSL -LO "https://github.com/agntcy/slim/releases/download/slimctl-v${SLIMCTL_VERSION}/${tarball}"
+          tar -xzf "${tarball}"
           mkdir -p "${HOME}/.local/bin"
           install -m 0755 slimctl "${HOME}/.local/bin/slimctl"
           "${HOME}/.local/bin/slimctl" --help | head -1

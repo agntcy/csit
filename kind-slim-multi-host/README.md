@@ -41,7 +41,7 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 - **`dig`** (bind / dnsutils) — required for **`task compose:dns:verify`** and recommended when debugging host DNS
 - **Helm** + **Go** for **`stack:up`** / **`stack:install`** (cloud-provider-kind uses `go run`)
 - **GHCR access** for OCI Helm charts (`oci://ghcr.io/agntcy/slim/helm/*`) and container images (defaults **1.4.0** / **v1.4.0**). Override with **`SLIM_*_VERSION`**, **`CTRL_*_VERSION`**, **`SLIM_IMAGE_TAG`**, **`CTRL_IMAGE_TAG`**.
-- **`slimctl`** — set **`SLIMCTL_PATH`** or let **`task slimctl:ensure`** download a release (**`SLIMCTL_VERSION`**, default **1.2.0**).
+- **`slimctl`** — set **`SLIMCTL_PATH`** or let **`task slimctl:ensure`** download a release (**`SLIMCTL_VERSION`**, default **1.4.0**).
 
 ### macOS host DNS for `*.csit.test`
 
