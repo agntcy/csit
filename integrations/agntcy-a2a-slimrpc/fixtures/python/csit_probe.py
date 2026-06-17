@@ -24,22 +24,32 @@ SCENARIO_ECHO = "echo"
 SENTINEL_MESSAGE_ONLY = "csit-scenario:message-only"
 SENTINEL_TASK_FAILURE = "csit-scenario:task-failure"
 SENTINEL_INPUT_REQUIRED = "csit-scenario:input-required"
+SENTINEL_STREAMING = "csit-scenario:streaming"
+SENTINEL_CANCEL = "csit-scenario:cancel"
+
+MODE_UNARY = "unary"
+MODE_STREAMING = "streaming"
+MODE_CANCEL = "cancel"
 
 
-def _scenario_request(scenario: str, text: str) -> tuple[str, bool]:
-    """Map a scenario selector to (outbound text, enforce-echo).
+def _scenario_request(scenario: str, text: str) -> tuple[str, bool, str]:
+    """Map a scenario selector to (outbound text, enforce-echo, transport mode).
 
     Non-echo scenarios send a fixed sentinel and only emit the observation block; the
     harness asserts the terminal state.
     """
     if scenario in (SCENARIO_ECHO, ""):
-        return text, True
+        return text, True, MODE_UNARY
     if scenario == "message-only":
-        return SENTINEL_MESSAGE_ONLY, False
+        return SENTINEL_MESSAGE_ONLY, False, MODE_UNARY
     if scenario == "task-failure":
-        return SENTINEL_TASK_FAILURE, False
+        return SENTINEL_TASK_FAILURE, False, MODE_UNARY
     if scenario == "input-required":
-        return SENTINEL_INPUT_REQUIRED, False
+        return SENTINEL_INPUT_REQUIRED, False, MODE_UNARY
+    if scenario == "streaming":
+        return SENTINEL_STREAMING, False, MODE_STREAMING
+    if scenario == "task-cancel":
+        return SENTINEL_CANCEL, False, MODE_CANCEL
     raise SystemExit(f"unknown scenario {scenario!r}")
 
 
@@ -67,13 +77,12 @@ def _task_state_name(task) -> str:
 
 async def collect_response(
     client, text: str, break_on_echo: bool = True
-) -> tuple[str, object, bool]:
+) -> tuple[str, object, bool, int]:
     """Drain send_message until the stream ends.
 
-    Returns the accumulated echoed text, the last observed task (for the
-    terminal lifecycle state) and whether a text artifact was seen. Uses the
-    non-streaming ClientConfig so send_message completes like the Go unary client.
-    For non-echo scenarios break_on_echo is False, so the iterator runs to
+    Returns the accumulated echoed text, the last observed task (for the terminal
+    lifecycle state), whether a text artifact was seen, and the number of streamed
+    events. For non-echo scenarios break_on_echo is False, so the iterator runs to
     completion (a failed/input-required task arrives as a normal terminal result).
     """
     message = create_text_message_object(content=text)
@@ -81,7 +90,9 @@ async def collect_response(
     out = ""
     last_task = None
     artifact_present = False
+    events = 0
     async for stream_response, task in client.send_message(request=request):
+        events += 1
         which = stream_response.WhichOneof("payload")
         if which == "message":
             for part in stream_response.message.parts:
@@ -102,7 +113,56 @@ async def collect_response(
                     artifact_present = True
         if break_on_echo and text in out:
             break
-    return out, last_task, artifact_present
+    return out, last_task, artifact_present, events
+
+
+async def run_cancel(client, text: str) -> tuple[str, object, bool, int]:
+    """Create a working task, then cancel it via cancel_task.
+
+    The high-level client only surfaces stream events after the stream ends, so the probe
+    drops to the low-level transport's send_message_streaming, which yields raw events as
+    they arrive. It reads just enough to learn the server-assigned task ID (the server
+    generates its own ID, so a client-supplied one would not match), stops the stream
+    while the task is still working, and cancels by that ID. Returns the canceled task's
+    artifact text, the canceled task, artifact presence, and the events read before
+    cancelling.
+    """
+    from a2a.types.a2a_pb2 import CancelTaskRequest
+
+    message = create_text_message_object(content=text)
+    request = SendMessageRequest(message=message)
+    task_id = None
+    events = 0
+    stream = client._transport.send_message_streaming(request)  # noqa: SLF001
+    try:
+        async for item in stream:
+            events += 1
+            # The slimrpc transport yields StreamResponse; the group transport yields
+            # (source, StreamResponse). Normalize to the StreamResponse.
+            response = item[-1] if isinstance(item, tuple) else item
+            which = response.WhichOneof("payload")
+            if which == "task" and response.task.id:
+                task_id = response.task.id
+            elif which == "status_update" and response.status_update.task_id:
+                task_id = response.status_update.task_id
+            elif which == "artifact_update" and response.artifact_update.task_id:
+                task_id = response.artifact_update.task_id
+            if task_id:
+                break
+    finally:
+        await stream.aclose()
+    if not task_id:
+        raise SystemExit("task-cancel scenario: no task id observed")
+
+    canceled = await client.cancel_task(CancelTaskRequest(id=task_id))
+    out = ""
+    artifact_present = False
+    for artifact in canceled.artifacts:
+        for part in artifact.parts:
+            if part.WhichOneof("content") == "text":
+                out += part.text
+                artifact_present = True
+    return out, canceled, artifact_present, events
 
 
 async def main() -> None:
@@ -140,7 +200,7 @@ async def main() -> None:
     parser.add_argument("--log-level", default="ERROR")
     args = parser.parse_args()
 
-    want, enforce_echo = _scenario_request(args.scenario, args.text)
+    want, enforce_echo, mode = _scenario_request(args.scenario, args.text)
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.ERROR))
 
@@ -156,12 +216,13 @@ async def main() -> None:
     )
 
     httpx_client = httpx.AsyncClient()
-    # Match upstream echo client default: unary SendMessage completes the async iterator.
-    # streaming=True can leave async for ... send_message() waiting forever if the server
-    # does not drive stream closure the way the client expects.
+    # Unary scenarios use streaming=False so send_message completes like the Go unary
+    # client. Streaming and task-cancel use streaming=True: the server drives stream
+    # closure (execute returns), so the iterator terminates cleanly. task-cancel needs
+    # this because a non-terminal working task would otherwise block a unary send.
     client_config = ClientConfig(
         supported_protocol_bindings=["slimrpc"],
-        streaming=False,
+        streaming=(mode in (MODE_STREAMING, MODE_CANCEL)),
         httpx_client=httpx_client,
         slimrpc_channel_factory=slimrpc_channel_factory(slim_local_app, conn_id),
     )
@@ -173,9 +234,13 @@ async def main() -> None:
     client = client_factory.create(card=agent_card)
 
     probe_timeout_s = int(os.environ.get("CSIT_SLIM_PYTHON_PROBE_TIMEOUT", "180"))
+    if mode == MODE_CANCEL:
+        worker = run_cancel(client, want)
+    else:
+        worker = collect_response(client, want, break_on_echo=enforce_echo)
     try:
-        out, task, artifact_present = await asyncio.wait_for(
-            collect_response(client, want, break_on_echo=enforce_echo),
+        out, task, artifact_present, stream_events = await asyncio.wait_for(
+            worker,
             timeout=probe_timeout_s,
         )
     except TimeoutError as e:
@@ -194,6 +259,7 @@ async def main() -> None:
     sys.stdout.write(
         f"CSIT_SLIM_ARTIFACT_PRESENT={'true' if artifact_present else 'false'}\n"
     )
+    sys.stdout.write(f"CSIT_SLIM_STREAM_EVENTS={stream_events}\n")
     sys.stdout.write(f"CSIT_SLIM_ARTIFACT_TEXT={out}\n")
     sys.stdout.write(out)
     if enforce_echo and want not in out:

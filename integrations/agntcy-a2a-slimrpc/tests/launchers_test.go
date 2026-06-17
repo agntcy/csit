@@ -49,6 +49,8 @@ const (
 	scenarioMessageOnly   = "message-only"
 	scenarioTaskFailure   = "task-failure"
 	scenarioInputRequired = "input-required"
+	scenarioStreaming     = "streaming"
+	scenarioTaskCancel    = "task-cancel"
 
 	fixtureReadyTimeout = 90 * time.Second
 	probeTimeout        = 3 * time.Minute

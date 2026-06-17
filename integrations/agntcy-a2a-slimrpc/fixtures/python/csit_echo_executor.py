@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 SENTINEL_MESSAGE_ONLY = "csit-scenario:message-only"
 SENTINEL_TASK_FAILURE = "csit-scenario:task-failure"
 SENTINEL_INPUT_REQUIRED = "csit-scenario:input-required"
+SENTINEL_STREAMING = "csit-scenario:streaming"
+SENTINEL_CANCEL = "csit-scenario:cancel"
 
 
 class CsitEchoExecutor(AgentExecutor):
@@ -63,6 +65,21 @@ class CsitEchoExecutor(AgentExecutor):
         if text == SENTINEL_INPUT_REQUIRED:
             await task_updater.requires_input()
             return
+        if text == SENTINEL_STREAMING:
+            # Multiple status + artifact events so a streaming client observes a stream.
+            await task_updater.start_work()
+            await task_updater.add_artifact(
+                parts=[Part(text="streaming chunk 1 ")], name="result"
+            )
+            await task_updater.add_artifact(
+                parts=[Part(text="streaming chunk 2")], name="result"
+            )
+            await task_updater.complete()
+            return
+        if text == SENTINEL_CANCEL:
+            # Leave the task working (non-terminal) so cancel_task can cancel it.
+            await task_updater.start_work()
+            return
 
         response = Message(
             role=Role.ROLE_AGENT,
@@ -76,4 +93,17 @@ class CsitEchoExecutor(AgentExecutor):
         await task_updater.complete(message=response)
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
-        raise NotImplementedError("cancel not supported for CSIT echo fixture")
+        task_id = context.task_id
+        context_id = context.context_id
+        if not task_id and context.current_task is not None:
+            task_id = context.current_task.id
+            context_id = context.current_task.context_id
+        if not task_id or not context_id:
+            raise RuntimeError("cancel: missing task_id or context_id")
+
+        task_updater = TaskUpdater(
+            event_queue=event_queue,
+            task_id=task_id,
+            context_id=context_id,
+        )
+        await task_updater.cancel()

@@ -29,6 +29,8 @@ const (
 	sentinelMessageOnly   = "csit-scenario:message-only"
 	sentinelTaskFailure   = "csit-scenario:task-failure"
 	sentinelInputRequired = "csit-scenario:input-required"
+	sentinelStreaming     = "csit-scenario:streaming"
+	sentinelCancel        = "csit-scenario:cancel"
 )
 
 func main() {
@@ -119,6 +121,31 @@ func (e *echoExecutor) Execute(_ context.Context, execCtx *a2asrv.ExecutorContex
 				}
 			}
 			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateInputRequired, nil), nil)
+		case sentinelStreaming:
+			// Multiple status + artifact events so a streaming client observes a stream.
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
+			}
+			if !yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateWorking, nil), nil) {
+				return
+			}
+			if !yield(a2a.NewArtifactEvent(execCtx, a2a.NewTextPart("streaming chunk 1 ")), nil) {
+				return
+			}
+			if !yield(a2a.NewArtifactEvent(execCtx, a2a.NewTextPart("streaming chunk 2")), nil) {
+				return
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
+		case sentinelCancel:
+			// Leave the task in a non-terminal working state so CancelTask can cancel it.
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateWorking, nil), nil)
 		default:
 			e.echo(execCtx, yield)
 		}

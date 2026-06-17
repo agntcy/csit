@@ -111,6 +111,14 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 							gomega.Expect(ok).To(gomega.BeTrue(), fmt.Sprintf("probe output missing CSIT_SLIM_TASK_STATE:\n%s", out))
 							gomega.Expect(state).To(gomega.Equal(sc.wantState), fmt.Sprintf("probe output:\n%s", out))
 						}
+
+						if len(sc.wantArtifactSubstrings) > 0 {
+							artifactText, ok := parseProbeField(out, "CSIT_SLIM_ARTIFACT_TEXT")
+							gomega.Expect(ok).To(gomega.BeTrue(), fmt.Sprintf("probe output missing CSIT_SLIM_ARTIFACT_TEXT:\n%s", out))
+							for _, sub := range sc.wantArtifactSubstrings {
+								gomega.Expect(artifactText).To(gomega.ContainSubstring(sub), fmt.Sprintf("probe output:\n%s", out))
+							}
+						}
 					},
 				)
 			}
@@ -199,16 +207,29 @@ type scenarioCase struct {
 	scenario  string
 	wantKind  string
 	wantState string
+	// wantArtifactSubstrings, when set, asserts the aggregated CSIT_SLIM_ARTIFACT_TEXT
+	// contains each substring. For streaming this proves multiple streamed artifact
+	// chunks were delivered and aggregated in order (a portable signal: the Python
+	// client coalesces stream events, so a raw event count is not comparable to Go).
+	wantArtifactSubstrings []string
 }
 
-// interopScenarios returns the unary scenario behaviors driven through the
-// behavior-scenario specs, mirroring the agntcy-a2a sibling taxonomy. Filter a single
-// case with: ginkgo --label-filter 'scenario-task-failure'.
+// interopScenarios returns the scenario behaviors driven through the behavior-scenario
+// specs, mirroring the agntcy-a2a sibling taxonomy. Filter a single case with:
+// ginkgo --label-filter 'scenario-task-failure'.
 func interopScenarios() []scenarioCase {
 	return []scenarioCase{
 		{name: scenarioMessageOnly, scenario: scenarioMessageOnly, wantKind: "message", wantState: ""},
 		{name: scenarioTaskFailure, scenario: scenarioTaskFailure, wantKind: "task", wantState: "TASK_STATE_FAILED"},
 		{name: scenarioInputRequired, scenario: scenarioInputRequired, wantKind: "task", wantState: "TASK_STATE_INPUT_REQUIRED"},
+		{
+			name:                   scenarioStreaming,
+			scenario:               scenarioStreaming,
+			wantKind:               "task",
+			wantState:              "TASK_STATE_COMPLETED",
+			wantArtifactSubstrings: []string{"streaming chunk 1", "streaming chunk 2"},
+		},
+		{name: scenarioTaskCancel, scenario: scenarioTaskCancel, wantKind: "task", wantState: "TASK_STATE_CANCELED"},
 	}
 }
 

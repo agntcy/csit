@@ -63,6 +63,9 @@ async def main() -> None:
     )
 
     agent_card = minimal_agent_card(args.identity, ["slimrpc"])
+    # Advertise streaming so SendStreamingMessage is accepted (needed by the streaming
+    # and task-cancel scenarios, which drive the task via the streaming RPC).
+    agent_card.capabilities.streaming = True
     agent_executor = CsitEchoExecutor()
     task_store = InMemoryTaskStore()
     handler = DefaultRequestHandler(
