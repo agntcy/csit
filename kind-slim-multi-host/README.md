@@ -40,7 +40,8 @@ KinD clusters **csit-a** / **csit-b**; **ingress-nginx** runs on **A** only. **[
 - Docker, [kind](https://kind.sigs.k8s.io/), kubectl, jq, [Task](https://taskfile.dev/)
 - **`dig`** (bind / dnsutils) — required for **`task compose:dns:verify`** and recommended when debugging host DNS
 - **Helm** + **Go** for **`stack:up`** / **`stack:install`** (cloud-provider-kind uses `go run`)
-- **Local chart source:** by default **`SLIM_REPO_PATH`** and **`SLIM_CHARTS_PATH`** resolve to an **agntcy/slim** checkout **sibling** of the **csit** repo (e.g. `…/agntcy/{csit,slim}` — computed from this directory as **`../../slim`** and **`../../slim/charts`**). Set env **`SLIM_REPO_PATH`** / **`SLIM_CHARTS_PATH`** (or **`task VAR=…`**) if your layout differs. CI sets them explicitly.
+- **GHCR access** for OCI Helm charts (`oci://ghcr.io/agntcy/slim/helm/*`) and container images (defaults **1.4.0** / **v1.4.0**). Override with **`SLIM_*_VERSION`**, **`CTRL_*_VERSION`**, **`SLIM_IMAGE_TAG`**, **`CTRL_IMAGE_TAG`**.
+- **`slimctl`** — set **`SLIMCTL_PATH`** or let **`task slimctl:ensure`** download a release (**`SLIMCTL_VERSION`**, default **1.2.0**).
 
 ### macOS host DNS for `*.csit.test`
 
@@ -82,7 +83,7 @@ Use when **`control.nb.cluster-a.csit.test`** resolves to the cluster **A** ingr
 ### Optional demos (not part of `stack:install`)
 
 - **`task echo-agent:server:deploy`** / **`task echo-agent:client:deploy`** — sample A2A workloads on the slim dataplane.
-- **`task slimctl:controller:link:outline`** / **`task slimctl:controller:route:outline`** — **`slimctl`** via port-forward (requires **`SLIM_REPO_PATH`**, **`slimctl:build`**).
+- **`task slimctl:controller:link:outline`** / **`task slimctl:controller:route:outline`** — **`slimctl`** via port-forward (**`SLIMCTL_PATH`** or **`task slimctl:download`**).
 
 ## Quick start
 
@@ -151,11 +152,11 @@ flowchart LR
 
 **`apps:install:cluster-a`** runs after **`ingress:install:a`** (ingress chart pull may hit **`INGRESS_NGINX_HELM_REPO`** on first run unless cached).
 
-Environment overrides: `CLUSTER_*`, `CTX_*`, **`CSIT_DNS_ZONE`**, **`CSIT_INGRESS_IP_A`** / **`CSIT_INGRESS_IP_B`**, **`CSIT_DNS_CATCHALL_IP`** (wildcard `*.csit.test` in zone file), **`INGRESS_SVC`**, **`INGRESS_NGINX_*`**, **`SLIM_CHARTS_PATH`** / **`SLIM_REPO_PATH`** (defaults: sibling **`slim`** repo; see Prerequisites), **`CSIT_LOCAL_DNS_HOST_PORT`**.
+Environment overrides: `CLUSTER_*`, `CTX_*`, **`CSIT_DNS_ZONE`**, **`CSIT_INGRESS_IP_A`** / **`CSIT_INGRESS_IP_B`**, **`CSIT_DNS_CATCHALL_IP`** (wildcard `*.csit.test` in zone file), **`INGRESS_SVC`**, **`INGRESS_NGINX_*`**, **`SLIM_CHART_VERSION`** / **`CTRL_CHART_VERSION`** / **`SLIM_SPIRE_CHART_VERSION`**, **`SLIM_IMAGE_TAG`** / **`CTRL_IMAGE_TAG`**, **`SLIMCTL_PATH`** / **`SLIMCTL_VERSION`**, **`CSIT_LOCAL_DNS_HOST_PORT`**.
 
 ## GitHub Actions
 
-Workflow: [`../.github/workflows/kind-slim-multicluster.yml`](../.github/workflows/kind-slim-multicluster.yml) — `task cluster:up` → load images → **`task stack:install`** → checks → **`task stack:down`**.
+Workflow: [`../.github/workflows/test-slim-multicluster-private.yaml`](../.github/workflows/test-slim-multicluster-private.yaml) — pull images/charts from GHCR, install **slimctl** from GitHub releases → `task cluster:up` → load images → **`task stack:install`** → checks → **`task stack:down`**.
 
 ## Limitations
 

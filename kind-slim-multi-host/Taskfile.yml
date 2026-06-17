@@ -15,21 +15,19 @@ vars:
   CTX_B: '{{ .CTX_B | default "kind-csit-b" }}'
 
   SLIM_CHART: '{{ .SLIM_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim" }}'
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v0.7.0" }}'
+  SLIM_CHART_VERSION: '{{ .SLIM_CHART_VERSION | default "v1.4.0" }}'
   # Prefer CLI/task var, then OS env (CI sets SLIM_IMAGE_TAG / CTRL_IMAGE_TAG), then default tags.
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default (env "SLIM_IMAGE_TAG") | default "1.3.0-dev03" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default (env "SLIM_IMAGE_TAG") | default "1.4.0" }}'
 
   CTRL_CHART: '{{ .CTRL_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-control-plane" }}'
-  CTRL_CHART_TAG: '{{ .CTRL_CHART_TAG | default "v0.7.0" }}'
-  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default (env "SLIM_CONTROLLER_IMAGE_TAG") | default "1.0.0-dev.07" }}'
+  CTRL_CHART_VERSION: '{{ .CTRL_CHART_VERSION | default "v1.4.0" }}'
+  CTRL_IMAGE_TAG: '{{ .CTRL_IMAGE_TAG | default (env "CTRL_IMAGE_TAG") | default (env "SLIM_CONTROLLER_IMAGE_TAG") | default "1.4.0" }}'
 
-  # Default local layout: `slim` checkout is a sibling of the `csit` repo (…/agntcy/csit/kind-slim-multi-host → …/agntcy/slim).
-  # Override with SLIM_REPO_PATH / SLIM_CHARTS_PATH (env or `task VAR=…`). CI sets these explicitly.
-  SLIM_CHARTS_PATH: '{{ .SLIM_CHARTS_PATH | default (env "SLIM_CHARTS_PATH") | default (printf "%s/../../slim/charts" .TASKFILE_DIR) }}'
+  SLIM_SPIRE_CHART: '{{ .SLIM_SPIRE_CHART | default "oci://ghcr.io/agntcy/slim/helm/slim-spire" }}'
+  SLIM_SPIRE_CHART_VERSION: '{{ .SLIM_SPIRE_CHART_VERSION | default .SLIM_CHART_VERSION | default "v1.4.0" }}'
 
-  # agntcy/slim repo root (cargo slimctl:build, charts fallback). Same sibling default as SLIM_CHARTS_PATH.
-  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default (env "SLIM_REPO_PATH") | default (printf "%s/../../slim" .TASKFILE_DIR) }}'
-  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default (env "SLIMCTL_VERSION") | default "1.2.0" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default (env "SLIMCTL_PATH") | default "./bin/slimctl" }}'
   # Must match SLIMCTL_PF_LOCAL_PORT when overriding local port (e.g. http://localhost:150051).
   SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL | default "http://localhost:50051" }}'
   SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT | default "50051" }}'
@@ -76,75 +74,84 @@ tasks:
       - command -v helm
       - command -v go
 
-  prereq:slimctl:
-    desc: Check Rust toolchain (cargo, rustc) for slimctl:build
-    cmds:
-      - command -v cargo
-      - command -v rustc
-
-  slimctl:build:
-    desc: Build slimctl from SLIM_REPO_PATH data-plane/slimctl (cargo release); copy to SLIMCTL_PATH
-    deps: [prereq:slimctl]
+  slimctl:ensure:
+    desc: Use SLIMCTL_PATH if executable; otherwise download slimctl release from GitHub
     dir: "{{.TASKFILE_DIR}}"
     cmds:
       - |
         set -euo pipefail
-        REPO='{{ .SLIM_REPO_PATH }}'
-        if [ -z "$REPO" ]; then
-          echo "Set SLIM_REPO_PATH to the root of an agntcy/slim checkout (contains data-plane/slimctl)" >&2
-          exit 1
+        OUT='{{ .SLIMCTL_PATH }}'
+        if [ -n "$OUT" ] && [ -x "$OUT" ]; then
+          echo "Using slimctl at $OUT"
+          exit 0
         fi
-        CRATE_DIR="$REPO/data-plane/slimctl"
-        if [ ! -d "$CRATE_DIR" ]; then
-          echo "Not found: $CRATE_DIR" >&2
-          exit 1
-        fi
+        task slimctl:download
+
+  slimctl:download:
+    desc: Download slimctl release binary from GitHub into SLIMCTL_PATH
+    dir: "{{.TASKFILE_DIR}}"
+    cmds:
+      - |
+        set -euo pipefail
+        VERSION='{{ .SLIMCTL_VERSION }}'
         OUT='{{ .SLIMCTL_PATH }}'
         OUT_DIR=$(dirname "$OUT")
         mkdir -p "$OUT_DIR"
-        (cd "$CRATE_DIR" && cargo build --release)
-        # Workspace lives under data-plane/; artifacts go to data-plane/target (not $REPO/target).
-        BIN=""
-        for p in "$REPO/data-plane/target/release/slimctl" "$REPO/target/release/slimctl"; do
-          if [ -f "$p" ]; then BIN="$p"; break; fi
-        done
-        if [ -z "$BIN" ]; then
-          echo "slimctl binary not found after cargo build (looked under $REPO/data-plane/target/release and $REPO/target/release)" >&2
-          exit 1
-        fi
-        cp "$BIN" "$OUT"
-        chmod +x "$OUT"
-        echo "Built slimctl -> $OUT"
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) ARCH=amd64 ;;
+          aarch64|arm64) ARCH=arm64 ;;
+          *)
+            echo "unsupported arch: $ARCH" >&2
+            exit 1
+            ;;
+        esac
+        case "$OS" in
+          linux|darwin) ;;
+          *)
+            echo "unsupported OS: $OS" >&2
+            exit 1
+            ;;
+        esac
+        TARBALL="slimctl_${VERSION}_${OS}_${ARCH}.tar.gz"
+        URL="https://github.com/agntcy/slim/releases/download/slimctl-v${VERSION}/${TARBALL}"
+        TMP=$(mktemp -d)
+        trap 'rm -rf "$TMP"' EXIT
+        curl -fsSL -o "$TMP/$TARBALL" "$URL"
+        tar -xzf "$TMP/$TARBALL" -C "$TMP"
+        install -m 0755 "$TMP/slimctl" "$OUT"
+        echo "Downloaded slimctl ${VERSION} -> $OUT"
 
   slimctl:controller:link:outline:
     desc: |
       Port-forward svc/slim-control northbound to localhost, then slimctl controller link outline.
-      Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
-    deps: [slimctl:build]
+      Requires helm:install:controller (or stack:install) on CTX_A. Uses SLIMCTL_PATH (or downloads release).
+    deps: [slimctl:ensure]
     dir: "{{.TASKFILE_DIR}}"
     env:
-      SLIMCTL_PATH: '{{ .SLIMCTL_PATH }}'
-      CTX_A: '{{ .CTX_A }}'
-      CTRL_RELEASE: '{{ .CTRL_RELEASE }}'
-      NS_ADMIN: '{{ .NS_ADMIN }}'
-      SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT }}'
-      SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL }}'
+      SLIMCTL_PATH: "{{ .SLIMCTL_PATH }}"
+      CTX_A: "{{ .CTX_A }}"
+      CTRL_RELEASE: "{{ .CTRL_RELEASE }}"
+      NS_ADMIN: "{{ .NS_ADMIN }}"
+      SLIMCTL_PF_LOCAL_PORT: "{{ .SLIMCTL_PF_LOCAL_PORT }}"
+      SLIM_CONTROLLER_HTTP_URL: "{{ .SLIM_CONTROLLER_HTTP_URL }}"
     cmds:
       - bash scripts/slimctl-controller-via-port-forward.sh link
 
   slimctl:controller:route:outline:
     desc: |
       Port-forward svc/slim-control northbound to localhost, then slimctl controller route outline.
-      Requires helm:install:controller (or stack:install) on CTX_A. Set SLIM_REPO_PATH; build runs via deps.
-    deps: [slimctl:build]
+      Requires helm:install:controller (or stack:install) on CTX_A. Uses SLIMCTL_PATH (or downloads release).
+    deps: [slimctl:ensure]
     dir: "{{.TASKFILE_DIR}}"
     env:
-      SLIMCTL_PATH: '{{ .SLIMCTL_PATH }}'
-      CTX_A: '{{ .CTX_A }}'
-      CTRL_RELEASE: '{{ .CTRL_RELEASE }}'
-      NS_ADMIN: '{{ .NS_ADMIN }}'
-      SLIMCTL_PF_LOCAL_PORT: '{{ .SLIMCTL_PF_LOCAL_PORT }}'
-      SLIM_CONTROLLER_HTTP_URL: '{{ .SLIM_CONTROLLER_HTTP_URL }}'
+      SLIMCTL_PATH: "{{ .SLIMCTL_PATH }}"
+      CTX_A: "{{ .CTX_A }}"
+      CTRL_RELEASE: "{{ .CTRL_RELEASE }}"
+      NS_ADMIN: "{{ .NS_ADMIN }}"
+      SLIMCTL_PF_LOCAL_PORT: "{{ .SLIMCTL_PF_LOCAL_PORT }}"
+      SLIM_CONTROLLER_HTTP_URL: "{{ .SLIM_CONTROLLER_HTTP_URL }}"
     cmds:
       - bash scripts/slimctl-controller-via-port-forward.sh route
 
@@ -272,7 +279,7 @@ tasks:
           --timeout 25m
 
   spire:deploy:cluster-b:
-    desc: Downstream SPIRE on cluster-b (spire-crds + slim-spire). Requires spire on cluster-a; set SLIM_CHARTS_PATH or SLIM_REPO_PATH to a checkout containing charts/slim-spire.
+    desc: Downstream SPIRE on cluster-b (spire-crds + slim-spire OCI chart)
     deps: [spire:deploy:cluster-a]
     cmds:
       - |
@@ -289,15 +296,6 @@ tasks:
           --wait \
           --wait-for-jobs \
           --timeout 15m
-        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim-spire" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim-spire" ]; then
-          CHART_ROOT="${SLIM_REPO_PATH}/charts"
-        fi
-        if [ ! -d "${CHART_ROOT}/slim-spire" ]; then
-          echo "ERROR: slim-spire chart not found under ${CHART_ROOT} (set SLIM_CHARTS_PATH or SLIM_REPO_PATH to agntcy/slim charts directory)" >&2
-          exit 1
-        fi
-        helm dependency build --skip-refresh "${CHART_ROOT}/slim-spire"
         SPIFFE_ID="spiffe://{{ .SPIRE_TRUST_DOMAIN }}/bootstrap/upstream-agent/{{ .SPIRE_CLUSTER_B_BOOTSTRAP_SLUG }}"
         MANUAL_TOKEN='{{ .SPIRE_JOIN_TOKEN }}'
         if [ -z "$MANUAL_TOKEN" ] && [ -n "${SPIRE_JOIN_TOKEN:-}" ]; then
@@ -317,7 +315,8 @@ tasks:
         kubectl --context "$CTX_B" create namespace spire-system --dry-run=client -o yaml | kubectl --context "$CTX_B" apply -f -
         kubectl --context "$CTX_B" delete secret spire-upstream-bootstrap-token -n spire-system --ignore-not-found=true
         kubectl --context "$CTX_B" create secret generic spire-upstream-bootstrap-token -n spire-system --from-literal=token="$TOKEN"
-        helm upgrade --install spire-downstream "${CHART_ROOT}/slim-spire" \
+        helm upgrade --install spire-downstream {{ .SLIM_SPIRE_CHART }} \
+          --version {{ .SLIM_SPIRE_CHART_VERSION }} \
           --namespace spire-system \
           --create-namespace \
           -f helm/values/spire-cluster-b-values.yaml \
@@ -381,7 +380,7 @@ tasks:
     deps: [compose:dns:render]
     dir: compose/dns
     env:
-      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+      CSIT_LOCAL_DNS_HOST_PORT: "{{ .CSIT_LOCAL_DNS_HOST_PORT }}"
     cmds:
       - docker compose up -d
 
@@ -389,21 +388,21 @@ tasks:
     desc: Stop local DNS helper
     dir: compose/dns
     env:
-      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+      CSIT_LOCAL_DNS_HOST_PORT: "{{ .CSIT_LOCAL_DNS_HOST_PORT }}"
     cmds:
       - docker compose down
 
   compose:dns:verify:
     desc: Assert host DNS helper resolves cluster-A ingress and SPIRE names to INGRESS_A_LB_IP (dig @127.0.0.1 CSIT_LOCAL_DNS_HOST_PORT)
     env:
-      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+      CSIT_LOCAL_DNS_HOST_PORT: "{{ .CSIT_LOCAL_DNS_HOST_PORT }}"
     cmds:
       - ./scripts/verify-local-dns-helper.sh
 
   compose:dns:resolver:install:
     desc: macOS only — install /etc/resolver/csit.test for split DNS to local-dns (sudo; matches CSIT_LOCAL_DNS_HOST_PORT)
     env:
-      CSIT_LOCAL_DNS_HOST_PORT: '{{ .CSIT_LOCAL_DNS_HOST_PORT }}'
+      CSIT_LOCAL_DNS_HOST_PORT: "{{ .CSIT_LOCAL_DNS_HOST_PORT }}"
     cmds:
       - ./scripts/install-macos-resolver-csit.sh
 
@@ -434,102 +433,54 @@ tasks:
       - helm uninstall {{ .CTRL_RELEASE }} --namespace {{ .NS_ADMIN }} --kube-context {{ .CTX_A }} || true
 
   helm:install:controller:
-    desc: Install slim-control-plane on cluster A; prefers SLIM_CHARTS_PATH then SLIM_REPO_PATH/charts else OCI
+    desc: Install slim-control-plane on cluster A from OCI
     cmds:
       - |
         set -euo pipefail
-        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
-          CHART_ROOT="${SLIM_REPO_PATH}/charts"
-        fi
-        if [ -d "${CHART_ROOT}/slim-control-plane" ]; then
-          helm upgrade {{ .CTRL_RELEASE }} "${CHART_ROOT}/slim-control-plane" \
-            --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
-            -f helm/values/controller.yaml \
-            --namespace {{ .NS_ADMIN }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_A }}
-        else
-          helm upgrade {{ .CTRL_RELEASE }} {{ .CTRL_CHART }} \
-            --version {{ .CTRL_CHART_TAG }} \
-            --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
-            -f helm/values/controller.yaml \
-            --namespace {{ .NS_ADMIN }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_A }}
-        fi
+        helm upgrade {{ .CTRL_RELEASE }} {{ .CTRL_CHART }} \
+          --version {{ .CTRL_CHART_VERSION }} \
+          --set image.tag="{{ .CTRL_IMAGE_TAG }}" \
+          -f helm/values/controller.yaml \
+          --namespace {{ .NS_ADMIN }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 25m \
+          --kube-context {{ .CTX_A }}
 
   helm:install:slim:a:
-    desc: Helm slim chart on cluster A
+    desc: Helm slim chart on cluster A from OCI
     cmds:
       - |
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_A }} {{ .NS_A }} {{ .SLIM_RELEASE_A }}
-        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
-          CHART_ROOT="${SLIM_REPO_PATH}/charts"
-        fi
-        if [ -d "${CHART_ROOT}/slim" ]; then
-          helm upgrade {{ .SLIM_RELEASE_A }} "${CHART_ROOT}/slim" \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            -f helm/values/slim-cluster-a.yaml \
-            --namespace {{ .NS_A }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_A }}
-        else
-          helm upgrade {{ .SLIM_RELEASE_A }} {{ .SLIM_CHART }} \
-            --version {{ .SLIM_CHART_TAG }} \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            -f helm/values/slim-cluster-a.yaml \
-            --namespace {{ .NS_A }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_A }}
-        fi
+        helm upgrade {{ .SLIM_RELEASE_A }} {{ .SLIM_CHART }} \
+          --version {{ .SLIM_CHART_VERSION }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          -f helm/values/slim-cluster-a.yaml \
+          --namespace {{ .NS_A }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 25m \
+          --kube-context {{ .CTX_A }}
 
   helm:install:slim:b:
-    desc: Helm slim chart on cluster B
+    desc: Helm slim chart on cluster B from OCI
     cmds:
       - |
         set -euo pipefail
         ./scripts/ensure-slim-headless-service.sh {{ .CTX_B }} {{ .NS_B }} {{ .SLIM_RELEASE_B }}
-        CHART_ROOT='{{ .SLIM_CHARTS_PATH }}'
-        if { [ -z "$CHART_ROOT" ] || [ ! -d "${CHART_ROOT}/slim" ]; } && [ -n "${SLIM_REPO_PATH:-}" ] && [ -d "${SLIM_REPO_PATH}/charts/slim" ]; then
-          CHART_ROOT="${SLIM_REPO_PATH}/charts"
-        fi
-        if [ -d "${CHART_ROOT}/slim" ]; then
-          helm upgrade {{ .SLIM_RELEASE_B }} "${CHART_ROOT}/slim" \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            -f helm/values/slim-cluster-b.yaml \
-            --namespace {{ .NS_B }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_B }}
-        else
-          helm upgrade {{ .SLIM_RELEASE_B }} {{ .SLIM_CHART }} \
-            --version {{ .SLIM_CHART_TAG }} \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            -f helm/values/slim-cluster-b.yaml \
-            --namespace {{ .NS_B }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --timeout 25m \
-            --kube-context {{ .CTX_B }}
-        fi
+        helm upgrade {{ .SLIM_RELEASE_B }} {{ .SLIM_CHART }} \
+          --version {{ .SLIM_CHART_VERSION }} \
+          --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+          -f helm/values/slim-cluster-b.yaml \
+          --namespace {{ .NS_B }} \
+          --create-namespace \
+          --install \
+          --wait \
+          --timeout 25m \
+          --kube-context {{ .CTX_B }}
 
   echo-agent:server:deploy:
     desc: |
@@ -539,7 +490,7 @@ tasks:
     vars:
       TEMPLATE: '{{ .TEMPLATE | default "agents/echo-agent-server.yaml" }}'
       NAMESPACE: '{{ .NAMESPACE | default "default" }}'
-    cmds:      
+    cmds:
       - kubectl apply --context {{ .CTX_A }} -n {{ .NS_A }} -f {{ .TEMPLATE }}
 
   echo-agent:client:deploy:
@@ -551,8 +502,8 @@ tasks:
     vars:
       TEMPLATE: '{{ .TEMPLATE | default "agents/echo-agent-client.yaml" }}'
       NAMESPACE: '{{ .NAMESPACE | default "default" }}'
-    cmds:      
-      - kubectl apply --context {{ .CTX_B }} -n {{ .NS_B }} -f {{ .TEMPLATE }}        
+    cmds:
+      - kubectl apply --context {{ .CTX_B }} -n {{ .NS_B }} -f {{ .TEMPLATE }}
 
   default:
     cmd: task -l
