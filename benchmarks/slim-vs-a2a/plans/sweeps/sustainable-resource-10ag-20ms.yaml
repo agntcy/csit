@@ -1,0 +1,152 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+    name: canonical-sustainable-resource-10agents
+    domain: sustainable-resource
+    description: Generated canonical plan for transport sweeps
+spec:
+    defaults:
+        completionTimeSec: 0.01
+        maxCompletionTimeSec: 0.04
+    maxRetries: 0
+    roundBudgetMs: 20
+    sweep:
+        family: sustainable-resource
+        agents: 10
+        roundBudgetMs: 20
+        executeSleepSec: 0.01
+agents:
+    - id: agent-0
+      slimName: agntcy/bench/agent-0
+      a2aPort: 9600
+    - id: agent-1
+      slimName: agntcy/bench/agent-1
+      a2aPort: 9611
+    - id: agent-2
+      slimName: agntcy/bench/agent-2
+      a2aPort: 9622
+    - id: agent-3
+      slimName: agntcy/bench/agent-3
+      a2aPort: 9633
+    - id: agent-4
+      slimName: agntcy/bench/agent-4
+      a2aPort: 9644
+    - id: agent-5
+      slimName: agntcy/bench/agent-5
+      a2aPort: 9655
+    - id: agent-6
+      slimName: agntcy/bench/agent-6
+      a2aPort: 9666
+    - id: agent-7
+      slimName: agntcy/bench/agent-7
+      a2aPort: 9677
+    - id: agent-8
+      slimName: agntcy/bench/agent-8
+      a2aPort: 9688
+    - id: agent-9
+      slimName: agntcy/bench/agent-9
+      a2aPort: 9699
+tasks:
+    - id: extract-r0-a0
+      name: Round 0 agent 0 extraction
+      agent: agent-0
+      dependsOn: []
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a1
+      name: Round 0 agent 1 extraction
+      agent: agent-1
+      dependsOn:
+        - extract-r0-a0
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a2
+      name: Round 0 agent 2 extraction
+      agent: agent-2
+      dependsOn:
+        - extract-r0-a1
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a3
+      name: Round 0 agent 3 extraction
+      agent: agent-3
+      dependsOn:
+        - extract-r0-a2
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a4
+      name: Round 0 agent 4 extraction
+      agent: agent-4
+      dependsOn:
+        - extract-r0-a3
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a5
+      name: Round 0 agent 5 extraction
+      agent: agent-5
+      dependsOn:
+        - extract-r0-a4
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a6
+      name: Round 0 agent 6 extraction
+      agent: agent-6
+      dependsOn:
+        - extract-r0-a5
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a7
+      name: Round 0 agent 7 extraction
+      agent: agent-7
+      dependsOn:
+        - extract-r0-a6
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a8
+      name: Round 0 agent 8 extraction
+      agent: agent-8
+      dependsOn:
+        - extract-r0-a7
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a9
+      name: Round 0 agent 9 extraction
+      agent: agent-9
+      dependsOn:
+        - extract-r0-a8
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+contextUpdates:
+    - afterTask: extract-r0-a9
+      payload: round=0 stock=shared shadow_price=0.35
+      targetAgents:
+        - agent-0
+        - agent-1
+        - agent-2
+        - agent-3
+        - agent-4
+        - agent-5
+        - agent-6
+        - agent-7
+        - agent-8
+        - agent-9

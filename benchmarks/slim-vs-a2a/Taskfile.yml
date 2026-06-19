@@ -1,0 +1,399 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+includes:
+  slim:
+    taskfile: ../agntcy-slim/Taskfile.yml
+    dir: ../agntcy-slim
+    excludes: [default]
+
+vars:
+  PLAN_DIR: '{{ .PLAN_DIR | default "./plans/domains" }}'
+  REPORTS_DIR: '{{ .REPORTS_DIR | default "./reports" }}'
+  RESULTS_TSV: '{{ .RESULTS_TSV | default "./reports/results.tsv" }}'
+  SWEEP_TSV: '{{ .SWEEP_TSV | default "./reports/sweep.tsv" }}'
+  BIN_DIR: '{{ .BIN_DIR | default "./bin" }}'
+  SLIM_ENDPOINT: '{{ .SLIM_ENDPOINT | default "http://127.0.0.1:46357" }}'
+  # Use a dedicated name: agntcy-slim's included Taskfile also defines SLIMCTL_PATH=./bin/slimctl
+  # and would otherwise resolve to slim-vs-a2a/bin/slimctl when tasks run in this directory.
+  COMPARE_SLIMCTL: '{{ .COMPARE_SLIMCTL | default "../agntcy-slim/bin/slimctl" }}'
+  COMPARE_SLIM_BINDINGS_VERSION: '{{ .COMPARE_SLIM_BINDINGS_VERSION | default "v1.4.0" }}'
+  COMPARE_SLIMCTL_TAG: '{{ .COMPARE_SLIMCTL_TAG | default "slimctl-v1.4.0" }}'
+  IMPLEMENTATIONS: '{{ .IMPLEMENTATIONS | default "a2a,slim" }}'
+
+tasks:
+  default:
+    cmd: task -l
+
+  deps:slim-bindings-setup:
+    desc: Install native SLIM bindings required by slim agents
+    cmds:
+      - go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup@{{ .COMPARE_SLIM_BINDINGS_VERSION }}
+
+  deps:slimctl-download:
+    desc: Download slimctl for local SLIM stack startup
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .COMPARE_SLIMCTL_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        TARGET_DIR=$(dirname {{ .COMPARE_SLIMCTL }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .COMPARE_SLIMCTL }}
+        chmod +x {{ .COMPARE_SLIMCTL }}
+        {{ .COMPARE_SLIMCTL }} version || true
+
+  build:
+    desc: Build a2a and slim agent/runner binaries
+    deps:
+      - deps:slim-bindings-setup
+    cmds:
+      - mkdir -p {{ .BIN_DIR }}
+      - go build -o {{ .BIN_DIR }}/a2a-agent ./a2a/cmd/agent
+      - go build -o {{ .BIN_DIR }}/a2a-runner ./a2a/cmd/runner
+      - |
+        CACHE_DIR="$(go env GOPATH)/.cgo-cache/slim-bindings/{{ .COMPARE_SLIM_BINDINGS_VERSION }}"
+        export CGO_LDFLAGS="-L${CACHE_DIR}"
+        go build -o {{ .BIN_DIR }}/slim-agent ./slim/cmd/agent
+        go build -o {{ .BIN_DIR }}/slim-runner ./slim/cmd/runner
+
+  validate:plans:
+    desc: Validate all domain execution plans
+    cmds:
+      - go run ./tools/validate_plans --dir {{ .PLAN_DIR }}
+
+  compare:cleanup:
+    internal: true
+    cmds:
+      - pkill -f '{{ .BIN_DIR }}/a2a-agent' 2>/dev/null || true
+      - pkill -f '{{ .BIN_DIR }}/slim-agent' 2>/dev/null || true
+      - pkill -f 'slimctl slim start -c' 2>/dev/null || true
+
+  compare:suite:
+    desc: Run all domain plans on A2A and SLIM and collect comparison metrics
+    deps:
+      - build
+      - validate:plans
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }}
+      - |
+        set -euo pipefail
+        for plan in {{ .PLAN_DIR }}/*.yaml; do
+          [ -f "$plan" ] || continue
+          base=$(basename "$plan" .yaml)
+          echo "==> A2A $base"
+          {{ .BIN_DIR }}/a2a-runner \
+            --plan "$plan" \
+            --agent-bin {{ .BIN_DIR }}/a2a-agent \
+            --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+            --output-tsv {{ .RESULTS_TSV }}
+        done
+      - task: compare:suite:slim
+
+  compare:suite:slim:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    cmds:
+      - task: compare:slim-stack
+        vars:
+          PLAN_GLOB: '{{ .PLAN_DIR }}/*.yaml'
+
+  compare:plan:
+    desc: Run one plan on A2A and SLIM (PLAN=mobile-nav-assistant or path to yaml)
+    deps:
+      - build
+    requires:
+      vars: [PLAN]
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }}
+      - |
+        set -euo pipefail
+        PLAN_INPUT="{{ .PLAN }}"
+        if [ -f "$PLAN_INPUT" ]; then
+          PLAN_PATH="$PLAN_INPUT"
+        elif [ -f "{{ .PLAN_DIR }}/${PLAN_INPUT}.yaml" ]; then
+          PLAN_PATH="{{ .PLAN_DIR }}/${PLAN_INPUT}.yaml"
+        elif [ -f "{{ .PLAN_DIR }}/${PLAN_INPUT}" ]; then
+          PLAN_PATH="{{ .PLAN_DIR }}/${PLAN_INPUT}"
+        else
+          echo "plan not found: ${PLAN_INPUT} (tried file, {{ .PLAN_DIR }}/\${PLAN_INPUT}.yaml)" >&2
+          exit 1
+        fi
+        base=$(basename "$PLAN_PATH" .yaml)
+        echo "==> A2A ${base}"
+        {{ .BIN_DIR }}/a2a-runner \
+          --plan "$PLAN_PATH" \
+          --agent-bin {{ .BIN_DIR }}/a2a-agent \
+          --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+          --output-tsv {{ .RESULTS_TSV }}
+      - task: compare:slim-stack
+        vars:
+          PLAN_GLOB: '{{ .PLAN }}'
+
+  compare:slim-stack:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    cmds:
+      - |
+        set -euo pipefail
+        PLAN_INPUT="{{ .PLAN_GLOB }}"
+        resolve_plan() {
+          local input="$1"
+          if [ -f "$input" ]; then
+            printf '%s' "$input"
+            return
+          fi
+          if [ -f "{{ .PLAN_DIR }}/${input}.yaml" ]; then
+            printf '%s' "{{ .PLAN_DIR }}/${input}.yaml"
+            return
+          fi
+          if [ -f "{{ .PLAN_DIR }}/${input}" ]; then
+            printf '%s' "{{ .PLAN_DIR }}/${input}"
+            return
+          fi
+          printf '%s' "$input"
+        }
+        DATAPLANE_PORT=46357
+        CONTROLLER_PORT=46358
+        CONFIG=$(mktemp)
+        trap 'kill ${SLIM_PID:-} 2>/dev/null || true; rm -f "$CONFIG"; {{ .COMPARE_SLIMCTL }} slim stop 2>/dev/null || true' EXIT
+        cat > "$CONFIG" <<EOF
+        services:
+          slim/0:
+            node_id: "slim-bench"
+            group_name: "bench"
+            dataplane:
+              servers:
+                - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                  metadata:
+                    local_endpoint: "127.0.0.1"
+                    external_endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                    trust_domain: "example.org"
+                  tls:
+                    insecure: true
+            controller:
+              servers:
+                - endpoint: "127.0.0.1:${CONTROLLER_PORT}"
+                  tls:
+                    insecure: true
+        EOF
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        SLIM_PID=$!
+        for i in $(seq 1 50); do
+          if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
+            break
+          fi
+          sleep 0.2
+        done
+        if [[ "$PLAN_INPUT" == *"*"* ]]; then
+          PLAN_LIST=($PLAN_INPUT)
+        else
+          PLAN_LIST=("$(resolve_plan "$PLAN_INPUT")")
+        fi
+        for plan in "${PLAN_LIST[@]}"; do
+          [ -f "$plan" ] || continue
+          base=$(basename "$plan" .yaml)
+          echo "==> SLIM ${base}"
+          {{ .BIN_DIR }}/slim-runner \
+            --plan "$plan" \
+            --endpoint {{ .SLIM_ENDPOINT }} \
+            --agent-bin {{ .BIN_DIR }}/slim-agent \
+            --coord-mode {{ .COORD_MODE | default "multicast" }} \
+            --round-budget-ms {{ .ROUND_BUDGET_MS | default "0" }} \
+            --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+            --output-tsv {{ .RESULTS_TSV }}
+        done
+
+  compare:report:
+    desc: Build HTML dashboard from comparison TSV results
+    cmds:
+      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --output {{ .REPORTS_DIR }}/index.html
+
+  compare:sweep:
+    desc: Run transport sweep (SWEEP_FAMILY, SWEEP_AGENTS, SWEEP_BUDGETS env lists)
+    deps:
+      - build
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .SWEEP_TSV }}
+      - task: compare:sweep:run
+
+  compare:sweep:run:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p {{ .REPORTS_DIR }} plans/sweeps
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
+        IFS=',' read -r -a BUDGET_LIST <<< "{{ .SWEEP_BUDGETS }}"
+        for agents in "${AGENT_LIST[@]}"; do
+          for budget in "${BUDGET_LIST[@]}"; do
+            plan_path="plans/sweeps/{{ .SWEEP_FAMILY }}-${agents}ag-${budget}ms.yaml"
+            go run ./tools/gen_plan \
+              -family {{ .SWEEP_FAMILY }} \
+              -agents "$agents" \
+              -round-budget-ms "$budget" \
+              -output "$plan_path"
+            base=$(basename "$plan_path" .yaml)
+            echo "==> sweep A2A $base"
+            {{ .BIN_DIR }}/a2a-runner \
+              --plan "$plan_path" \
+              --agent-bin {{ .BIN_DIR }}/a2a-agent \
+              --round-budget-ms "$budget" \
+              --quiet \
+              --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+              --output-tsv {{ .SWEEP_TSV }}
+          done
+        done
+      - task: compare:sweep:slim
+
+  compare:sweep:slim:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
+        IFS=',' read -r -a BUDGET_LIST <<< "{{ .SWEEP_BUDGETS }}"
+        DATAPLANE_PORT=46357
+        CONTROLLER_PORT=46358
+        CONFIG=$(mktemp)
+        trap 'kill ${SLIM_PID:-} 2>/dev/null || true; rm -f "$CONFIG"; {{ .COMPARE_SLIMCTL }} slim stop 2>/dev/null || true' EXIT
+        cat > "$CONFIG" <<EOF
+        services:
+          slim/0:
+            node_id: "slim-bench"
+            group_name: "bench"
+            dataplane:
+              servers:
+                - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                  metadata:
+                    local_endpoint: "127.0.0.1"
+                    external_endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                    trust_domain: "example.org"
+                  tls:
+                    insecure: true
+            controller:
+              servers:
+                - endpoint: "127.0.0.1:${CONTROLLER_PORT}"
+                  tls:
+                    insecure: true
+        EOF
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        SLIM_PID=$!
+        for i in $(seq 1 50); do
+          if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
+            break
+          fi
+          sleep 0.2
+        done
+        for agents in "${AGENT_LIST[@]}"; do
+          for budget in "${BUDGET_LIST[@]}"; do
+            plan_path="plans/sweeps/{{ .SWEEP_FAMILY }}-${agents}ag-${budget}ms.yaml"
+            [ -f "$plan_path" ] || continue
+            base=$(basename "$plan_path" .yaml)
+            echo "==> sweep SLIM $base"
+            {{ .BIN_DIR }}/slim-runner \
+              --plan "$plan_path" \
+              --endpoint {{ .SLIM_ENDPOINT }} \
+              --agent-bin {{ .BIN_DIR }}/slim-agent \
+              --coord-mode multicast \
+              --round-budget-ms "$budget" \
+              --quiet \
+              --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+              --output-tsv {{ .SWEEP_TSV }}
+          done
+        done
+
+  compare:ci:smoke:
+    desc: CI smoke — domain plans plus one sweep point (~2 min)
+    deps:
+      - build
+      - validate:plans
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }} {{ .SWEEP_TSV }}
+      - |
+        set -euo pipefail
+        for plan in {{ .PLAN_DIR }}/*.yaml; do
+          [ -f "$plan" ] || continue
+          base=$(basename "$plan" .yaml)
+          echo "==> smoke A2A $base"
+          {{ .BIN_DIR }}/a2a-runner \
+            --plan "$plan" \
+            --agent-bin {{ .BIN_DIR }}/a2a-agent \
+            --quiet \
+            --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+            --output-tsv {{ .RESULTS_TSV }}
+        done
+      - task: compare:slim-stack
+        vars:
+          PLAN_GLOB: '{{ .PLAN_DIR }}/*.yaml'
+          COORD_MODE: multicast
+      - |
+        set -euo pipefail
+        plan_path="plans/sweeps/ci-smoke-sustainable-10ag-20ms.yaml"
+        mkdir -p plans/sweeps
+        go run ./tools/gen_plan -family sustainable-resource -agents 10 -round-budget-ms 20 -output "$plan_path"
+        echo "==> smoke sweep A2A"
+        {{ .BIN_DIR }}/a2a-runner \
+          --plan "$plan_path" \
+          --agent-bin {{ .BIN_DIR }}/a2a-agent \
+          --round-budget-ms 20 \
+          --quiet \
+          --output-json {{ .REPORTS_DIR }}/a2a-ci-sweep.json \
+          --output-tsv {{ .SWEEP_TSV }}
+      - task: compare:slim-stack
+        vars:
+          PLAN_GLOB: 'plans/sweeps/ci-smoke-sustainable-10ag-20ms.yaml'
+          ROUND_BUDGET_MS: '20'
+          COORD_MODE: multicast
+      - task: compare:report
+
+  test:
+    desc: Run Ginkgo comparison suite (requires RUN_SLIM_VS_A2A=1)
+    deps:
+      - build
+    cmds:
+      - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v -ginkgo.label-filter=slim-vs-a2a -ginkgo.timeout 30m -timeout 30m
+      - task: compare:report

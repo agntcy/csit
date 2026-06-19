@@ -1,0 +1,87 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+    name: canonical-sustainable-resource-5agents
+    domain: sustainable-resource
+    description: Generated canonical plan for transport sweeps
+spec:
+    defaults:
+        completionTimeSec: 0.01
+        maxCompletionTimeSec: 0.04
+    maxRetries: 0
+    roundBudgetMs: 20
+    sweep:
+        family: sustainable-resource
+        agents: 5
+        roundBudgetMs: 20
+        executeSleepSec: 0.01
+agents:
+    - id: agent-0
+      slimName: agntcy/bench/agent-0
+      a2aPort: 9600
+    - id: agent-1
+      slimName: agntcy/bench/agent-1
+      a2aPort: 9611
+    - id: agent-2
+      slimName: agntcy/bench/agent-2
+      a2aPort: 9622
+    - id: agent-3
+      slimName: agntcy/bench/agent-3
+      a2aPort: 9633
+    - id: agent-4
+      slimName: agntcy/bench/agent-4
+      a2aPort: 9644
+tasks:
+    - id: extract-r0-a0
+      name: Round 0 agent 0 extraction
+      agent: agent-0
+      dependsOn: []
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a1
+      name: Round 0 agent 1 extraction
+      agent: agent-1
+      dependsOn:
+        - extract-r0-a0
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a2
+      name: Round 0 agent 2 extraction
+      agent: agent-2
+      dependsOn:
+        - extract-r0-a1
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a3
+      name: Round 0 agent 3 extraction
+      agent: agent-3
+      dependsOn:
+        - extract-r0-a2
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a4
+      name: Round 0 agent 4 extraction
+      agent: agent-4
+      dependsOn:
+        - extract-r0-a3
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+contextUpdates:
+    - afterTask: extract-r0-a4
+      payload: round=0 stock=shared shadow_price=0.35
+      targetAgents:
+        - agent-0
+        - agent-1
+        - agent-2
+        - agent-3
+        - agent-4

@@ -1,0 +1,55 @@
+name: test-slim-vs-a2a
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/test-slim-vs-a2a.yaml'
+      - 'benchmarks/slim-vs-a2a/**'
+      - 'benchmarks/Taskfile.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/test-slim-vs-a2a.yaml'
+      - 'benchmarks/slim-vs-a2a/**'
+      - 'benchmarks/Taskfile.yml'
+  workflow_dispatch:
+
+jobs:
+  slim-vs-a2a-smoke:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Install slimctl
+        shell: bash
+        run: |
+          task benchmarks:slim-vs-a2a:deps:slimctl-download
+          echo "$(pwd)/benchmarks/agntcy-slim/bin" >> "$GITHUB_PATH"
+
+      - name: Run SLIM vs A2A comparison smoke
+        shell: bash
+        working-directory: benchmarks/slim-vs-a2a
+        env:
+          RUN_SLIM_VS_A2A: "1"
+        run: |
+          set -o pipefail
+          task compare:ci:smoke
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-vs-a2a-smoke-report
+          path: benchmarks/slim-vs-a2a/reports/
+          if-no-files-found: warn

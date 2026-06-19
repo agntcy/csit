@@ -1,0 +1,48 @@
+apiVersion: bench.agntcy.io/v1
+kind: ExecutionPlan
+metadata:
+    name: canonical-sustainable-resource-2agents
+    domain: sustainable-resource
+    description: Generated canonical plan for transport sweeps
+spec:
+    defaults:
+        completionTimeSec: 0.01
+        maxCompletionTimeSec: 0.04
+    maxRetries: 0
+    roundBudgetMs: 20
+    sweep:
+        family: sustainable-resource
+        agents: 2
+        roundBudgetMs: 20
+        executeSleepSec: 0.01
+agents:
+    - id: agent-0
+      slimName: agntcy/bench/agent-0
+      a2aPort: 9600
+    - id: agent-1
+      slimName: agntcy/bench/agent-1
+      a2aPort: 9611
+tasks:
+    - id: extract-r0-a0
+      name: Round 0 agent 0 extraction
+      agent: agent-0
+      dependsOn: []
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+    - id: extract-r0-a1
+      name: Round 0 agent 1 extraction
+      agent: agent-1
+      dependsOn:
+        - extract-r0-a0
+      completionTimeSec: 0.01
+      maxCompletionTimeSec: 0.04
+      injectFailure: false
+      output: extract=2.0 round=0
+contextUpdates:
+    - afterTask: extract-r0-a1
+      payload: round=0 stock=shared shadow_price=0.35
+      targetAgents:
+        - agent-0
+        - agent-1

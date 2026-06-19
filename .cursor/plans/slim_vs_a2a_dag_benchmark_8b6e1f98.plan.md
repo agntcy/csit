@@ -1,13 +1,13 @@
 ---
-name: SLIM vs A2A DAG benchmark
-overview: Design a new CSIT benchmark package with domain-specific YAML DAG plans (concrete agent/task names), two fully separate executors (A2A gRPC vs SLIM Multicast RPC), and comparable metrics demonstrating SLIM's advantages in fast sync, fast context sharing, and fast failure propagation.
+name: slim-vs-a2a
+overview: CSIT comparison package at benchmarks/slim-vs-a2a — domain YAML DAG plans, two fully separate executors (A2A gRPC vs SLIM Multicast RPC), comparable metrics, and a dedicated test-slim-vs-a2a CI workflow (Phase 3).
 todos:
   - id: plan-schema
     content: Define shared internal/plan YAML types, validation, and DAG helpers (only shared layer)
     status: pending
   - id: domain-plans
     content: "Phase 1 — hand-author 3 domain YAML plans in plans/domains/ (no plangen)"
-    status: pending
+    status: completed
   - id: a2a-impl
     content: Standalone A2A stack — cmd/a2a-agent, cmd/a2a-runner, internal/a2a/* (no SLIM imports)
     status: pending
@@ -18,19 +18,36 @@ todos:
     content: Shared metrics schema + TSV/markdown reporting with sync/context/failure propagation fields
     status: pending
   - id: taskfile-suite
-    content: Wire Taskfile, Ginkgo suite, and CI smoke workflow following agntcy-slim patterns
+    content: "Phase 2 — Taskfile + local Ginkgo suite (no CI yet)"
     status: pending
+  - id: ci-integration
+    content: "Phase 3 — dedicated test-slim-vs-a2a.yaml workflow, CI smoke, artifacts, pages publish"
+    status: pending
+  - id: rename-project
+    content: "Rename benchmarks/agntcy-multi-agent → benchmarks/slim-vs-a2a (folder, go.mod, Taskfile namespace)"
+    status: completed
 isProject: false
 ---
 
-# SLIM vs A2A Multi-Agent DAG Benchmark
+# SLIM vs A2A Comparison (`benchmarks/slim-vs-a2a`)
 
-## Goal
+This package lives under `benchmarks/` for repo layout consistency, but its tasks are **comparative evaluations** (same DAG plan, A2A vs SLIM metrics) — not throughput/latency benchmarks like `agntcy-slim`. Task names use the `compare:` prefix, not `benchmark:`.
 
-Build a reproducible benchmark in CSIT that shows **when SLIM Multicast RPC is favorable over direct A2A gRPC** in a distributed multi-agent workload:
+## Project naming
 
-- **Phase 1 (plans):** Hand-author YAML execution plans with concrete agent/task names — no code generator
-- **Phase 2 (implementation):** Separate A2A and SLIM runners/agents that execute those plans and emit metrics
+| Item | Name |
+| ---- | ---- |
+| Directory | [`benchmarks/slim-vs-a2a/`](benchmarks/slim-vs-a2a/) |
+| Go module | `github.com/agntcy/csit/benchmarks/slim-vs-a2a` |
+| Taskfile namespace | `benchmarks:slim-vs-a2a:*` (e.g. `task benchmarks:slim-vs-a2a:compare:suite`) |
+| CI workflow | [`.github/workflows/test-slim-vs-a2a.yaml`](.github/workflows/test-slim-vs-a2a.yaml) — **standalone**, not merged into `test-benchmarks-slim.yaml` or `test-integrations.yaml` |
+| Report artifact prefix | `slim-vs-a2a-*` |
+
+Build a reproducible **comparison** in CSIT that shows **when SLIM Multicast RPC is favorable over direct A2A gRPC** in a distributed multi-agent workload:
+
+- **Phase 1 (plans):** Hand-author YAML execution plans with concrete agent/task names — no code generator *(done)*
+- **Phase 2 (implementation):** Separate A2A and SLIM runners/agents, metrics, local Taskfile + Ginkgo suite
+- **Phase 3 (CI):** Dedicated [`test-slim-vs-a2a.yaml`](.github/workflows/test-slim-vs-a2a.yaml) workflow — separate from SLIM benchmarks and A2A integration CI
 - Tasks use **concrete domain-specific names** (network probe, pod log scrape, route recalc, etc.) but **simulate/mock** execution via timed sleeps and canned outputs
 - Parallel branches become **obsolete** when an upstream dependency fails or times out
 - **SLIM advantages under test** (three pillars):
@@ -44,7 +61,7 @@ Build a reproducible benchmark in CSIT that shows **when SLIM Multicast RPC is f
 
 | Decision      | Choice                                               | Rationale                                                                                                                                                                           |
 | ------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime       | **Local processes + embedded SLIM dataplane**        | Matches `[benchmarks/agntcy-slim](benchmarks/agntcy-slim)`; fast iteration; K8s can be phase 2                                                                                      |
+| Runtime       | **Local processes + embedded SLIM dataplane**        | Matches `[benchmarks/agntcy-slim](benchmarks/agntcy-slim)`; fast iteration; K8s deployment deferred beyond Phase 3                                                                                      |
 | Orchestration | **Separate runners per transport** (`a2a-runner`, `slim-runner`) | Each impl owns its own DAG driver; same plan YAML input, no shared scheduler interface                                                                                              |
 | Language      | **Go-only**                                          | User asked for A2A Go SDK + SLIM Go bindings; existing Python `slima2a` is out of scope                                                                                             |
 | SLIM API      | **Custom slimrpc protobuf + multicast group client** | Multicast for context push + cancel/notify; upstream pattern in `[client_group.go](/Users/smagyari/dev/slim/data-plane/bindings/go/examples/slimrpc/simple/cmd/client_group/client_group.go)` |
@@ -101,10 +118,10 @@ Metrics like `context_push_ms`, `sync_barrier_ms`, `cancel_propagation_ms`, `obs
 
 ## New package layout
 
-Create `[benchmarks/agntcy-multi-agent/](benchmarks/agntcy-multi-agent/)` and register it in `[benchmarks/Taskfile.yml](benchmarks/Taskfile.yml)`:
+Create [`benchmarks/slim-vs-a2a/`](benchmarks/slim-vs-a2a/) and register it in [`benchmarks/Taskfile.yml`](benchmarks/Taskfile.yml) under the `slim-vs-a2a` include key:
 
 ```
-benchmarks/agntcy-multi-agent/
+benchmarks/slim-vs-a2a/
 ├── Taskfile.yml
 ├── internal/
 │   └── plan/                             # ONLY shared code: YAML schema, validation, DAG helpers
@@ -135,7 +152,7 @@ benchmarks/agntcy-multi-agent/
 │       └── mobile-nav-assistant.yaml
 ├── tests/
 │   ├── suite_test.go
-│   ├── dag_benchmark_test.go
+│   ├── slim_vs_a2a_test.go
 │   └── helpers_test.go
 ├── templates/
 └── reports/
@@ -212,7 +229,7 @@ Fields:
 - `agents[].slimName` — SLIM dataplane identity (`org/group/app`)
 - `agents[].a2aPort` — gRPC port for A2A agent card (A2A impl only)
 - `tasks[].name` — human-readable task label (reporting + realism)
-- `contextUpdates[]` — models mid-plan context shifts (key SLIM sync/context benchmark axis)
+- `contextUpdates[]` — models mid-plan context shifts (key SLIM sync/context comparison axis)
 
 ### Three hand-authored domain plans (committed in `plans/domains/`)
 
@@ -353,50 +370,89 @@ Both runners emit the **same JSON/TSV shape** (defined in `tests/` or a tiny sha
 
 Comparison report auto-computes per-plan deltas: `(a2a - slim) / a2a` for wall clock, context push, sync barrier, cancel propagation, obsolete tasks.
 
-## Taskfile and execution
+## Local execution (Phase 2)
 
-`[benchmarks/agntcy-multi-agent/Taskfile.yml](benchmarks/agntcy-multi-agent/Taskfile.yml)`:
+[`benchmarks/slim-vs-a2a/Taskfile.yml`](benchmarks/slim-vs-a2a/Taskfile.yml) — local dev only in Phase 2.
 
+### Task naming (`compare:` not `benchmark:`)
 
-| Task                       | Purpose                                                   |
-| -------------------------- | --------------------------------------------------------- |
-| `deps:slim-bindings-setup` | Reuse slim benchmark setup                                |
-| `benchmark:suite`          | All plans in `plans/domains/` × both implementations      |
-| `benchmark:ci:smoke`       | 3 domain plans × both implementations (CI subset)         |
-| `benchmark:report`         | Build HTML dashboard                                      |
-
+| Task | Purpose |
+| ---- | ------- |
+| `deps:slim-bindings-setup` | Reuse slim-bindings setup from `agntcy-slim` |
+| `compare:suite` | Run all domain plans on both A2A and SLIM; collect comparison metrics |
+| `compare:report` | Build HTML dashboard from `reports/` comparison results |
+| `compare:ci:smoke` | *(Phase 3)* Bounded plan matrix for CI (~2 min) |
 
 Configurable env vars:
 
 - `PLAN_DIR=plans/domains` (default; all hand-authored plans)
 - `IMPLEMENTATIONS=a2a,slim`
-- `RUN_BENCHMARK_DAG=1` (gate like `SLIM_RUN_BENCHMARK_SUITE`)
+- `RUN_SLIM_VS_A2A=1` (gate env var for Ginkgo suite; analogous to `SLIM_RUN_BENCHMARK_SUITE` but named for comparison)
 
 Example local run:
 
 ```bash
-task benchmarks:multi-agent:benchmark:ci:smoke RUN_BENCHMARK_DAG=1
-task benchmarks:multi-agent:benchmark:suite RUN_BENCHMARK_DAG=1
+task benchmarks:slim-vs-a2a:compare:suite RUN_SLIM_VS_A2A=1
+task benchmarks:slim-vs-a2a:compare:report
 ```
 
-## Test suite (Ginkgo)
+## Test suite (Phase 2 — Ginkgo, local)
 
-`[tests/dag_benchmark_test.go](benchmarks/agntcy-multi-agent/tests/dag_benchmark_test.go)`:
+[`tests/slim_vs_a2a_test.go`](benchmarks/slim-vs-a2a/tests/slim_vs_a2a_test.go):
 
-- Label: `benchmark-dag`
-- Skip unless `RUN_BENCHMARK_DAG=1`
+- Label: `slim-vs-a2a`
+- Skip unless `RUN_SLIM_VS_A2A=1`
 - For each plan in `PLAN_DIR`:
   1. Run `a2a-runner --plan=...` → collect metrics
   2. Run `slim-runner --plan=...` (start SLIM stack first) → collect metrics
 - Assert all three domain plans complete on both implementations; report deltas (no hard latency assertions)
 
-## CI integration (phase 2)
+## CI integration (Phase 3 — dedicated workflow)
 
-Add workflow modeled on `[.github/workflows/test-benchmarks-slim.yaml](.github/workflows/test-benchmarks-slim.yaml)`:
+Wire into CI only after Phase 2 runs cleanly locally. Use a **completely separate** workflow — do not add jobs to [`test-benchmarks-slim.yaml`](.github/workflows/test-benchmarks-slim.yaml) or [`test-integrations.yaml`](.github/workflows/test-integrations.yaml).
 
-- Path filter: `benchmarks/agntcy-multi-agent/`**
-- Job runs `benchmark:ci:smoke` only (small plan, ~2 min)
-- Publish artifact to test reports site via `[.github/workflows/publish-test-reports-pages.yaml](.github/workflows/publish-test-reports-pages.yaml)`
+**New file:** [`.github/workflows/test-slim-vs-a2a.yaml`](.github/workflows/test-slim-vs-a2a.yaml)
+
+| Deliverable | Path / task |
+| ----------- | ------------- |
+| Register in benchmarks root Taskfile | [`benchmarks/Taskfile.yml`](benchmarks/Taskfile.yml) — `includes.slim-vs-a2a` → `./slim-vs-a2a` |
+| CI smoke Taskfile task | `compare:ci:smoke` — 3 domain plans × both implementations (~2 min) |
+| Standalone CI workflow | `.github/workflows/test-slim-vs-a2a.yaml` |
+| Workflow name (GitHub UI) | `test-slim-vs-a2a` |
+| Path filter | `benchmarks/slim-vs-a2a/**`, `.github/workflows/test-slim-vs-a2a.yaml` |
+| CI job command | `task benchmarks:slim-vs-a2a:compare:ci:smoke` |
+| Report artifacts | Upload `reports/` as `slim-vs-a2a-smoke-report` (separate artifact name from SLIM benchmark reports) |
+| Pages publish hook | Extend [`publish-test-reports-pages.yaml`](.github/workflows/publish-test-reports-pages.yaml) with a dedicated `--slim-vs-a2a-dir` input; do not fold into existing SLIM smoke/capacity dirs |
+
+Phase 3 CI smoke example:
+
+```bash
+task benchmarks:slim-vs-a2a:compare:ci:smoke RUN_SLIM_VS_A2A=1
+```
+
+### `test-slim-vs-a2a.yaml` sketch
+
+```yaml
+name: test-slim-vs-a2a
+on:
+  pull_request:
+    paths:
+      - benchmarks/slim-vs-a2a/**
+      - .github/workflows/test-slim-vs-a2a.yaml
+  workflow_dispatch:
+jobs:
+  slim-vs-a2a-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run comparison smoke test
+        run: task benchmarks:slim-vs-a2a:compare:ci:smoke
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-vs-a2a-smoke-report
+          path: benchmarks/slim-vs-a2a/reports/
+```
 
 ## Expected outcome
 
@@ -411,24 +467,33 @@ Running the domain plans (especially `urban-traffic-reroute` and `mobile-nav-ass
 
 ## Implementation order
 
-### Phase 1 — Plans (YAML only, no Go)
+### Phase 1 — Plans (YAML only) — complete
 
 1. Finalize schema in plan doc / `internal/plan` types
-2. Hand-author 3 domain plans in `plans/domains/` with full agent lists, task DAGs, timings, `contextUpdates`, and injected failure paths
+2. Hand-author 3 domain plans in [`plans/domains/`](benchmarks/slim-vs-a2a/plans/domains/) with full agent lists, task DAGs, timings, `contextUpdates`, and injected failure paths
 
-### Phase 2 — Implementation
+### Phase 2 — Implementation (local only)
 
+0. ~~**Rename** `benchmarks/agntcy-multi-agent/` → `benchmarks/slim-vs-a2a/`~~ *(done)*
 3. **`internal/plan`** — YAML load, validation, DAG helpers
 4. **`a2a/` stack** — agent + runner + scheduler; end-to-end on domain plans
 5. **`slim/` stack** — proto, agent + runner + scheduler with multicast; same plans end-to-end
 6. **Context sync + failure propagation** — wire `contextUpdates`, cancel obsolete tasks, retries
-7. **Metrics + TSV + templates + dashboard**
-8. **Taskfile + Ginkgo suite + CI smoke**
+7. **Metrics + TSV + templates + local report dashboard**
+8. **Taskfile + Ginkgo suite** — runnable locally via `task benchmarks:slim-vs-a2a:compare:suite`
+
+### Phase 3 — CI and publishing (dedicated flow)
+
+9. **`compare:ci:smoke`** Taskfile task (bounded matrix for CI)
+10. **Register** `slim-vs-a2a` in [`benchmarks/Taskfile.yml`](benchmarks/Taskfile.yml)
+11. **Create** [`.github/workflows/test-slim-vs-a2a.yaml`](.github/workflows/test-slim-vs-a2a.yaml) — standalone workflow, separate triggers and artifacts from SLIM/A2A/integration CI
+12. **Artifact upload** — `slim-vs-a2a-smoke-report` from CI runs
+13. **Test reports site** — dedicated publish input in `publish-test-reports-pages.yaml` + dashboard section
 
 ## Out of scope (initial version)
 
 - **`plangen` / automated plan scaling** — plans are hand-authored; add new YAML files manually
-- K8s/Kind deployment (design allows later: same agent/runner binaries in Helm)
+- K8s/Kind deployment (deferred beyond Phase 3; same binaries can be containerized later)
 - Python `slima2a` agents
 - A2A-over-SLIM third transport leg (could be added later as `slim-a2a`)
 - Directory/registry integration (`agntcy-dir`) — unrelated to this comparison

@@ -17,6 +17,11 @@ includes:
     dir: ./agntcy-dir
     excludes: [default]
 
+  slim-vs-a2a:
+    taskfile: ./slim-vs-a2a/Taskfile.yml
+    dir: ./slim-vs-a2a
+    excludes: [default]
+
 tasks:
   default:
     cmd: task -l
