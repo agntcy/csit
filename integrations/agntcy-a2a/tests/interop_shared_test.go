@@ -3,11 +3,9 @@
 
 package tests
 
-// This file holds the reusable interop test primitives: shared constants, transport and
-// scenario enums, fixture process types, and generic lifecycle helpers.
-// Add code here only when multiple suites or harnesses need the same low-level plumbing.
-// New behavior assertions belong in interop_behaviors_test.go, and suite-specific matrix
-// wiring belongs in the suite wrapper files.
+// This file holds the reusable interop test primitives: shared constants, transport
+// enums, fixture process management, and low-level helpers.
+// New behavior assertions belong in interop_behaviors_test.go.
 
 import (
 	"bytes"
@@ -16,7 +14,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -29,8 +26,6 @@ import (
 
 const (
 	fixtureReadyTimeout          = 20 * time.Second
-	probeTimeout                 = 2 * time.Minute
-	buildTimeout                 = 3 * time.Minute
 	stopTimeout                  = 5 * time.Second
 	requestText                  = "ping"
 	pendingRequestText           = "pending"
@@ -60,65 +55,15 @@ const (
 	transportGRPC    transportProtocol = "grpc"
 )
 
-type probeScenario string
+// ErrUnsupportedConfig is returned by a serverStarter when the requested
+// configuration (e.g. push-enabled mode) is not supported by that server.
+var ErrUnsupportedConfig = errors.New("unsupported server configuration")
 
-const (
-	probeScenarioCore           probeScenario = "core"
-	probeScenarioTaskStreaming probeScenario = "task-streaming"
-	probeScenarioTaskLifecycle  probeScenario = "task-lifecycle"
-	probeScenarioPushConfig     probeScenario = "push-config"
-	probeScenarioParity         probeScenario = "parity"
-)
-
-type rustProbeOptions struct {
-	scenario                   probeScenario
-	expectSubscribeUnsupported bool
-	expectPushSupported        bool
-	expectPushUnsupported      bool
-	relaxedErrorChecks         bool
-	expectedPushErrorCode      int
-}
-
-type dotNetProbeOptions = rustProbeOptions
-
-type fixtureBinaries struct {
-	tempDir    string
-	goServer   string
-	rustServer string
-	rustProbe  string
-}
-
-type dotNetFixtureBinaries struct {
-	tempDir        string
-	dotnetCommand  string
-	dotnetServerDL string
-	dotnetProbeDL  string
-}
-
-type rustDotNetFixtureBinaries struct {
-	dotNetFixtureBinaries
-	rustServer string
-	rustProbe  string
-}
-
-type pythonFixtureAssets struct {
-	uvCommand    string
-	fixtureDir   string
-	serverScript string
-	probeScript  string
-}
-
-func (binaries rustDotNetFixtureBinaries) dotNetAssets() dotNetFixtureBinaries {
-	return binaries.dotNetFixtureBinaries
-}
-
-func (binaries rustDotNetFixtureBinaries) rustAssets() fixtureBinaries {
-	return fixtureBinaries{
-		tempDir:    binaries.tempDir,
-		rustServer: binaries.rustServer,
-		rustProbe:  binaries.rustProbe,
-	}
-}
+// serverStarter starts a fresh fixture process for a single (protocol, pushEnabled) pair.
+// It returns the process handle, the server base URL, and any startup error.
+// Implementations may return ErrUnsupportedConfig when the requested combination
+// is not available (e.g. .NET with pushEnabled=true).
+type serverStarter func(protocol transportProtocol, pushEnabled bool) (*fixtureProcess, string, error)
 
 type lockedBuffer struct {
 	mu  sync.Mutex
@@ -252,106 +197,6 @@ func stopFixtureIfRunning(process *fixtureProcess) {
 	}
 
 	gomega.Expect(process.stop()).To(gomega.Succeed(), process.logs.String())
-}
-
-func removeTempDir(path string) {
-	if path == "" {
-		return
-	}
-
-	gomega.Expect(os.RemoveAll(path)).To(gomega.Succeed())
-}
-
-type interopSuiteFixtureSpec struct {
-	label    string
-	protocol transportProtocol
-	start    func() (*fixtureProcess, string, error)
-}
-
-type interopSuiteRuntime struct {
-	fixtures map[string]*fixtureProcess
-	urls     map[string]string
-}
-
-func newInteropSuiteRuntime() *interopSuiteRuntime {
-	return &interopSuiteRuntime{
-		fixtures: map[string]*fixtureProcess{},
-		urls:     map[string]string{},
-	}
-}
-
-func interopSuiteFixtureKey(label string, protocol transportProtocol) string {
-	return label + ":" + string(protocol)
-}
-
-func (runtime *interopSuiteRuntime) setFixture(
-	label string,
-	protocol transportProtocol,
-	process *fixtureProcess,
-	url string,
-) {
-	key := interopSuiteFixtureKey(label, protocol)
-	runtime.fixtures[key] = process
-	runtime.urls[key] = url
-}
-
-func (runtime *interopSuiteRuntime) fixtureURL(label string, protocol transportProtocol) string {
-	return runtime.urls[interopSuiteFixtureKey(label, protocol)]
-}
-
-func (runtime *interopSuiteRuntime) fixtureURLs(
-	label string,
-	protocols ...transportProtocol,
-) map[transportProtocol]func() string {
-	urls := make(map[transportProtocol]func() string, len(protocols))
-	for _, protocol := range protocols {
-		protocol := protocol
-		urls[protocol] = func() string {
-			return runtime.fixtureURL(label, protocol)
-		}
-	}
-
-	return urls
-}
-
-func (runtime *interopSuiteRuntime) stopFixtures(fixtures []interopSuiteFixtureSpec) {
-	for index := len(fixtures) - 1; index >= 0; index-- {
-		fixture := fixtures[index]
-		stopFixtureIfRunning(runtime.fixtures[interopSuiteFixtureKey(fixture.label, fixture.protocol)])
-	}
-}
-
-func startInteropSuiteFixtures(runtime *interopSuiteRuntime, fixtures []interopSuiteFixtureSpec) error {
-	started := make([]interopSuiteFixtureSpec, 0, len(fixtures))
-	for _, fixture := range fixtures {
-		process, url, err := fixture.start()
-		if err != nil {
-			runtime.stopFixtures(started)
-			return err
-		}
-
-		runtime.setFixture(fixture.label, fixture.protocol, process, url)
-		started = append(started, fixture)
-	}
-
-	return nil
-}
-
-func newInteropServerSpec(
-	runtime *interopSuiteRuntime,
-	label string,
-	displayName string,
-	serverPrefix string,
-	expectPushSupported bool,
-	protocols ...transportProtocol,
-) interopServerMatrixSpec {
-	return interopServerMatrixSpec{
-		label:               label,
-		displayName:         displayName,
-		serverPrefix:        serverPrefix,
-		expectPushSupported: expectPushSupported,
-		urls:                runtime.fixtureURLs(label, protocols...),
-	}
 }
 
 func expectedServerText(serverPrefix string, text string) string {

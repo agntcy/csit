@@ -209,7 +209,7 @@ func parseTransportProtocol(raw string) (transportProtocol, error) {
 	}
 }
 
-func agentCard(cardPort int, protocol transportProtocol, grpcPort int, extended bool) *a2a.AgentCard {
+func agentCard(cardPort int, protocol transportProtocol, grpcPort int, extended bool, pushNotifications bool) *a2a.AgentCard {
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", cardPort)
 	name := "CSIT Go JSON-RPC Agent"
 	iface := a2a.NewAgentInterface(baseURL+"/rpc", a2a.TransportProtocolJSONRPC)
@@ -239,7 +239,7 @@ func agentCard(cardPort int, protocol transportProtocol, grpcPort int, extended 
 		},
 		Capabilities: a2a.AgentCapabilities{
 			Streaming:         true,
-			PushNotifications: true,
+			PushNotifications: pushNotifications,
 			ExtendedAgentCard: true,
 		},
 		DefaultInputModes:  []string{"text/plain"},
@@ -303,6 +303,7 @@ func main() {
 	port := flag.Int("port", 19091, "port for the fixture agent card server")
 	grpcPort := flag.Int("grpc-port", 19092, "port for the gRPC fixture transport server")
 	protocolFlag := flag.String("protocol", string(transportProtocolJSONRPC), "transport protocol to serve: jsonrpc, rest, or grpc")
+	disablePush := flag.Bool("disable-push", false, "disable push notification support")
 	flag.Parse()
 
 	protocol, err := parseTransportProtocol(*protocolFlag)
@@ -310,16 +311,18 @@ func main() {
 		log.Fatalf("failed to parse protocol: %v", err)
 	}
 
-	handler := a2asrv.NewHandler(
-		&interopExecutor{},
+	opts := []a2asrv.RequestHandlerOption{
 		a2asrv.WithTaskStore(taskstore.NewInMemory(&taskstore.InMemoryStoreConfig{
 			Authenticator: func(context.Context) (string, error) {
 				return "csit-user", nil
 			},
 		})),
-		a2asrv.WithPushNotifications(push.NewInMemoryStore(), push.NewHTTPPushSender(nil)),
-		a2asrv.WithExtendedAgentCard(agentCard(*port, protocol, *grpcPort, true)),
-	)
+		a2asrv.WithExtendedAgentCard(agentCard(*port, protocol, *grpcPort, true, !*disablePush)),
+	}
+	if !*disablePush {
+		opts = append(opts, a2asrv.WithPushNotifications(push.NewInMemoryStore(), push.NewHTTPPushSender(nil)))
+	}
+	handler := a2asrv.NewHandler(&interopExecutor{}, opts...)
 
 	if protocol == transportProtocolGRPC {
 		cardListener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
@@ -332,7 +335,7 @@ func main() {
 			log.Fatalf("failed to bind gRPC listener: %v", err)
 		}
 
-		card := agentCard(*port, protocol, *grpcPort, false)
+		card := agentCard(*port, protocol, *grpcPort, false, !*disablePush)
 		errCh := make(chan error, 2)
 
 		go func() {
@@ -368,7 +371,7 @@ func main() {
 		mux.Handle("/", wrapRESTPushCreateCompat(a2asrv.NewRESTHandler(handler)))
 		log.Printf("go rest fixture listening on http://127.0.0.1:%d", *port)
 	}
-	mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewStaticAgentCardHandler(agentCard(*port, protocol, *grpcPort, false)))
+	mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewStaticAgentCardHandler(agentCard(*port, protocol, *grpcPort, false, !*disablePush)))
 
 	if err := http.Serve(listener, mux); err != nil {
 		log.Fatalf("server stopped: %v", err)

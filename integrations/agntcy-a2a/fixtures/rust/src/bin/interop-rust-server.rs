@@ -75,6 +75,7 @@ fn build_agent_card(
     protocol: TransportProtocol,
     grpc_port: Option<u16>,
     extended: bool,
+    push_notifications: bool,
 ) -> AgentCard {
     let base_url = format!("http://127.0.0.1:{card_port}");
     let (name, interface_url, binding) = match protocol {
@@ -109,7 +110,7 @@ fn build_agent_card(
         supported_interfaces: vec![AgentInterface::new(interface_url, binding)],
         capabilities: AgentCapabilities {
             streaming: Some(true),
-            push_notifications: Some(true),
+            push_notifications: Some(push_notifications),
             extensions: None,
             extended_agent_card: Some(true),
         },
@@ -498,11 +499,12 @@ impl a2a_server::AgentExecutor for InteropExecutor {
     }
 }
 
-fn parse_args() -> (u16, TransportProtocol, Option<u16>) {
+fn parse_args() -> (u16, TransportProtocol, Option<u16>, bool) {
     let mut args = env::args().skip(1);
     let mut port = 19092;
     let mut protocol = TransportProtocol::JsonRpc;
     let mut grpc_port = None;
+    let mut disable_push = false;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -526,23 +528,28 @@ fn parse_args() -> (u16, TransportProtocol, Option<u16>) {
                     .expect("--protocol requires either 'jsonrpc', 'rest', or 'grpc'");
                 protocol = TransportProtocol::from_str(&value);
             }
+            "--disable-push" => {
+                disable_push = true;
+            }
             other => panic!("unknown argument: {other}"),
         }
     }
 
-    (port, protocol, grpc_port)
+    (port, protocol, grpc_port, disable_push)
 }
 
 #[tokio::main]
 async fn main() {
-    let (port, protocol, grpc_port) = parse_args();
-    let public_card = build_agent_card(port, protocol, grpc_port, false);
-    let extended_card = build_agent_card(port, protocol, grpc_port, true);
-    let handler = Arc::new(InteropHandler::new(
-        DefaultRequestHandler::new(InteropExecutor, InMemoryTaskStore::new())
-            .with_push_config_store(InMemoryPushConfigStore::new()),
-        extended_card,
-    ));
+    let (port, protocol, grpc_port, disable_push) = parse_args();
+    let public_card = build_agent_card(port, protocol, grpc_port, false, !disable_push);
+    let extended_card = build_agent_card(port, protocol, grpc_port, true, !disable_push);
+    let handler_builder = DefaultRequestHandler::new(InteropExecutor, InMemoryTaskStore::new());
+    let handler_builder = if !disable_push {
+        handler_builder.with_push_config_store(InMemoryPushConfigStore::new())
+    } else {
+        handler_builder
+    };
+    let handler = Arc::new(InteropHandler::new(handler_builder, extended_card));
     let card_producer = Arc::new(StaticAgentCard::new(public_card));
 
     let app = match protocol {

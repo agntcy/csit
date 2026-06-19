@@ -178,6 +178,7 @@ def build_agent_card(
     protocol: str,
     extended: bool,
     grpc_port: int | None = None,
+    disable_push: bool = False,
 ) -> a2a_pb2.AgentCard:
     if protocol == 'rest':
         name = 'CSIT Python REST Agent'
@@ -214,7 +215,7 @@ def build_agent_card(
         supported_interfaces=[interface],
         capabilities=a2a_pb2.AgentCapabilities(
             streaming=True,
-            push_notifications=True,
+            push_notifications=not disable_push,
             extended_agent_card=True,
         ),
         default_input_modes=['text/plain'],
@@ -652,14 +653,15 @@ def build_app(
     port: int,
     protocol: str,
     grpc_port: int | None = None,
+    disable_push: bool = False,
 ) -> tuple[Starlette, LegacyRequestHandler]:
     base_url = f'http://127.0.0.1:{port}'
-    public_card = build_agent_card(base_url, protocol, extended=False, grpc_port=grpc_port)
-    extended_card = build_agent_card(base_url, protocol, extended=True, grpc_port=grpc_port)
+    public_card = build_agent_card(base_url, protocol, extended=False, grpc_port=grpc_port, disable_push=disable_push)
+    extended_card = build_agent_card(base_url, protocol, extended=True, grpc_port=grpc_port, disable_push=disable_push)
     request_handler = LegacyRequestHandler(
         agent_executor=InteropExecutor(),
         task_store=InMemoryTaskStore(),
-        push_config_store=InteropPushNotificationConfigStore(),
+        push_config_store=None if disable_push else InteropPushNotificationConfigStore(),
         agent_card=public_card,
         extended_agent_card=extended_card,
     )
@@ -697,8 +699,8 @@ class InteropGrpcHandler(GrpcHandler):
         return await super().ListTasks(request, context)
 
 
-async def run_grpc_fixture(http_port: int, grpc_port: int) -> None:
-    app, request_handler = build_app(http_port, 'grpc', grpc_port=grpc_port)
+async def run_grpc_fixture(http_port: int, grpc_port: int, disable_push: bool = False) -> None:
+    app, request_handler = build_app(http_port, 'grpc', grpc_port=grpc_port, disable_push=disable_push)
     grpc_server = grpc.aio.server()
     grpc_address = f'127.0.0.1:{grpc_port}'
 
@@ -736,6 +738,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--protocol', choices=('jsonrpc', 'rest', 'grpc'), required=True)
     parser.add_argument('--grpc-port', type=int)
+    parser.add_argument('--disable-push', action='store_true', default=False)
     return parser.parse_args()
 
 
@@ -745,10 +748,10 @@ def main() -> None:
     if args.protocol == 'grpc':
         if args.grpc_port is None:
             raise SystemExit('--grpc-port is required when --protocol=grpc')
-        asyncio.run(run_grpc_fixture(args.port, args.grpc_port))
+        asyncio.run(run_grpc_fixture(args.port, args.grpc_port, disable_push=args.disable_push))
         return
 
-    app, _ = build_app(args.port, args.protocol)
+    app, _ = build_app(args.port, args.protocol, disable_push=args.disable_push)
     LOGGER.info('python %s fixture listening on http://127.0.0.1:%d', args.protocol, args.port)
     uvicorn.run(
         app,
