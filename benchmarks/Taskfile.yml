@@ -22,6 +22,11 @@ includes:
     dir: ./slim-vs-a2a
     excludes: [default]
 
+  slim-vs-a2a-v2:
+    taskfile: ./slim-vs-a2a-v2/Taskfile.yml
+    dir: ./slim-vs-a2a-v2
+    excludes: [default]
+
 tasks:
   default:
     cmd: task -l

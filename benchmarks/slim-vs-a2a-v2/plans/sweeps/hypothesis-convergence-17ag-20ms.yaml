@@ -1,0 +1,83 @@
+apiVersion: bench.agntcy.io/v2
+kind: ConsensusScenario
+metadata:
+    name: hypothesis-convergence-17agents-20ms
+    domain: hypothesis-convergence
+    description: Generated consensus scenario for transport sweeps
+spec:
+    agents: 17
+    thinkTimeMs: 20
+    findingEmitDelayMs: 2
+    maxRounds: 200
+    targetMode: majority
+    seed: 42
+    valueSpace: 3
+agents:
+    - id: agent-0
+      slimName: agntcy/bench-v2/agent-0
+      a2aPort: 9700
+      role: coordinator
+    - id: agent-1
+      slimName: agntcy/bench-v2/agent-1
+      a2aPort: 9711
+      role: worker
+    - id: agent-2
+      slimName: agntcy/bench-v2/agent-2
+      a2aPort: 9722
+      role: worker
+    - id: agent-3
+      slimName: agntcy/bench-v2/agent-3
+      a2aPort: 9733
+      role: worker
+    - id: agent-4
+      slimName: agntcy/bench-v2/agent-4
+      a2aPort: 9744
+      role: worker
+    - id: agent-5
+      slimName: agntcy/bench-v2/agent-5
+      a2aPort: 9755
+      role: worker
+    - id: agent-6
+      slimName: agntcy/bench-v2/agent-6
+      a2aPort: 9766
+      role: worker
+    - id: agent-7
+      slimName: agntcy/bench-v2/agent-7
+      a2aPort: 9777
+      role: worker
+    - id: agent-8
+      slimName: agntcy/bench-v2/agent-8
+      a2aPort: 9788
+      role: worker
+    - id: agent-9
+      slimName: agntcy/bench-v2/agent-9
+      a2aPort: 9799
+      role: worker
+    - id: agent-10
+      slimName: agntcy/bench-v2/agent-10
+      a2aPort: 9810
+      role: worker
+    - id: agent-11
+      slimName: agntcy/bench-v2/agent-11
+      a2aPort: 9821
+      role: worker
+    - id: agent-12
+      slimName: agntcy/bench-v2/agent-12
+      a2aPort: 9832
+      role: worker
+    - id: agent-13
+      slimName: agntcy/bench-v2/agent-13
+      a2aPort: 9843
+      role: worker
+    - id: agent-14
+      slimName: agntcy/bench-v2/agent-14
+      a2aPort: 9854
+      role: worker
+    - id: agent-15
+      slimName: agntcy/bench-v2/agent-15
+      a2aPort: 9865
+      role: worker
+    - id: agent-16
+      slimName: agntcy/bench-v2/agent-16
+      a2aPort: 9876
+      role: worker

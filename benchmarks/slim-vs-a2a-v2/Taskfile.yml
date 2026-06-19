@@ -1,0 +1,348 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: '3'
+
+silent: true
+
+vars:
+  SCENARIO_DIR: '{{ .SCENARIO_DIR | default "./plans/sweeps" }}'
+  REPORTS_DIR: '{{ .REPORTS_DIR | default "./reports" }}'
+  RESULTS_TSV: '{{ .RESULTS_TSV | default "./reports/results.tsv" }}'
+  SWEEP_TSV: '{{ .SWEEP_TSV | default "./reports/sweep.tsv" }}'
+  BIN_DIR: '{{ .BIN_DIR | default "./bin" }}'
+  SLIM_ENDPOINT: '{{ .SLIM_ENDPOINT | default "http://127.0.0.1:46357" }}'
+  COMPARE_SLIMCTL: '{{ .COMPARE_SLIMCTL | default "../agntcy-slim/bin/slimctl" }}'
+  COMPARE_SLIM_BINDINGS_VERSION: '{{ .COMPARE_SLIM_BINDINGS_VERSION | default "v1.4.0" }}'
+  COMPARE_SLIMCTL_TAG: '{{ .COMPARE_SLIMCTL_TAG | default "slimctl-v1.4.0" }}'
+
+tasks:
+  default:
+    cmd: task -l
+
+  deps:slim-bindings-setup:
+    desc: Install native SLIM bindings required by slim agents
+    cmds:
+      - go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup@{{ .COMPARE_SLIM_BINDINGS_VERSION }}
+
+  deps:slimctl-download:
+    desc: Download slimctl for local SLIM stack startup
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .COMPARE_SLIMCTL_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        TARGET_DIR=$(dirname {{ .COMPARE_SLIMCTL }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .COMPARE_SLIMCTL }}
+        chmod +x {{ .COMPARE_SLIMCTL }}
+        {{ .COMPARE_SLIMCTL }} version || true
+
+  build:
+    desc: Build a2a and slim agent/runner binaries
+    deps:
+      - deps:slim-bindings-setup
+    cmds:
+      - mkdir -p {{ .BIN_DIR }}
+      - go build -o {{ .BIN_DIR }}/a2a-agent ./a2a/cmd/agent
+      - go build -o {{ .BIN_DIR }}/a2a-runner ./a2a/cmd/runner
+      - |
+        CACHE_DIR="$(go env GOPATH)/.cgo-cache/slim-bindings/{{ .COMPARE_SLIM_BINDINGS_VERSION }}"
+        export CGO_LDFLAGS="-L${CACHE_DIR}"
+        go build -o {{ .BIN_DIR }}/slim-agent ./slim/cmd/agent
+        go build -o {{ .BIN_DIR }}/slim-runner ./slim/cmd/runner
+
+  validate:scenarios:
+    desc: Validate consensus scenario YAML files
+    cmds:
+      - go run ./tools/validate_scenarios --dir {{ .SCENARIO_DIR }}
+
+  compare:cleanup:
+    internal: true
+    cmds:
+      - pkill -f '{{ .BIN_DIR }}/a2a-agent' 2>/dev/null || true
+      - pkill -f '{{ .BIN_DIR }}/slim-agent' 2>/dev/null || true
+      - pkill -f 'slimctl slim start -c' 2>/dev/null || true
+
+  compare:suite:
+    desc: Run default consensus scenarios on A2A and SLIM
+    deps:
+      - build
+      - validate:scenarios
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }}
+      - |
+        set -euo pipefail
+        for scenario in {{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml; do
+          [ -f "$scenario" ] || continue
+          base=$(basename "$scenario" .yaml)
+          echo "==> A2A $base"
+          {{ .BIN_DIR }}/a2a-runner \
+            --scenario "$scenario" \
+            --agent-bin {{ .BIN_DIR }}/a2a-agent \
+            --quiet \
+            --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+            --output-tsv {{ .RESULTS_TSV }} || true
+        done
+      - task: compare:slim-stack
+        vars:
+          SCENARIO_GLOB: '{{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml'
+
+  compare:plan:
+    desc: Run one scenario on A2A and SLIM (PLAN=path or basename)
+    deps:
+      - build
+    requires:
+      vars: [PLAN]
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }}
+      - |
+        set -euo pipefail
+        PLAN_INPUT="{{ .PLAN }}"
+        if [ -f "$PLAN_INPUT" ]; then
+          SCENARIO_PATH="$PLAN_INPUT"
+        elif [ -f "{{ .SCENARIO_DIR }}/${PLAN_INPUT}.yaml" ]; then
+          SCENARIO_PATH="{{ .SCENARIO_DIR }}/${PLAN_INPUT}.yaml"
+        else
+          echo "scenario not found: ${PLAN_INPUT}" >&2
+          exit 1
+        fi
+        base=$(basename "$SCENARIO_PATH" .yaml)
+        echo "==> A2A ${base}"
+        {{ .BIN_DIR }}/a2a-runner \
+          --scenario "$SCENARIO_PATH" \
+          --agent-bin {{ .BIN_DIR }}/a2a-agent \
+          --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+          --output-tsv {{ .RESULTS_TSV }}
+      - task: compare:slim-stack
+        vars:
+          SCENARIO_GLOB: '{{ .PLAN }}'
+
+  compare:slim-stack:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    cmds:
+      - |
+        set -euo pipefail
+        SCENARIO_INPUT="{{ .SCENARIO_GLOB }}"
+        resolve_scenario() {
+          local input="$1"
+          if [ -f "$input" ]; then
+            printf '%s' "$input"
+            return
+          fi
+          if [ -f "{{ .SCENARIO_DIR }}/${input}.yaml" ]; then
+            printf '%s' "{{ .SCENARIO_DIR }}/${input}.yaml"
+            return
+          fi
+          printf '%s' "$input"
+        }
+        DATAPLANE_PORT=46357
+        CONTROLLER_PORT=46358
+        CONFIG=$(mktemp)
+        trap 'kill ${SLIM_PID:-} 2>/dev/null || true; rm -f "$CONFIG"; {{ .COMPARE_SLIMCTL }} slim stop 2>/dev/null || true' EXIT
+        cat > "$CONFIG" <<EOF
+        services:
+          slim/0:
+            node_id: "slim-bench-v2"
+            group_name: "bench-v2"
+            dataplane:
+              servers:
+                - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                  metadata:
+                    local_endpoint: "127.0.0.1"
+                    external_endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                    trust_domain: "example.org"
+                  tls:
+                    insecure: true
+            controller:
+              servers:
+                - endpoint: "127.0.0.1:${CONTROLLER_PORT}"
+                  tls:
+                    insecure: true
+        EOF
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        SLIM_PID=$!
+        for i in $(seq 1 50); do
+          if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
+            break
+          fi
+          sleep 0.2
+        done
+        if [[ "$SCENARIO_INPUT" == *"*"* ]]; then
+          SCENARIO_LIST=($SCENARIO_INPUT)
+        else
+          SCENARIO_LIST=("$(resolve_scenario "$SCENARIO_INPUT")")
+        fi
+        for scenario in "${SCENARIO_LIST[@]}"; do
+          [ -f "$scenario" ] || continue
+          base=$(basename "$scenario" .yaml)
+          echo "==> SLIM ${base}"
+          {{ .BIN_DIR }}/slim-runner \
+            --scenario "$scenario" \
+            --endpoint {{ .SLIM_ENDPOINT }} \
+            --agent-bin {{ .BIN_DIR }}/slim-agent \
+            --quiet \
+            --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+            --output-tsv {{ .RESULTS_TSV }} || true
+        done
+
+  compare:report:
+    desc: Build HTML dashboard from comparison TSV results
+    cmds:
+      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --output {{ .REPORTS_DIR }}/index.html
+
+  compare:sweep:
+    desc: Run agent/think-time sweep (SWEEP_AGENTS, SWEEP_THINK_MS env lists)
+    deps:
+      - build
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .SWEEP_TSV }}
+      - task: compare:sweep:run
+
+  compare:sweep:run:
+    internal: true
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p {{ .REPORTS_DIR }} {{ .SCENARIO_DIR }}
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
+        IFS=',' read -r -a THINK_LIST <<< "{{ .SWEEP_THINK_MS }}"
+        for agents in "${AGENT_LIST[@]}"; do
+          for think in "${THINK_LIST[@]}"; do
+            scenario_path="{{ .SCENARIO_DIR }}/{{ .SWEEP_FAMILY }}-${agents}ag-${think}ms.yaml"
+            go run ./tools/gen_scenario \
+              -family {{ .SWEEP_FAMILY }} \
+              -agents "$agents" \
+              -think-ms "$think" \
+              -output "$scenario_path"
+            base=$(basename "$scenario_path" .yaml)
+            echo "==> sweep A2A $base"
+            {{ .BIN_DIR }}/a2a-runner \
+              --scenario "$scenario_path" \
+              --agent-bin {{ .BIN_DIR }}/a2a-agent \
+              --quiet \
+              --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+              --output-tsv {{ .SWEEP_TSV }} || true
+          done
+        done
+      - task: compare:sweep:slim
+
+  compare:sweep:slim:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
+        IFS=',' read -r -a THINK_LIST <<< "{{ .SWEEP_THINK_MS }}"
+        DATAPLANE_PORT=46357
+        CONTROLLER_PORT=46358
+        CONFIG=$(mktemp)
+        trap 'kill ${SLIM_PID:-} 2>/dev/null || true; rm -f "$CONFIG"; {{ .COMPARE_SLIMCTL }} slim stop 2>/dev/null || true' EXIT
+        cat > "$CONFIG" <<EOF
+        services:
+          slim/0:
+            node_id: "slim-bench-v2"
+            group_name: "bench-v2"
+            dataplane:
+              servers:
+                - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                  metadata:
+                    local_endpoint: "127.0.0.1"
+                    external_endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                    trust_domain: "example.org"
+                  tls:
+                    insecure: true
+            controller:
+              servers:
+                - endpoint: "127.0.0.1:${CONTROLLER_PORT}"
+                  tls:
+                    insecure: true
+        EOF
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        SLIM_PID=$!
+        for i in $(seq 1 50); do
+          if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
+            break
+          fi
+          sleep 0.2
+        done
+        for agents in "${AGENT_LIST[@]}"; do
+          for think in "${THINK_LIST[@]}"; do
+            scenario_path="{{ .SCENARIO_DIR }}/{{ .SWEEP_FAMILY }}-${agents}ag-${think}ms.yaml"
+            [ -f "$scenario_path" ] || continue
+            base=$(basename "$scenario_path" .yaml)
+            echo "==> sweep SLIM $base"
+            {{ .BIN_DIR }}/slim-runner \
+              --scenario "$scenario_path" \
+              --endpoint {{ .SLIM_ENDPOINT }} \
+              --agent-bin {{ .BIN_DIR }}/slim-agent \
+              --quiet \
+              --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+              --output-tsv {{ .SWEEP_TSV }} || true
+          done
+        done
+
+  compare:ci:smoke:
+    desc: CI smoke — one sweep point plus report (~2 min)
+    deps:
+      - build
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .RESULTS_TSV }} {{ .SWEEP_TSV }}
+      - |
+        set -euo pipefail
+        mkdir -p {{ .SCENARIO_DIR }} {{ .REPORTS_DIR }}
+        scenario_path="{{ .SCENARIO_DIR }}/ci-smoke-hypothesis-5ag-20ms.yaml"
+        go run ./tools/gen_scenario -family hypothesis-convergence -agents 5 -think-ms 20 -output "$scenario_path"
+        echo "==> smoke A2A"
+        {{ .BIN_DIR }}/a2a-runner \
+          --scenario "$scenario_path" \
+          --agent-bin {{ .BIN_DIR }}/a2a-agent \
+          --quiet \
+          --output-json {{ .REPORTS_DIR }}/a2a-ci-smoke.json \
+          --output-tsv {{ .RESULTS_TSV }}
+      - task: compare:slim-stack
+        vars:
+          SCENARIO_GLOB: 'plans/sweeps/ci-smoke-hypothesis-5ag-20ms.yaml'
+      - task: compare:report
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test ./... -count=1
