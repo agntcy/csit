@@ -23,12 +23,51 @@ vars:
 
 tasks:
   test:
-    desc: A2A over SLIMRPC interop (Go + Python via slim-a2a-go / slim-a2a-python) — requires a running SLIM node
+    desc: A2A over SLIMRPC interop (full Go+Python 2×2) — requires a running SLIM node
+    # Runs each client→server pair as its own report (report-agntcy-a2a-slimrpc-<client>-<server>),
+    # mirroring the agntcy-a2a per-pair layout so the dashboard shows one "Saved Run" per pair.
+    # ignore_error lets the remaining pairs run (and the dashboard capture them) if one fails.
+    cmds:
+      - task: test:go-go
+        ignore_error: true
+      - task: test:go-python
+        ignore_error: true
+      - task: test:python-go
+        ignore_error: true
+      - task: test:python-python
+        ignore_error: true
+
+  test:go-go:
+    desc: SLIMRPC interop — Go client → Go server
     cmds:
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-slim-a2a
-          REPORT_NAME: report-agntcy-a2a-slimrpc
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-go
+
+  test:go-python:
+    desc: SLIMRPC interop — Go client → Python server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-python'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-python
+
+  test:python-go:
+    desc: SLIMRPC interop — Python client → Go server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-python-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-python-go
+
+  test:python-python:
+    desc: SLIMRPC interop — Python client → Python server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-python-python'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-python-python
 
   versions:
     desc: Print the pinned released SLIM baseline (node image + bindings) used locally and in CI
@@ -43,8 +82,8 @@ tasks:
     cmds:
       - mkdir -p ./reports
       - |
-        cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
-          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html \
+        go run ../agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir ./reports --output ./reports/index.html \
           --title "A2A over SLIMRPC Interop Dashboard"
 
   test:go-main:
@@ -68,26 +107,30 @@ tasks:
         echo "Tip: clear the build cache after a bindings change: rm -rf .cache"
       - task: test:interop:run
         vars:
-          LABEL_FILTER: suite-slim-a2a
-          REPORT_NAME: report-agntcy-a2a-slimrpc
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-go
 
   test:interop:run:
     internal: true
     cmds:
       - mkdir -p ./reports
+      # Run from the tests package dir (cd tests; go test .) so Ginkgo resolves the
+      # relative report paths against ./tests and writes into ./reports — mirroring
+      # the agntcy-a2a target. Invoking `go test ./agntcy-a2a-slimrpc/tests` from
+      # integrations would land the reports under tests/agntcy-a2a-slimrpc/reports.
       - |
         set +e
         (
-          cd .. &&
-          go test ./agntcy-a2a-slimrpc/tests -count=1 -v -failfast \
+          cd tests &&
+          go test . -count=1 -v -failfast \
             -ginkgo.timeout 30m -timeout 30m -ginkgo.v \
             {{if .LABEL_FILTER}}-ginkgo.label-filter='{{.LABEL_FILTER}}'{{end}} \
-            --ginkgo.json-report=./agntcy-a2a-slimrpc/reports/{{.REPORT_NAME}}.json \
-            --ginkgo.junit-report=./agntcy-a2a-slimrpc/reports/{{.REPORT_NAME}}.xml
+            --ginkgo.json-report=../reports/{{.REPORT_NAME}}.json \
+            --ginkgo.junit-report=../reports/{{.REPORT_NAME}}.xml
         )
         test_status=$?
-        cd .. && go run ./agntcy-a2a/tools/report_dashboard.go \
-          --reports-dir ./agntcy-a2a-slimrpc/reports --output ./agntcy-a2a-slimrpc/reports/index.html \
+        go run ../agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir ./reports --output ./reports/index.html \
           --title "A2A over SLIMRPC Interop Dashboard"
         dashboard_status=$?
         if [ "$test_status" -ne 0 ]; then

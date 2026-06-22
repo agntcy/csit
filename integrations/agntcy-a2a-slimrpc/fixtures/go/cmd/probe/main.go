@@ -19,12 +19,14 @@ import (
 // Scenario sentinels: outbound request text that drives a non-echo server response.
 // Must match the sentinels in cmd/server/main.go and the Python fixtures byte-for-byte.
 const (
-	scenarioEcho          = "echo"
-	sentinelMessageOnly   = "csit-scenario:message-only"
-	sentinelTaskFailure   = "csit-scenario:task-failure"
-	sentinelInputRequired = "csit-scenario:input-required"
-	sentinelStreaming     = "csit-scenario:streaming"
-	sentinelCancel        = "csit-scenario:cancel"
+	scenarioEcho              = "echo"
+	sentinelMessageOnly       = "csit-scenario:message-only"
+	sentinelTaskFailure       = "csit-scenario:task-failure"
+	sentinelInputRequired     = "csit-scenario:input-required"
+	sentinelStreaming         = "csit-scenario:streaming"
+	sentinelCancel            = "csit-scenario:cancel"
+	sentinelMultiTurn         = "csit-scenario:multi-turn"
+	sentinelMultiTurnContinue = "csit-scenario:multi-turn-continue"
 )
 
 // probe transport modes selected per scenario.
@@ -32,6 +34,7 @@ const (
 	modeUnary     = "unary"
 	modeStreaming = "streaming"
 	modeCancel    = "cancel"
+	modeMultiTurn = "multi-turn"
 )
 
 func main() {
@@ -72,6 +75,9 @@ func scenarioRequest(scenario, text string) (want string, enforceEcho bool, mode
 		return sentinelStreaming, false, modeStreaming, nil
 	case "task-cancel":
 		return sentinelCancel, false, modeCancel, nil
+	case "multi-turn":
+		// The probe drives both turns; the start turn sends sentinelMultiTurn.
+		return sentinelMultiTurn, false, modeMultiTurn, nil
 	default:
 		return "", false, "", fmt.Errorf("unknown scenario %q", scenario)
 	}
@@ -142,6 +148,8 @@ func run(endpoint, secret, localFull, remoteFull, want string, enforceEcho bool,
 		obs, err = runStreaming(ctx, t, req)
 	case modeCancel:
 		obs, err = runCancel(ctx, t, req)
+	case modeMultiTurn:
+		obs, err = runMultiTurn(ctx, t, req)
 	default:
 		obs, err = runUnary(ctx, t, req)
 	}
@@ -245,6 +253,40 @@ func runCancel(ctx context.Context, t *a2aslimrpcv1.Transport, req *a2a.SendMess
 		artifactPresent: present,
 		text:            text,
 	}, nil
+}
+
+// runMultiTurn drives a two-turn conversation on a single task: turn 1 sends the
+// start sentinel and must reach input-required (capturing the server-assigned task
+// and context IDs); turn 2 references those IDs to continue the same task, which the
+// server completes with the multi-turn artifact. Only the final (completed)
+// observation is returned, so the harness asserts it like the other task scenarios.
+func runMultiTurn(ctx context.Context, t *a2aslimrpcv1.Transport, startReq *a2a.SendMessageRequest) (observation, error) {
+	res1, err := t.SendMessage(ctx, nil, startReq)
+	if err != nil {
+		return observation{}, fmt.Errorf("multi-turn start: %w", err)
+	}
+	task1, ok := res1.(*a2a.Task)
+	if !ok {
+		return observation{kind: "unknown"}, fmt.Errorf("multi-turn start: expected a task, got %T", res1)
+	}
+	if task1.Status.State != a2a.TaskStateInputRequired {
+		return observe(task1), fmt.Errorf("multi-turn start: expected input-required, got %s", task1.Status.State)
+	}
+
+	continueReq := &a2a.SendMessageRequest{
+		Message: &a2a.Message{
+			ID:        a2a.NewMessageID(),
+			Role:      a2a.MessageRoleUser,
+			Parts:     a2a.ContentParts{a2a.NewTextPart(sentinelMultiTurnContinue)},
+			TaskID:    task1.ID,
+			ContextID: task1.ContextID,
+		},
+	}
+	res2, err := t.SendMessage(ctx, nil, continueReq)
+	if err != nil {
+		return observation{}, fmt.Errorf("multi-turn continue: %w", err)
+	}
+	return observe(res2), nil
 }
 
 // observation is the parseable view of a SendMessage result consumed by the

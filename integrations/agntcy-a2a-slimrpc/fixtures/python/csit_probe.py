@@ -26,10 +26,13 @@ SENTINEL_TASK_FAILURE = "csit-scenario:task-failure"
 SENTINEL_INPUT_REQUIRED = "csit-scenario:input-required"
 SENTINEL_STREAMING = "csit-scenario:streaming"
 SENTINEL_CANCEL = "csit-scenario:cancel"
+SENTINEL_MULTI_TURN = "csit-scenario:multi-turn"
+SENTINEL_MULTI_TURN_CONTINUE = "csit-scenario:multi-turn-continue"
 
 MODE_UNARY = "unary"
 MODE_STREAMING = "streaming"
 MODE_CANCEL = "cancel"
+MODE_MULTI_TURN = "multi-turn"
 
 
 def _scenario_request(scenario: str, text: str) -> tuple[str, bool, str]:
@@ -50,6 +53,9 @@ def _scenario_request(scenario: str, text: str) -> tuple[str, bool, str]:
         return SENTINEL_STREAMING, False, MODE_STREAMING
     if scenario == "task-cancel":
         return SENTINEL_CANCEL, False, MODE_CANCEL
+    if scenario == "multi-turn":
+        # The probe drives both turns; the start turn sends SENTINEL_MULTI_TURN.
+        return SENTINEL_MULTI_TURN, False, MODE_MULTI_TURN
     raise SystemExit(f"unknown scenario {scenario!r}")
 
 
@@ -75,18 +81,16 @@ def _task_state_name(task) -> str:
             return ""
 
 
-async def collect_response(
-    client, text: str, break_on_echo: bool = True
+async def _drain(
+    client, request, break_on_text: str | None
 ) -> tuple[str, object, bool, int]:
-    """Drain send_message until the stream ends.
+    """Drain send_message(request) until the stream ends.
 
     Returns the accumulated echoed text, the last observed task (for the terminal
     lifecycle state), whether a text artifact was seen, and the number of streamed
-    events. For non-echo scenarios break_on_echo is False, so the iterator runs to
-    completion (a failed/input-required task arrives as a normal terminal result).
+    events. break_on_text, when set, stops early once that substring is echoed back
+    (used by the echo scenario); non-echo scenarios pass None to run to completion.
     """
-    message = create_text_message_object(content=text)
-    request = SendMessageRequest(message=message)
     out = ""
     last_task = None
     artifact_present = False
@@ -111,9 +115,42 @@ async def collect_response(
                 if part.WhichOneof("content") == "text":
                     out += part.text
                     artifact_present = True
-        if break_on_echo and text in out:
+        if break_on_text is not None and break_on_text in out:
             break
     return out, last_task, artifact_present, events
+
+
+async def collect_response(
+    client, text: str, break_on_echo: bool = True
+) -> tuple[str, object, bool, int]:
+    """Send a single text message and drain the response stream."""
+    message = create_text_message_object(content=text)
+    request = SendMessageRequest(message=message)
+    return await _drain(client, request, text if break_on_echo else None)
+
+
+async def run_multi_turn(client) -> tuple[str, object, bool, int]:
+    """Drive a two-turn conversation on a single task.
+
+    Turn 1 sends the start sentinel and must reach input-required (capturing the
+    server-assigned task/context IDs). Turn 2 references those IDs to continue the
+    same task, which the server completes with the multi-turn artifact. Only the
+    final (completed) observation is returned.
+    """
+    start_msg = create_text_message_object(content=SENTINEL_MULTI_TURN)
+    _out1, task1, _ap1, ev1 = await _drain(
+        client, SendMessageRequest(message=start_msg), None
+    )
+    if task1 is None or not task1.id:
+        raise SystemExit("multi-turn start: no task returned")
+
+    continue_msg = create_text_message_object(content=SENTINEL_MULTI_TURN_CONTINUE)
+    continue_msg.task_id = task1.id
+    continue_msg.context_id = task1.context_id
+    out2, task2, ap2, ev2 = await _drain(
+        client, SendMessageRequest(message=continue_msg), None
+    )
+    return out2, task2, ap2, ev1 + ev2
 
 
 async def run_cancel(client, text: str) -> tuple[str, object, bool, int]:
@@ -236,6 +273,8 @@ async def main() -> None:
     probe_timeout_s = int(os.environ.get("CSIT_SLIM_PYTHON_PROBE_TIMEOUT", "180"))
     if mode == MODE_CANCEL:
         worker = run_cancel(client, want)
+    elif mode == MODE_MULTI_TURN:
+        worker = run_multi_turn(client)
     else:
         worker = collect_response(client, want, break_on_echo=enforce_echo)
     try:

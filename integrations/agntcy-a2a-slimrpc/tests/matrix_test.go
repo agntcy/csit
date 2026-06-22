@@ -62,7 +62,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	sharedAssets = assets
 })
 
-var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.Label("suite-slim-a2a"), func() {
+// The "slimrpc" container label is the transport axis the shared dashboard tool
+// (agntcy-a2a/tools/report_dashboard.go) reads to build the compatibility matrix.
+var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.Label("suite-slim-a2a", "slimrpc"), func() {
 	ginkgo.BeforeEach(func() {
 		if skipAll {
 			ginkgo.Skip("SKIP_SLIM_A2A=1")
@@ -84,7 +86,9 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 				pc := pc
 				ginkgo.It(
 					fmt.Sprintf("SLIMRPC client %s calls server %s and echoes the %s payload", cli, srv, pc.name),
-					ginkgo.Label("behavior-core", "pair-"+cli+"-"+srv, "payload-"+pc.name),
+					// Matrix labels: behavior-<column>, bare <client>-<server> direction
+					// (alongside pair-… kept for label-filter ergonomics), plus payload tag.
+					ginkgo.Label("behavior-echo", cli+"-"+srv, "pair-"+cli+"-"+srv, "payload-"+pc.name),
 					func() {
 						out, err := runInteropProbe(srv, cli, scenarioEcho, pc.text)
 						gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
@@ -97,7 +101,7 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 				sc := sc
 				ginkgo.It(
 					fmt.Sprintf("SLIMRPC client %s observes the %s response from server %s", cli, sc.name, srv),
-					ginkgo.Label("behavior-scenario", "pair-"+cli+"-"+srv, "scenario-"+sc.name),
+					ginkgo.Label("behavior-"+sc.name, cli+"-"+srv, "pair-"+cli+"-"+srv, "scenario-"+sc.name),
 					func() {
 						out, err := runInteropProbe(srv, cli, sc.scenario, "")
 						gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
@@ -127,7 +131,7 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 			// payload-independent, so they run once per pair on the canonical ASCII payload.
 			ginkgo.It(
 				fmt.Sprintf("SLIMRPC client %s observes a completed task with an echoed artifact from server %s", cli, srv),
-				ginkgo.Label("behavior-lifecycle", "pair-"+cli+"-"+srv),
+				ginkgo.Label("behavior-lifecycle", cli+"-"+srv, "pair-"+cli+"-"+srv),
 				func() {
 					out, err := runInteropProbe(srv, cli, scenarioEcho, probeText)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("probe output:\n%s", out))
@@ -185,7 +189,7 @@ type payloadCase struct {
 	text string
 }
 
-// interopPayloads returns the echo payloads driven through the behavior-core specs.
+// interopPayloads returns the echo payloads driven through the behavior-echo specs.
 // Each exercises wire-level text handling — UTF-8/emoji, shell/JSON metacharacters, and a
 // larger multi-KiB frame — round-tripped verbatim, since both echo executors return the
 // input text unchanged. Filter a single case with: ginkgo --label-filter 'payload-unicode'.
@@ -214,9 +218,9 @@ type scenarioCase struct {
 	wantArtifactSubstrings []string
 }
 
-// interopScenarios returns the scenario behaviors driven through the behavior-scenario
-// specs, mirroring the agntcy-a2a sibling taxonomy. Filter a single case with:
-// ginkgo --label-filter 'scenario-task-failure'.
+// interopScenarios returns the scenario behaviors, each tagged behavior-<name> so it
+// becomes its own compatibility-matrix column, mirroring the agntcy-a2a sibling
+// taxonomy. Filter a single case with: ginkgo --label-filter 'scenario-task-failure'.
 func interopScenarios() []scenarioCase {
 	return []scenarioCase{
 		{name: scenarioMessageOnly, scenario: scenarioMessageOnly, wantKind: "message", wantState: ""},
@@ -230,6 +234,17 @@ func interopScenarios() []scenarioCase {
 			wantArtifactSubstrings: []string{"streaming chunk 1", "streaming chunk 2"},
 		},
 		{name: scenarioTaskCancel, scenario: scenarioTaskCancel, wantKind: "task", wantState: "TASK_STATE_CANCELED"},
+		{
+			// multi-turn drives a two-send conversation inside the probe: turn 1 reaches
+			// input-required, turn 2 continues the same task/context to completion. Only
+			// the final (completed) observation is emitted, so the assertion mirrors the
+			// other task scenarios — terminal COMPLETED with the continuation artifact.
+			name:                   scenarioMultiTurn,
+			scenario:               scenarioMultiTurn,
+			wantKind:               "task",
+			wantState:              "TASK_STATE_COMPLETED",
+			wantArtifactSubstrings: []string{multiTurnCompleteMarker},
+		},
 	}
 }
 

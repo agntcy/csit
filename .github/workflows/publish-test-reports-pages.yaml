@@ -102,7 +102,7 @@ jobs:
 
           a2a_slimrpc_run_id="${INPUT_INTEGRATIONS_RUN_ID}"
           if [[ -z "$a2a_slimrpc_run_id" ]]; then
-            a2a_slimrpc_run_id="$(resolve_run_with_artifact test-integrations.yaml '^a2a-slimrpc-test-result$' || true)"
+            a2a_slimrpc_run_id="$(resolve_run_with_artifact test-integrations.yaml '^a2a-slimrpc-test-result-' || true)"
           fi
 
           benchmark_run_id="${INPUT_BENCHMARK_RUN_ID}"
@@ -136,7 +136,7 @@ jobs:
           has_a2a_slimrpc=false
           if [[ -n "$a2a_slimrpc_run_id" ]]; then
             a2a_slimrpc_artifacts_json=$(run_artifacts "$a2a_slimrpc_run_id")
-            if has_matching_artifact "$a2a_slimrpc_artifacts_json" '^a2a-slimrpc-test-result$'; then
+            if has_matching_artifact "$a2a_slimrpc_artifacts_json" '^a2a-slimrpc-test-result-'; then
               has_a2a_slimrpc=true
             fi
           fi
@@ -228,14 +228,15 @@ jobs:
           fi
           rm -rf site/directory-conformance-tmp
 
-      - name: Download A2A SLIMRPC report artifact
+      - name: Download A2A SLIMRPC report artifacts
         if: ${{ steps.resolve.outputs.has-a2a-slimrpc == 'true' }}
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ steps.resolve.outputs.a2a-slimrpc-run-id }}
-          name: a2a-slimrpc-test-result
+          pattern: a2a-slimrpc-test-result-*
+          merge-multiple: true
           path: site/a2a-slimrpc
 
       - name: Verify downloaded SLIMRPC reports

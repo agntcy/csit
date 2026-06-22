@@ -485,9 +485,36 @@ jobs:
     # A2A over SLIMRPC (Go + Python). Needs a running SLIM data-plane node, so we start
     # the pinned released slim image as a background container (GitHub `services:` cannot
     # pass the required `/slim --config ...` args, hence `docker run`).
+    #
+    # One job per client→server pair (mirrors run-tests-a2a). Each row runs in parallel
+    # with its own SLIM node and uploads its own report artifact, so the published
+    # dashboard shows one "Saved Run" per pair.
     if: ${{ (github.event_name == 'workflow_dispatch' && !inputs.skip_slim_a2a_test) || (github.event_name != 'workflow_dispatch' && needs.detect-changes.outputs.run-a2a-slimrpc == 'true') }}
     needs: [detect-changes]
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: go-go
+            display-name: Go→Go
+            task: integrations:a2a-slimrpc:test:go-go
+            artifact-name: a2a-slimrpc-test-result-go-go
+          - id: go-python
+            display-name: Go→Python
+            task: integrations:a2a-slimrpc:test:go-python
+            artifact-name: a2a-slimrpc-test-result-go-python
+          - id: python-go
+            display-name: Python→Go
+            task: integrations:a2a-slimrpc:test:python-go
+            artifact-name: a2a-slimrpc-test-result-python-go
+          - id: python-python
+            display-name: Python→Python
+            task: integrations:a2a-slimrpc:test:python-python
+            artifact-name: a2a-slimrpc-test-result-python-python
+
+    name: A2A SLIMRPC ${{ matrix.display-name }}
 
     permissions:
       contents: "read"
@@ -541,9 +568,41 @@ jobs:
           # Go fixtures (slim-a2a-go) require the go line in fixtures/go/go.mod.
           go-version: "1.25.2"
 
-      - name: Run A2A SLIMRPC interoperability tests
-        run: task integrations:a2a-slimrpc:test
+      - name: Run A2A SLIMRPC ${{ matrix.display-name }} interoperability tests
+        id: run-tests
+        run: task ${{ matrix.task }}
         shell: bash
+        continue-on-error: true
+
+      - name: Generate test summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### A2A SLIMRPC ${{ matrix.display-name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          reports_dir="./integrations/agntcy-a2a-slimrpc/reports"
+          if [[ -d "$reports_dir" ]]; then
+            mapfile -t xmls < <(find "$reports_dir" -name "*.xml" 2>/dev/null | sort)
+            if [[ ${#xmls[@]} -gt 0 ]]; then
+              echo "| Report | Passed | Failed | Errors | Skipped | Time |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|--------|--------|--------|--------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+              for xml in "${xmls[@]}"; do
+                name=$(basename "$xml" .xml)
+                tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1 || echo "0")
+                failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1 || echo "0")
+                errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1 || echo "0")
+                skipped=$(grep -c '<skipped' "$xml" || echo "0")
+                time=$(grep -oP 'time="\K[0-9.]+' "$xml" | head -1 || echo "0")
+                passed=$((tests - failures - errors - skipped))
+                echo "| $name | $passed | $failures | $errors | $skipped | ${time}s |" >> "$GITHUB_STEP_SUMMARY"
+              done
+            else
+              echo "No JUnit XML reports found." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "No reports directory found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
       - name: SLIM node logs
         if: always()
@@ -553,11 +612,16 @@ jobs:
         if: always()
         run: docker rm -f slim-node || true
 
+      - name: Propagate test result
+        if: ${{ steps.run-tests.outcome == 'failure' }}
+        shell: bash
+        run: exit 1
+
       - name: Create artifact from integrations test reports
         if: always()
         uses: ./.github/actions/create-artifact
         with:
-          artifact-name: "a2a-slimrpc-test-result"
+          artifact-name: ${{ matrix.artifact-name }}
           path-to-archive: "./integrations/agntcy-a2a-slimrpc/reports/*"
 
   run-agentic-apps:
@@ -689,6 +753,13 @@ jobs:
             "${{ needs.run-tests-directory-conformance.result }}" \
             "report-agntcy-dir-conformance|report-.*conformance"
 
+          # Constrain the pattern to the a2a SDK/self pairs so it does not also
+          # match the SLIMRPC reports (report-agntcy-a2a-slimrpc-*), which get
+          # their own section below.
           emit_section "A2A / Interop" \
             "${{ needs.run-tests-a2a.result }}" \
-            "report-agntcy-a2a-"
+            "report-agntcy-a2a-(self|rust|go|python)"
+
+          emit_section "A2A / SLIMRPC Interop" \
+            "${{ needs.run-tests-a2a-slimrpc.result }}" \
+            "report-agntcy-a2a-slimrpc-"

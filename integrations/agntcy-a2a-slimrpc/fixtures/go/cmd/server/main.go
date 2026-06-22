@@ -26,12 +26,18 @@ const readyMarker = "CSIT_SLIM_SERVER_READY"
 // non-echo server response. Must match the sentinels in cmd/probe/main.go and the
 // Python fixtures byte-for-byte (they travel over the wire).
 const (
-	sentinelMessageOnly   = "csit-scenario:message-only"
-	sentinelTaskFailure   = "csit-scenario:task-failure"
-	sentinelInputRequired = "csit-scenario:input-required"
-	sentinelStreaming     = "csit-scenario:streaming"
-	sentinelCancel        = "csit-scenario:cancel"
+	sentinelMessageOnly       = "csit-scenario:message-only"
+	sentinelTaskFailure       = "csit-scenario:task-failure"
+	sentinelInputRequired     = "csit-scenario:input-required"
+	sentinelStreaming         = "csit-scenario:streaming"
+	sentinelCancel            = "csit-scenario:cancel"
+	sentinelMultiTurn         = "csit-scenario:multi-turn"
+	sentinelMultiTurnContinue = "csit-scenario:multi-turn-continue"
 )
+
+// multiTurnCompleteText is the artifact emitted on the multi-turn continuation turn.
+// Must match the Python fixtures and the harness's multiTurnCompleteMarker.
+const multiTurnCompleteText = "multi-turn complete"
 
 func main() {
 	endpoint := flag.String("slim-endpoint", envOr("SLIM_SERVER", "http://127.0.0.1:46357"), "SLIM node endpoint")
@@ -121,6 +127,27 @@ func (e *echoExecutor) Execute(_ context.Context, execCtx *a2asrv.ExecutorContex
 				}
 			}
 			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateInputRequired, nil), nil)
+		case sentinelMultiTurn:
+			// Multi-turn turn 1: pause for more input. The probe continues this same
+			// task (by ID) with sentinelMultiTurnContinue.
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateInputRequired, nil), nil)
+		case sentinelMultiTurnContinue:
+			// Multi-turn turn 2: the task already exists (StoredTask set when the client
+			// references the same task ID), so emit the completion artifact and finish.
+			if execCtx.StoredTask == nil {
+				if !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+					return
+				}
+			}
+			if !yield(a2a.NewArtifactEvent(execCtx, a2a.NewTextPart(multiTurnCompleteText)), nil) {
+				return
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 		case sentinelStreaming:
 			// Multiple status + artifact events so a streaming client observes a stream.
 			if execCtx.StoredTask == nil {

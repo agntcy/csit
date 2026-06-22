@@ -51,6 +51,12 @@ const (
 	scenarioInputRequired = "input-required"
 	scenarioStreaming     = "streaming"
 	scenarioTaskCancel    = "task-cancel"
+	scenarioMultiTurn     = "multi-turn"
+
+	// multiTurnCompleteMarker is the artifact text both servers emit on the second
+	// (continuation) turn of the multi-turn scenario. Kept in one place so the spec
+	// assertion and the Go/Python fixtures agree byte-for-byte.
+	multiTurnCompleteMarker = "multi-turn complete"
 
 	fixtureReadyTimeout = 90 * time.Second
 	probeTimeout        = 3 * time.Minute

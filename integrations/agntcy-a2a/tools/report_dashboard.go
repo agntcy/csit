@@ -237,7 +237,12 @@ func readSuiteReports(path string) ([]suiteReportFile, error) {
 	return reports, nil
 }
 
-var canonicalTransports = []string{"jsonrpc", "rest", "grpc"}
+// canonicalTransports/canonicalBehaviors fix the column order for the well-known
+// a2a taxonomy. Transports or behaviors that appear in reports but are not listed
+// here (e.g. the SLIMRPC suite's "slimrpc" transport and its scenario behaviors)
+// are appended dynamically by buildMatrix, so the same tool renders a matrix for
+// any suite without hard-coding every taxonomy.
+var canonicalTransports = []string{"jsonrpc", "rest", "grpc", "slimrpc"}
 var canonicalBehaviors = []string{"task-streaming", "lifecycle", "push-config", "parity"}
 
 func buildMatrix(specs []specReport) matrixView {
@@ -247,10 +252,15 @@ func buildMatrix(specs []specReport) matrixView {
 		colIdx    int
 	}
 
-	allColumns := make([]matrixColumn, 0, len(canonicalTransports)*len(canonicalBehaviors))
+	// Discover which behaviors actually occur so non-canonical ones (e.g. the
+	// SLIMRPC scenarios) still get columns. Canonical behaviors keep their fixed
+	// order; discovered extras are appended alphabetically for determinism.
+	behaviors := orderedBehaviors(specs)
+
+	allColumns := make([]matrixColumn, 0, len(canonicalTransports)*len(behaviors))
 	colIndex := map[string]int{}
 	for _, t := range canonicalTransports {
-		for _, b := range canonicalBehaviors {
+		for _, b := range behaviors {
 			key := t + "|" + b
 			colIndex[key] = len(allColumns)
 			allColumns = append(allColumns, matrixColumn{
@@ -283,8 +293,10 @@ func buildMatrix(specs []specReport) matrixView {
 			continue
 		}
 
-		// Skip self-pairs from cross-SDK suites (stale reports may include them).
-		if !strings.Contains(suite, "Self") && isSelfPairDirection(direction) {
+		// Skip self-pairs from genuine cross-SDK suites (e.g. "Python+Go"), where
+		// stale reports may include them. Single-suite taxonomies like SLIMRPC's
+		// "Slim+A2A" keep self-pairs (Go→Go, Python→Python) as first-class rows.
+		if isCrossSDKSuite(suite) && isSelfPairDirection(direction) {
 			continue
 		}
 
@@ -421,6 +433,60 @@ func isSelfPairDirection(direction string) bool {
 	return len(parts) == 2 && parts[0] == parts[1]
 }
 
+// orderedBehaviors lists the behaviors present across the executed specs:
+// canonical behaviors first (in their fixed order), then any discovered extras
+// sorted alphabetically. This keeps the a2a column order stable while letting
+// other suites (e.g. SLIMRPC scenarios) contribute their own columns.
+func orderedBehaviors(specs []specReport) []string {
+	present := map[string]bool{}
+	for _, spec := range specs {
+		state := normalizeState(spec.State)
+		if state == "skipped" || state == "pending" {
+			continue
+		}
+		if b := findBehaviorLabel(collectAllLabels(spec)); b != "" {
+			present[b] = true
+		}
+	}
+
+	ordered := make([]string, 0, len(present))
+	seen := map[string]bool{}
+	for _, b := range canonicalBehaviors {
+		if present[b] {
+			ordered = append(ordered, b)
+			seen[b] = true
+		}
+	}
+	extra := make([]string, 0, len(present))
+	for b := range present {
+		if !seen[b] {
+			extra = append(extra, b)
+		}
+	}
+	sort.Strings(extra)
+	return append(ordered, extra...)
+}
+
+// isCrossSDKSuite reports whether a suite display name (e.g. "Python+Go") joins
+// two different known SDKs. Single-suite taxonomies like "Slim+A2A" or the self
+// suites ("Self+Go") are not cross-SDK, so their self-pairs are retained.
+func isCrossSDKSuite(suite string) bool {
+	parts := strings.SplitN(suite, "+", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	return isSDKDisplay(parts[0]) && isSDKDisplay(parts[1]) && parts[0] != parts[1]
+}
+
+func isSDKDisplay(s string) bool {
+	for _, sdk := range knownSDKs {
+		if sdk.display == s {
+			return true
+		}
+	}
+	return false
+}
+
 func isSDKToken(s string) bool {
 	for _, sdk := range knownSDKs {
 		if s == sdk.token {
@@ -461,11 +527,15 @@ func buildReportView(jsonFile string, updatedAt time.Time, suite suiteReportFile
 		SortTime:    pickSortTime(suite.EndTime, updatedAt),
 	}
 
-	isSelfSuite := strings.Contains(name, "self")
+	// a2a dedupes self-pairs out of cross-SDK reports (they're owned by the
+	// "self" reports). Single-suite taxonomies like SLIMRPC have no separate
+	// self report, so they count self-pairs (Go→Go, Python→Python) inline.
+	// This preserves the a2a behavior exactly while exempting only SLIMRPC.
+	dropSelfPairs := !strings.Contains(name, "self") && !strings.Contains(name, "slimrpc")
 	labelsForSearch := []string{report.Title, report.Suite, report.LabelFilter, report.Name}
 	for _, spec := range suite.SpecReports {
 		state := normalizeState(spec.State)
-		if !isSelfSuite {
+		if dropSelfPairs {
 			dir := findDirectionLabel(collectAllLabels(spec))
 			if isSelfPairDirection(dir) {
 				report.Skipped++
@@ -662,6 +732,7 @@ var knownTransports = map[string]string{
 	"jsonrpc": "JSON-RPC",
 	"rest":    "REST",
 	"grpc":    "gRPC",
+	"slimrpc": "SlimRPC",
 }
 
 var knownBehaviorKeywords = map[string]bool{

@@ -104,9 +104,10 @@ Keep **`fixtures/go/go.mod`** `slim-bindings-go` on a revision that matches that
 ## What is tested
 
 - **Matrix**: each of `go` and `python` as **server** is probed by each language as **client** (four pairs).
-- **Behaviors** (per pair):
-  - **`behavior-core` (echo)**: probes send `Hello there!`; the response must contain that substring.
-  - **`behavior-lifecycle`**: the probe reports the observed terminal task state and artifact presence; the spec asserts **`TASK_STATE_COMPLETED`** with an **echoed artifact** containing the sent text. Probes emit a parseable block (`CSIT_SLIM_RESULT_KIND`, `CSIT_SLIM_TASK_STATE`, `CSIT_SLIM_ARTIFACT_PRESENT`, `CSIT_SLIM_ARTIFACT_TEXT`). Under the current unary `SendMessage` path only the terminal task + artifact are asserted; the full submitted→working→completed *sequence* needs streaming (deferred).
+- **Behaviors** (per pair): each spec is tagged `behavior-<name>`, which is also the column it occupies in the compatibility-matrix dashboard (see *Reports* below).
+  - **`behavior-echo`**: probes send `Hello there!`; the response must contain that substring.
+  - **`behavior-lifecycle`**: the probe reports the observed terminal task state and artifact presence; the spec asserts **`TASK_STATE_COMPLETED`** with an **echoed artifact** containing the sent text. Probes emit a parseable block (`CSIT_SLIM_RESULT_KIND`, `CSIT_SLIM_TASK_STATE`, `CSIT_SLIM_ARTIFACT_PRESENT`, `CSIT_SLIM_ARTIFACT_TEXT`).
+  - **Scenarios** (`behavior-message-only`, `behavior-task-failure`, `behavior-input-required`, `behavior-streaming`, `behavior-task-cancel`, `behavior-multi-turn`): drive the matching A2A response shape and assert the observed result kind / terminal task state (and, for streaming, the aggregated artifact chunks). **`behavior-multi-turn`** is a two-send conversation: turn 1 reaches `input-required`, then the probe continues the *same* task/context to **`TASK_STATE_COMPLETED`** (asserting the `multi-turn complete` continuation artifact).
 - **Payload**: `Hello there!`.
 - **Identities**: servers use `agntcy/a2a_csit_slim/server_<lang>`; clients use `agntcy/a2a_csit_slim/client_<lang>`.
 
@@ -138,13 +139,15 @@ JUnit / JSON and a dashboard are written under `reports/`, same pattern as `agnt
 task reports:dashboard
 ```
 
+The dashboard (rendered by the shared `agntcy-a2a/tools/report_dashboard.go`) opens with a **Compatibility Matrix**: one row per direction (`Go→Go`, `Go→Python`, `Python→Go`, `Python→Python`) and one `SlimRPC` column per behavior (`echo`, `lifecycle`, and each scenario). Cells aggregate the worst observed state for that direction × behavior. In CI it is published to GitHub Pages under `/<repo>/a2a-slimrpc/`.
+
 ## CI
 
-This suite runs in GitHub Actions via the **`run-tests-a2a-slimrpc`** job in [`.github/workflows/test-integrations.yaml`](../../.github/workflows/test-integrations.yaml). The job:
+This suite runs in GitHub Actions via the **`run-tests-a2a-slimrpc`** matrix job in [`.github/workflows/test-integrations.yaml`](../../.github/workflows/test-integrations.yaml) — one parallel job per client→server pair (`go-go`, `go-python`, `python-go`, `python-python`), mirroring the `agntcy-a2a` layout. Each job:
 
 - Starts the **pinned released slim node** `ghcr.io/agntcy/slim:1.4.0` as a background container (`docker run … /slim --config …`, mounting [`ci/slim-server-config.yaml`](ci/slim-server-config.yaml) — insecure TLS on a loopback `:46357`). GitHub `services:` containers can't pass the required `--config` arg, so a `docker run` step is used.
-- Sets up Python + Go, then runs `task integrations:a2a-slimrpc:test` (the **full Go+Python 2×2**, no overrides).
-- Uploads `reports/*` as the `a2a-slimrpc-test-result` artifact.
+- Sets up Python + Go, then runs its pair task (e.g. `task integrations:a2a-slimrpc:test:go-python`), no overrides.
+- Uploads `reports/*` as a per-pair `a2a-slimrpc-test-result-<pair>` artifact. The Pages workflow merges all four into the published dashboard (one "Saved Run" per pair plus the compatibility matrix). Run the full 2×2 locally with `task integrations:a2a-slimrpc:test`.
 
 Gating mirrors the other integrations: a `a2a-slimrpc` paths filter triggers it on pushes/PRs that touch this directory, and a `skip_slim_a2a_test` `workflow_dispatch` input skips it on demand. The released node image and `slima2a==0.5.0` / `slim-bindings` 1.4.x pins line up off-the-shelf, so no SDK fork is required.
 

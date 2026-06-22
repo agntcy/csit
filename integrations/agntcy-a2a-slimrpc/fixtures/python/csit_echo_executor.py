@@ -21,6 +21,12 @@ SENTINEL_TASK_FAILURE = "csit-scenario:task-failure"
 SENTINEL_INPUT_REQUIRED = "csit-scenario:input-required"
 SENTINEL_STREAMING = "csit-scenario:streaming"
 SENTINEL_CANCEL = "csit-scenario:cancel"
+SENTINEL_MULTI_TURN = "csit-scenario:multi-turn"
+SENTINEL_MULTI_TURN_CONTINUE = "csit-scenario:multi-turn-continue"
+
+# Artifact emitted on the multi-turn continuation turn. Must match the Go fixtures
+# and the harness's multiTurnCompleteMarker byte-for-byte.
+MULTI_TURN_COMPLETE_TEXT = "multi-turn complete"
 
 
 class CsitEchoExecutor(AgentExecutor):
@@ -57,8 +63,22 @@ class CsitEchoExecutor(AgentExecutor):
             task_id=context.message.task_id,
             context_id=context.message.context_id,
         )
+
+        # multi-turn turn 2: the task already exists (the client references the same
+        # task/context), so complete it without re-submitting.
+        if text == SENTINEL_MULTI_TURN_CONTINUE:
+            await task_updater.add_artifact(
+                parts=[Part(text=MULTI_TURN_COMPLETE_TEXT)], name="result"
+            )
+            await task_updater.complete()
+            return
+
         await task_updater.submit(message=context.message)
 
+        if text == SENTINEL_MULTI_TURN:
+            # multi-turn turn 1: pause for more input; the probe continues this task.
+            await task_updater.requires_input()
+            return
         if text == SENTINEL_TASK_FAILURE:
             await task_updater.failed()
             return
