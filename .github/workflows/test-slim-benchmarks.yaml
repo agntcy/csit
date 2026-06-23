@@ -467,6 +467,8 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
+
       - uses: ./.github/actions/publish-test-reports-pages
         with:
           suite: slim-benchmarks
