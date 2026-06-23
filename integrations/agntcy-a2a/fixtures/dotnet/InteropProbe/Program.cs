@@ -873,8 +873,8 @@ internal static class Program
 
         // Flat proto/gRPC shape: the push config fields live directly on the root alongside
         // taskId (e.g. the Go/Python/Rust fixtures). Wrap them so the .NET SDK
-        // TaskPushNotificationConfig, which requires a nested pushNotificationConfig, can
-        // deserialize.
+        // TaskPushNotificationConfig, which requires both a top-level id and a nested
+        // pushNotificationConfig, can deserialize.
         if (root["url"] is not null)
         {
             var pushConfig = new JsonObject();
@@ -883,8 +883,14 @@ internal static class Program
                 if (root[field] is JsonNode value)
                 {
                     pushConfig[field] = value.DeepClone();
-                    root.Remove(field);
                 }
+            }
+
+            // Keep a top-level id (required by the SDK type); drop the remaining flat fields
+            // now that they live under pushNotificationConfig.
+            foreach (var field in new[] { "url", "token", "authentication" })
+            {
+                root.Remove(field);
             }
 
             root["pushNotificationConfig"] = pushConfig;
