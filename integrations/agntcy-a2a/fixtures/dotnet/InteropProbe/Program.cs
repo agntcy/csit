@@ -489,7 +489,60 @@ internal static class Program
                     request.Config).ConfigureAwait(false));
         }
 
-        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "CreateTaskPushNotificationConfig", request).ConfigureAwait(false);
+        // Servers that advertise push support in these fixtures (Go, Python, Rust) speak the
+        // flat proto/gRPC TaskPushNotificationConfig shape ({ taskId, id, url, token, ... }),
+        // whereas the .NET SDK request type serializes the nested shape
+        // ({ taskId, pushNotificationConfig: { ... } }). Send the flat shape to flat-format
+        // servers so the push config endpoint is populated; keep the nested SDK request for the
+        // .NET server (push unsupported), which relies on the SDK shape to report -32003.
+        object payload = ServerUsesFlatPushConfig(card)
+            ? BuildFlatPushConfigParams(request.TaskId, request.Config)
+            : (object)request;
+
+        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "CreateTaskPushNotificationConfig", payload).ConfigureAwait(false);
+    }
+
+    private static bool ServerUsesFlatPushConfig(AgentCard card)
+    {
+        return card.Capabilities.PushNotifications == true;
+    }
+
+    private static JsonObject BuildFlatPushConfigParams(string taskId, PushNotificationConfig? config)
+    {
+        var flat = config is null
+            ? new JsonObject()
+            : JsonSerializer.SerializeToNode(config, A2AJsonUtilities.DefaultOptions)!.AsObject();
+        flat["taskId"] = taskId;
+        return flat;
+    }
+
+    private static JsonObject BuildFlatPushConfigRef(string taskId, string id)
+    {
+        return new JsonObject
+        {
+            ["taskId"] = taskId,
+            ["id"] = id,
+        };
+    }
+
+    private static JsonObject BuildFlatListPushConfigParams(ListTaskPushNotificationConfigRequest request)
+    {
+        var flat = new JsonObject
+        {
+            ["taskId"] = request.TaskId,
+        };
+
+        if (request.PageSize is int pageSize)
+        {
+            flat["pageSize"] = pageSize;
+        }
+
+        if (!string.IsNullOrEmpty(request.PageToken))
+        {
+            flat["pageToken"] = request.PageToken;
+        }
+
+        return flat;
     }
 
     private static async Task<CompatibleTaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(
@@ -505,7 +558,11 @@ internal static class Program
                     $"/tasks/{Uri.EscapeDataString(request.TaskId)}/pushNotificationConfigs/{Uri.EscapeDataString(request.Id)}").ConfigureAwait(false));
         }
 
-        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "GetTaskPushNotificationConfig", request).ConfigureAwait(false);
+        object payload = ServerUsesFlatPushConfig(card)
+            ? BuildFlatPushConfigRef(request.TaskId, request.Id)
+            : (object)request;
+
+        return await SendJsonRpcAsync<CompatibleTaskPushNotificationConfig>(card, "GetTaskPushNotificationConfig", payload).ConfigureAwait(false);
     }
 
     private static async Task<List<CompatibleTaskPushNotificationConfig>> ListTaskPushNotificationConfigAsync(
@@ -521,10 +578,14 @@ internal static class Program
             return (restResponse.Configs ?? []).Select(ToCompatibleTaskPushNotificationConfig).ToList();
         }
 
+        object listParams = ServerUsesFlatPushConfig(card)
+            ? BuildFlatListPushConfigParams(request)
+            : (object)request;
+
         var rpcResponse = await SendJsonRpcAsync<JsonElement>(
             card,
             "ListTaskPushNotificationConfigs",
-            request).ConfigureAwait(false);
+            listParams).ConfigureAwait(false);
 
         return rpcResponse.ValueKind switch
         {
@@ -552,7 +613,11 @@ internal static class Program
             return;
         }
 
-        await SendJsonRpcWithoutResultAsync(card, "DeleteTaskPushNotificationConfig", request).ConfigureAwait(false);
+        object payload = ServerUsesFlatPushConfig(card)
+            ? BuildFlatPushConfigRef(request.TaskId, request.Id)
+            : (object)request;
+
+        await SendJsonRpcWithoutResultAsync(card, "DeleteTaskPushNotificationConfig", payload).ConfigureAwait(false);
     }
 
     private static IA2AClient? CreateClient(AgentCard card)
@@ -788,18 +853,42 @@ internal static class Program
 
     private static void NormalizeTaskPushNotificationConfig(JsonObject root)
     {
-        if (root["config"] is not JsonObject config || root.ContainsKey("pushNotificationConfig"))
+        if (root.ContainsKey("pushNotificationConfig"))
         {
             return;
         }
 
-        if (!root.ContainsKey("id") && config["id"] is not null)
+        // Envelope shape: { taskId, config: { ... } }.
+        if (root["config"] is JsonObject config)
         {
-            root["id"] = config["id"]!.DeepClone();
+            if (!root.ContainsKey("id") && config["id"] is not null)
+            {
+                root["id"] = config["id"]!.DeepClone();
+            }
+
+            root["pushNotificationConfig"] = config.DeepClone();
+            root.Remove("config");
+            return;
         }
 
-        root["pushNotificationConfig"] = config.DeepClone();
-        root.Remove("config");
+        // Flat proto/gRPC shape: the push config fields live directly on the root alongside
+        // taskId (e.g. the Go/Python/Rust fixtures). Wrap them so the .NET SDK
+        // TaskPushNotificationConfig, which requires a nested pushNotificationConfig, can
+        // deserialize.
+        if (root["url"] is not null)
+        {
+            var pushConfig = new JsonObject();
+            foreach (var field in new[] { "id", "url", "token", "authentication" })
+            {
+                if (root[field] is JsonNode value)
+                {
+                    pushConfig[field] = value.DeepClone();
+                    root.Remove(field);
+                }
+            }
+
+            root["pushNotificationConfig"] = pushConfig;
+        }
     }
 
     private static void RemoveNullProperties(JsonNode? node)
