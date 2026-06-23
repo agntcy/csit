@@ -87,9 +87,6 @@ if [[ "$artifact_present" != "true" ]]; then
 fi
 
 download_args=(run download "$RUN_ID" --repo "$REPO" --dir "$DEST")
-if [[ -n "$TOKEN" ]]; then
-  download_args+=(--token "$TOKEN")
-fi
 case "$MODE" in
   name) download_args+=(--name "$TARGET") ;;
   pattern) download_args+=(--pattern "$TARGET") ;;
