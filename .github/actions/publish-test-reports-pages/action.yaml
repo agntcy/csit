@@ -45,7 +45,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         pattern: a2a-interop-test-result-*
@@ -57,7 +57,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: slim-integration-test-result
@@ -68,7 +68,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: slim-benchmark-smoke-report
@@ -79,7 +79,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: slim-benchmark-capacity-report
@@ -90,7 +90,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: slim-benchmark-basic-report
@@ -101,7 +101,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: slim-multicluster-private-test-result
@@ -112,7 +112,7 @@ runs:
       continue-on-error: true
       uses: actions/download-artifact@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
         repository: ${{ github.repository }}
         run-id: ${{ inputs.source-run-id }}
         name: directory-conformance-test-result
