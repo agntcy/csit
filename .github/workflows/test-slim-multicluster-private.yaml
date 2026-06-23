@@ -289,3 +289,20 @@ jobs:
           artifact-name: slim-multicluster-private-test-result
           path-to-archive: |
             ./integrations/agntcy-slim/multicluster-private/reports/summary.html
+
+  publish-pages:
+    needs: [multicluster]
+    if: always() && github.ref == 'refs/heads/main' && needs.multicluster.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-multicluster-private
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.multicluster.result }}

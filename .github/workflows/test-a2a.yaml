@@ -235,3 +235,21 @@ jobs:
         with:
           artifact-name: ${{ matrix.artifact-name }}
           path-to-archive: "./integrations/agntcy-a2a/reports/*"
+
+  publish-pages:
+    needs: [run-tests-a2a]
+    # needs.<job_id>.result is built-in Actions context (success|failure|cancelled|skipped), not a job output.
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-a2a.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: a2a
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-a2a.result }}

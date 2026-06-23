@@ -455,3 +455,20 @@ jobs:
           name: slim-benchmark-basic-report
           path: benchmarks/agntcy-slim/published/basic
           retention-days: 30
+
+  publish-pages:
+    needs: [slim-benchmark-smoke, slim-benchmark-basic]
+    if: always() && github.ref == 'refs/heads/main' && needs.slim-benchmark-smoke.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-benchmarks
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ (needs.slim-benchmark-smoke.result == 'failure' || needs.slim-benchmark-basic.result == 'failure' || needs.slim-benchmark-capacity.result == 'failure') && 'failure' || needs.slim-benchmark-smoke.result }}

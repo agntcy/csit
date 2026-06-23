@@ -1,0 +1,186 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Landing page and suite reports under docs/ (docs/index.html, docs/a2a/, docs/directory/, …).
+
+name: Publish test reports to GitHub Pages
+description: Download suite artifacts, update gh-pages report dirs and docs/index.html, push branch
+
+inputs:
+  suite:
+    description: "Suite identifier (a2a, slim-integration, slim-benchmarks, slim-multicluster-private, directory-conformance)"
+    required: true
+  source-run-id:
+    description: "Workflow run ID containing uploaded artifacts"
+    required: true
+  source-run-conclusion:
+    description: "Conclusion of the source workflow (success, failure, cancelled, etc.)"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: site
+        fetch-depth: 0
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.24.4"
+        cache-dependency-path: |
+          integrations/go.sum
+          benchmarks/go.sum
+
+    - name: Download A2A report artifacts
+      if: inputs.suite == 'a2a'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        pattern: a2a-interop-test-result-*
+        merge-multiple: true
+        path: .pages-staging
+
+    - name: Download Slim integration report artifact
+      if: inputs.suite == 'slim-integration'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: slim-integration-test-result
+        path: .pages-staging
+
+    - name: Download Slim benchmark smoke artifact
+      if: inputs.suite == 'slim-benchmarks'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: slim-benchmark-smoke-report
+        path: .pages-staging/smoke
+
+    - name: Download Slim benchmark capacity artifact
+      if: inputs.suite == 'slim-benchmarks'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: slim-benchmark-capacity-report
+        path: .pages-staging/capacity
+
+    - name: Download Slim benchmark basic artifact
+      if: inputs.suite == 'slim-benchmarks'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: slim-benchmark-basic-report
+        path: .pages-staging/basic
+
+    - name: Download Slim multicluster private report artifact
+      if: inputs.suite == 'slim-multicluster-private'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: slim-multicluster-private-test-result
+        path: .pages-staging
+
+    - name: Download Directory conformance report artifact
+      if: inputs.suite == 'directory-conformance'
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.source-run-id }}
+        name: directory-conformance-test-result
+        path: .pages-staging
+
+    - name: Build pages section
+      id: build-section
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        STAGING_DIR: ${{ github.workspace }}/.pages-staging
+        SITE_DIR: ${{ github.workspace }}/site/docs
+        REPO_ROOT: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        chmod +x .github/scripts/build-pages-section.sh .github/scripts/render-slim-integration-report.sh
+        ./.github/scripts/build-pages-section.sh | tee /tmp/build-section.out
+        has_report="$(grep '^has_report=' /tmp/build-section.out | tail -1 | cut -d= -f2)"
+        echo "has_report=${has_report:-false}" >> "$GITHUB_OUTPUT"
+
+    - name: Update sources.json
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        HAS_REPORT: ${{ steps.build-section.outputs.has_report }}
+      run: |
+        set -euo pipefail
+        case "$SUITE" in
+          a2a) WORKFLOW_ID=test-a2a ;;
+          slim-integration) WORKFLOW_ID=test-slim-integration ;;
+          slim-benchmarks) WORKFLOW_ID=test-slim-benchmarks ;;
+          slim-multicluster-private) WORKFLOW_ID=test-slim-multicluster-private ;;
+          directory-conformance) WORKFLOW_ID=test-directory-conformance ;;
+          *) echo "unknown suite: $SUITE" >&2; exit 1 ;;
+        esac
+        chmod +x .github/scripts/update-sources-json.sh .github/scripts/init-sources-json.sh
+        ./.github/scripts/update-sources-json.sh \
+          site/docs/sources.json \
+          "$WORKFLOW_ID" \
+          "${{ inputs.source-run-id }}" \
+          "${{ inputs.source-run-conclusion }}" \
+          "$HAS_REPORT"
+
+    - name: Build site landing page
+      shell: bash
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        SOURCES_JSON: site/docs/sources.json
+        OUTPUT: site/docs/index.html
+      run: |
+        set -euo pipefail
+        chmod +x .github/scripts/build-site-landing-page.sh
+        ./.github/scripts/build-site-landing-page.sh
+
+    - name: Commit and push gh-pages
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        SOURCE_RUN_ID: ${{ inputs.source-run-id }}
+      working-directory: site
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No gh-pages changes to publish"
+          exit 0
+        fi
+        git commit -m "Update ${SUITE} test reports from run ${SOURCE_RUN_ID}"
+        git push origin HEAD:gh-pages

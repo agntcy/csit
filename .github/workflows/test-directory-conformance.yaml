@@ -77,3 +77,20 @@ jobs:
           artifact-name: directory-conformance-test-result
           path-to-archive: |
             ./summary.html
+
+  publish-pages:
+    needs: [run-tests-directory-conformance]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-directory-conformance.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: directory-conformance
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-directory-conformance.result }}

@@ -137,3 +137,20 @@ jobs:
           path-to-archive: |
             ./integrations/agntcy-slim/reports/report-slim-*.json
             ./integrations/agntcy-slim/reports/report-slim-*.xml
+
+  publish-pages:
+    needs: [run-tests-slim-integration]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-slim-integration.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-integration
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-slim-integration.result }}
