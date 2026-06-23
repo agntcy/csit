@@ -287,8 +287,7 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: slim-multicluster-private-test-result
-          path-to-archive: |
-            ./integrations/agntcy-slim/multicluster-private/reports/summary.html
+          path-to-archive: integrations/agntcy-slim/multicluster-private/reports/
 
   publish-pages:
     needs: [multicluster]

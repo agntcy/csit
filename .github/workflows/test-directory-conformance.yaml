@@ -75,8 +75,7 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: directory-conformance-test-result
-          path-to-archive: |
-            ./summary.html
+          path-to-archive: summary.html
 
   publish-pages:
     needs: [run-tests-directory-conformance]

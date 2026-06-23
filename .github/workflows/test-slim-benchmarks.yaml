@@ -191,6 +191,7 @@ jobs:
           name: slim-benchmark-smoke-report
           path: benchmarks/agntcy-slim/published/smoke
           retention-days: 30
+          if-no-files-found: warn
 
   slim-benchmark-capacity:
     needs: detect
@@ -369,6 +370,7 @@ jobs:
           name: slim-benchmark-capacity-report
           path: benchmarks/agntcy-slim/published/capacity
           retention-days: 30
+          if-no-files-found: warn
 
   slim-benchmark-basic:
     needs: detect
@@ -455,6 +457,7 @@ jobs:
           name: slim-benchmark-basic-report
           path: benchmarks/agntcy-slim/published/basic
           retention-days: 30
+          if-no-files-found: warn
 
   publish-pages:
     needs: [slim-benchmark-smoke, slim-benchmark-basic]

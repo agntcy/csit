@@ -234,7 +234,7 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: ${{ matrix.artifact-name }}
-          path-to-archive: "./integrations/agntcy-a2a/reports/*"
+          path-to-archive: integrations/agntcy-a2a/reports/
 
   publish-pages:
     needs: [run-tests-a2a]

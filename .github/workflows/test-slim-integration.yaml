@@ -134,9 +134,7 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: slim-integration-test-result
-          path-to-archive: |
-            ./integrations/agntcy-slim/reports/report-slim-*.json
-            ./integrations/agntcy-slim/reports/report-slim-*.xml
+          path-to-archive: integrations/agntcy-slim/reports/
 
   publish-pages:
     needs: [run-tests-slim-integration]

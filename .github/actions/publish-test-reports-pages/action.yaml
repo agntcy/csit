@@ -40,83 +40,45 @@ runs:
           integrations/go.sum
           benchmarks/go.sum
 
-    - name: Download A2A report artifacts
-      if: inputs.suite == 'a2a'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        pattern: a2a-interop-test-result-*
-        merge-multiple: true
-        path: .pages-staging
-
-    - name: Download Slim integration report artifact
-      if: inputs.suite == 'slim-integration'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: slim-integration-test-result
-        path: .pages-staging
-
-    - name: Download Slim benchmark smoke artifact
-      if: inputs.suite == 'slim-benchmarks'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: slim-benchmark-smoke-report
-        path: .pages-staging/smoke
-
-    - name: Download Slim benchmark capacity artifact
-      if: inputs.suite == 'slim-benchmarks'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: slim-benchmark-capacity-report
-        path: .pages-staging/capacity
-
-    - name: Download Slim benchmark basic artifact
-      if: inputs.suite == 'slim-benchmarks'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: slim-benchmark-basic-report
-        path: .pages-staging/basic
-
-    - name: Download Slim multicluster private report artifact
-      if: inputs.suite == 'slim-multicluster-private'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: slim-multicluster-private-test-result
-        path: .pages-staging
-
-    - name: Download Directory conformance report artifact
-      if: inputs.suite == 'directory-conformance'
-      continue-on-error: true
-      uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        run-id: ${{ inputs.source-run-id }}
-        name: directory-conformance-test-result
-        path: .pages-staging
+    - name: Download suite artifacts
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        RUN_ID: ${{ inputs.source-run-id }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        chmod +x .github/scripts/download-workflow-artifact.sh
+        case "$SUITE" in
+          a2a)
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
+              --pattern 'a2a-interop-test-result-*'
+            ;;
+          slim-integration)
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
+              --name slim-integration-test-result
+            ;;
+          slim-benchmarks)
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging/smoke \
+              --name slim-benchmark-smoke-report
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging/capacity \
+              --name slim-benchmark-capacity-report
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging/basic \
+              --name slim-benchmark-basic-report
+            ;;
+          slim-multicluster-private)
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
+              --name slim-multicluster-private-test-result
+            ;;
+          directory-conformance)
+            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
+              --name directory-conformance-test-result
+            ;;
+          *)
+            echo "unknown suite: $SUITE" >&2
+            exit 1
+            ;;
+        esac
 
     - name: Build pages section
       id: build-section
