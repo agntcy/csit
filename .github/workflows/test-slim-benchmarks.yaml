@@ -460,7 +460,7 @@ jobs:
           if-no-files-found: warn
 
   publish-pages:
-    needs: [slim-benchmark-smoke, slim-benchmark-basic]
+    needs: [slim-benchmark-smoke, slim-benchmark-basic, slim-benchmark-capacity]
     if: always() && github.ref == 'refs/heads/main' && needs.slim-benchmark-smoke.result != 'skipped'
     runs-on: ubuntu-latest
     concurrency:

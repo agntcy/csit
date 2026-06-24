@@ -51,19 +51,27 @@ case "$SUITE" in
       mkdir -p "$SITE_DIR/benchmarks/slim/smoke"
       cp -a "$STAGING_DIR/smoke/." "$SITE_DIR/benchmarks/slim/smoke/"
     fi
-    if [[ -d "$STAGING_DIR/capacity" ]]; then
+    capacity_dir=""
+    if [[ -d "$STAGING_DIR/capacity" ]] && [[ -n "$(ls -A "$STAGING_DIR/capacity" 2>/dev/null)" ]]; then
       mkdir -p "$SITE_DIR/benchmarks/slim/capacity"
       cp -a "$STAGING_DIR/capacity/." "$SITE_DIR/benchmarks/slim/capacity/"
+      capacity_dir="$SITE_DIR/benchmarks/slim/capacity"
+    elif [[ -d "$SITE_DIR/benchmarks/slim/capacity" ]] && compgen -G "$SITE_DIR/benchmarks/slim/capacity/results"*.tsv > /dev/null; then
+      capacity_dir="$SITE_DIR/benchmarks/slim/capacity"
     fi
     if [[ -d "$STAGING_DIR/basic" ]]; then
       mkdir -p "$SITE_DIR/benchmarks/slim/basic"
       cp -a "$STAGING_DIR/basic/." "$SITE_DIR/benchmarks/slim/basic/"
     fi
-    if [[ -d "$SITE_DIR/benchmarks/slim/smoke" || -d "$SITE_DIR/benchmarks/slim/capacity" || -d "$SITE_DIR/benchmarks/slim/basic" ]]; then
+    if [[ -d "$SITE_DIR/benchmarks/slim/smoke" || -n "$capacity_dir" || -d "$SITE_DIR/benchmarks/slim/basic" ]]; then
       args=(go run ./agntcy-slim/tools/report_dashboard.go \
-        --smoke-dir "$SITE_DIR/benchmarks/slim/smoke" \
-        --capacity-dir "$SITE_DIR/benchmarks/slim/capacity" \
         --output "$SITE_DIR/benchmarks/slim/index.html")
+      if [[ -d "$SITE_DIR/benchmarks/slim/smoke" ]]; then
+        args+=(--smoke-dir "$SITE_DIR/benchmarks/slim/smoke")
+      fi
+      if [[ -n "$capacity_dir" ]]; then
+        args+=(--capacity-dir "$capacity_dir")
+      fi
       if [[ -f "$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv" ]]; then
         args+=(--basic-csv "$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv")
       fi
