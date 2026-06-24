@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-version: '3'
+version: "3"
 
 silent: true
 
@@ -186,15 +186,15 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: '{{ .BENCH_MODES }}'
-      CLIENTS: '{{ .BENCH_CLIENTS }}'
-      SIZES: '{{ .BENCH_SIZES }}'
-      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
-      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
-      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
-      DURATION: '{{ .BENCH_DURATION }}'
-      REPEATS: '{{ .BENCH_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
+      MODES: "{{ .BENCH_MODES }}"
+      CLIENTS: "{{ .BENCH_CLIENTS }}"
+      SIZES: "{{ .BENCH_SIZES }}"
+      REQUEST_RATES: "{{ .BENCH_REQUEST_RATES }}"
+      PUB_RATES: "{{ .BENCH_PUB_RATES }}"
+      WRITE_RATES: "{{ .BENCH_WRITE_RATES }}"
+      DURATION: "{{ .BENCH_DURATION }}"
+      REPEATS: "{{ .BENCH_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -205,14 +205,14 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request-reply'
-      CLIENTS: '{{ .BENCH_CLIENTS }}'
-      SIZES: '{{ .BENCH_SIZES }}'
-      REQUEST_RATES: '{{ .BENCH_REQUEST_RATES }}'
-      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
-      DURATION: '{{ .BENCH_DURATION }}'
-      REPEATS: '{{ .BENCH_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
+      MODES: "request-reply"
+      CLIENTS: "{{ .BENCH_CLIENTS }}"
+      SIZES: "{{ .BENCH_SIZES }}"
+      REQUEST_RATES: "{{ .BENCH_REQUEST_RATES }}"
+      WRITE_RATES: "{{ .BENCH_WRITE_RATES }}"
+      DURATION: "{{ .BENCH_DURATION }}"
+      REPEATS: "{{ .BENCH_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -223,14 +223,14 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'fire-and-forget'
-      CLIENTS: '{{ .BENCH_CLIENTS }}'
-      SIZES: '{{ .BENCH_SIZES }}'
-      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
-      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
-      DURATION: '{{ .BENCH_DURATION }}'
-      REPEATS: '{{ .BENCH_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
+      MODES: "fire-and-forget"
+      CLIENTS: "{{ .BENCH_CLIENTS }}"
+      SIZES: "{{ .BENCH_SIZES }}"
+      PUB_RATES: "{{ .BENCH_PUB_RATES }}"
+      WRITE_RATES: "{{ .BENCH_WRITE_RATES }}"
+      DURATION: "{{ .BENCH_DURATION }}"
+      REPEATS: "{{ .BENCH_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -241,14 +241,14 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'write'
-      CLIENTS: '{{ .BENCH_CLIENTS }}'
-      SIZES: '{{ .BENCH_SIZES }}'
-      PUB_RATES: '{{ .BENCH_PUB_RATES }}'
-      WRITE_RATES: '{{ .BENCH_WRITE_RATES }}'
-      DURATION: '{{ .BENCH_DURATION }}'
-      REPEATS: '{{ .BENCH_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
+      MODES: "write"
+      CLIENTS: "{{ .BENCH_CLIENTS }}"
+      SIZES: "{{ .BENCH_SIZES }}"
+      PUB_RATES: "{{ .BENCH_PUB_RATES }}"
+      WRITE_RATES: "{{ .BENCH_WRITE_RATES }}"
+      DURATION: "{{ .BENCH_DURATION }}"
+      REPEATS: "{{ .BENCH_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -259,25 +259,25 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: '{{ .CAPACITY_MODES }}'
-      CLIENTS: '{{ .CAPACITY_CLIENTS }}'
-      SIZES: '{{ .CAPACITY_SIZES }}'
-      DURATION: '{{ .CAPACITY_DURATION }}'
-      REPEATS: '{{ .CAPACITY_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
-      CAPACITY_SWEEP: '1'
-      CAPACITY_SWEEP_MODES: '{{ .CAPACITY_MODES }}'
-      CAPACITY_SWEEP_CLIENTS: '{{ .CAPACITY_CLIENTS }}'
-      CAPACITY_SWEEP_SIZES: '{{ .CAPACITY_SIZES }}'
-      CAPACITY_SWEEP_START_RATE: '{{ .CAPACITY_START_RATE }}'
-      CAPACITY_SWEEP_MAX_RATE: '{{ .CAPACITY_MAX_RATE }}'
-      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .CAPACITY_GROWTH_FACTOR }}'
-      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .CAPACITY_PLATEAU_THRESHOLD }}'
-      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .CAPACITY_PLATEAU_STEPS }}'
-      CAPACITY_SWEEP_MAX_STEPS: '{{ .CAPACITY_MAX_STEPS }}'
-      CAPACITY_SWEEP_REPEATS: '{{ .CAPACITY_SWEEP_REPEATS }}'
-      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .CAPACITY_REFINEMENT_STEPS }}'
-      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .CAPACITY_MIN_RATE_DELTA }}'
+      MODES: "{{ .CAPACITY_MODES }}"
+      CLIENTS: "{{ .CAPACITY_CLIENTS }}"
+      SIZES: "{{ .CAPACITY_SIZES }}"
+      DURATION: "{{ .CAPACITY_DURATION }}"
+      REPEATS: "{{ .CAPACITY_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
+      CAPACITY_SWEEP: "1"
+      CAPACITY_SWEEP_MODES: "{{ .CAPACITY_MODES }}"
+      CAPACITY_SWEEP_CLIENTS: "{{ .CAPACITY_CLIENTS }}"
+      CAPACITY_SWEEP_SIZES: "{{ .CAPACITY_SIZES }}"
+      CAPACITY_SWEEP_START_RATE: "{{ .CAPACITY_START_RATE }}"
+      CAPACITY_SWEEP_MAX_RATE: "{{ .CAPACITY_MAX_RATE }}"
+      CAPACITY_SWEEP_GROWTH_FACTOR: "{{ .CAPACITY_GROWTH_FACTOR }}"
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: "{{ .CAPACITY_PLATEAU_THRESHOLD }}"
+      CAPACITY_SWEEP_PLATEAU_STEPS: "{{ .CAPACITY_PLATEAU_STEPS }}"
+      CAPACITY_SWEEP_MAX_STEPS: "{{ .CAPACITY_MAX_STEPS }}"
+      CAPACITY_SWEEP_REPEATS: "{{ .CAPACITY_SWEEP_REPEATS }}"
+      CAPACITY_SWEEP_REFINEMENT_STEPS: "{{ .CAPACITY_REFINEMENT_STEPS }}"
+      CAPACITY_SWEEP_MIN_RATE_DELTA: "{{ .CAPACITY_MIN_RATE_DELTA }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -288,26 +288,26 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request-reply'
-      CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
-      SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
-      REQUEST_RATES: '{{ .REQUEST_CAPACITY_START_RATE }}'
-      DURATION: '{{ .REQUEST_CAPACITY_DURATION }}'
-      REPEATS: '{{ .REQUEST_CAPACITY_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
-      CAPACITY_SWEEP: '1'
-      CAPACITY_SWEEP_MODES: 'request-reply'
-      CAPACITY_SWEEP_CLIENTS: '{{ .REQUEST_CAPACITY_CLIENTS }}'
-      CAPACITY_SWEEP_SIZES: '{{ .REQUEST_CAPACITY_SIZES }}'
-      CAPACITY_SWEEP_START_RATE: '{{ .REQUEST_CAPACITY_START_RATE }}'
-      CAPACITY_SWEEP_MAX_RATE: '{{ .REQUEST_CAPACITY_MAX_RATE }}'
-      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .REQUEST_CAPACITY_GROWTH_FACTOR }}'
-      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .REQUEST_CAPACITY_PLATEAU_THRESHOLD }}'
-      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .REQUEST_CAPACITY_PLATEAU_STEPS }}'
-      CAPACITY_SWEEP_MAX_STEPS: '{{ .REQUEST_CAPACITY_MAX_STEPS }}'
-      CAPACITY_SWEEP_REPEATS: '{{ .REQUEST_CAPACITY_SWEEP_REPEATS }}'
-      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .REQUEST_CAPACITY_REFINEMENT_STEPS }}'
-      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .REQUEST_CAPACITY_MIN_RATE_DELTA }}'
+      MODES: "request-reply"
+      CLIENTS: "{{ .REQUEST_CAPACITY_CLIENTS }}"
+      SIZES: "{{ .REQUEST_CAPACITY_SIZES }}"
+      REQUEST_RATES: "{{ .REQUEST_CAPACITY_START_RATE }}"
+      DURATION: "{{ .REQUEST_CAPACITY_DURATION }}"
+      REPEATS: "{{ .REQUEST_CAPACITY_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
+      CAPACITY_SWEEP: "1"
+      CAPACITY_SWEEP_MODES: "request-reply"
+      CAPACITY_SWEEP_CLIENTS: "{{ .REQUEST_CAPACITY_CLIENTS }}"
+      CAPACITY_SWEEP_SIZES: "{{ .REQUEST_CAPACITY_SIZES }}"
+      CAPACITY_SWEEP_START_RATE: "{{ .REQUEST_CAPACITY_START_RATE }}"
+      CAPACITY_SWEEP_MAX_RATE: "{{ .REQUEST_CAPACITY_MAX_RATE }}"
+      CAPACITY_SWEEP_GROWTH_FACTOR: "{{ .REQUEST_CAPACITY_GROWTH_FACTOR }}"
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: "{{ .REQUEST_CAPACITY_PLATEAU_THRESHOLD }}"
+      CAPACITY_SWEEP_PLATEAU_STEPS: "{{ .REQUEST_CAPACITY_PLATEAU_STEPS }}"
+      CAPACITY_SWEEP_MAX_STEPS: "{{ .REQUEST_CAPACITY_MAX_STEPS }}"
+      CAPACITY_SWEEP_REPEATS: "{{ .REQUEST_CAPACITY_SWEEP_REPEATS }}"
+      CAPACITY_SWEEP_REFINEMENT_STEPS: "{{ .REQUEST_CAPACITY_REFINEMENT_STEPS }}"
+      CAPACITY_SWEEP_MIN_RATE_DELTA: "{{ .REQUEST_CAPACITY_MIN_RATE_DELTA }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -318,26 +318,26 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'write'
-      CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS }}'
-      SIZES: '{{ .WRITE_CAPACITY_SIZES }}'
-      PUB_RATES: '{{ .WRITE_CAPACITY_START_RATE }}'
-      DURATION: '{{ .WRITE_CAPACITY_DURATION }}'
-      REPEATS: '{{ .WRITE_CAPACITY_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
-      CAPACITY_SWEEP: '1'
-      CAPACITY_SWEEP_MODES: 'write'
-      CAPACITY_SWEEP_CLIENTS: '{{ .WRITE_CAPACITY_CLIENTS }}'
-      CAPACITY_SWEEP_SIZES: '{{ .WRITE_CAPACITY_SIZES }}'
-      CAPACITY_SWEEP_START_RATE: '{{ .WRITE_CAPACITY_START_RATE }}'
-      CAPACITY_SWEEP_MAX_RATE: '{{ .WRITE_CAPACITY_MAX_RATE }}'
-      CAPACITY_SWEEP_GROWTH_FACTOR: '{{ .WRITE_CAPACITY_GROWTH_FACTOR }}'
-      CAPACITY_SWEEP_PLATEAU_THRESHOLD: '{{ .WRITE_CAPACITY_PLATEAU_THRESHOLD }}'
-      CAPACITY_SWEEP_PLATEAU_STEPS: '{{ .WRITE_CAPACITY_PLATEAU_STEPS }}'
-      CAPACITY_SWEEP_MAX_STEPS: '{{ .WRITE_CAPACITY_MAX_STEPS }}'
-      CAPACITY_SWEEP_REPEATS: '{{ .WRITE_CAPACITY_SWEEP_REPEATS }}'
-      CAPACITY_SWEEP_REFINEMENT_STEPS: '{{ .WRITE_CAPACITY_REFINEMENT_STEPS }}'
-      CAPACITY_SWEEP_MIN_RATE_DELTA: '{{ .WRITE_CAPACITY_MIN_RATE_DELTA }}'
+      MODES: "write"
+      CLIENTS: "{{ .WRITE_CAPACITY_CLIENTS }}"
+      SIZES: "{{ .WRITE_CAPACITY_SIZES }}"
+      PUB_RATES: "{{ .WRITE_CAPACITY_START_RATE }}"
+      DURATION: "{{ .WRITE_CAPACITY_DURATION }}"
+      REPEATS: "{{ .WRITE_CAPACITY_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
+      CAPACITY_SWEEP: "1"
+      CAPACITY_SWEEP_MODES: "write"
+      CAPACITY_SWEEP_CLIENTS: "{{ .WRITE_CAPACITY_CLIENTS }}"
+      CAPACITY_SWEEP_SIZES: "{{ .WRITE_CAPACITY_SIZES }}"
+      CAPACITY_SWEEP_START_RATE: "{{ .WRITE_CAPACITY_START_RATE }}"
+      CAPACITY_SWEEP_MAX_RATE: "{{ .WRITE_CAPACITY_MAX_RATE }}"
+      CAPACITY_SWEEP_GROWTH_FACTOR: "{{ .WRITE_CAPACITY_GROWTH_FACTOR }}"
+      CAPACITY_SWEEP_PLATEAU_THRESHOLD: "{{ .WRITE_CAPACITY_PLATEAU_THRESHOLD }}"
+      CAPACITY_SWEEP_PLATEAU_STEPS: "{{ .WRITE_CAPACITY_PLATEAU_STEPS }}"
+      CAPACITY_SWEEP_MAX_STEPS: "{{ .WRITE_CAPACITY_MAX_STEPS }}"
+      CAPACITY_SWEEP_REPEATS: "{{ .WRITE_CAPACITY_SWEEP_REPEATS }}"
+      CAPACITY_SWEEP_REFINEMENT_STEPS: "{{ .WRITE_CAPACITY_REFINEMENT_STEPS }}"
+      CAPACITY_SWEEP_MIN_RATE_DELTA: "{{ .WRITE_CAPACITY_MIN_RATE_DELTA }}"
     cmds:
       - bash ./scripts/run_suite.sh
 
@@ -348,15 +348,16 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      SLIM_RUN_BASIC_BENCHMARK: '1'
-      BASIC_BENCH_SENDERS: '{{ .BASIC_BENCH_SENDERS }}'
-      BASIC_BENCH_PAYLOAD_SIZES: '{{ .BASIC_BENCH_PAYLOAD_SIZES }}'
-      BASIC_BENCH_MSGS_PER_SENDER: '{{ .BASIC_BENCH_MSGS_PER_SENDER }}'
-      BASIC_BENCH_RUNS: '{{ .BASIC_BENCH_RUNS }}'
+      SLIM_RUN_BASIC_BENCHMARK: "1"
+      BASIC_BENCH_REPORT_DIR: "../reports"
+      BASIC_BENCH_SENDERS: "{{ .BASIC_BENCH_SENDERS }}"
+      BASIC_BENCH_PAYLOAD_SIZES: "{{ .BASIC_BENCH_PAYLOAD_SIZES }}"
+      BASIC_BENCH_MSGS_PER_SENDER: "{{ .BASIC_BENCH_MSGS_PER_SENDER }}"
+      BASIC_BENCH_RUNS: "{{ .BASIC_BENCH_RUNS }}"
     cmds:
       - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v
-          --ginkgo.label-filter basic-benchmark
-          --ginkgo.timeout 60m -timeout 60m
+        --ginkgo.label-filter basic-benchmark
+        --ginkgo.timeout 60m -timeout 60m
 
   benchmark:ci:basic:
     desc: Run the CI basic throughput benchmark with bandwidth-safe message counts and 20 runs for confidence intervals
@@ -365,13 +366,14 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      SLIM_RUN_BASIC_BENCHMARK: '1'
-      BASIC_BENCH_MSGS_PER_SENDER: '{{ .CI_BASIC_BENCH_MSGS_PER_SENDER }}'
-      BASIC_BENCH_RUNS: '{{ .CI_BASIC_BENCH_RUNS }}'
+      SLIM_RUN_BASIC_BENCHMARK: "1"
+      BASIC_BENCH_REPORT_DIR: "../reports"
+      BASIC_BENCH_MSGS_PER_SENDER: "{{ .CI_BASIC_BENCH_MSGS_PER_SENDER }}"
+      BASIC_BENCH_RUNS: "{{ .CI_BASIC_BENCH_RUNS }}"
     cmds:
       - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v
-          --ginkgo.label-filter basic-benchmark
-          --ginkgo.timeout 60m -timeout 60m
+        --ginkgo.label-filter basic-benchmark
+        --ginkgo.timeout 60m -timeout 60m
 
   benchmark:ci:suite-smoke:
     desc: Run a bounded CI-safe smoke suite across request-reply, fire-and-forget, and write with statistically meaningful repeats
@@ -380,14 +382,14 @@ tasks:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
     env:
-      MODES: 'request-reply fire-and-forget write'
-      CLIENTS: '1'
-      SIZES: '16'
-      REQUEST_RATES: '100'
-      PUB_RATES: '1000'
-      DURATION: '1s'
-      REPEATS: '{{ .CI_BENCH_REPEATS }}'
-      MIN_CONFIDENCE_INTERVAL_RUNS: '{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}'
+      MODES: "request-reply fire-and-forget write"
+      CLIENTS: "1"
+      SIZES: "16"
+      REQUEST_RATES: "100"
+      PUB_RATES: "1000"
+      DURATION: "1s"
+      REPEATS: "{{ .CI_BENCH_REPEATS }}"
+      MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
       - bash ./scripts/run_suite.sh
 

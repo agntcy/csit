@@ -2,7 +2,7 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds docs/index.html from docs/sources.json plus legacy report cards.
+# Builds docs/index.html from docs/sources.json.
 # GitHub Pages serves from the gh-pages branch /docs folder; all paths below
 # are relative to that docs root.
 #
@@ -13,8 +13,6 @@
 #   SOURCES_JSON        path to sources.json (default: site/docs/sources.json)
 #   OUTPUT              landing page path (default: site/docs/index.html)
 #
-# Legacy report paths (under docs/):
-#   a2a-old/, benchmarks-old/slim/, directory-old/
 # New report paths (under docs/, from sources.json):
 #   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/
 
@@ -65,26 +63,6 @@ run_link() {
 report_index_exists() {
   local report_path="$1"
   [[ -n "$report_path" && -f "${DOCS_ROOT}/${report_path%/}/index.html" ]]
-}
-
-render_legacy_report_card() {
-  local report_path="$1"
-  local title="$2"
-  local blurb="$3"
-
-  if report_index_exists "$report_path"; then
-    printf '      <a class="report-card" href="./%s">\n' "$report_path"
-    printf '        <h2>%s</h2>\n' "$title"
-    printf '        <p>%s</p>\n' "$blurb"
-    printf '        <span>Open report</span>\n'
-    printf '      </a>\n'
-  else
-    printf '      <div class="report-card-disabled">\n'
-    printf '        <h2>%s</h2>\n' "$title"
-    printf '        <p>%s</p>\n' "$blurb"
-    printf '        <span>No legacy report published</span>\n'
-    printf '      </div>\n'
-  fi
 }
 
 {
@@ -310,22 +288,9 @@ HTML
     fi
   done
 
-  render_legacy_report_card \
-    "a2a-old/" \
-    "A2A interoperability" \
-    "Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output."
-  render_legacy_report_card \
-    "benchmarks-old/slim/" \
-    "SLIM benchmarks" \
-    "Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts."
-  render_legacy_report_card \
-    "directory-old/" \
-    "Directory conformance" \
-    "Client/server conformance results across supported Directory client and server versions."
-
   cat <<'HTML'
     </div>
-    <footer>Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>. Legacy reports live alongside current reports under <code>docs/a2a-old/</code>, <code>docs/benchmarks-old/slim/</code>, and <code>docs/directory-old/</code>. When a run produces no artifact, the previous published report remains available.</footer>
+    <footer>Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>. When a run produces no artifact, the previous published report remains available.</footer>
   </main>
 </body>
 </html>

@@ -63,7 +63,11 @@ case "$SUITE" in
       mkdir -p "$SITE_DIR/benchmarks/slim/basic"
       cp -a "$STAGING_DIR/basic/." "$SITE_DIR/benchmarks/slim/basic/"
     fi
-    if [[ -d "$SITE_DIR/benchmarks/slim/smoke" || -n "$capacity_dir" || -d "$SITE_DIR/benchmarks/slim/basic" ]]; then
+    basic_csv=""
+    if [[ -f "$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv" ]]; then
+      basic_csv="$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv"
+    fi
+    if [[ -d "$SITE_DIR/benchmarks/slim/smoke" || -n "$capacity_dir" || -n "$basic_csv" ]]; then
       args=(go run ./agntcy-slim/tools/report_dashboard.go \
         --output "$SITE_DIR/benchmarks/slim/index.html")
       if [[ -d "$SITE_DIR/benchmarks/slim/smoke" ]]; then
@@ -72,8 +76,8 @@ case "$SUITE" in
       if [[ -n "$capacity_dir" ]]; then
         args+=(--capacity-dir "$capacity_dir")
       fi
-      if [[ -f "$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv" ]]; then
-        args+=(--basic-csv "$SITE_DIR/benchmarks/slim/basic/basic-benchmark-results.csv")
+      if [[ -n "$basic_csv" ]]; then
+        args+=(--basic-csv "$basic_csv")
       fi
       (cd "$REPO_ROOT/benchmarks" && "${args[@]}")
       has_report=true
