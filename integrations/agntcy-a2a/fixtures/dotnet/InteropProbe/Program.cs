@@ -489,12 +489,7 @@ internal static class Program
                     request.Config).ConfigureAwait(false));
         }
 
-        // Servers that advertise push support in these fixtures (Go, Python, Rust) speak the
-        // flat proto/gRPC TaskPushNotificationConfig shape ({ taskId, id, url, token, ... }),
-        // whereas the .NET SDK request type serializes the nested shape
-        // ({ taskId, pushNotificationConfig: { ... } }). Send the flat shape to flat-format
-        // servers so the push config endpoint is populated; keep the nested SDK request for the
-        // .NET server (push unsupported), which relies on the SDK shape to report -32003.
+        // Flat-format servers expect the flattened shape; the .NET server expects the nested SDK request.
         object payload = ServerUsesFlatPushConfig(card)
             ? BuildFlatPushConfigParams(request.TaskId, request.Config)
             : (object)request;
@@ -871,10 +866,8 @@ internal static class Program
             return;
         }
 
-        // Flat proto/gRPC shape: the push config fields live directly on the root alongside
-        // taskId (e.g. the Go/Python/Rust fixtures). Wrap them so the .NET SDK
-        // TaskPushNotificationConfig, which requires both a top-level id and a nested
-        // pushNotificationConfig, can deserialize.
+        // Flat shape: push config fields sit on the root next to taskId. Nest them while
+        // keeping a top-level id, both required by the SDK type.
         if (root["url"] is not null)
         {
             var pushConfig = new JsonObject();
@@ -886,8 +879,6 @@ internal static class Program
                 }
             }
 
-            // Keep a top-level id (required by the SDK type); drop the remaining flat fields
-            // now that they live under pushNotificationConfig.
             foreach (var field in new[] { "url", "token", "authentication" })
             {
                 root.Remove(field);
