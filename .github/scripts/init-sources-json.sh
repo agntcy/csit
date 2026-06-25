@@ -104,7 +104,10 @@ jq --slurpfile defaults "$defaults" '
   .workflows += [
     $defaults[0].workflows[] |
     select(.id as $id | ($existing_ids | index($id) | not))
-  ]
+  ] |
+  ($defaults[0].workflows | map(.id)) as $order |
+  (.workflows | map({(.id): .}) | add) as $by_id |
+  .workflows = [$order[] | $by_id[.]]
 ' "$OUTPUT" > "$tmp"
 mv "$tmp" "$OUTPUT"
 
