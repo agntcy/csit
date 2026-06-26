@@ -1,0 +1,179 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-a2a-slimrpc
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: a2a-slimrpc
+
+  run-tests-a2a-slimrpc:
+    # A2A over SLIMRPC (Go + Python). Starts a pinned Slim data-plane container per matrix row.
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: go-go
+            display-name: Go→Go
+            task: integrations:a2a-slimrpc:test:go-go
+            artifact-name: a2a-slimrpc-test-result-go-go
+          - id: go-python
+            display-name: Go→Python
+            task: integrations:a2a-slimrpc:test:go-python
+            artifact-name: a2a-slimrpc-test-result-go-python
+          - id: python-go
+            display-name: Python→Go
+            task: integrations:a2a-slimrpc:test:python-go
+            artifact-name: a2a-slimrpc-test-result-python-go
+          - id: python-python
+            display-name: Python→Python
+            task: integrations:a2a-slimrpc:test:python-python
+            artifact-name: a2a-slimrpc-test-result-python-python
+
+    name: A2A SLIMRPC ${{ matrix.display-name }}
+
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      # Keep in sync with integrations/agntcy-a2a-slimrpc/Taskfile.yml (SLIM_IMAGE).
+      SLIM_IMAGE: "ghcr.io/agntcy/slim:1.4.0"
+      SLIM_SERVER: "http://127.0.0.1:46357"
+      SLIM_SHARED_SECRET: "my_shared_secret_for_testing_purposes_only"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start pinned SLIM node
+        run: |
+          docker run -d --name slim-node \
+            -p 46357:46357 \
+            -v "${{ github.workspace }}/integrations/agntcy-a2a-slimrpc/ci/slim-server-config.yaml:/config.yaml:ro" \
+            "$SLIM_IMAGE" /slim --config /config.yaml
+
+      - name: Wait for SLIM node to accept connections
+        run: |
+          for i in $(seq 1 30); do
+            if timeout 1 bash -c '</dev/tcp/127.0.0.1/46357' >/dev/null 2>&1; then
+              echo "SLIM node is accepting connections on :46357"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "SLIM node did not open :46357 in time"
+          docker logs slim-node || true
+          exit 1
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          go: true
+          go-version: "1.25.2"
+
+      - name: Run A2A SLIMRPC ${{ matrix.display-name }} interoperability tests
+        id: run-tests
+        run: task ${{ matrix.task }}
+        shell: bash
+        continue-on-error: true
+
+      - name: Generate test summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### A2A SLIMRPC ${{ matrix.display-name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          reports_dir="./integrations/agntcy-a2a-slimrpc/reports"
+          if [[ -d "$reports_dir" ]]; then
+            mapfile -t xmls < <(find "$reports_dir" -name "*.xml" 2>/dev/null | sort)
+            if [[ ${#xmls[@]} -gt 0 ]]; then
+              echo "| Report | Passed | Failed | Errors | Skipped | Time |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|--------|--------|--------|--------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+              for xml in "${xmls[@]}"; do
+                name=$(basename "$xml" .xml)
+                tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1 || echo "0")
+                failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1 || echo "0")
+                errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1 || echo "0")
+                skipped=$(grep -c '<skipped' "$xml" || echo "0")
+                time=$(grep -oP 'time="\K[0-9.]+' "$xml" | head -1 || echo "0")
+                passed=$((tests - failures - errors - skipped))
+                echo "| $name | $passed | $failures | $errors | $skipped | ${time}s |" >> "$GITHUB_STEP_SUMMARY"
+              done
+            else
+              echo "No JUnit XML reports found." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "No reports directory found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: SLIM node logs
+        if: always()
+        run: docker logs slim-node || true
+
+      - name: Stop SLIM node
+        if: always()
+        run: docker rm -f slim-node || true
+
+      - name: Propagate test result
+        if: ${{ steps.run-tests.outcome == 'failure' }}
+        shell: bash
+        run: exit 1
+
+      - name: Create artifact from integrations test reports
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: ${{ matrix.artifact-name }}
+          path-to-archive: integrations/agntcy-a2a-slimrpc/reports/
+
+  publish-pages:
+    needs: [run-tests-a2a-slimrpc]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-a2a-slimrpc.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: a2a-slimrpc
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-a2a-slimrpc.result }}

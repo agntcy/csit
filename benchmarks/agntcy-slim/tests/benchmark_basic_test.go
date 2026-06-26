@@ -79,14 +79,16 @@ var _ = ginkgo.Describe("SLIM Basic Throughput Benchmark", ginkgo.Label("basic-b
 })
 
 func loadBasicBenchConfig() basicBenchConfig {
-	reportDir := envString("BASIC_BENCH_REPORT_DIR", "./reports")
+	reportDir := envString("BASIC_BENCH_REPORT_DIR", "../reports")
+	absReportDir, err := filepath.Abs(reportDir)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return basicBenchConfig{
 		Senders:       envIntList("BASIC_BENCH_SENDERS", []int{1, 2, 4, 8}),
 		PayloadSizes:  envIntList("BASIC_BENCH_PAYLOAD_SIZES", []int{8, 16, 64, 256, 1024, 4096}),
 		MsgsPerSender: envInt("BASIC_BENCH_MSGS_PER_SENDER", 100000),
 		Runs:          envInt("BASIC_BENCH_RUNS", 3),
-		ReportDir:     reportDir,
-		ResultsCSV:    filepath.Join(reportDir, "basic-benchmark-results.csv"),
+		ReportDir:     absReportDir,
+		ResultsCSV:    filepath.Join(absReportDir, "basic-benchmark-results.csv"),
 	}
 }
 

@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       run_capacity:
-        description: 'Run bounded capacity sweeps in addition to the smoke suite'
+        description: "Run bounded capacity sweeps in addition to the smoke suite"
         required: false
         default: false
         type: boolean
@@ -191,6 +191,7 @@ jobs:
           name: slim-benchmark-smoke-report
           path: benchmarks/agntcy-slim/published/smoke
           retention-days: 30
+          if-no-files-found: warn
 
   slim-benchmark-capacity:
     needs: detect
@@ -369,6 +370,7 @@ jobs:
           name: slim-benchmark-capacity-report
           path: benchmarks/agntcy-slim/published/capacity
           retention-days: 30
+          if-no-files-found: warn
 
   slim-benchmark-basic:
     needs: detect
@@ -418,8 +420,18 @@ jobs:
           rm -rf "$PUBLISH_DIR"
           mkdir -p "$PUBLISH_DIR"
 
-          if [ -f "$REPORT_DIR/basic-benchmark-results.csv" ]; then
-            cp "$REPORT_DIR/basic-benchmark-results.csv" "$PUBLISH_DIR/"
+          basic_csv=""
+          for candidate in \
+            "$REPORT_DIR/basic-benchmark-results.csv" \
+            "benchmarks/agntcy-slim/tests/reports/basic-benchmark-results.csv"
+          do
+            if [ -f "$candidate" ]; then
+              basic_csv="$candidate"
+              break
+            fi
+          done
+          if [ -n "$basic_csv" ]; then
+            cp "$basic_csv" "$PUBLISH_DIR/"
           fi
 
           if [ -f "$REPORT_DIR/ci-basic.log" ]; then
@@ -455,3 +467,23 @@ jobs:
           name: slim-benchmark-basic-report
           path: benchmarks/agntcy-slim/published/basic
           retention-days: 30
+          if-no-files-found: warn
+
+  publish-pages:
+    needs: [slim-benchmark-smoke, slim-benchmark-basic, slim-benchmark-capacity]
+    if: always() && github.ref == 'refs/heads/main' && needs.slim-benchmark-smoke.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-benchmarks
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ (needs.slim-benchmark-smoke.result == 'failure' || needs.slim-benchmark-basic.result == 'failure' || needs.slim-benchmark-capacity.result == 'failure') && 'failure' || needs.slim-benchmark-smoke.result }}

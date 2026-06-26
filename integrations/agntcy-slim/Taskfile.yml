@@ -299,7 +299,7 @@ tasks:
     cmds:
       # - task k8s:port-forward:controller:setup
       - mkdir -p ./reports
-      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH=../{{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=./reports/report-slim-topology.json --ginkgo.junit-report=./reports/report-slim-topology.xml
+      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH=../{{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:mcp-server:
     desc: Test MCP over Slim

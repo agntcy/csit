@@ -2,35 +2,71 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds site/index.html from environment variables. Keeps all HTML out of
-# workflow YAML files.
+# Builds docs/index.html from docs/sources.json.
+# GitHub Pages serves from the gh-pages branch /docs folder; all paths below
+# are relative to that docs root.
 #
 # Required env:
 #   GITHUB_REPOSITORY   e.g. agntcy/csit
-#   GITHUB_RUN_ID       ID of the workflow run that is deploying the page
 #
 # Optional env:
-#   HAS_A2A             "true" to include the A2A interoperability card
-#   HAS_A2A_SLIMRPC     "true" to include the A2A over SLIMRPC interoperability card
-#   HAS_BENCHMARKS      "true" to include the SLIM benchmarks card
-#   HAS_DIRECTORY       "true" to include the Directory conformance card
-#   OUTPUT              destination path  (default: site/index.html)
-#   INTEGRATIONS_RUN_ID run ID of the test-integrations workflow (footer link)
-#   BENCHMARK_RUN_ID    run ID of the test-benchmarks-slim workflow (footer link)
+#   SOURCES_JSON        path to sources.json (default: site/docs/sources.json)
+#   OUTPUT              landing page path (default: site/docs/index.html)
+#
+# New report paths (under docs/, from sources.json):
+#   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/
 
 set -euo pipefail
 
-HAS_A2A="${HAS_A2A:-false}"
-HAS_A2A_SLIMRPC="${HAS_A2A_SLIMRPC:-false}"
-HAS_BENCHMARKS="${HAS_BENCHMARKS:-false}"
-HAS_DIRECTORY="${HAS_DIRECTORY:-false}"
-OUTPUT="${OUTPUT:-site/index.html}"
-INTEGRATIONS_RUN_ID="${INTEGRATIONS_RUN_ID:-}"
-BENCHMARK_RUN_ID="${BENCHMARK_RUN_ID:-}"
+SOURCES_JSON="${SOURCES_JSON:-site/docs/sources.json}"
+OUTPUT="${OUTPUT:-site/docs/index.html}"
+GITHUB_REPOSITORY="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY required}"
+DOCS_ROOT="$(dirname "$OUTPUT")"
 
-mkdir -p "$(dirname "$OUTPUT")"
+if [[ ! -f "$SOURCES_JSON" ]]; then
+  "$(dirname "$0")/init-sources-json.sh" "$SOURCES_JSON"
+fi
 
-cat > "$OUTPUT" <<'HTML'
+mkdir -p "$DOCS_ROOT"
+touch "$DOCS_ROOT/.nojekyll"
+
+status_class() {
+  case "$1" in
+    success) echo "status-success" ;;
+    failure) echo "status-failure" ;;
+    cancelled) echo "status-cancelled" ;;
+    skipped) echo "status-skipped" ;;
+    *) echo "status-unknown" ;;
+  esac
+}
+
+status_label() {
+  case "$1" in
+    success) echo "Success" ;;
+    failure) echo "Failure" ;;
+    cancelled) echo "Cancelled" ;;
+    skipped) echo "Skipped" ;;
+    "") echo "Unknown" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+run_link() {
+  local run_id="$1"
+  if [[ -n "$run_id" ]]; then
+    printf '<a href="https://github.com/%s/actions/runs/%s">#%s</a>' "$GITHUB_REPOSITORY" "$run_id" "$run_id"
+  else
+    printf '—'
+  fi
+}
+
+report_index_exists() {
+  local report_path="$1"
+  [[ -n "$report_path" && -f "${DOCS_ROOT}/${report_path%/}/index.html" ]]
+}
+
+{
+  cat <<'HTML'
 <!doctype html>
 <html lang="en">
 <head>
@@ -48,6 +84,11 @@ cat > "$OUTPUT" <<'HTML'
       --accent-strong: #134e4a;
       --border: rgba(15, 118, 110, 0.18);
       --shadow: 0 24px 60px rgba(31, 41, 51, 0.12);
+      --success: #166534;
+      --failure: #b91c1c;
+      --cancelled: #92400e;
+      --skipped: #64748b;
+      --unknown: #475569;
     }
     * { box-sizing: border-box; }
     body {
@@ -62,7 +103,7 @@ cat > "$OUTPUT" <<'HTML'
       padding: 48px 20px;
     }
     main {
-      max-width: 900px;
+      max-width: 1080px;
       margin: 0 auto;
       background: var(--panel);
       border: 1px solid var(--border);
@@ -77,22 +118,6 @@ cat > "$OUTPUT" <<'HTML'
       letter-spacing: -0.04em;
     }
     p { margin: 0 0 16px; font-size: 1.05rem; line-height: 1.7; color: var(--muted); }
-    .card-grid { display: grid; gap: 18px; margin-top: 32px; }
-    .report-card {
-      display: block;
-      text-decoration: none;
-      color: inherit;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-    }
-    .report-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(15, 118, 110, 0.34);
-      box-shadow: 0 20px 40px rgba(15, 118, 110, 0.12);
-    }
     .eyebrow {
       display: inline-block;
       font-size: 0.78rem;
@@ -101,12 +126,53 @@ cat > "$OUTPUT" <<'HTML'
       color: var(--accent);
       margin-bottom: 14px;
     }
-    .report-card h2 { margin: 0 0 10px; font-size: 1.55rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0 32px;
+      font-size: 0.98rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .status { font-weight: 600; }
+    .status-success { color: var(--success); }
+    .status-failure { color: var(--failure); }
+    .status-cancelled { color: var(--cancelled); }
+    .status-skipped { color: var(--skipped); }
+    .status-unknown { color: var(--unknown); }
+    .note { display: block; margin-top: 4px; font-size: 0.88rem; color: var(--muted); }
+    .card-grid { display: grid; gap: 18px; margin-top: 12px; }
+    .report-card, .report-card-disabled {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .report-card {
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+    .report-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(15, 118, 110, 0.34);
+      box-shadow: 0 20px 40px rgba(15, 118, 110, 0.12);
+    }
+    .report-card-disabled { opacity: 0.62; }
+    .report-card h2, .report-card-disabled h2 { margin: 0 0 10px; font-size: 1.55rem; }
     .report-card span { color: var(--accent-strong); font-weight: 600; }
+    .report-card-disabled span { color: var(--muted); font-weight: 600; }
     footer { margin-top: 32px; font-size: 0.95rem; color: var(--muted); }
     @media (max-width: 640px) {
       body { padding: 20px 14px; }
       main { padding: 28px 20px; border-radius: 22px; }
+      table { font-size: 0.9rem; }
     }
   </style>
 </head>
@@ -114,70 +180,124 @@ cat > "$OUTPUT" <<'HTML'
   <main>
     <div class="eyebrow">GitHub Pages</div>
     <h1>CSIT Test Reports</h1>
-    <p>Static report outputs from CI — A2A interoperability results and SLIM data-plane benchmark dashboards.</p>
+    <p>Static report outputs from CI. The dashboard lists the latest workflow run separately from the report currently published on this site.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Workflow</th>
+          <th>Last run</th>
+          <th>Last run status</th>
+          <th>Published report</th>
+          <th>Report from run</th>
+        </tr>
+      </thead>
+      <tbody>
+HTML
+
+  jq -r '.workflows[] | [
+    .name,
+    (.last_run_id // ""),
+    (.last_run_conclusion // ""),
+    (.last_run_updated_at // ""),
+    (.published_report_run_id // ""),
+    (.published_report_updated_at // ""),
+    (.report_path // ""),
+    (.id // "")
+  ] | @tsv' "$SOURCES_JSON" | while IFS=$'\t' read -r name last_run_id last_run_conclusion last_run_updated_at published_report_run_id published_report_updated_at report_path workflow_id; do
+    class="$(status_class "$last_run_conclusion")"
+    label="$(status_label "$last_run_conclusion")"
+    last_run_cell="$(run_link "$last_run_id")"
+    if [[ -n "$last_run_updated_at" ]]; then
+      last_run_cell+=$'\n'"<span class=\"note\">${last_run_updated_at}</span>"
+    fi
+
+    if report_index_exists "$report_path"; then
+      published_cell="<a href=\"./${report_path}\">Open</a>"
+      if [[ -n "$published_report_updated_at" ]]; then
+        published_cell+=$'\n'"<span class=\"note\">Updated ${published_report_updated_at}</span>"
+      fi
+    else
+      published_cell="Not published"
+    fi
+
+    report_from_run_cell="$(run_link "$published_report_run_id")"
+    if [[ -n "$published_report_run_id" && -n "$last_run_id" && "$published_report_run_id" != "$last_run_id" ]]; then
+      report_from_run_cell+=$'\n'"<span class=\"note\">Older than last run</span>"
+    fi
+
+    printf '        <tr>\n'
+    printf '          <td>%s</td>\n' "$name"
+    printf '          <td>%s</td>\n' "$last_run_cell"
+    printf '          <td class="status %s">%s</td>\n' "$class" "$label"
+    printf '          <td>%s</td>\n' "$published_cell"
+    printf '          <td>%s</td>\n' "$report_from_run_cell"
+    printf '        </tr>\n'
+  done
+
+  cat <<'HTML'
+      </tbody>
+    </table>
     <div class="card-grid">
 HTML
 
-if [[ "$HAS_A2A" == "true" ]]; then
-  cat >> "$OUTPUT" <<'HTML'
-      <a class="report-card" href="./a2a/">
-        <h2>A2A interoperability</h2>
-        <p>Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.</p>
-        <span>Open report</span>
-      </a>
-HTML
-fi
+  jq -r '.workflows[] | [
+    .name,
+    (.report_path // ""),
+    (.published_report_run_id // ""),
+    (.last_run_id // ""),
+    (.published_report_updated_at // ""),
+    (.id // "")
+  ] | @tsv' "$SOURCES_JSON" | while IFS=$'\t' read -r name report_path published_report_run_id last_run_id published_report_updated_at workflow_id; do
+    case "$workflow_id" in
+      test-a2a)
+        blurb="Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output."
+        ;;
+      test-a2a-slimrpc)
+        blurb="Cross-language A2A-over-SlimRPC interoperability results with merged JSON, XML, and HTML dashboard output."
+        ;;
+      test-slim-integration)
+        blurb="KinD multicluster Slim topology integration tests with bindings examples."
+        ;;
+      test-slim-benchmarks)
+        blurb="Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts."
+        ;;
+      test-slim-multicluster-private)
+        blurb="Two-cluster SPIRE federation verification with private cluster B constraints."
+        ;;
+      test-directory-conformance)
+        blurb="Client/server conformance results across supported Directory client and server versions."
+        ;;
+      *)
+        blurb="Published CI report output."
+        ;;
+    esac
 
-if [[ "$HAS_A2A_SLIMRPC" == "true" ]]; then
-  cat >> "$OUTPUT" <<'HTML'
-      <a class="report-card" href="./a2a-slimrpc/">
-        <h2>A2A &mdash; SlimRPC interoperability</h2>
-        <p>Cross-language A2A-over-SLIMRPC interoperability results with merged JSON, XML, and HTML dashboard output.</p>
-        <span>Open report</span>
-      </a>
-HTML
-fi
+    if report_index_exists "$report_path"; then
+      printf '      <a class="report-card" href="./%s">\n' "$report_path"
+      printf '        <h2>%s</h2>\n' "$name"
+      printf '        <p>%s</p>\n' "$blurb"
+      if [[ -n "$published_report_run_id" && -n "$last_run_id" && "$published_report_run_id" != "$last_run_id" ]]; then
+        printf '        <span>Open report (from run #%s)</span>\n' "$published_report_run_id"
+      else
+        printf '        <span>Open report</span>\n'
+      fi
+      printf '      </a>\n'
+    else
+      printf '      <div class="report-card-disabled">\n'
+      printf '        <h2>%s</h2>\n' "$name"
+      printf '        <p>%s</p>\n' "$blurb"
+      printf '        <span>No report published yet</span>\n'
+      printf '      </div>\n'
+    fi
+  done
 
-if [[ "$HAS_BENCHMARKS" == "true" ]]; then
-  cat >> "$OUTPUT" <<'HTML'
-      <a class="report-card" href="./benchmarks/slim/">
-        <h2>SLIM benchmarks</h2>
-        <p>Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.</p>
-        <span>Open report</span>
-      </a>
-HTML
-fi
-
-if [[ "$HAS_DIRECTORY" == "true" ]]; then
-  cat >> "$OUTPUT" <<'HTML'
-      <a class="report-card" href="./directory/">
-        <h2>Directory conformance</h2>
-        <p>Client/server conformance results across supported Directory client and server versions.</p>
-        <span>Open report</span>
-      </a>
-HTML
-fi
-
-# Build footer with links to source workflow runs.
-footer_links=""
-if [[ -n "$INTEGRATIONS_RUN_ID" ]]; then
-  footer_links+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${INTEGRATIONS_RUN_ID}\">test-integrations #${INTEGRATIONS_RUN_ID}</a>"
-fi
-if [[ -n "$BENCHMARK_RUN_ID" ]]; then
-  [[ -n "$footer_links" ]] && footer_links+=" &mdash; "
-  footer_links+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${BENCHMARK_RUN_ID}\">test-benchmarks-slim #${BENCHMARK_RUN_ID}</a>"
-fi
-if [[ -z "$footer_links" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  footer_links="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\">workflow run #${GITHUB_RUN_ID}</a>"
-fi
-
-cat >> "$OUTPUT" <<HTML
+  cat <<'HTML'
     </div>
-    <footer>Sources: ${footer_links}</footer>
+    <footer>Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>. When a run produces no artifact, the previous published report remains available.</footer>
   </main>
 </body>
 </html>
 HTML
+} > "$OUTPUT"
 
-touch "$(dirname "$OUTPUT")/.nojekyll"
 echo "wrote $OUTPUT"

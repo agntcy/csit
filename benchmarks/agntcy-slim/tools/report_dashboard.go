@@ -425,7 +425,14 @@ func readCapacityRows(baseDir string) ([]benchmarkRow, error) {
 	if found {
 		return rows, nil
 	}
-	return readBenchmarkTSV(filepath.Join(baseDir, "results.tsv"))
+	fileRows, err := readBenchmarkTSV(filepath.Join(baseDir, "results.tsv"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return fileRows, nil
 }
 
 func readBenchmarkTSV(path string) ([]benchmarkRow, error) {

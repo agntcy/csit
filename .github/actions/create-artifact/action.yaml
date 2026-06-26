@@ -6,7 +6,7 @@ inputs:
     required: false
     default: "test-results"
   path-to-archive:
-    description: "The wildcard pattern to apply which files to be archived"
+    description: "File or directory to upload (prefer a directory path ending with /)"
     required: false
     default: "./**/*report*.json"
   compression-level:
@@ -25,5 +25,6 @@ runs:
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ inputs.path-to-archive }}
-        compression-level: ${{ inputs.compression-lelve }}
+        compression-level: ${{ inputs.compression-level }}
         retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: warn
