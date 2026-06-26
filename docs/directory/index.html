@@ -1,0 +1,2825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DIR Conformance</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --bg-deep: #e9e1d4;
+      --panel: rgba(255, 252, 247, 0.86);
+      --panel-strong: rgba(255, 252, 247, 0.94);
+      --ink: #17312a;
+      --muted: #5f6f68;
+      --line: rgba(23, 49, 42, 0.12);
+      --accent: #0f766e;
+      --accent-soft: #daf3ef;
+      --warm: #b45309;
+      --warm-soft: #fdebd8;
+      --danger: #b42318;
+      --danger-soft: #fde8e8;
+      --shadow: 0 18px 60px rgba(15, 30, 24, 0.12);
+      --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      --font-serif: "Iowan Old Style", "Palatino Linotype", serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", "Menlo", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 36%),
+        radial-gradient(circle at top right, rgba(180, 83, 9, 0.12), transparent 32%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    }
+
+    .page {
+      width: min(1380px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(255, 252, 247, 0.92) 55%, rgba(180, 83, 9, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .meta-chip,
+    .status-chip,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .summary-item {
+      padding: 18px 20px;
+      border-right: 1px solid var(--line);
+    }
+
+    .summary-item:last-child {
+      border-right: 0;
+    }
+
+    .summary-item .label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .summary-item strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .summary-item span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section-heading {
+      margin: 0 0 16px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .matrix-section {
+      margin-top: 22px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(16px);
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 6px 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .matrix-corner {
+      width: 140px;
+    }
+
+    .matrix-col-head {
+      vertical-align: bottom;
+      min-width: 62px;
+    }
+
+    .matrix-transport {
+      display: block;
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    .matrix-behavior {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .matrix-row-head {
+      text-align: left;
+      white-space: nowrap;
+      padding-left: 14px;
+    }
+
+    .matrix-direction {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .matrix-suite {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .matrix-cell {
+      width: 48px;
+      height: 36px;
+      vertical-align: middle;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    .dot.pass {
+      background: var(--accent);
+    }
+
+    .dot.fail {
+      background: var(--danger);
+    }
+
+    .dot.skip {
+      background: var(--muted);
+      opacity: 0.4;
+    }
+
+    .matrix-cell.empty {
+      color: var(--muted);
+      opacity: 0.3;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 26px 0 18px;
+    }
+
+    .toolbar label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .toolbar input,
+    .toolbar select {
+      min-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 11px 14px;
+      font: inherit;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .report-log-shell {
+      margin-top: 6px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .report-log-head,
+    .report-row {
+      display: grid;
+      grid-template-columns: minmax(250px, 1.9fr) 120px minmax(220px, 1.35fr) 140px minmax(180px, 1.15fr) 110px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .report-log-head {
+      padding: 16px 20px 14px 54px;
+      background: rgba(23, 49, 42, 0.05);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+    }
+
+    .report-entry {
+      border-top: 1px solid var(--line);
+    }
+
+    .report-entry:first-of-type {
+      border-top: 0;
+    }
+
+    .report-entry > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .report-entry > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .report-row {
+      position: relative;
+      padding: 18px 20px 18px 54px;
+    }
+
+    .report-row::before {
+      content: "+";
+      position: absolute;
+      left: 20px;
+      top: 18px;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .report-entry[open] .report-row::before {
+      content: "−";
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--accent);
+    }
+
+    .report-entry.pass .report-row::before {
+      border-color: rgba(15, 118, 110, 0.18);
+    }
+
+    .report-entry.fail .report-row::before {
+      border-color: rgba(180, 35, 24, 0.18);
+    }
+
+    .report-entry[open].pass .report-row {
+      background: linear-gradient(180deg, rgba(15, 118, 110, 0.04), rgba(255, 255, 255, 0));
+    }
+
+    .report-entry[open].fail .report-row {
+      background: linear-gradient(180deg, rgba(180, 35, 24, 0.04), rgba(255, 255, 255, 0));
+    }
+
+    .report-cell {
+      min-width: 0;
+    }
+
+    .cell-label {
+      display: none;
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .report-title {
+      display: block;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .report-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .status-chip.pass {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(15, 118, 110, 0.16);
+    }
+
+    .status-chip.fail {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: rgba(180, 35, 24, 0.16);
+    }
+
+    .scope-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill code,
+    .meta-chip code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .timing strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .metric-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+
+    .metric-inline span {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .metric-inline strong {
+      color: var(--ink);
+    }
+
+    .report-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+    }
+
+    .report-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .report-links a:hover {
+      text-decoration: underline;
+    }
+
+    .report-body {
+      padding: 0 20px 22px 54px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.46);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .detail-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .detail-block {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 16px 18px;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 12px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .detail-pair {
+      display: grid;
+      gap: 4px;
+    }
+
+    .detail-pair dt {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .detail-pair dd {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .detail-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .detail-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .detail-links a:hover {
+      text-decoration: underline;
+    }
+
+    .spec-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: rgba(244, 239, 230, 0.96);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      font-size: 11px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .spec-status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .spec-status.pass {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .spec-status.fail {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .spec-status.skip,
+    .spec-status.pending {
+      background: rgba(95, 111, 104, 0.12);
+      color: var(--muted);
+    }
+
+    .failure-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .failure-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--danger-soft);
+      border: 1px solid rgba(180, 35, 24, 0.12);
+    }
+
+    .failure-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .failure-item code {
+      display: inline-block;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--danger);
+      word-break: break-word;
+    }
+
+    .failure-detail {
+      margin-top: 8px;
+    }
+
+    .failure-detail summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .failure-detail pre {
+      margin: 8px 0 0;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      background: rgba(23, 49, 42, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .empty-state {
+      margin-top: 18px;
+      padding: 26px;
+      border-radius: 22px;
+      background: rgba(255, 252, 247, 0.8);
+      border: 1px dashed rgba(23, 49, 42, 0.24);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+      .summary-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .report-log-head,
+      .report-row {
+        grid-template-columns: minmax(220px, 1.8fr) 120px minmax(180px, 1.3fr) 140px minmax(160px, 1fr) 110px;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100vw - 20px, 100%);
+        padding: 18px 0 34px;
+      }
+
+      .hero,
+      .report-log-shell,
+      .summary-strip,
+      .detail-block {
+        border-radius: 22px;
+      }
+
+      .summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .report-log-head {
+        display: none;
+      }
+
+      .report-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 18px 16px 18px 52px;
+      }
+
+      .report-row::before {
+        left: 16px;
+      }
+
+      .cell-label {
+        display: block;
+      }
+
+      .report-body {
+        padding: 0 16px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">AGNTCY CSIT</p>
+      <h1>DIR Conformance</h1>
+      <p class="lead">A static HTML view over the Ginkgo JSON and JUnit XML artifacts under /home/runner/work/csit/csit/integrations/agntcy-dir/tests/conformance/reports. The dashboard groups every saved run, highlights failures, and keeps the raw machine-readable files one click away.</p>
+      <div class="hero-meta">
+        <span class="meta-chip">Rendered <code>2026-06-26 08:05:25 UTC</code></span>
+        <span class="meta-chip">Latest run <code>2026-06-26 08:05:20 UTC</code></span>
+        <span class="meta-chip">HTML artifact <code>reports/index.html</code></span>
+      </div>
+    </section>
+
+    <section class="summary-strip">
+      <article class="summary-item">
+        <span class="label">Saved Runs</span>
+        <strong>2</strong>
+        <span>Parsed suite reports</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Selected Specs</span>
+        <strong>208</strong>
+        <span>Across all saved runs</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Executed Specs</span>
+        <strong>163</strong>
+        <span>Passed plus failed specs</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Passing Specs</span>
+        <strong>160</strong>
+        <span>Successful assertions</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Failing Specs</span>
+        <strong>3</strong>
+        <span>Specs needing attention</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Passing Reports</span>
+        <strong>1</strong>
+        <span>1 failing reports</span>
+      </article>
+    </section>
+
+    
+
+    
+    <section class="toolbar">
+      <label>
+        <span class="eyebrow">Search</span><br>
+        <input type="search" data-role="search" placeholder="Filter by report name, label, or suite">
+      </label>
+      <label>
+        <span class="eyebrow">Status</span><br>
+        <select data-role="status">
+          <option value="all">All reports</option>
+          <option value="pass">Passing only</option>
+          <option value="fail">Failing only</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="report-log-shell">
+      <div class="report-log-head">
+        <span>Run</span>
+        <span>Status</span>
+        <span>Scope</span>
+        <span>Timing</span>
+        <span>Results</span>
+        <span>Artifacts</span>
+      </div>
+      
+      <details class="report-entry fail" data-status="fail" data-search="server / v1.2.0 / client / v1.3.0 client library e2e test suite  server-v1.2.0-client-v1.3.0   client core operations e2e tests / record_070_agent / should push a record to store serial client core operations e2e tests / record_070_agent / should pull a record from store serial client core operations e2e tests / record_070_agent / should publish a record serial client core operations e2e tests / record_070_agent / should list published record by one label serial client core operations e2e tests / record_070_agent / should list published record by multiple labels serial client core operations e2e tests / record_070_agent / should list published record by module and domain labels serial client core operations e2e tests / record_070_agent / should search routing for remote records serial client core operations e2e tests / record_070_agent / should unpublish a record serial client core operations e2e tests / record_070_agent / should not find unpublished record serial client core operations e2e tests / record_070_agent / should delete a record from store serial client core operations e2e tests / record_070_agent / should not find deleted record in store serial client core operations e2e tests / record_080_agent / should push a record to store serial client core operations e2e tests / record_080_agent / should pull a record from store serial client core operations e2e tests / record_080_agent / should publish a record serial client core operations e2e tests / record_080_agent / should list published record by one label serial client core operations e2e tests / record_080_agent / should list published record by multiple labels serial client core operations e2e tests / record_080_agent / should list published record by module and domain labels serial client core operations e2e tests / record_080_agent / should search routing for remote records serial client core operations e2e tests / record_080_agent / should unpublish a record serial client core operations e2e tests / record_080_agent / should not find unpublished record serial client core operations e2e tests / record_080_agent / should delete a record from store serial client core operations e2e tests / record_080_agent / should not find deleted record in store serial client core operations e2e tests / record_100_agent / should push a record to store serial client core operations e2e tests / record_100_agent / should pull a record from store serial client core operations e2e tests / record_100_agent / should publish a record serial client core operations e2e tests / record_100_agent / should list published record by one label serial client core operations e2e tests / record_100_agent / should list published record by multiple labels serial client core operations e2e tests / record_100_agent / should list published record by module and domain labels serial client core operations e2e tests / record_100_agent / should search routing for remote records serial client core operations e2e tests / record_100_agent / should unpublish a record serial client core operations e2e tests / record_100_agent / should not find unpublished record serial client core operations e2e tests / record_100_agent / should delete a record from store serial client core operations e2e tests / record_100_agent / should not find deleted record in store serial deletereferrer / delete &amp; pull  deletereferrer / record doesn&#39;t exist  deletereferrer / delete / by record cid (record 1)  deletereferrer / delete / by record cid (record 2)  deletereferrer / delete / by referrer type (record 1, public key)  deletereferrer / delete / by referrer type (record 1, signature)  deletereferrer / delete / by referrer type (record 2, public key)  deletereferrer / delete / by referrer type (record 2, signature)  deletereferrer / delete / by referrer cid (record 1, referrer 1)  deletereferrer / delete / by referrer cid (record 1, referrer 2)  deletereferrer / delete / by referrer cid (record 1, referrer 3)  deletereferrer / delete / by referrer cid (record 1, referrer 4)  deletereferrer / delete / by referrer cid (record 2, referrer 1)  deletereferrer / delete / by referrer cid (record 2, referrer 2)  deletereferrer / delete / by referrer cid (record 2, referrer 3)  deletereferrer / delete / by referrer cid (record 2, referrer 4)  deletereferrer / delete / by referrer cid (record 1, referrer doesn&#39;t exist)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 1)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 2)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 3)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 4)  deletereferrer / validation error / if request is empty  deletereferrer / validation error / if record_ref: empty  deletereferrer / validation error / if record_ref.cid: &#34;&#34;  deletereferrer / validation error / if record_ref.cid: too long  deletereferrer / validation error / if referrer_ref: empty  deletereferrer / validation error / if referrer_ref.cid: &#34;&#34;  deletereferrer / validation error / if referrer_ref.cid: too long  deletereferrer / validation error / if referrer_type: invalid  referrers e2e tests / should successfully push basic referrer referrers, serial referrers e2e tests / should successfully push full referrer referrers, serial referrers e2e tests / should pass if referrer exists referrers, serial referrers e2e tests / should pass if same referrer different records referrers, serial referrers e2e tests / should successfully push &amp; pull referrer stream referrers, serial referrers e2e tests / pullreferrer validation errors / empty referrers, serial referrers e2e tests / pullreferrer validation errors / record_ref: empty referrers, serial referrers e2e tests / pullreferrer validation errors / record_ref: &#34;&#34; referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_type: invalid referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_type: &#34;&#34; referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_ref: empty referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_ref.cid: &#34;&#34; referrers, serial referrers e2e tests / pushreferrer validation errors / empty referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: nil referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: empty referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: &#34;&#34; referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: too long referrers, serial referrers e2e tests / pushreferrer validation errors / type: invalid referrers, serial referrers e2e tests / should successfully pull referrers referrers, serial rate limiting e2e tests / rate limiting behavior / should allow requests within rate limit ratelimit, serial rate limiting e2e tests / rate limiting behavior / should reject requests when rate limit is exceeded ratelimit, serial rate limiting e2e tests / rate limiting behavior / should handle burst requests correctly ratelimit, serial rate limiting e2e tests / rate limiting behavior / should apply global rate limiting to all clients ratelimit, serial rate limiting e2e tests / rate limiting behavior / should recover after rate limit period expires ratelimit, serial rate limiting e2e tests / different operations / should apply rate limiting to all grpc operations ratelimit, serial rate limiting e2e tests / different operations / should handle rate limit errors with proper status codes ratelimit, serial rate limiting e2e tests / rate limit configuration / should respect per-method rate limits if configured ratelimit, serial rate limiting e2e tests / concurrent clients / should handle rate limiting with concurrent requests ratelimit, serial rate limiting e2e tests / edge cases / should handle rate limiting with context timeout ratelimit, serial rate limiting e2e tests / edge cases / should maintain rate limit state across multiple operations ratelimit, serial event streaming e2e tests / record_pushed events / should receive record_pushed event when pushing a record serial event streaming e2e tests / record_published events / should receive record_published event when publishing a record serial event streaming e2e tests / record_deleted events / should receive record_deleted event when deleting a record serial event streaming e2e tests / event filtering / should filter events by label serial event streaming e2e tests / event filtering / should filter events by cid serial event streaming e2e tests / event filtering / should filter events by event type serial event streaming e2e tests / multiple subscribers / should deliver events to multiple subscribers serial event streaming e2e tests / stream lifecycle / should handle context cancellation gracefully serial event streaming e2e tests / stream lifecycle / should receive multiple events in sequence serial event streaming e2e tests / event metadata / should include labels in record events serial event streaming e2e tests / event metadata / should include timestamp in all events serial event streaming e2e tests / no events scenario / should timeout when no events occur serial  ">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">Server / V1.2.0 / Client / V1.3.0</strong>
+            <div class="report-subtitle">Client Library E2E Test Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip fail">Failing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">Full run of 104 specs</span>
+              
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>56.778s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:05:20 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>66</strong> passed</span>
+              <span><strong>3</strong> failed</span>
+              <span><strong>37</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="Server-v1.2.0-Client-v1.3.0.json">JSON</a>
+              <a href="Server-v1.2.0-Client-v1.3.0.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>Server-v1.2.0-Client-v1.3.0</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 08:04:23 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 08:05:20 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>104 of 104</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>69</dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="Server-v1.2.0-Client-v1.3.0.json">Open raw JSON</a>
+                  <a href="Server-v1.2.0-Client-v1.3.0.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <div class="failure-list">
+                  
+                  <div class="failure-item">
+                    <strong>DeleteReferrer / delete / by record CID (record 1)</strong>
+                    <div>Expected</div>
+                    <code>/home/runner/go/pkg/mod/github.com/agntcy/dir/tests@v1.3.0/e2e/client/04_referrers_test.go:553</code>
+                    
+                    <details class="failure-detail">
+                      <summary>Full stack trace</summary>
+                      <pre>Expected
+    &lt;*[]string | 0x13a3c1ad6f60&gt;: [
+        &#34;baeareib7i24bcdqtskf34dexj64zk3myawpxcvg5ewcheqashnsyjkznaa&#34;,
+        &#34;baeareibpueppkctw636g3f23jli3jeqrjuksga3am5twhkm6tc44q777pq&#34;,
+        &#34;baeareigth4zes5ewd23tfctwmborxfb5bwgih2is4wy5sbowfjufkndxta&#34;,
+    ]
+to equal
+    &lt;*[]string | 0x13a3c19d2588&gt;: [
+        &#34;baeareigth4zes5ewd23tfctwmborxfb5bwgih2is4wy5sbowfjufkndxta&#34;,
+        &#34;baeareib7i24bcdqtskf34dexj64zk3myawpxcvg5ewcheqashnsyjkznaa&#34;,
+        &#34;baeareibpueppkctw636g3f23jli3jeqrjuksga3am5twhkm6tc44q777pq&#34;,
+    ]</pre>
+                    </details>
+                    
+                  </div>
+                  
+                  <div class="failure-item">
+                    <strong>Referrers E2E Tests / should pass if referrer exists</strong>
+                    <div>Expected</div>
+                    <code>/home/runner/go/pkg/mod/github.com/agntcy/dir/tests@v1.3.0/e2e/client/04_referrers_test.go:140</code>
+                    
+                    <details class="failure-detail">
+                      <summary>Full stack trace</summary>
+                      <pre>Expected
+    &lt;string&gt;: 
+to equal
+    &lt;string&gt;: baeareicrhktjgcztacie5dok3rox7wme4dr7p53gbxdofwqn2wcybgxavi</pre>
+                    </details>
+                    
+                  </div>
+                  
+                  <div class="failure-item">
+                    <strong>Event Streaming E2E Tests / RECORD_PUBLISHED events / should receive RECORD_PUBLISHED event when publishing a record</strong>
+                    <div>failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists</div>
+                    <code>/home/runner/go/pkg/mod/github.com/agntcy/dir/tests@v1.3.0/e2e/client/02_events_test.go:103</code>
+                    
+                    <details class="failure-detail">
+                      <summary>Full stack trace</summary>
+                      <pre>Unexpected error:
+    &lt;*errors.joinError | 0x13a3c1972198&gt;: 
+    failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists
+    {
+        errs: [
+            &lt;*fmt.wrapError | 0x13a3c19ba6c0&gt;{
+                msg: &#34;failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists&#34;,
+                err: &lt;*status.Error | 0x13a3c1622be0&gt;{
+                    s: {
+                        s: {
+                            state: {
+                                NoUnkeyedLiterals: {},
+                                DoNotCompare: [],
+                                DoNotCopy: [],
+                                atomicMessageInfo: nil,
+                            },
+                            sizeCache: 0,
+                            unknownFields: nil,
+                            Code: 13,
+                            Message: &#34;failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists&#34;,
+                            Details: nil,
+                        },
+                    },
+                },
+            },
+        ],
+    }
+occurred</pre>
+                    </details>
+                    
+                  </div>
+                  
+                </div>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>9ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>251ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.01s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>785µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>805µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>801µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>3ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>101ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>72ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.016s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>999µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>781µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>820µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>446µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>3ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>101ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>72ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.016s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>878µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>595µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>552µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>2ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>516µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>3ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>101ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete &amp; pull</div>
+                        
+                      </td>
+                      <td>378ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / record doesn&#39;t exist</div>
+                        
+                      </td>
+                      <td>424ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status fail">Failed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by record CID (record 1)</div>
+                        
+                        <div class="footer-note">Expected</div>
+                        
+                        <details class="failure-detail">
+                          <summary>Full output</summary>
+                          <pre>Expected
+    &lt;*[]string | 0x13a3c1ad6f60&gt;: [
+        &#34;baeareib7i24bcdqtskf34dexj64zk3myawpxcvg5ewcheqashnsyjkznaa&#34;,
+        &#34;baeareibpueppkctw636g3f23jli3jeqrjuksga3am5twhkm6tc44q777pq&#34;,
+        &#34;baeareigth4zes5ewd23tfctwmborxfb5bwgih2is4wy5sbowfjufkndxta&#34;,
+    ]
+to equal
+    &lt;*[]string | 0x13a3c19d2588&gt;: [
+        &#34;baeareigth4zes5ewd23tfctwmborxfb5bwgih2is4wy5sbowfjufkndxta&#34;,
+        &#34;baeareib7i24bcdqtskf34dexj64zk3myawpxcvg5ewcheqashnsyjkznaa&#34;,
+        &#34;baeareibpueppkctw636g3f23jli3jeqrjuksga3am5twhkm6tc44q777pq&#34;,
+    ]</pre>
+                        </details>
+                        
+                        
+                      </td>
+                      <td>297ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by record CID (record 2)</div>
+                        
+                      </td>
+                      <td>279ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 1, public key)</div>
+                        
+                      </td>
+                      <td>289ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 1, signature)</div>
+                        
+                      </td>
+                      <td>242ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 2, public key)</div>
+                        
+                      </td>
+                      <td>435ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 2, signature)</div>
+                        
+                      </td>
+                      <td>304ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 1)</div>
+                        
+                      </td>
+                      <td>281ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 2)</div>
+                        
+                      </td>
+                      <td>339ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 3)</div>
+                        
+                      </td>
+                      <td>297ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 4)</div>
+                        
+                      </td>
+                      <td>388ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 1)</div>
+                        
+                      </td>
+                      <td>422ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 2)</div>
+                        
+                      </td>
+                      <td>287ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 3)</div>
+                        
+                      </td>
+                      <td>373ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 4)</div>
+                        
+                      </td>
+                      <td>401ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer doesn&#39;t exist)</div>
+                        
+                      </td>
+                      <td>329ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 1)</div>
+                        
+                      </td>
+                      <td>273ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 2)</div>
+                        
+                      </td>
+                      <td>305ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 3)</div>
+                        
+                      </td>
+                      <td>311ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 4)</div>
+                        
+                      </td>
+                      <td>419ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if request is empty</div>
+                        
+                      </td>
+                      <td>287ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref: empty</div>
+                        
+                      </td>
+                      <td>571ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref.cid: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>339ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref.cid: too long</div>
+                        
+                      </td>
+                      <td>397ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref: empty</div>
+                        
+                      </td>
+                      <td>273ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref.cid: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>326ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref.cid: too long</div>
+                        
+                      </td>
+                      <td>324ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_type: invalid</div>
+                        
+                      </td>
+                      <td>403ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully push basic referrer</div>
+                        
+                      </td>
+                      <td>217ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully push full referrer</div>
+                        
+                      </td>
+                      <td>193ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status fail">Failed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should pass if referrer exists</div>
+                        
+                        <div class="footer-note">Expected</div>
+                        
+                        <details class="failure-detail">
+                          <summary>Full output</summary>
+                          <pre>Expected
+    &lt;string&gt;: 
+to equal
+    &lt;string&gt;: baeareicrhktjgcztacie5dok3rox7wme4dr7p53gbxdofwqn2wcybgxavi</pre>
+                        </details>
+                        
+                        
+                      </td>
+                      <td>235ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / RECORD_PUSHED events / should receive RECORD_PUSHED event when pushing a record</div>
+                        
+                      </td>
+                      <td>272ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status fail">Failed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / RECORD_PUBLISHED events / should receive RECORD_PUBLISHED event when publishing a record</div>
+                        
+                        <div class="footer-note">failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists</div>
+                        
+                        <details class="failure-detail">
+                          <summary>Full output</summary>
+                          <pre>Unexpected error:
+    &lt;*errors.joinError | 0x13a3c1972198&gt;: 
+    failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists
+    {
+        errs: [
+            &lt;*fmt.wrapError | 0x13a3c19ba6c0&gt;{
+                msg: &#34;failed to receive: rpc error: code = Internal desc = failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists&#34;,
+                err: &lt;*status.Error | 0x13a3c1622be0&gt;{
+                    s: {
+                        s: {
+                            state: {
+                                NoUnkeyedLiterals: {},
+                                DoNotCompare: [],
+                                DoNotCopy: [],
+                                atomicMessageInfo: nil,
+                            },
+                            sizeCache: 0,
+                            unknownFields: nil,
+                            Code: 13,
+                            Message: &#34;failed to push record to store: rpc error: code = Internal desc = failed to push record bytes: sha256:fcfb6faaa590bdfb75823ff7a8547d21be083afb7c508c03422c6cf9aba5d1dd: application/json: already exists&#34;,
+                            Details: nil,
+                        },
+                    },
+                },
+            },
+        ],
+    }
+occurred</pre>
+                        </details>
+                        
+                        
+                      </td>
+                      <td>75ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>249µs</td>
+                      <td></td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+      <details class="report-entry pass" data-status="pass" data-search="server / v1.3.0 / client / v1.3.0 client library e2e test suite  server-v1.3.0-client-v1.3.0   event streaming e2e tests / record_pushed events / should receive record_pushed event when pushing a record serial event streaming e2e tests / record_published events / should receive record_published event when publishing a record serial event streaming e2e tests / record_deleted events / should receive record_deleted event when deleting a record serial event streaming e2e tests / event filtering / should filter events by label serial event streaming e2e tests / event filtering / should filter events by cid serial event streaming e2e tests / event filtering / should filter events by event type serial event streaming e2e tests / multiple subscribers / should deliver events to multiple subscribers serial event streaming e2e tests / stream lifecycle / should handle context cancellation gracefully serial event streaming e2e tests / stream lifecycle / should receive multiple events in sequence serial event streaming e2e tests / event metadata / should include labels in record events serial event streaming e2e tests / event metadata / should include timestamp in all events serial event streaming e2e tests / no events scenario / should timeout when no events occur serial referrers e2e tests / should successfully push basic referrer referrers, serial referrers e2e tests / should successfully push full referrer referrers, serial referrers e2e tests / should pass if referrer exists referrers, serial referrers e2e tests / should pass if same referrer different records referrers, serial referrers e2e tests / should successfully push &amp; pull referrer stream referrers, serial referrers e2e tests / pullreferrer validation errors / empty referrers, serial referrers e2e tests / pullreferrer validation errors / record_ref: empty referrers, serial referrers e2e tests / pullreferrer validation errors / record_ref: &#34;&#34; referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_type: invalid referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_type: &#34;&#34; referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_ref: empty referrers, serial referrers e2e tests / pullreferrer validation errors / referrer_ref.cid: &#34;&#34; referrers, serial referrers e2e tests / pushreferrer validation errors / empty referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: nil referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: empty referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: &#34;&#34; referrers, serial referrers e2e tests / pushreferrer validation errors / record_ref: too long referrers, serial referrers e2e tests / pushreferrer validation errors / type: invalid referrers, serial referrers e2e tests / should successfully pull referrers referrers, serial rate limiting e2e tests / rate limiting behavior / should allow requests within rate limit ratelimit, serial rate limiting e2e tests / rate limiting behavior / should reject requests when rate limit is exceeded ratelimit, serial rate limiting e2e tests / rate limiting behavior / should handle burst requests correctly ratelimit, serial rate limiting e2e tests / rate limiting behavior / should apply global rate limiting to all clients ratelimit, serial rate limiting e2e tests / rate limiting behavior / should recover after rate limit period expires ratelimit, serial rate limiting e2e tests / different operations / should apply rate limiting to all grpc operations ratelimit, serial rate limiting e2e tests / different operations / should handle rate limit errors with proper status codes ratelimit, serial rate limiting e2e tests / rate limit configuration / should respect per-method rate limits if configured ratelimit, serial rate limiting e2e tests / concurrent clients / should handle rate limiting with concurrent requests ratelimit, serial rate limiting e2e tests / edge cases / should handle rate limiting with context timeout ratelimit, serial rate limiting e2e tests / edge cases / should maintain rate limit state across multiple operations ratelimit, serial deletereferrer / delete &amp; pull  deletereferrer / record doesn&#39;t exist  deletereferrer / delete / by record cid (record 1)  deletereferrer / delete / by record cid (record 2)  deletereferrer / delete / by referrer type (record 1, public key)  deletereferrer / delete / by referrer type (record 1, signature)  deletereferrer / delete / by referrer type (record 2, public key)  deletereferrer / delete / by referrer type (record 2, signature)  deletereferrer / delete / by referrer cid (record 1, referrer 1)  deletereferrer / delete / by referrer cid (record 1, referrer 2)  deletereferrer / delete / by referrer cid (record 1, referrer 3)  deletereferrer / delete / by referrer cid (record 1, referrer 4)  deletereferrer / delete / by referrer cid (record 2, referrer 1)  deletereferrer / delete / by referrer cid (record 2, referrer 2)  deletereferrer / delete / by referrer cid (record 2, referrer 3)  deletereferrer / delete / by referrer cid (record 2, referrer 4)  deletereferrer / delete / by referrer cid (record 1, referrer doesn&#39;t exist)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 1)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 2)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 3)  deletereferrer / delete / by referrer type &amp; referrer cid (record 1, public key, referrer 4)  deletereferrer / validation error / if request is empty  deletereferrer / validation error / if record_ref: empty  deletereferrer / validation error / if record_ref.cid: &#34;&#34;  deletereferrer / validation error / if record_ref.cid: too long  deletereferrer / validation error / if referrer_ref: empty  deletereferrer / validation error / if referrer_ref.cid: &#34;&#34;  deletereferrer / validation error / if referrer_ref.cid: too long  deletereferrer / validation error / if referrer_type: invalid  client core operations e2e tests / record_070_agent / should push a record to store serial client core operations e2e tests / record_070_agent / should pull a record from store serial client core operations e2e tests / record_070_agent / should publish a record serial client core operations e2e tests / record_070_agent / should list published record by one label serial client core operations e2e tests / record_070_agent / should list published record by multiple labels serial client core operations e2e tests / record_070_agent / should list published record by module and domain labels serial client core operations e2e tests / record_070_agent / should search routing for remote records serial client core operations e2e tests / record_070_agent / should unpublish a record serial client core operations e2e tests / record_070_agent / should not find unpublished record serial client core operations e2e tests / record_070_agent / should delete a record from store serial client core operations e2e tests / record_070_agent / should not find deleted record in store serial client core operations e2e tests / record_080_agent / should push a record to store serial client core operations e2e tests / record_080_agent / should pull a record from store serial client core operations e2e tests / record_080_agent / should publish a record serial client core operations e2e tests / record_080_agent / should list published record by one label serial client core operations e2e tests / record_080_agent / should list published record by multiple labels serial client core operations e2e tests / record_080_agent / should list published record by module and domain labels serial client core operations e2e tests / record_080_agent / should search routing for remote records serial client core operations e2e tests / record_080_agent / should unpublish a record serial client core operations e2e tests / record_080_agent / should not find unpublished record serial client core operations e2e tests / record_080_agent / should delete a record from store serial client core operations e2e tests / record_080_agent / should not find deleted record in store serial client core operations e2e tests / record_100_agent / should push a record to store serial client core operations e2e tests / record_100_agent / should pull a record from store serial client core operations e2e tests / record_100_agent / should publish a record serial client core operations e2e tests / record_100_agent / should list published record by one label serial client core operations e2e tests / record_100_agent / should list published record by multiple labels serial client core operations e2e tests / record_100_agent / should list published record by module and domain labels serial client core operations e2e tests / record_100_agent / should search routing for remote records serial client core operations e2e tests / record_100_agent / should unpublish a record serial client core operations e2e tests / record_100_agent / should not find unpublished record serial client core operations e2e tests / record_100_agent / should delete a record from store serial client core operations e2e tests / record_100_agent / should not find deleted record in store serial  ">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">Server / V1.3.0 / Client / V1.3.0</strong>
+            <div class="report-subtitle">Client Library E2E Test Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip pass">Passing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">Full run of 104 specs</span>
+              
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>1m17.696s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:04:07 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>94</strong> passed</span>
+              <span><strong>0</strong> failed</span>
+              <span><strong>12</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="Server-v1.3.0-Client-v1.3.0.json">JSON</a>
+              <a href="Server-v1.3.0-Client-v1.3.0.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>Server-v1.3.0-Client-v1.3.0</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 08:02:50 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 08:04:07 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>104 of 104</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>94</dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="Server-v1.3.0-Client-v1.3.0.json">Open raw JSON</a>
+                  <a href="Server-v1.3.0-Client-v1.3.0.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <p class="footer-note">No failures recorded for this run.</p>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>11ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / RECORD_PUSHED events / should receive RECORD_PUSHED event when pushing a record</div>
+                        
+                      </td>
+                      <td>466ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / RECORD_PUBLISHED events / should receive RECORD_PUBLISHED event when publishing a record</div>
+                        
+                      </td>
+                      <td>733ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / RECORD_DELETED events / should receive RECORD_DELETED event when deleting a record</div>
+                        
+                      </td>
+                      <td>274ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Event filtering / should filter events by label</div>
+                        
+                      </td>
+                      <td>278ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Event filtering / should filter events by CID</div>
+                        
+                      </td>
+                      <td>338ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Event filtering / should filter events by event type</div>
+                        
+                      </td>
+                      <td>10.001s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Multiple subscribers / should deliver events to multiple subscribers</div>
+                        
+                      </td>
+                      <td>271ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Stream lifecycle / should handle context cancellation gracefully</div>
+                        
+                      </td>
+                      <td>78µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Event metadata / should include labels in record events</div>
+                        
+                      </td>
+                      <td>271ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / Event metadata / should include timestamp in all events</div>
+                        
+                      </td>
+                      <td>270ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Event Streaming E2E Tests / No events scenario / should timeout when no events occur</div>
+                        
+                      </td>
+                      <td>2.014s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully push basic referrer</div>
+                        
+                      </td>
+                      <td>299ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully push full referrer</div>
+                        
+                      </td>
+                      <td>380ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should pass if referrer exists</div>
+                        
+                      </td>
+                      <td>298ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should pass if same referrer different records</div>
+                        
+                      </td>
+                      <td>289ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully push &amp; pull referrer stream</div>
+                        
+                      </td>
+                      <td>434ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / empty</div>
+                        
+                      </td>
+                      <td>172ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / record_ref: empty</div>
+                        
+                      </td>
+                      <td>168ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / record_ref: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>172ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / referrer_type: invalid</div>
+                        
+                      </td>
+                      <td>172ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / referrer_type: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>173ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / referrer_ref: empty</div>
+                        
+                      </td>
+                      <td>170ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PullReferrer validation errors / referrer_ref.cid: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>172ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / empty</div>
+                        
+                      </td>
+                      <td>167ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / record_ref: nil</div>
+                        
+                      </td>
+                      <td>171ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / record_ref: empty</div>
+                        
+                      </td>
+                      <td>166ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / record_ref: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>171ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / record_ref: too long</div>
+                        
+                      </td>
+                      <td>168ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / PushReferrer validation errors / type: invalid</div>
+                        
+                      </td>
+                      <td>169ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Referrers E2E Tests / should successfully pull referrers</div>
+                        
+                      </td>
+                      <td>303ms</td>
+                      <td>referrers, Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete &amp; pull</div>
+                        
+                      </td>
+                      <td>385ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / record doesn&#39;t exist</div>
+                        
+                      </td>
+                      <td>318ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by record CID (record 1)</div>
+                        
+                      </td>
+                      <td>391ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by record CID (record 2)</div>
+                        
+                      </td>
+                      <td>350ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 1, public key)</div>
+                        
+                      </td>
+                      <td>414ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 1, signature)</div>
+                        
+                      </td>
+                      <td>445ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 2, public key)</div>
+                        
+                      </td>
+                      <td>377ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type (record 2, signature)</div>
+                        
+                      </td>
+                      <td>407ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 1)</div>
+                        
+                      </td>
+                      <td>366ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 2)</div>
+                        
+                      </td>
+                      <td>601ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 3)</div>
+                        
+                      </td>
+                      <td>554ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer 4)</div>
+                        
+                      </td>
+                      <td>496ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 1)</div>
+                        
+                      </td>
+                      <td>510ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 2)</div>
+                        
+                      </td>
+                      <td>423ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 3)</div>
+                        
+                      </td>
+                      <td>400ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 2, referrer 4)</div>
+                        
+                      </td>
+                      <td>547ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer CID (record 1, referrer doesn&#39;t exist)</div>
+                        
+                      </td>
+                      <td>510ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 1)</div>
+                        
+                      </td>
+                      <td>462ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 2)</div>
+                        
+                      </td>
+                      <td>378ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 3)</div>
+                        
+                      </td>
+                      <td>363ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / delete / by referrer type &amp; referrer CID (record 1, public key, referrer 4)</div>
+                        
+                      </td>
+                      <td>480ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if request is empty</div>
+                        
+                      </td>
+                      <td>471ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref: empty</div>
+                        
+                      </td>
+                      <td>429ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref.cid: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>494ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if record_ref.cid: too long</div>
+                        
+                      </td>
+                      <td>540ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref: empty</div>
+                        
+                      </td>
+                      <td>494ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref.cid: &#34;&#34;</div>
+                        
+                      </td>
+                      <td>412ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_ref.cid: too long</div>
+                        
+                      </td>
+                      <td>434ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>DeleteReferrer / validation error / if referrer_type: invalid</div>
+                        
+                      </td>
+                      <td>408ms</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>93ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>3ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.008s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>950µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>754µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>4ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>5ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>402µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>7ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_070_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>102ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>93ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>3ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.016s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>733µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>668µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>5ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>451µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>7ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_080_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>102ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should push a record to store</div>
+                        
+                      </td>
+                      <td>89ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should pull a record from store</div>
+                        
+                      </td>
+                      <td>6ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should publish a record</div>
+                        
+                      </td>
+                      <td>15.017s</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by one label</div>
+                        
+                      </td>
+                      <td>1ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by multiple labels</div>
+                        
+                      </td>
+                      <td>753µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should list published record by module and domain labels</div>
+                        
+                      </td>
+                      <td>548µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should search routing for remote records</div>
+                        
+                      </td>
+                      <td>522µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should unpublish a record</div>
+                        
+                      </td>
+                      <td>5ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should not find unpublished record</div>
+                        
+                      </td>
+                      <td>405µs</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should delete a record from store</div>
+                        
+                      </td>
+                      <td>6ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>Client core operations E2E Tests / Record_100_Agent / should not find deleted record in store</div>
+                        
+                      </td>
+                      <td>102ms</td>
+                      <td>Serial</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>227µs</td>
+                      <td></td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+    </section>
+
+    <p class="empty-state is-filtered" hidden>No reports match the current filter.</p>
+    
+  </main>
+
+  <script>
+    (function () {
+      const entries = Array.from(document.querySelectorAll('.report-entry'));
+      const searchInput = document.querySelector('[data-role="search"]');
+      const statusSelect = document.querySelector('[data-role="status"]');
+      const emptyState = document.querySelector('.is-filtered');
+
+      if (!entries.length || !searchInput || !statusSelect) {
+        return;
+      }
+
+      function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        const status = statusSelect.value;
+        let visibleCount = 0;
+
+        entries.forEach((entry) => {
+          const haystack = (entry.dataset.search || '').toLowerCase();
+          const matchesQuery = !query || haystack.includes(query);
+          const matchesStatus = status === 'all' || entry.dataset.status === status;
+          const visible = matchesQuery && matchesStatus;
+
+          entry.hidden = !visible;
+          if (visible) {
+            visibleCount += 1;
+          }
+        });
+
+        if (emptyState) {
+          emptyState.hidden = visibleCount !== 0;
+        }
+      }
+
+      searchInput.addEventListener('input', applyFilters);
+      statusSelect.addEventListener('change', applyFilters);
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>
