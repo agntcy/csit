@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A2A over SLIMRPC Interop Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --bg-deep: #e9e1d4;
+      --panel: rgba(255, 252, 247, 0.86);
+      --panel-strong: rgba(255, 252, 247, 0.94);
+      --ink: #17312a;
+      --muted: #5f6f68;
+      --line: rgba(23, 49, 42, 0.12);
+      --accent: #0f766e;
+      --accent-soft: #daf3ef;
+      --warm: #b45309;
+      --warm-soft: #fdebd8;
+      --danger: #b42318;
+      --danger-soft: #fde8e8;
+      --shadow: 0 18px 60px rgba(15, 30, 24, 0.12);
+      --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      --font-serif: "Iowan Old Style", "Palatino Linotype", serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", "Menlo", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 36%),
+        radial-gradient(circle at top right, rgba(180, 83, 9, 0.12), transparent 32%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    }
+
+    .page {
+      width: min(1380px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(255, 252, 247, 0.92) 55%, rgba(180, 83, 9, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .meta-chip,
+    .status-chip,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .summary-item {
+      padding: 18px 20px;
+      border-right: 1px solid var(--line);
+    }
+
+    .summary-item:last-child {
+      border-right: 0;
+    }
+
+    .summary-item .label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .summary-item strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .summary-item span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section-heading {
+      margin: 0 0 16px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .matrix-section {
+      margin-top: 22px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(16px);
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 6px 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .matrix-corner {
+      width: 140px;
+    }
+
+    .matrix-col-head {
+      vertical-align: bottom;
+      min-width: 62px;
+    }
+
+    .matrix-transport {
+      display: block;
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    .matrix-behavior {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .matrix-row-head {
+      text-align: left;
+      white-space: nowrap;
+      padding-left: 14px;
+    }
+
+    .matrix-direction {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .matrix-suite {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .matrix-cell {
+      width: 48px;
+      height: 36px;
+      vertical-align: middle;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    .dot.pass {
+      background: var(--accent);
+    }
+
+    .dot.fail {
+      background: var(--danger);
+    }
+
+    .dot.skip {
+      background: var(--muted);
+      opacity: 0.4;
+    }
+
+    .matrix-cell.empty {
+      color: var(--muted);
+      opacity: 0.3;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 26px 0 18px;
+    }
+
+    .toolbar label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .toolbar input,
+    .toolbar select {
+      min-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 11px 14px;
+      font: inherit;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .report-log-shell {
+      margin-top: 6px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .report-log-head,
+    .report-row {
+      display: grid;
+      grid-template-columns: minmax(250px, 1.9fr) 120px minmax(220px, 1.35fr) 140px minmax(180px, 1.15fr) 110px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .report-log-head {
+      padding: 16px 20px 14px 54px;
+      background: rgba(23, 49, 42, 0.05);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+    }
+
+    .report-entry {
+      border-top: 1px solid var(--line);
+    }
+
+    .report-entry:first-of-type {
+      border-top: 0;
+    }
+
+    .report-entry > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .report-entry > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .report-row {
+      position: relative;
+      padding: 18px 20px 18px 54px;
+    }
+
+    .report-row::before {
+      content: "+";
+      position: absolute;
+      left: 20px;
+      top: 18px;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .report-entry[open] .report-row::before {
+      content: "−";
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--accent);
+    }
+
+    .report-entry.pass .report-row::before {
+      border-color: rgba(15, 118, 110, 0.18);
+    }
+
+    .report-entry.fail .report-row::before {
+      border-color: rgba(180, 35, 24, 0.18);
+    }
+
+    .report-entry[open].pass .report-row {
+      background: linear-gradient(180deg, rgba(15, 118, 110, 0.04), rgba(255, 255, 255, 0));
+    }
+
+    .report-entry[open].fail .report-row {
+      background: linear-gradient(180deg, rgba(180, 35, 24, 0.04), rgba(255, 255, 255, 0));
+    }
+
+    .report-cell {
+      min-width: 0;
+    }
+
+    .cell-label {
+      display: none;
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .report-title {
+      display: block;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .report-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .status-chip.pass {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(15, 118, 110, 0.16);
+    }
+
+    .status-chip.fail {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: rgba(180, 35, 24, 0.16);
+    }
+
+    .scope-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill code,
+    .meta-chip code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .timing strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .metric-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+
+    .metric-inline span {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .metric-inline strong {
+      color: var(--ink);
+    }
+
+    .report-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+    }
+
+    .report-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .report-links a:hover {
+      text-decoration: underline;
+    }
+
+    .report-body {
+      padding: 0 20px 22px 54px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.46);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .detail-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .detail-block {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 16px 18px;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 12px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .detail-pair {
+      display: grid;
+      gap: 4px;
+    }
+
+    .detail-pair dt {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .detail-pair dd {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .detail-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .detail-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .detail-links a:hover {
+      text-decoration: underline;
+    }
+
+    .spec-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: rgba(244, 239, 230, 0.96);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      font-size: 11px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .spec-status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .spec-status.pass {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .spec-status.fail {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .spec-status.skip,
+    .spec-status.pending {
+      background: rgba(95, 111, 104, 0.12);
+      color: var(--muted);
+    }
+
+    .failure-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .failure-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--danger-soft);
+      border: 1px solid rgba(180, 35, 24, 0.12);
+    }
+
+    .failure-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .failure-item code {
+      display: inline-block;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--danger);
+      word-break: break-word;
+    }
+
+    .failure-detail {
+      margin-top: 8px;
+    }
+
+    .failure-detail summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .failure-detail pre {
+      margin: 8px 0 0;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      background: rgba(23, 49, 42, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .empty-state {
+      margin-top: 18px;
+      padding: 26px;
+      border-radius: 22px;
+      background: rgba(255, 252, 247, 0.8);
+      border: 1px dashed rgba(23, 49, 42, 0.24);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+      .summary-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .report-log-head,
+      .report-row {
+        grid-template-columns: minmax(220px, 1.8fr) 120px minmax(180px, 1.3fr) 140px minmax(160px, 1fr) 110px;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100vw - 20px, 100%);
+        padding: 18px 0 34px;
+      }
+
+      .hero,
+      .report-log-shell,
+      .summary-strip,
+      .detail-block {
+        border-radius: 22px;
+      }
+
+      .summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .report-log-head {
+        display: none;
+      }
+
+      .report-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 18px 16px 18px 52px;
+      }
+
+      .report-row::before {
+        left: 16px;
+      }
+
+      .cell-label {
+        display: block;
+      }
+
+      .report-body {
+        padding: 0 16px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">AGNTCY CSIT</p>
+      <h1>A2A over SLIMRPC Interop Dashboard</h1>
+      <p class="lead">A static HTML view over the Ginkgo JSON and JUnit XML artifacts under /home/runner/work/csit/csit/site/docs/a2a-slimrpc. The dashboard groups every saved run, highlights failures, and keeps the raw machine-readable files one click away.</p>
+      <div class="hero-meta">
+        <span class="meta-chip">Rendered <code>2026-06-26 08:00:09 UTC</code></span>
+        <span class="meta-chip">Latest run <code>2026-06-26 07:59:44 UTC</code></span>
+        <span class="meta-chip">HTML artifact <code>reports/index.html</code></span>
+      </div>
+    </section>
+
+    <section class="summary-strip">
+      <article class="summary-item">
+        <span class="label">Saved Runs</span>
+        <strong>4</strong>
+        <span>Parsed suite reports</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Selected Specs</span>
+        <strong>44</strong>
+        <span>Across all saved runs</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Executed Specs</span>
+        <strong>48</strong>
+        <span>Passed plus failed specs</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Passing Specs</span>
+        <strong>48</strong>
+        <span>Successful assertions</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Failing Specs</span>
+        <strong>0</strong>
+        <span>Specs needing attention</span>
+      </article>
+      <article class="summary-item">
+        <span class="label">Passing Reports</span>
+        <strong>4</strong>
+        <span>0 failing reports</span>
+      </article>
+    </section>
+
+    
+    <section class="matrix-section">
+      <h2 class="section-heading">Compatibility Matrix</h2>
+      <div class="matrix-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="matrix-corner"></th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">lifecycle</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">echo</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">input-required</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">message-only</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">multi-turn</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">streaming</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">task-cancel</span>
+              </th>
+              
+              <th class="matrix-col-head">
+                <span class="matrix-transport">SlimRPC</span>
+                <span class="matrix-behavior">task-failure</span>
+              </th>
+              
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td class="matrix-row-head">
+                <span class="matrix-direction">Go→Go</span>
+                <span class="matrix-suite">Slim&#43;A2A</span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+            </tr>
+            
+            <tr>
+              <td class="matrix-row-head">
+                <span class="matrix-direction">Go→Python</span>
+                <span class="matrix-suite">Slim&#43;A2A</span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+            </tr>
+            
+            <tr>
+              <td class="matrix-row-head">
+                <span class="matrix-direction">Python→Go</span>
+                <span class="matrix-suite">Slim&#43;A2A</span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+            </tr>
+            
+            <tr>
+              <td class="matrix-row-head">
+                <span class="matrix-direction">Python→Python</span>
+                <span class="matrix-suite">Slim&#43;A2A</span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+              <td class="matrix-cell pass" title="Passed">
+                <span class="dot pass"></span>
+              </td>
+              
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+
+    
+    <section class="toolbar">
+      <label>
+        <span class="eyebrow">Search</span><br>
+        <input type="search" data-role="search" placeholder="Filter by report name, label, or suite">
+      </label>
+      <label>
+        <span class="eyebrow">Status</span><br>
+        <select data-role="status">
+          <option value="all">All reports</option>
+          <option value="pass">Passing only</option>
+          <option value="fail">Failing only</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="report-log-shell">
+      <div class="report-log-head">
+        <span>Run</span>
+        <span>Status</span>
+        <span>Scope</span>
+        <span>Timing</span>
+        <span>Results</span>
+        <span>Artifacts</span>
+      </div>
+      
+      <details class="report-entry pass" data-status="pass" data-search="slimrpc / python&#43;python a2a slimrpc interop suite suite-slim-a2a &amp;&amp; pair-python-python report-agntcy-a2a-slimrpc-python-python   a2a slimrpc interoperability / slimrpc client go calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, go-go, pair-go-go, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, go-go, pair-go-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, go-go, pair-go-go, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, go-go, pair-go-go, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, go-go, pair-go-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, go-go, pair-go-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, go-go, pair-go-go a2a slimrpc interoperability / slimrpc client python calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, python-go, pair-python-go, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, python-go, pair-python-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, python-go, pair-python-go, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, python-go, pair-python-go, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, python-go, pair-python-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, python-go, pair-python-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, python-go, pair-python-go a2a slimrpc interoperability / slimrpc client go calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, go-python, pair-go-python, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, go-python, pair-go-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, go-python, pair-go-python, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, go-python, pair-go-python, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, go-python, pair-go-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, go-python, pair-go-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, go-python, pair-go-python a2a slimrpc interoperability / slimrpc client python calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, python-python, pair-python-python, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, python-python, pair-python-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, python-python, pair-python-python, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, python-python, pair-python-python, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, python-python, pair-python-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, python-python, pair-python-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, python-python, pair-python-python">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">SlimRPC / Python&#43;Python</strong>
+            <div class="report-subtitle">A2A SLIMRPC Interop Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip pass">Passing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">11 of 44 specs selected</span>
+              <span class="pill"><code>suite-slim-a2a &amp;&amp; pair-python-python</code></span>
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>53.177s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:00:08 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>12</strong> passed</span>
+              <span><strong>0</strong> failed</span>
+              <span><strong>33</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="report-agntcy-a2a-slimrpc-python-python.json">JSON</a>
+              <a href="report-agntcy-a2a-slimrpc-python-python.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>report-agntcy-a2a-slimrpc-python-python</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 07:58:51 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 07:59:44 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>11 of 44</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>12</dd>
+                  </div>
+                  
+                  <div class="detail-pair">
+                    <dt>Label filter</dt>
+                    <dd><code>suite-slim-a2a &amp;&amp; pair-python-python</code></dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="report-agntcy-a2a-slimrpc-python-python.json">Open raw JSON</a>
+                  <a href="report-agntcy-a2a-slimrpc-python-python.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <p class="footer-note">No failures recorded for this run.</p>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>40.376s</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server python and echoes the ascii payload</div>
+                        
+                      </td>
+                      <td>1.644s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-ascii</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server python and echoes the unicode payload</div>
+                        
+                      </td>
+                      <td>1.043s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-unicode</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server python and echoes the symbols payload</div>
+                        
+                      </td>
+                      <td>1.087s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-symbols</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server python and echoes the long payload</div>
+                        
+                      </td>
+                      <td>1.048s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-long</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the message-only response from server python</div>
+                        
+                      </td>
+                      <td>1.044s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-message-only, python-python, pair-python-python, scenario-message-only</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the task-failure response from server python</div>
+                        
+                      </td>
+                      <td>1.087s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-failure, python-python, pair-python-python, scenario-task-failure</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the input-required response from server python</div>
+                        
+                      </td>
+                      <td>1.051s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-input-required, python-python, pair-python-python, scenario-input-required</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the streaming response from server python</div>
+                        
+                      </td>
+                      <td>1.249s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-streaming, python-python, pair-python-python, scenario-streaming</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the task-cancel response from server python</div>
+                        
+                      </td>
+                      <td>1.13s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-cancel, python-python, pair-python-python, scenario-task-cancel</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the multi-turn response from server python</div>
+                        
+                      </td>
+                      <td>1.329s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-multi-turn, python-python, pair-python-python, scenario-multi-turn</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes a completed task with an echoed artifact from server python</div>
+                        
+                      </td>
+                      <td>1.086s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-lifecycle, python-python, pair-python-python</td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+      <details class="report-entry pass" data-status="pass" data-search="slimrpc / go&#43;go a2a slimrpc interop suite suite-slim-a2a &amp;&amp; pair-go-go report-agntcy-a2a-slimrpc-go-go   a2a slimrpc interoperability / slimrpc client go calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, go-go, pair-go-go, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, go-go, pair-go-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, go-go, pair-go-go, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, go-go, pair-go-go, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, go-go, pair-go-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, go-go, pair-go-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, go-go, pair-go-go a2a slimrpc interoperability / slimrpc client python calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, python-go, pair-python-go, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, python-go, pair-python-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, python-go, pair-python-go, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, python-go, pair-python-go, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, python-go, pair-python-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, python-go, pair-python-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, python-go, pair-python-go a2a slimrpc interoperability / slimrpc client go calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, go-python, pair-go-python, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, go-python, pair-go-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, go-python, pair-go-python, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, go-python, pair-go-python, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, go-python, pair-go-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, go-python, pair-go-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, go-python, pair-go-python a2a slimrpc interoperability / slimrpc client python calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, python-python, pair-python-python, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, python-python, pair-python-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, python-python, pair-python-python, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, python-python, pair-python-python, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, python-python, pair-python-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, python-python, pair-python-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, python-python, pair-python-python">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">SlimRPC / Go&#43;Go</strong>
+            <div class="report-subtitle">A2A SLIMRPC Interop Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip pass">Passing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">11 of 44 specs selected</span>
+              <span class="pill"><code>suite-slim-a2a &amp;&amp; pair-go-go</code></span>
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>41.49s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:00:08 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>12</strong> passed</span>
+              <span><strong>0</strong> failed</span>
+              <span><strong>33</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="report-agntcy-a2a-slimrpc-go-go.json">JSON</a>
+              <a href="report-agntcy-a2a-slimrpc-go-go.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>report-agntcy-a2a-slimrpc-go-go</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 07:58:52 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 07:59:34 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>11 of 44</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>12</dd>
+                  </div>
+                  
+                  <div class="detail-pair">
+                    <dt>Label filter</dt>
+                    <dd><code>suite-slim-a2a &amp;&amp; pair-go-go</code></dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="report-agntcy-a2a-slimrpc-go-go.json">Open raw JSON</a>
+                  <a href="report-agntcy-a2a-slimrpc-go-go.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <p class="footer-note">No failures recorded for this run.</p>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>37.932s</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server go and echoes the ascii payload</div>
+                        
+                      </td>
+                      <td>338ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server go and echoes the unicode payload</div>
+                        
+                      </td>
+                      <td>296ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-unicode</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server go and echoes the symbols payload</div>
+                        
+                      </td>
+                      <td>338ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-symbols</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server go and echoes the long payload</div>
+                        
+                      </td>
+                      <td>299ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-long</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the message-only response from server go</div>
+                        
+                      </td>
+                      <td>337ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-message-only, go-go, pair-go-go, scenario-message-only</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the task-failure response from server go</div>
+                        
+                      </td>
+                      <td>297ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-failure, go-go, pair-go-go, scenario-task-failure</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the input-required response from server go</div>
+                        
+                      </td>
+                      <td>296ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-input-required, go-go, pair-go-go, scenario-input-required</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the streaming response from server go</div>
+                        
+                      </td>
+                      <td>259ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-streaming, go-go, pair-go-go, scenario-streaming</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the task-cancel response from server go</div>
+                        
+                      </td>
+                      <td>421ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-cancel, go-go, pair-go-go, scenario-task-cancel</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the multi-turn response from server go</div>
+                        
+                      </td>
+                      <td>378ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-multi-turn, go-go, pair-go-go, scenario-multi-turn</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes a completed task with an echoed artifact from server go</div>
+                        
+                      </td>
+                      <td>297ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-lifecycle, go-go, pair-go-go</td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+      <details class="report-entry pass" data-status="pass" data-search="slimrpc / python&#43;go a2a slimrpc interop suite suite-slim-a2a &amp;&amp; pair-python-go report-agntcy-a2a-slimrpc-python-go   a2a slimrpc interoperability / slimrpc client go calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, go-go, pair-go-go, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, go-go, pair-go-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, go-go, pair-go-go, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, go-go, pair-go-go, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, go-go, pair-go-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, go-go, pair-go-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, go-go, pair-go-go a2a slimrpc interoperability / slimrpc client python calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, python-go, pair-python-go, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, python-go, pair-python-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, python-go, pair-python-go, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, python-go, pair-python-go, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, python-go, pair-python-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, python-go, pair-python-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, python-go, pair-python-go a2a slimrpc interoperability / slimrpc client go calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, go-python, pair-go-python, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, go-python, pair-go-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, go-python, pair-go-python, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, go-python, pair-go-python, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, go-python, pair-go-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, go-python, pair-go-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, go-python, pair-go-python a2a slimrpc interoperability / slimrpc client python calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, python-python, pair-python-python, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, python-python, pair-python-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, python-python, pair-python-python, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, python-python, pair-python-python, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, python-python, pair-python-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, python-python, pair-python-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, python-python, pair-python-python">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">SlimRPC / Python&#43;Go</strong>
+            <div class="report-subtitle">A2A SLIMRPC Interop Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip pass">Passing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">11 of 44 specs selected</span>
+              <span class="pill"><code>suite-slim-a2a &amp;&amp; pair-python-go</code></span>
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>45.386s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:00:09 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>12</strong> passed</span>
+              <span><strong>0</strong> failed</span>
+              <span><strong>33</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="report-agntcy-a2a-slimrpc-python-go.json">JSON</a>
+              <a href="report-agntcy-a2a-slimrpc-python-go.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>report-agntcy-a2a-slimrpc-python-go</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 07:58:47 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 07:59:33 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>11 of 44</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>12</dd>
+                  </div>
+                  
+                  <div class="detail-pair">
+                    <dt>Label filter</dt>
+                    <dd><code>suite-slim-a2a &amp;&amp; pair-python-go</code></dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="report-agntcy-a2a-slimrpc-python-go.json">Open raw JSON</a>
+                  <a href="report-agntcy-a2a-slimrpc-python-go.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <p class="footer-note">No failures recorded for this run.</p>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>37.654s</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server go and echoes the ascii payload</div>
+                        
+                      </td>
+                      <td>827ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-ascii</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server go and echoes the unicode payload</div>
+                        
+                      </td>
+                      <td>667ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-unicode</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server go and echoes the symbols payload</div>
+                        
+                      </td>
+                      <td>658ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-symbols</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python calls server go and echoes the long payload</div>
+                        
+                      </td>
+                      <td>705ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-long</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the message-only response from server go</div>
+                        
+                      </td>
+                      <td>660ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-message-only, python-go, pair-python-go, scenario-message-only</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the task-failure response from server go</div>
+                        
+                      </td>
+                      <td>653ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-failure, python-go, pair-python-go, scenario-task-failure</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the input-required response from server go</div>
+                        
+                      </td>
+                      <td>664ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-input-required, python-go, pair-python-go, scenario-input-required</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the streaming response from server go</div>
+                        
+                      </td>
+                      <td>668ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-streaming, python-go, pair-python-go, scenario-streaming</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the task-cancel response from server go</div>
+                        
+                      </td>
+                      <td>780ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-cancel, python-go, pair-python-go, scenario-task-cancel</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes the multi-turn response from server go</div>
+                        
+                      </td>
+                      <td>783ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-multi-turn, python-go, pair-python-go, scenario-multi-turn</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client python observes a completed task with an echoed artifact from server go</div>
+                        
+                      </td>
+                      <td>664ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-lifecycle, python-go, pair-python-go</td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+      <details class="report-entry pass" data-status="pass" data-search="slimrpc / go&#43;python a2a slimrpc interop suite suite-slim-a2a &amp;&amp; pair-go-python report-agntcy-a2a-slimrpc-go-python   a2a slimrpc interoperability / slimrpc client go calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, go-go, pair-go-go, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, go-go, pair-go-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, go-go, pair-go-go, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, go-go, pair-go-go, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, go-go, pair-go-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, go-go, pair-go-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, go-go, pair-go-go a2a slimrpc interoperability / slimrpc client python calls server go and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server go and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server go and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server go and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-go, pair-python-go, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server go suite-slim-a2a, slimrpc, behavior-message-only, python-go, pair-python-go, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server go suite-slim-a2a, slimrpc, behavior-task-failure, python-go, pair-python-go, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server go suite-slim-a2a, slimrpc, behavior-input-required, python-go, pair-python-go, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server go suite-slim-a2a, slimrpc, behavior-streaming, python-go, pair-python-go, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server go suite-slim-a2a, slimrpc, behavior-task-cancel, python-go, pair-python-go, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server go suite-slim-a2a, slimrpc, behavior-multi-turn, python-go, pair-python-go, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server go suite-slim-a2a, slimrpc, behavior-lifecycle, python-go, pair-python-go a2a slimrpc interoperability / slimrpc client go calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii a2a slimrpc interoperability / slimrpc client go calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-unicode a2a slimrpc interoperability / slimrpc client go calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-symbols a2a slimrpc interoperability / slimrpc client go calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-long a2a slimrpc interoperability / slimrpc client go observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, go-python, pair-go-python, scenario-message-only a2a slimrpc interoperability / slimrpc client go observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, go-python, pair-go-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client go observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, go-python, pair-go-python, scenario-input-required a2a slimrpc interoperability / slimrpc client go observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, go-python, pair-go-python, scenario-streaming a2a slimrpc interoperability / slimrpc client go observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, go-python, pair-go-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client go observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, go-python, pair-go-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client go observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, go-python, pair-go-python a2a slimrpc interoperability / slimrpc client python calls server python and echoes the ascii payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-ascii a2a slimrpc interoperability / slimrpc client python calls server python and echoes the unicode payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-unicode a2a slimrpc interoperability / slimrpc client python calls server python and echoes the symbols payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-symbols a2a slimrpc interoperability / slimrpc client python calls server python and echoes the long payload suite-slim-a2a, slimrpc, behavior-echo, python-python, pair-python-python, payload-long a2a slimrpc interoperability / slimrpc client python observes the message-only response from server python suite-slim-a2a, slimrpc, behavior-message-only, python-python, pair-python-python, scenario-message-only a2a slimrpc interoperability / slimrpc client python observes the task-failure response from server python suite-slim-a2a, slimrpc, behavior-task-failure, python-python, pair-python-python, scenario-task-failure a2a slimrpc interoperability / slimrpc client python observes the input-required response from server python suite-slim-a2a, slimrpc, behavior-input-required, python-python, pair-python-python, scenario-input-required a2a slimrpc interoperability / slimrpc client python observes the streaming response from server python suite-slim-a2a, slimrpc, behavior-streaming, python-python, pair-python-python, scenario-streaming a2a slimrpc interoperability / slimrpc client python observes the task-cancel response from server python suite-slim-a2a, slimrpc, behavior-task-cancel, python-python, pair-python-python, scenario-task-cancel a2a slimrpc interoperability / slimrpc client python observes the multi-turn response from server python suite-slim-a2a, slimrpc, behavior-multi-turn, python-python, pair-python-python, scenario-multi-turn a2a slimrpc interoperability / slimrpc client python observes a completed task with an echoed artifact from server python suite-slim-a2a, slimrpc, behavior-lifecycle, python-python, pair-python-python">
+        <summary class="report-row">
+          <div class="report-cell">
+            <span class="cell-label">Run</span>
+            <strong class="report-title">SlimRPC / Go&#43;Python</strong>
+            <div class="report-subtitle">A2A SLIMRPC Interop Suite</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Status</span>
+            <span class="status-chip pass">Passing</span>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Scope</span>
+            <div class="scope-stack">
+              <span class="pill">11 of 44 specs selected</span>
+              <span class="pill"><code>suite-slim-a2a &amp;&amp; pair-go-python</code></span>
+            </div>
+          </div>
+          <div class="report-cell timing">
+            <span class="cell-label">Timing</span>
+            <strong>46.678s</strong>
+            <div class="report-subtitle">Updated 2026-06-26 08:00:09 UTC</div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Results</span>
+            <div class="metric-inline">
+              <span><strong>12</strong> passed</span>
+              <span><strong>0</strong> failed</span>
+              <span><strong>33</strong> skipped</span>
+              
+            </div>
+          </div>
+          <div class="report-cell">
+            <span class="cell-label">Artifacts</span>
+            <div class="report-links">
+              <a href="report-agntcy-a2a-slimrpc-go-python.json">JSON</a>
+              <a href="report-agntcy-a2a-slimrpc-go-python.xml">XML</a>
+            </div>
+          </div>
+        </summary>
+
+        <div class="report-body">
+          <div class="detail-grid">
+            <div class="detail-column">
+              <section class="detail-block">
+                <h3>Run Metadata</h3>
+                <dl class="detail-list">
+                  <div class="detail-pair">
+                    <dt>Saved run</dt>
+                    <dd>report-agntcy-a2a-slimrpc-go-python</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Started</dt>
+                    <dd>2026-06-26 07:58:36 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Finished</dt>
+                    <dd>2026-06-26 07:59:23 UTC</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Selected specs</dt>
+                    <dd>11 of 44</dd>
+                  </div>
+                  <div class="detail-pair">
+                    <dt>Executed specs</dt>
+                    <dd>12</dd>
+                  </div>
+                  
+                  <div class="detail-pair">
+                    <dt>Label filter</dt>
+                    <dd><code>suite-slim-a2a &amp;&amp; pair-go-python</code></dd>
+                  </div>
+                  
+                </dl>
+                <div class="detail-links">
+                  <a href="report-agntcy-a2a-slimrpc-go-python.json">Open raw JSON</a>
+                  <a href="report-agntcy-a2a-slimrpc-go-python.xml">Open raw XML</a>
+                </div>
+              </section>
+
+              <section class="detail-block">
+                <h3>Failures</h3>
+                
+                <p class="footer-note">No failures recorded for this run.</p>
+                
+              </section>
+            </div>
+
+            <section class="detail-block">
+              <h3>Executed Specs</h3>
+              
+              <div class="spec-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Spec</th>
+                      <th>Duration</th>
+                      <th>Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div></div>
+                        
+                      </td>
+                      <td>37.562s</td>
+                      <td></td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server python and echoes the ascii payload</div>
+                        
+                      </td>
+                      <td>1.101s</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server python and echoes the unicode payload</div>
+                        
+                      </td>
+                      <td>942ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-unicode</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server python and echoes the symbols payload</div>
+                        
+                      </td>
+                      <td>781ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-symbols</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go calls server python and echoes the long payload</div>
+                        
+                      </td>
+                      <td>702ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-long</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the message-only response from server python</div>
+                        
+                      </td>
+                      <td>781ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-message-only, go-python, pair-go-python, scenario-message-only</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the task-failure response from server python</div>
+                        
+                      </td>
+                      <td>701ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-failure, go-python, pair-go-python, scenario-task-failure</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the input-required response from server python</div>
+                        
+                      </td>
+                      <td>981ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-input-required, go-python, pair-go-python, scenario-input-required</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the streaming response from server python</div>
+                        
+                      </td>
+                      <td>701ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-streaming, go-python, pair-go-python, scenario-streaming</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the task-cancel response from server python</div>
+                        
+                      </td>
+                      <td>783ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-task-cancel, go-python, pair-go-python, scenario-task-cancel</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes the multi-turn response from server python</div>
+                        
+                      </td>
+                      <td>861ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-multi-turn, go-python, pair-go-python, scenario-multi-turn</td>
+                    </tr>
+                    
+                    <tr>
+                      <td><span class="spec-status pass">Passed</span></td>
+                      <td>
+                        <div>A2A SLIMRPC interoperability / SLIMRPC client go observes a completed task with an echoed artifact from server python</div>
+                        
+                      </td>
+                      <td>781ms</td>
+                      <td>suite-slim-a2a, slimrpc, behavior-lifecycle, go-python, pair-go-python</td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+              </div>
+              
+            </section>
+          </div>
+        </div>
+      </details>
+      
+    </section>
+
+    <p class="empty-state is-filtered" hidden>No reports match the current filter.</p>
+    
+  </main>
+
+  <script>
+    (function () {
+      const entries = Array.from(document.querySelectorAll('.report-entry'));
+      const searchInput = document.querySelector('[data-role="search"]');
+      const statusSelect = document.querySelector('[data-role="status"]');
+      const emptyState = document.querySelector('.is-filtered');
+
+      if (!entries.length || !searchInput || !statusSelect) {
+        return;
+      }
+
+      function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        const status = statusSelect.value;
+        let visibleCount = 0;
+
+        entries.forEach((entry) => {
+          const haystack = (entry.dataset.search || '').toLowerCase();
+          const matchesQuery = !query || haystack.includes(query);
+          const matchesStatus = status === 'all' || entry.dataset.status === status;
+          const visible = matchesQuery && matchesStatus;
+
+          entry.hidden = !visible;
+          if (visible) {
+            visibleCount += 1;
+          }
+        });
+
+        if (emptyState) {
+          emptyState.hidden = visibleCount !== 0;
+        }
+      }
+
+      searchInput.addEventListener('input', applyFilters);
+      statusSelect.addEventListener('change', applyFilters);
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>
