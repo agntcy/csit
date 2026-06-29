@@ -59,6 +59,13 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 		assets.pythonBin = pyBin
 	}
+	if hasLang("dotnet") {
+		dll, err := buildDotnetFixture(buildCtx, root)
+		if err != nil {
+			ginkgo.Fail(err.Error())
+		}
+		assets.dotnetDLL = dll
+	}
 	sharedAssets = assets
 })
 

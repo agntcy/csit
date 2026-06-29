@@ -23,7 +23,7 @@ vars:
 
 tasks:
   test:
-    desc: A2A over SLIMRPC interop (full Go+Python 2×2) — requires a running SLIM node
+    desc: A2A over SLIMRPC interop (full Go+Python+.NET 3×3) — requires a running SLIM node
     # Runs each client→server pair as its own report (report-agntcy-a2a-slimrpc-<client>-<server>),
     # mirroring the agntcy-a2a per-pair layout so the dashboard shows one "Saved Run" per pair.
     # ignore_error lets the remaining pairs run (and the dashboard capture them) if one fails.
@@ -32,9 +32,19 @@ tasks:
         ignore_error: true
       - task: test:go-python
         ignore_error: true
+      - task: test:go-dotnet
+        ignore_error: true
       - task: test:python-go
         ignore_error: true
       - task: test:python-python
+        ignore_error: true
+      - task: test:python-dotnet
+        ignore_error: true
+      - task: test:dotnet-go
+        ignore_error: true
+      - task: test:dotnet-python
+        ignore_error: true
+      - task: test:dotnet-dotnet
         ignore_error: true
 
   test:go-go:
@@ -68,6 +78,46 @@ tasks:
         vars:
           LABEL_FILTER: 'suite-slim-a2a && pair-python-python'
           REPORT_NAME: report-agntcy-a2a-slimrpc-python-python
+
+  test:go-dotnet:
+    desc: SLIMRPC interop — Go client → .NET server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-dotnet'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-dotnet
+
+  test:python-dotnet:
+    desc: SLIMRPC interop — Python client → .NET server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-python-dotnet'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-python-dotnet
+
+  test:dotnet-go:
+    desc: SLIMRPC interop — .NET client → Go server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-go
+
+  test:dotnet-python:
+    desc: SLIMRPC interop — .NET client → Python server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-python'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-python
+
+  test:dotnet-dotnet:
+    desc: SLIMRPC interop — .NET client → .NET server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-dotnet'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-dotnet
 
   versions:
     desc: Print the pinned released SLIM baseline (node image + bindings) used locally and in CI

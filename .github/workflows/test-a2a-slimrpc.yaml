@@ -43,6 +43,10 @@ jobs:
             display-name: Go→Python
             task: integrations:a2a-slimrpc:test:go-python
             artifact-name: a2a-slimrpc-test-result-go-python
+          - id: go-dotnet
+            display-name: Go→.NET
+            task: integrations:a2a-slimrpc:test:go-dotnet
+            artifact-name: a2a-slimrpc-test-result-go-dotnet
           - id: python-go
             display-name: Python→Go
             task: integrations:a2a-slimrpc:test:python-go
@@ -51,6 +55,22 @@ jobs:
             display-name: Python→Python
             task: integrations:a2a-slimrpc:test:python-python
             artifact-name: a2a-slimrpc-test-result-python-python
+          - id: python-dotnet
+            display-name: Python→.NET
+            task: integrations:a2a-slimrpc:test:python-dotnet
+            artifact-name: a2a-slimrpc-test-result-python-dotnet
+          - id: dotnet-go
+            display-name: .NET→Go
+            task: integrations:a2a-slimrpc:test:dotnet-go
+            artifact-name: a2a-slimrpc-test-result-dotnet-go
+          - id: dotnet-python
+            display-name: .NET→Python
+            task: integrations:a2a-slimrpc:test:dotnet-python
+            artifact-name: a2a-slimrpc-test-result-dotnet-python
+          - id: dotnet-dotnet
+            display-name: .NET→.NET
+            task: integrations:a2a-slimrpc:test:dotnet-dotnet
+            artifact-name: a2a-slimrpc-test-result-dotnet-dotnet
 
     name: A2A SLIMRPC ${{ matrix.display-name }}
 
@@ -103,6 +123,8 @@ jobs:
           python: true
           go: true
           go-version: "1.25.2"
+          dotnet: true
+          dotnet-version: "8.0.x"
 
       - name: Run A2A SLIMRPC ${{ matrix.display-name }} interoperability tests
         id: run-tests
