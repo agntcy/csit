@@ -6,25 +6,16 @@ version: '3'
 
 silent: true
 
-includes:
-  slim:
-    taskfile: ../agntcy-slim/Taskfile.yml
-    dir: ../agntcy-slim
-    excludes: [default]
-
 vars:
-  PLAN_DIR: '{{ .PLAN_DIR | default "./plans/domains" }}'
+  SCENARIO_DIR: '{{ .SCENARIO_DIR | default "./plans/sweeps" }}'
   REPORTS_DIR: '{{ .REPORTS_DIR | default "./reports" }}'
   RESULTS_TSV: '{{ .RESULTS_TSV | default "./reports/results.tsv" }}'
   SWEEP_TSV: '{{ .SWEEP_TSV | default "./reports/sweep.tsv" }}'
   BIN_DIR: '{{ .BIN_DIR | default "./bin" }}'
   SLIM_ENDPOINT: '{{ .SLIM_ENDPOINT | default "http://127.0.0.1:46357" }}'
-  # Use a dedicated name: agntcy-slim's included Taskfile also defines SLIMCTL_PATH=./bin/slimctl
-  # and would otherwise resolve to slim-vs-a2a/bin/slimctl when tasks run in this directory.
   COMPARE_SLIMCTL: '{{ .COMPARE_SLIMCTL | default "../agntcy-slim/bin/slimctl" }}'
   COMPARE_SLIM_BINDINGS_VERSION: '{{ .COMPARE_SLIM_BINDINGS_VERSION | default "v1.4.0" }}'
   COMPARE_SLIMCTL_TAG: '{{ .COMPARE_SLIMCTL_TAG | default "slimctl-v1.4.0" }}'
-  IMPLEMENTATIONS: '{{ .IMPLEMENTATIONS | default "a2a,slim" }}'
 
 tasks:
   default:
@@ -78,10 +69,10 @@ tasks:
         go build -o {{ .BIN_DIR }}/slim-agent ./slim/cmd/agent
         go build -o {{ .BIN_DIR }}/slim-runner ./slim/cmd/runner
 
-  validate:plans:
-    desc: Validate all domain execution plans
+  validate:scenarios:
+    desc: Validate consensus scenario YAML files
     cmds:
-      - go run ./tools/validate_plans --dir {{ .PLAN_DIR }}
+      - go run ./tools/validate_scenarios --dir {{ .SCENARIO_DIR }}
 
   compare:cleanup:
     internal: true
@@ -91,38 +82,32 @@ tasks:
       - pkill -f 'slimctl slim start -c' 2>/dev/null || true
 
   compare:suite:
-    desc: Run all domain plans on A2A and SLIM and collect comparison metrics
+    desc: Run default consensus scenarios on A2A and SLIM
     deps:
       - build
-      - validate:plans
+      - validate:scenarios
     cmds:
       - task: compare:cleanup
       - rm -f {{ .RESULTS_TSV }}
       - |
         set -euo pipefail
-        for plan in {{ .PLAN_DIR }}/*.yaml; do
-          [ -f "$plan" ] || continue
-          base=$(basename "$plan" .yaml)
+        for scenario in {{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml; do
+          [ -f "$scenario" ] || continue
+          base=$(basename "$scenario" .yaml)
           echo "==> A2A $base"
           {{ .BIN_DIR }}/a2a-runner \
-            --plan "$plan" \
+            --scenario "$scenario" \
             --agent-bin {{ .BIN_DIR }}/a2a-agent \
+            --quiet \
             --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
-            --output-tsv {{ .RESULTS_TSV }}
+            --output-tsv {{ .RESULTS_TSV }} || true
         done
-      - task: compare:suite:slim
-
-  compare:suite:slim:
-    internal: true
-    deps:
-      - deps:slimctl-download
-    cmds:
       - task: compare:slim-stack
         vars:
-          PLAN_GLOB: '{{ .PLAN_DIR }}/*.yaml'
+          SCENARIO_GLOB: '{{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml'
 
   compare:plan:
-    desc: Run one plan on A2A and SLIM (PLAN=mobile-nav-assistant or path to yaml)
+    desc: Run one scenario on A2A and SLIM (PLAN=path or basename)
     deps:
       - build
     requires:
@@ -134,25 +119,23 @@ tasks:
         set -euo pipefail
         PLAN_INPUT="{{ .PLAN }}"
         if [ -f "$PLAN_INPUT" ]; then
-          PLAN_PATH="$PLAN_INPUT"
-        elif [ -f "{{ .PLAN_DIR }}/${PLAN_INPUT}.yaml" ]; then
-          PLAN_PATH="{{ .PLAN_DIR }}/${PLAN_INPUT}.yaml"
-        elif [ -f "{{ .PLAN_DIR }}/${PLAN_INPUT}" ]; then
-          PLAN_PATH="{{ .PLAN_DIR }}/${PLAN_INPUT}"
+          SCENARIO_PATH="$PLAN_INPUT"
+        elif [ -f "{{ .SCENARIO_DIR }}/${PLAN_INPUT}.yaml" ]; then
+          SCENARIO_PATH="{{ .SCENARIO_DIR }}/${PLAN_INPUT}.yaml"
         else
-          echo "plan not found: ${PLAN_INPUT} (tried file, {{ .PLAN_DIR }}/\${PLAN_INPUT}.yaml)" >&2
+          echo "scenario not found: ${PLAN_INPUT}" >&2
           exit 1
         fi
-        base=$(basename "$PLAN_PATH" .yaml)
+        base=$(basename "$SCENARIO_PATH" .yaml)
         echo "==> A2A ${base}"
         {{ .BIN_DIR }}/a2a-runner \
-          --plan "$PLAN_PATH" \
+          --scenario "$SCENARIO_PATH" \
           --agent-bin {{ .BIN_DIR }}/a2a-agent \
           --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
           --output-tsv {{ .RESULTS_TSV }}
       - task: compare:slim-stack
         vars:
-          PLAN_GLOB: '{{ .PLAN }}'
+          SCENARIO_GLOB: '{{ .PLAN }}'
 
   compare:slim-stack:
     internal: true
@@ -161,19 +144,15 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        PLAN_INPUT="{{ .PLAN_GLOB }}"
-        resolve_plan() {
+        SCENARIO_INPUT="{{ .SCENARIO_GLOB }}"
+        resolve_scenario() {
           local input="$1"
           if [ -f "$input" ]; then
             printf '%s' "$input"
             return
           fi
-          if [ -f "{{ .PLAN_DIR }}/${input}.yaml" ]; then
-            printf '%s' "{{ .PLAN_DIR }}/${input}.yaml"
-            return
-          fi
-          if [ -f "{{ .PLAN_DIR }}/${input}" ]; then
-            printf '%s' "{{ .PLAN_DIR }}/${input}"
+          if [ -f "{{ .SCENARIO_DIR }}/${input}.yaml" ]; then
+            printf '%s' "{{ .SCENARIO_DIR }}/${input}.yaml"
             return
           fi
           printf '%s' "$input"
@@ -185,8 +164,8 @@ tasks:
         cat > "$CONFIG" <<EOF
         services:
           slim/0:
-            node_id: "slim-bench"
-            group_name: "bench"
+            node_id: "slim-bench-v2"
+            group_name: "bench-v2"
             dataplane:
               servers:
                 - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
@@ -210,23 +189,22 @@ tasks:
           fi
           sleep 0.2
         done
-        if [[ "$PLAN_INPUT" == *"*"* ]]; then
-          PLAN_LIST=($PLAN_INPUT)
+        if [[ "$SCENARIO_INPUT" == *"*"* ]]; then
+          SCENARIO_LIST=($SCENARIO_INPUT)
         else
-          PLAN_LIST=("$(resolve_plan "$PLAN_INPUT")")
+          SCENARIO_LIST=("$(resolve_scenario "$SCENARIO_INPUT")")
         fi
-        for plan in "${PLAN_LIST[@]}"; do
-          [ -f "$plan" ] || continue
-          base=$(basename "$plan" .yaml)
+        for scenario in "${SCENARIO_LIST[@]}"; do
+          [ -f "$scenario" ] || continue
+          base=$(basename "$scenario" .yaml)
           echo "==> SLIM ${base}"
           {{ .BIN_DIR }}/slim-runner \
-            --plan "$plan" \
+            --scenario "$scenario" \
             --endpoint {{ .SLIM_ENDPOINT }} \
             --agent-bin {{ .BIN_DIR }}/slim-agent \
-            --coord-mode {{ .COORD_MODE | default "multicast" }} \
-            --round-budget-ms {{ .ROUND_BUDGET_MS | default "0" }} \
+            --quiet \
             --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
-            --output-tsv {{ .RESULTS_TSV }}
+            --output-tsv {{ .RESULTS_TSV }} || true
         done
 
   compare:report:
@@ -235,66 +213,103 @@ tasks:
       - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --output {{ .REPORTS_DIR }}/index.html
 
   compare:sweep:
-    desc: Run transport sweep (SWEEP_FAMILY, SWEEP_AGENTS, SWEEP_BUDGETS env lists)
+    desc: Run agent/think-time/payload sweep (SWEEP_AGENTS, SWEEP_THINK_MS, SWEEP_PAYLOAD_BYTES env lists)
     deps:
       - build
     vars:
-      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
-      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+      SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
     cmds:
       - task: compare:cleanup
       - rm -f {{ .SWEEP_TSV }}
       - task: compare:sweep:run
+        vars:
+          SWEEP_FAMILY: '{{ .SWEEP_FAMILY }}'
+          SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
+          SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
+          SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
+
+  compare:sweep:payload:
+    desc: High-N / short-window / large-payload sweep highlighting SLIM multicast (10kB default)
+    deps:
+      - build
+    vars:
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
+      SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "10,50" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "5" }}'
+      SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0,10240" }}'
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .SWEEP_TSV }}
+      - task: compare:sweep:run
+        vars:
+          SWEEP_FAMILY: '{{ .SWEEP_FAMILY }}'
+          SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
+          SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
+          SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
+      - task: compare:report
 
   compare:sweep:run:
     internal: true
-    deps:
-      - deps:slimctl-download
     vars:
-      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
-      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+      SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
     cmds:
       - |
         set -euo pipefail
-        mkdir -p {{ .REPORTS_DIR }} plans/sweeps
+        mkdir -p {{ .REPORTS_DIR }} {{ .SCENARIO_DIR }}
         IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
-        IFS=',' read -r -a BUDGET_LIST <<< "{{ .SWEEP_BUDGETS }}"
+        IFS=',' read -r -a THINK_LIST <<< "{{ .SWEEP_THINK_MS }}"
+        IFS=',' read -r -a PAYLOAD_LIST <<< "{{ .SWEEP_PAYLOAD_BYTES }}"
         for agents in "${AGENT_LIST[@]}"; do
-          for budget in "${BUDGET_LIST[@]}"; do
-            plan_path="plans/sweeps/{{ .SWEEP_FAMILY }}-${agents}ag-${budget}ms.yaml"
-            go run ./tools/gen_plan \
-              -family {{ .SWEEP_FAMILY }} \
-              -agents "$agents" \
-              -round-budget-ms "$budget" \
-              -output "$plan_path"
-            base=$(basename "$plan_path" .yaml)
-            echo "==> sweep A2A $base"
-            {{ .BIN_DIR }}/a2a-runner \
-              --plan "$plan_path" \
-              --agent-bin {{ .BIN_DIR }}/a2a-agent \
-              --round-budget-ms "$budget" \
-              --quiet \
-              --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
-              --output-tsv {{ .SWEEP_TSV }}
+          for think in "${THINK_LIST[@]}"; do
+            for payload in "${PAYLOAD_LIST[@]}"; do
+              suffix=""
+              if [ "$payload" != "0" ]; then suffix="-${payload}b"; fi
+              scenario_path="{{ .SCENARIO_DIR }}/{{ .SWEEP_FAMILY }}-${agents}ag-${think}ms${suffix}.yaml"
+              go run ./tools/gen_scenario \
+                -family {{ .SWEEP_FAMILY }} \
+                -agents "$agents" \
+                -think-ms "$think" \
+                -payload-bytes "$payload" \
+                -output "$scenario_path"
+              base=$(basename "$scenario_path" .yaml)
+              echo "==> sweep A2A $base"
+              {{ .BIN_DIR }}/a2a-runner \
+                --scenario "$scenario_path" \
+                --agent-bin {{ .BIN_DIR }}/a2a-agent \
+                --quiet \
+                --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
+                --output-tsv {{ .SWEEP_TSV }} || true
+            done
           done
         done
       - task: compare:sweep:slim
+        vars:
+          SWEEP_FAMILY: '{{ .SWEEP_FAMILY }}'
+          SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
+          SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
+          SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
 
   compare:sweep:slim:
     internal: true
     deps:
       - deps:slimctl-download
     vars:
-      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "sustainable-resource" }}'
+      SWEEP_FAMILY: '{{ .SWEEP_FAMILY | default "hypothesis-convergence" }}'
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
-      SWEEP_BUDGETS: '{{ .SWEEP_BUDGETS | default "10,20" }}'
+      SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
+      SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
     cmds:
       - |
         set -euo pipefail
         IFS=',' read -r -a AGENT_LIST <<< "{{ .SWEEP_AGENTS }}"
-        IFS=',' read -r -a BUDGET_LIST <<< "{{ .SWEEP_BUDGETS }}"
+        IFS=',' read -r -a THINK_LIST <<< "{{ .SWEEP_THINK_MS }}"
+        IFS=',' read -r -a PAYLOAD_LIST <<< "{{ .SWEEP_PAYLOAD_BYTES }}"
         DATAPLANE_PORT=46357
         CONTROLLER_PORT=46358
         CONFIG=$(mktemp)
@@ -302,8 +317,8 @@ tasks:
         cat > "$CONFIG" <<EOF
         services:
           slim/0:
-            node_id: "slim-bench"
-            group_name: "bench"
+            node_id: "slim-bench-v2"
+            group_name: "bench-v2"
             dataplane:
               servers:
                 - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
@@ -328,72 +343,50 @@ tasks:
           sleep 0.2
         done
         for agents in "${AGENT_LIST[@]}"; do
-          for budget in "${BUDGET_LIST[@]}"; do
-            plan_path="plans/sweeps/{{ .SWEEP_FAMILY }}-${agents}ag-${budget}ms.yaml"
-            [ -f "$plan_path" ] || continue
-            base=$(basename "$plan_path" .yaml)
-            echo "==> sweep SLIM $base"
-            {{ .BIN_DIR }}/slim-runner \
-              --plan "$plan_path" \
-              --endpoint {{ .SLIM_ENDPOINT }} \
-              --agent-bin {{ .BIN_DIR }}/slim-agent \
-              --coord-mode multicast \
-              --round-budget-ms "$budget" \
-              --quiet \
-              --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
-              --output-tsv {{ .SWEEP_TSV }}
+          for think in "${THINK_LIST[@]}"; do
+            for payload in "${PAYLOAD_LIST[@]}"; do
+              suffix=""
+              if [ "$payload" != "0" ]; then suffix="-${payload}b"; fi
+              scenario_path="{{ .SCENARIO_DIR }}/{{ .SWEEP_FAMILY }}-${agents}ag-${think}ms${suffix}.yaml"
+              [ -f "$scenario_path" ] || continue
+              base=$(basename "$scenario_path" .yaml)
+              echo "==> sweep SLIM $base"
+              {{ .BIN_DIR }}/slim-runner \
+                --scenario "$scenario_path" \
+                --endpoint {{ .SLIM_ENDPOINT }} \
+                --agent-bin {{ .BIN_DIR }}/slim-agent \
+                --quiet \
+                --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+                --output-tsv {{ .SWEEP_TSV }} || true
+            done
           done
         done
 
   compare:ci:smoke:
-    desc: CI smoke — domain plans plus one sweep point (~2 min)
+    desc: CI smoke — one sweep point plus report (~2 min)
     deps:
       - build
-      - validate:plans
     cmds:
       - task: compare:cleanup
       - rm -f {{ .RESULTS_TSV }} {{ .SWEEP_TSV }}
       - |
         set -euo pipefail
-        for plan in {{ .PLAN_DIR }}/*.yaml; do
-          [ -f "$plan" ] || continue
-          base=$(basename "$plan" .yaml)
-          echo "==> smoke A2A $base"
-          {{ .BIN_DIR }}/a2a-runner \
-            --plan "$plan" \
-            --agent-bin {{ .BIN_DIR }}/a2a-agent \
-            --quiet \
-            --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
-            --output-tsv {{ .RESULTS_TSV }}
-        done
-      - task: compare:slim-stack
-        vars:
-          PLAN_GLOB: '{{ .PLAN_DIR }}/*.yaml'
-          COORD_MODE: multicast
-      - |
-        set -euo pipefail
-        plan_path="plans/sweeps/ci-smoke-sustainable-10ag-20ms.yaml"
-        mkdir -p plans/sweeps
-        go run ./tools/gen_plan -family sustainable-resource -agents 10 -round-budget-ms 20 -output "$plan_path"
-        echo "==> smoke sweep A2A"
+        mkdir -p {{ .SCENARIO_DIR }} {{ .REPORTS_DIR }}
+        scenario_path="{{ .SCENARIO_DIR }}/ci-smoke-hypothesis-5ag-20ms.yaml"
+        go run ./tools/gen_scenario -family hypothesis-convergence -agents 5 -think-ms 20 -output "$scenario_path"
+        echo "==> smoke A2A"
         {{ .BIN_DIR }}/a2a-runner \
-          --plan "$plan_path" \
+          --scenario "$scenario_path" \
           --agent-bin {{ .BIN_DIR }}/a2a-agent \
-          --round-budget-ms 20 \
           --quiet \
-          --output-json {{ .REPORTS_DIR }}/a2a-ci-sweep.json \
-          --output-tsv {{ .SWEEP_TSV }}
+          --output-json {{ .REPORTS_DIR }}/a2a-ci-smoke.json \
+          --output-tsv {{ .RESULTS_TSV }}
       - task: compare:slim-stack
         vars:
-          PLAN_GLOB: 'plans/sweeps/ci-smoke-sustainable-10ag-20ms.yaml'
-          ROUND_BUDGET_MS: '20'
-          COORD_MODE: multicast
+          SCENARIO_GLOB: 'plans/sweeps/ci-smoke-hypothesis-5ag-20ms.yaml'
       - task: compare:report
 
   test:
-    desc: Run Ginkgo comparison suite (requires RUN_SLIM_VS_A2A=1)
-    deps:
-      - build
+    desc: Run unit tests
     cmds:
-      - go test ./tests -v -failfast -test.paniconexit0 -ginkgo.v -ginkgo.label-filter=slim-vs-a2a -ginkgo.timeout 30m -timeout 30m
-      - task: compare:report
+      - go test ./... -count=1

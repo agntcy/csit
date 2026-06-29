@@ -15,12 +15,12 @@ import (
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/metrics"
 )
 
-type planComparison struct {
-	PlanName string
-	A2A      metrics.RunResult
-	SLIM     metrics.RunResult
-	HasA2A   bool
-	HasSLIM  bool
+type scenarioComparison struct {
+	ScenarioName string
+	A2A          metrics.RunResult
+	SLIM         metrics.RunResult
+	HasA2A       bool
+	HasSLIM      bool
 }
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "read tsv: %v\n", err)
 		os.Exit(1)
 	}
-	comparisons := groupByPlan(results)
+	comparisons := groupByScenario(results)
 
 	var sweepResults []metrics.RunResult
 	if *sweepTSV != "" {
@@ -69,91 +69,71 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 
 	var out []metrics.RunResult
 	for _, row := range records[1:] {
-		if len(row) < 22 {
+		if len(row) < 17 {
 			continue
 		}
 		r := metrics.RunResult{
-			PlanName:       row[0],
+			ScenarioName:   row[0],
 			Domain:         row[1],
 			Implementation: row[2],
-			Error:          row[len(row)-1],
 		}
 		r.Agents = atoi(row[3])
-		r.Tasks = atoi(row[4])
-		r.TotalWallClockMS = atoi64(row[5])
-		r.TasksCompleted = atoi(row[6])
-		r.TasksFailed = atoi(row[7])
-		r.TasksTimedOut = atoi(row[8])
-		r.TasksCancelled = atoi(row[9])
-		r.ObsoleteTasksCompleted = atoi(row[10])
-		r.RetriesAttempted = atoi(row[11])
-		r.RetriesSucceeded = atoi(row[12])
-		r.ContextPushMS = atoi64(row[13])
-		r.SyncBarrierMS = atoi64(row[14])
-		r.CancelPropagationMS = atoi64(row[15])
-		r.ExecuteRPCCount = atoi(row[16])
-		r.MulticastRPCCount = atoi(row[17])
-		r.SequentialRPCCount = atoi(row[18])
-		r.MakespanMS = atoi64(row[19])
-		if len(row) >= 29 {
-			r.ContextPushP95MS = atoi64(row[20])
-			r.ContextPushOps = atoi(row[21])
-			r.CoordMissingResponses = atoi(row[22])
-			r.CoordDeadlineMisses = atoi(row[23])
-			r.CoordBytesSent = atoi64(row[24])
-			r.CoordTimeSharePct, _ = strconv.ParseFloat(row[25], 64)
-			r.RoundBudgetMS = atoi64(row[26])
-			r.Success = row[27] == "true"
-			r.Error = row[28]
-		} else {
-			r.Success = row[20] == "true"
-			if len(row) > 21 {
-				r.Error = row[21]
-			}
+		r.ThinkTimeMs = atoi64(row[4])
+		r.PayloadBytes = atoi(row[5])
+		r.ConsensusWallMS = atoi64(row[6])
+		r.ConsensusRound = atoi(row[7])
+		r.FindingsEmitted = atoi(row[8])
+		r.FindingsReceivedTotal = atoi(row[9])
+		r.AvgPropagationMS = atoi64(row[10])
+		r.P95PropagationMS = atoi64(row[11])
+		r.LastAgentConvergeMS = atoi64(row[12])
+		r.CoordFanoutMS = atoi64(row[13])
+		r.StreamRPCCount = atoi(row[14])
+		r.UnicastRPCCount = atoi(row[15])
+		r.Success = row[16] == "true"
+		if len(row) > 17 {
+			r.Error = row[17]
 		}
 		out = append(out, r)
 	}
 	return out, nil
 }
 
-func groupByPlan(results []metrics.RunResult) []planComparison {
-	byPlan := map[string]*planComparison{}
+func groupByScenario(results []metrics.RunResult) []scenarioComparison {
+	byScenario := map[string]*scenarioComparison{}
 	for _, r := range results {
-		pc, ok := byPlan[r.PlanName]
+		sc, ok := byScenario[r.ScenarioName]
 		if !ok {
-			pc = &planComparison{PlanName: r.PlanName}
-			byPlan[r.PlanName] = pc
+			sc = &scenarioComparison{ScenarioName: r.ScenarioName}
+			byScenario[r.ScenarioName] = sc
 		}
 		switch r.Implementation {
-		case "a2a-grpc":
-			pc.A2A = r
-			pc.HasA2A = true
-		case "slim-multicast", "slim-unicast":
-			if !pc.HasSLIM || r.Implementation == "slim-multicast" {
-				pc.SLIM = r
-				pc.HasSLIM = true
-			}
+		case "a2a-relay-stream":
+			sc.A2A = r
+			sc.HasA2A = true
+		case "slim-group-session":
+			sc.SLIM = r
+			sc.HasSLIM = true
 		}
 	}
-	out := make([]planComparison, 0, len(byPlan))
-	for _, pc := range byPlan {
-		out = append(out, *pc)
+	out := make([]scenarioComparison, 0, len(byScenario))
+	for _, sc := range byScenario {
+		out = append(out, *sc)
 	}
 	return out
 }
 
 type reportData struct {
-	Comparisons []planComparison
+	Comparisons []scenarioComparison
 	Sweep       []metrics.RunResult
 }
 
-func writeHTML(path string, comparisons []planComparison, sweep []metrics.RunResult) error {
+func writeHTML(path string, comparisons []scenarioComparison, sweep []metrics.RunResult) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 	tmpl := template.Must(template.New("report").Funcs(template.FuncMap{
-		"deltaPct":    deltaPct,
-		"deltaPctInt": deltaPctInt,
+		"deltaPct": deltaPct,
 	}).Parse(htmlTemplate))
 	file, err := os.Create(path)
 	if err != nil {
@@ -163,16 +143,16 @@ func writeHTML(path string, comparisons []planComparison, sweep []metrics.RunRes
 	return tmpl.Execute(file, reportData{Comparisons: comparisons, Sweep: sweep})
 }
 
+// deltaPct expresses the A2A cost as an improvement relative to SLIM:
+// (A2A − SLIM) / SLIM × 100. Unlike a reduction relative to A2A (capped at
+// 100%), this is unbounded, so a 42× speedup reads as ~4100% rather than ~98%.
+// Positive values mean SLIM was faster/cheaper.
 func deltaPct(a2a, slim int64) string {
-	if a2a == 0 {
+	if slim == 0 {
 		return "n/a"
 	}
-	pct := (float64(a2a-slim) / float64(a2a)) * 100
+	pct := (float64(a2a-slim) / float64(slim)) * 100
 	return fmt.Sprintf("%.1f%%", pct)
-}
-
-func deltaPctInt(a2a, slim int) string {
-	return deltaPct(int64(a2a), int64(slim))
 }
 
 func atoi(v string) int {
@@ -189,53 +169,128 @@ const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>SLIM vs A2A Comparison</title>
+  <title>SLIM vs A2A — Consensus Streaming</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1100px; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
     th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: right; }
     th:first-child, td:first-child { text-align: left; }
     h2 { margin-top: 2rem; }
+    .intro { background: #f5f7fa; border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem 1.25rem; }
+    .intro code { background: #eceff3; padding: 0.05rem 0.3rem; border-radius: 3px; }
+    dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
+    dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
+    .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <h1>SLIM vs A2A DAG Comparison</h1>
-  <p>Delta columns show (A2A − SLIM) / A2A. Positive values mean SLIM was faster or used fewer RPCs.</p>
+  <h1>SLIM vs A2A — Consensus Streaming</h1>
+  <div class="intro">
+    <p>This benchmark runs the same distributed <strong>hypothesis-convergence</strong> workload on two
+    transports and measures how fast N agents reach identical consensus. <strong>SLIM</strong>
+    (<code>slim-group-session</code>) broadcasts each finding once over a native group session and the
+    dataplane fans it out — there is <em>no relay</em>. <strong>A2A</strong> (<code>a2a-relay-stream</code>)
+    has no peer multicast, so the runner is an explicit <em>relay hub</em>: every finding makes two streaming
+    hops (<code>agent → runner → N−1 agents</code>).</p>
+    <p>The <strong>Improvement vs SLIM</strong> column is <code>(A2A − SLIM) / SLIM × 100</code> — how much
+    more time/work A2A costs relative to SLIM. It is unbounded: e.g. <code>+4000%</code> means A2A took ~41×
+    as long as SLIM. Positive values favor SLIM. See <a href="#defs">metric definitions</a> and the
+    <a href="#arch">architecture diagram</a> below.</p>
+  </div>
   {{range .Comparisons}}
-  <h2>{{.PlanName}}</h2>
+  <h2>{{.ScenarioName}}</h2>
   <table>
-    <tr>
-      <th>Metric</th>
-      <th>A2A</th>
-      <th>SLIM</th>
-      <th>Delta</th>
-    </tr>
-    <tr><td>Wall clock (ms)</td><td>{{if .HasA2A}}{{.A2A.TotalWallClockMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.TotalWallClockMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.TotalWallClockMS .SLIM.TotalWallClockMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Context push (ms)</td><td>{{if .HasA2A}}{{.A2A.ContextPushMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ContextPushMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.ContextPushMS .SLIM.ContextPushMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Context push p95 (ms)</td><td>{{if .HasA2A}}{{.A2A.ContextPushP95MS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ContextPushP95MS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.ContextPushP95MS .SLIM.ContextPushP95MS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Missing responses</td><td>{{if .HasA2A}}{{.A2A.CoordMissingResponses}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.CoordMissingResponses}}{{else}}—{{end}}</td><td>—</td></tr>
-    <tr><td>Deadline misses</td><td>{{if .HasA2A}}{{.A2A.CoordDeadlineMisses}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.CoordDeadlineMisses}}{{else}}—{{end}}</td><td>—</td></tr>
-    <tr><td>Coord bytes sent</td><td>{{if .HasA2A}}{{.A2A.CoordBytesSent}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.CoordBytesSent}}{{else}}—{{end}}</td><td>—</td></tr>
-    <tr><td>Cancel propagation (ms)</td><td>{{if .HasA2A}}{{.A2A.CancelPropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.CancelPropagationMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.CancelPropagationMS .SLIM.CancelPropagationMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Sequential RPC count</td><td>{{if .HasA2A}}{{.A2A.SequentialRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.SequentialRPCCount}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPctInt .A2A.SequentialRPCCount .SLIM.SequentialRPCCount}}{{else}}—{{end}}</td></tr>
-    <tr><td>Multicast RPC count</td><td>{{if .HasA2A}}{{.A2A.MulticastRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.MulticastRPCCount}}{{else}}—{{end}}</td><td>—</td></tr>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>{{if .HasA2A}}{{.A2A.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.ConsensusWallMS .SLIM.ConsensusWallMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>{{if .HasA2A}}{{.A2A.LastAgentConvergeMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.LastAgentConvergeMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.LastAgentConvergeMS .SLIM.LastAgentConvergeMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>{{if .HasA2A}}{{.A2A.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.AvgPropagationMS .SLIM.AvgPropagationMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>{{if .HasA2A}}{{.A2A.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.P95PropagationMS .SLIM.P95PropagationMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Stream RPC count</td><td>{{if .HasA2A}}{{.A2A.StreamRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.StreamRPCCount}}{{else}}—{{end}}</td><td>—</td></tr>
+    <tr><td>Unicast RPC count</td><td>{{if .HasA2A}}{{.A2A.UnicastRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.UnicastRPCCount}}{{else}}—{{end}}</td><td>—</td></tr>
     <tr><td>Success</td><td>{{if .HasA2A}}{{.A2A.Success}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.Success}}{{else}}—{{end}}</td><td>—</td></tr>
   </table>
   {{end}}
   {{if .Sweep}}
   <h2>Sweep results</h2>
   <table>
-    <tr>
-      <th>Plan</th><th>Impl</th><th>Agents</th><th>Budget ms</th><th>Ctx p95</th><th>Missing</th><th>Deadline misses</th><th>Bytes</th>
-    </tr>
+    <tr><th>Scenario</th><th>Impl</th><th>Agents</th><th>Think ms</th><th>Payload B</th><th>Consensus wall</th><th>Avg propagation</th><th>P95 propagation</th><th>Stream RPCs</th></tr>
     {{range .Sweep}}
     <tr>
-      <td>{{.PlanName}}</td><td>{{.Implementation}}</td><td>{{.Agents}}</td><td>{{.RoundBudgetMS}}</td>
-      <td>{{.ContextPushP95MS}}</td><td>{{.CoordMissingResponses}}</td><td>{{.CoordDeadlineMisses}}</td><td>{{.CoordBytesSent}}</td>
+      <td>{{.ScenarioName}}</td><td>{{.Implementation}}</td><td>{{.Agents}}</td><td>{{.ThinkTimeMs}}</td><td>{{.PayloadBytes}}</td>
+      <td>{{.ConsensusWallMS}}</td><td>{{.AvgPropagationMS}}</td><td>{{.P95PropagationMS}}</td><td>{{.StreamRPCCount}}</td>
     </tr>
     {{end}}
   </table>
   {{end}}
+
+  <h2 id="defs">Metric definitions</h2>
+  <dl class="defs">
+    <dt>Consensus wall (ms)</dt>
+    <dd>Headline metric: wall-clock time from the runner's single <em>start</em> broadcast until every agent
+      has reached identical local consensus. Excludes process/library startup and teardown.</dd>
+    <dt>Last agent converge (ms)</dt>
+    <dd>Time until the slowest agent converged, taken from each agent's own convergence timestamp relative to
+      start. Highlights stragglers behind the headline number.</dd>
+    <dt>Avg / P95 propagation (ms)</dt>
+    <dd>Per-finding delivery latency, from the moment a finding is emitted to when a peer applies it
+      (average and 95th percentile). SLIM is one multicast hop; A2A adds the extra relay hop, so it grows
+      with agent count, message rate, and payload size.</dd>
+    <dt>Stream RPC count</dt>
+    <dd>Number of finding-carrying messages on the data path. For SLIM this equals findings emitted (one
+      native multicast each). For A2A it is the relay deliveries, ≈ <code>findings × (N−1)</code>, because the
+      hub re-sends every finding to all other agents.</dd>
+    <dt>Unicast RPC count</dt>
+    <dd>Control-plane unary RPCs only (start / snapshot polling), not the data path.</dd>
+    <dt>Coord fanout (ms)</dt>
+    <dd>Cumulative time the A2A relay hub spent fanning findings out to peers. <code>0</code> for SLIM because
+      there is no relay — the dataplane does the fan-out.</dd>
+    <dt>Payload B</dt>
+    <dd>Fixed-size padding (<code>spec.payloadBytes</code>) added to every finding to stress transport
+      bandwidth. Semantically inert; it does not change the consensus math or round count.</dd>
+    <dt>Improvement vs SLIM</dt>
+    <dd><code>(A2A − SLIM) / SLIM × 100</code>. Unbounded measure of how much more time/work A2A costs than
+      SLIM; e.g. <code>+4100%</code> ≈ 42× slower. Positive favors SLIM. (Note: a2a-go's streaming task store
+      also appends each relayed finding to task history and deep-copies per update, which amplifies A2A cost
+      super-linearly at large payloads — a property of the A2A streaming/task model.)</dd>
+  </dl>
+
+  <h2 id="arch">Architecture</h2>
+  <p>SLIM agents form a peer mesh over a native group session and the runner only observes; A2A routes every
+    finding through the runner acting as a relay hub.</p>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+  subgraph slim["SLIM native group session — no relay"]
+    R1["runner (passive observer: start signal + consumes pushed metrics)"]
+    SA0["agent-0"]
+    SA1["agent-1"]
+    SA2["agent-2"]
+    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
+    SA1 --- SA2
+    SA0 --- SA2
+    SA0 -.->|"push snapshot on convergence"| R1
+    SA1 -.-> R1
+    SA2 -.-> R1
+  end
+  subgraph a2a["A2A — runner is the relay hub"]
+    R2["runner = RELAY (hosts A2A server)"]
+    AA0["agent-0"]
+    AA1["agent-1"]
+    AA2["agent-2"]
+    AA0 -->|"stream findings → runner"| R2
+    AA1 --> R2
+    AA2 --> R2
+    R2 -->|"stream relayed findings → agent"| AA0
+    R2 --> AA1
+    R2 --> AA2
+  end
+    </pre>
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
+  </script>
 </body>
 </html>
 `

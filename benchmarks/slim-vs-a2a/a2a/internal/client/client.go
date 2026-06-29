@@ -5,42 +5,28 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/a2aproject/a2a-go/v2/a2aclient"
 	"github.com/a2aproject/a2a-go/v2/a2aclient/agentcard"
 	a2agrpc "github.com/a2aproject/a2a-go/v2/a2agrpc/v1"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/a2a/internal/protocol"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/benchlog"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/metrics"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/plan"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/consensus"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Config struct {
-	RoundBudgetMS int64
-}
-
 type Client struct {
-	clients    map[string]*a2aclient.Client
-	stats      *Stats
-	coordStats *metrics.CoordStats
+	clients map[string]*a2aclient.Client
 }
 
-type Stats struct {
-	ExecuteRPCCount    int
-	SequentialRPCCount int
-	MulticastRPCCount  int
-}
-
-func New(ctx context.Context, p *plan.ExecutionPlan, cfg Config) (*Client, error) {
+func New(ctx context.Context, s *scenario.ConsensusScenario) (*Client, error) {
 	clients := map[string]*a2aclient.Client{}
-	for _, agent := range p.Agents {
-		baseURL := p.CardBaseURL(agent)
+	for _, agent := range s.Agents {
+		baseURL := s.CardBaseURL(agent)
 		card, err := agentcard.DefaultResolver.Resolve(ctx, baseURL)
 		if err != nil {
 			return nil, fmt.Errorf("resolve card for %s: %w", agent.ID, err)
@@ -55,213 +41,96 @@ func New(ctx context.Context, p *plan.ExecutionPlan, cfg Config) (*Client, error
 		}
 		clients[agent.ID] = cli
 	}
-	return &Client{
-		clients:    clients,
-		stats:      &Stats{},
-		coordStats: metrics.NewCoordStats(cfg.RoundBudgetMS),
-	}, nil
+	return &Client{clients: clients}, nil
 }
 
-func (c *Client) CoordStats() *metrics.CoordStats { return c.coordStats }
-
-func (c *Client) Stats() Stats {
-	return *c.stats
-}
-
-func (c *Client) recordCoord(duration time.Duration, targets, responded, payloadBytes, messagesSent int) {
-	if c.coordStats != nil {
-		c.coordStats.RecordCoordOp(duration, targets, responded, payloadBytes, messagesSent)
-	}
-}
-
-func (c *Client) ExecuteTask(ctx context.Context, agentID string, task plan.Task) (protocol.Response, error) {
-	req := protocol.Request{
-		Op:                   protocol.OpExecute,
-		TaskID:               task.ID,
-		CompletionTimeSec:    task.CompletionTimeSec,
-		MaxCompletionTimeSec: task.MaxCompletionTimeSec,
-		Output:               task.Output,
-		InjectFailure:        task.InjectFailure,
-	}
-	return c.send(ctx, agentID, req, true)
-}
-
-func (c *Client) CancelTasks(ctx context.Context, agentIDs []string, taskIDs []string) error {
-	start := time.Now()
-	var perAgent []string
-	responded := 0
-	for i, agentID := range agentIDs {
-		req := protocol.Request{Op: protocol.OpCancel, TaskIDs: taskIDs}
-		callStart := time.Now()
-		_, err := c.send(ctx, agentID, req, false)
-		perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-		if err != nil {
-			c.recordCoord(time.Since(start), len(agentIDs), responded, len(taskIDs)*16, i)
-			benchlog.RPC(benchlog.ImplA2A, protocol.OpCancel, "sequential", time.Since(start), false,
-				fmt.Sprintf("agents=%d", len(agentIDs)),
-				fmt.Sprintf("idx=%d", i+1),
-				fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-				fmt.Sprintf("err=%v", err),
-			)
+func (c *Client) StartAll(ctx context.Context, agentIDs []string) error {
+	for _, id := range agentIDs {
+		if err := c.send(ctx, id, protocol.Request{Op: protocol.OpStart}); err != nil {
 			return err
 		}
-		responded++
-		c.stats.SequentialRPCCount++
 	}
-	duration := time.Since(start)
-	c.recordCoord(duration, len(agentIDs), responded, len(taskIDs)*16, len(agentIDs))
-	benchlog.RPC(benchlog.ImplA2A, protocol.OpCancel, "sequential", duration, true,
-		fmt.Sprintf("agents=%d", len(agentIDs)),
-		fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-	)
 	return nil
 }
 
-func (c *Client) PushContext(ctx context.Context, agentIDs []string, payload string) (time.Duration, error) {
-	start := time.Now()
-	req := protocol.Request{Op: protocol.OpContext, Payload: payload}
-	var perAgent []string
-	responded := 0
-	for i, agentID := range agentIDs {
-		callStart := time.Now()
-		if _, err := c.send(ctx, agentID, req, false); err != nil {
-			perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-			c.recordCoord(time.Since(start), len(agentIDs), responded, len(payload), i)
-			benchlog.RPC(benchlog.ImplA2A, protocol.OpContext, "sequential", time.Since(start), false,
-				fmt.Sprintf("agents=%d", len(agentIDs)),
-				fmt.Sprintf("idx=%d", i+1),
-				fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-				fmt.Sprintf("err=%v", err),
-			)
-			return 0, err
-		}
-		perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-		responded++
-		c.stats.SequentialRPCCount++
+func (c *Client) Snapshot(ctx context.Context, agentID string) (consensus.AgentSnapshot, error) {
+	resp, err := c.sendWithResponse(ctx, agentID, protocol.Request{Op: protocol.OpSnapshot})
+	if err != nil {
+		return consensus.AgentSnapshot{}, err
 	}
-	duration := time.Since(start)
-	c.recordCoord(duration, len(agentIDs), responded, len(payload), len(agentIDs))
-	benchlog.RPC(benchlog.ImplA2A, protocol.OpContext, "sequential", duration, true,
-		fmt.Sprintf("agents=%d", len(agentIDs)),
-		fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-	)
-	return duration, nil
+	var snap consensus.AgentSnapshot
+	if err := json.Unmarshal([]byte(resp.Body), &snap); err != nil {
+		return consensus.AgentSnapshot{}, err
+	}
+	return snap, nil
 }
 
-func (c *Client) SyncPhase(ctx context.Context, agentIDs []string, phase string) (time.Duration, error) {
-	start := time.Now()
-	req := protocol.Request{Op: protocol.OpSync, Phase: phase}
-	var perAgent []string
-	responded := 0
-	for i, agentID := range agentIDs {
-		callStart := time.Now()
-		if _, err := c.send(ctx, agentID, req, false); err != nil {
-			perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-			c.recordCoord(time.Since(start), len(agentIDs), responded, len(phase), i)
-			benchlog.RPC(benchlog.ImplA2A, protocol.OpSync, "sequential", time.Since(start), false,
-				fmt.Sprintf("agents=%d", len(agentIDs)),
-				fmt.Sprintf("idx=%d", i+1),
-				fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-				fmt.Sprintf("err=%v", err),
-			)
-			return 0, err
-		}
-		perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-		responded++
-		c.stats.SequentialRPCCount++
+// SubscribeFindings opens the OpStreamFindings server stream to an agent and
+// invokes onFinding for every finding the agent produces. It blocks until the
+// stream ends or ctx is cancelled, so callers run it in a goroutine.
+func (c *Client) SubscribeFindings(ctx context.Context, agentID string, onFinding func(consensus.Finding)) error {
+	cli, ok := c.clients[agentID]
+	if !ok {
+		return fmt.Errorf("unknown agent %q", agentID)
 	}
-	duration := time.Since(start)
-	c.recordCoord(duration, len(agentIDs), responded, len(phase), len(agentIDs))
-	benchlog.RPC(benchlog.ImplA2A, protocol.OpSync, "sequential", duration, true,
-		fmt.Sprintf("agents=%d", len(agentIDs)),
-		fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-	)
-	return duration, nil
-}
-
-func (c *Client) NotifyFailure(ctx context.Context, agentIDs []string, failedTaskID string) error {
-	start := time.Now()
-	payload := "failure=" + failedTaskID
-	req := protocol.Request{Op: protocol.OpContext, Payload: payload}
-	var perAgent []string
-	responded := 0
-	for i, agentID := range agentIDs {
-		callStart := time.Now()
-		if _, err := c.send(ctx, agentID, req, false); err != nil {
-			perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-			c.recordCoord(time.Since(start), len(agentIDs), responded, len(payload), i)
-			benchlog.RPC(benchlog.ImplA2A, protocol.OpContext, "sequential", time.Since(start), false,
-				fmt.Sprintf("agents=%d", len(agentIDs)),
-				fmt.Sprintf("failed_task=%s", failedTaskID),
-				fmt.Sprintf("idx=%d", i+1),
-				fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-				fmt.Sprintf("err=%v", err),
-			)
-			return err
-		}
-		perAgent = append(perAgent, fmt.Sprintf("%s:%d", agentID, time.Since(callStart).Milliseconds()))
-		responded++
-		c.stats.SequentialRPCCount++
+	reqText, err := json.Marshal(protocol.Request{Op: protocol.OpStreamFindings})
+	if err != nil {
+		return err
 	}
-	duration := time.Since(start)
-	c.recordCoord(duration, len(agentIDs), responded, len(payload), len(agentIDs))
-	benchlog.RPC(benchlog.ImplA2A, protocol.OpContext, "sequential", duration, true,
-		fmt.Sprintf("agents=%d", len(agentIDs)),
-		fmt.Sprintf("failed_task=%s", failedTaskID),
-		fmt.Sprintf("per_agent_ms=%s", strings.Join(perAgent, ",")),
-	)
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart(string(reqText)))
+	for ev, streamErr := range cli.SendStreamingMessage(ctx, &a2a.SendMessageRequest{Message: msg}) {
+		if streamErr != nil {
+			return streamErr
+		}
+		f, ok := findingFromEvent(ev)
+		if !ok {
+			continue
+		}
+		onFinding(f)
+	}
 	return nil
 }
 
-func (c *Client) send(ctx context.Context, agentID string, req protocol.Request, execute bool) (protocol.Response, error) {
+func (c *Client) send(ctx context.Context, agentID string, req protocol.Request) error {
+	_, err := c.sendWithResponse(ctx, agentID, req)
+	return err
+}
+
+func (c *Client) sendWithResponse(ctx context.Context, agentID string, req protocol.Request) (protocol.Response, error) {
 	cli, ok := c.clients[agentID]
 	if !ok {
 		return protocol.Response{}, fmt.Errorf("unknown agent %q", agentID)
 	}
-	text, err := protocol.EncodeRequest(req)
+	text, err := json.Marshal(req)
 	if err != nil {
 		return protocol.Response{}, err
 	}
-	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart(text))
-	callStart := time.Now()
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart(string(text)))
 	result, err := cli.SendMessage(ctx, &a2a.SendMessageRequest{Message: msg})
-	duration := time.Since(callStart)
 	if err != nil {
-		if execute {
-			benchlog.RPC(benchlog.ImplA2A, req.Op, "p2p", duration, false,
-				fmt.Sprintf("agent=%s", agentID),
-				fmt.Sprintf("task=%s", req.TaskID),
-				fmt.Sprintf("err=%v", err),
-			)
-		}
 		return protocol.Response{}, err
-	}
-	if execute {
-		c.stats.ExecuteRPCCount++
 	}
 	respText, err := responseText(result)
 	if err != nil {
-		if execute {
-			benchlog.RPC(benchlog.ImplA2A, req.Op, "p2p", duration, false,
-				fmt.Sprintf("agent=%s", agentID),
-				fmt.Sprintf("task=%s", req.TaskID),
-				fmt.Sprintf("err=%v", err),
-			)
-		}
 		return protocol.Response{}, err
 	}
-	resp, decErr := protocol.DecodeResponse(respText)
-	if execute {
-		benchlog.RPC(benchlog.ImplA2A, req.Op, "p2p", duration, decErr == nil && resp.OK,
-			fmt.Sprintf("agent=%s", agentID),
-			fmt.Sprintf("task=%s", req.TaskID),
-			fmt.Sprintf("resp_ok=%t", resp.OK),
-		)
+	return protocol.DecodeResponse(respText)
+}
+
+func findingFromEvent(ev a2a.Event) (consensus.Finding, bool) {
+	su, ok := ev.(*a2a.TaskStatusUpdateEvent)
+	if !ok || su.Status.Message == nil {
+		return consensus.Finding{}, false
 	}
-	if decErr != nil {
-		return protocol.Response{}, decErr
+	text := firstText(su.Status.Message)
+	if text == "" {
+		return consensus.Finding{}, false
 	}
-	return resp, nil
+	f, err := consensus.DecodeFinding([]byte(text))
+	if err != nil {
+		return consensus.Finding{}, false
+	}
+	return f, true
 }
 
 func responseText(result a2a.SendMessageResult) (string, error) {

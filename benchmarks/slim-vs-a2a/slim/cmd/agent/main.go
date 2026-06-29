@@ -7,62 +7,45 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strings"
+	"time"
 
-	slim "github.com/agntcy/slim-bindings-go"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/executor"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/server"
-	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/slimrpc"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/agent"
 )
-
-const defaultSharedSecret = "demo-shared-secret-min-32-chars!!"
 
 func main() {
 	slimName := flag.String("slim-name", "", "SLIM identity org/group/app")
 	endpoint := flag.String("endpoint", "http://127.0.0.1:46357", "SLIM dataplane endpoint")
+	scenarioFile := flag.String("scenario-file", "", "path to consensus scenario yaml")
+	agentIndex := flag.Int("agent-index", 0, "agent index in scenario")
 	flag.Parse()
 
-	if *slimName == "" {
-		log.Fatal("--slim-name is required")
+	if *slimName == "" || *scenarioFile == "" {
+		log.Fatal("--slim-name and --scenario-file are required")
 	}
 
-	slim.InitializeWithDefaults()
-	service := slim.GetGlobalService()
-
-	name, err := nameFromString(*slimName)
+	s, err := scenario.LoadFile(*scenarioFile)
 	if err != nil {
-		log.Fatalf("parse name: %v", err)
+		log.Fatalf("load scenario: %v", err)
+	}
+	if *agentIndex < 0 || *agentIndex >= len(s.Agents) {
+		log.Fatalf("agent-index out of range")
 	}
 
-	app, err := service.CreateAppWithSecret(name, defaultSharedSecret)
-	if err != nil {
-		log.Fatalf("create app: %v", err)
+	rt := agent.NewRuntime(s, *agentIndex, *slimName, *endpoint)
+	if err := rt.Setup(); err != nil {
+		log.Fatalf("setup: %v", err)
 	}
-	defer app.Destroy()
+	defer rt.Close()
 
-	connID, err := service.Connect(slim.NewInsecureClientConfig(*endpoint))
-	if err != nil {
-		log.Fatalf("connect: %v", err)
-	}
-	if err := app.Subscribe(name, &connID); err != nil {
-		log.Fatalf("subscribe: %v", err)
+	fmt.Printf("SLIM_AGENT_READY name=%s index=%d scenario=%s\n", *slimName, *agentIndex, s.Metadata.Name)
+
+	// Block until the moderator invites us into the group session.
+	if err := rt.Join(60 * time.Second); err != nil {
+		log.Fatalf("join group session: %v", err)
 	}
 
-	rpcServer := slim.ServerNewWithConnection(app, name, &connID)
-	rpcServer.RegisterUnaryUnary(slimrpc.ServiceName, slimrpc.MethodHandle, &server.Handler{
-		Engine: executor.New(*slimName),
-	})
-
-	fmt.Printf("SLIM_AGENT_READY name=%s\n", *slimName)
-	if err := rpcServer.Serve(); err != nil {
-		log.Printf("slimrpc server: %v", err)
+	if err := rt.Run(); err != nil {
+		log.Printf("receive loop ended: %v", err)
 	}
-}
-
-func nameFromString(value string) (*slim.Name, error) {
-	parts := strings.Split(value, "/")
-	if len(parts) != 3 {
-		return nil, fmt.Errorf("invalid name format: %s", value)
-	}
-	return slim.NewName(parts[0], parts[1], parts[2]), nil
 }
