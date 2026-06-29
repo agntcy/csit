@@ -1,29 +1,29 @@
 # A2A SLIMRPC interoperability (CSIT)
 
-Cross-language checks that **A2A over SLIMRPC** behaves consistently across **Go** ([slim-a2a-go](https://github.com/agntcy/slim-a2a-go)) and **Python** ([slim-a2a-python](https://github.com/agntcy/slim-a2a-python) / PyPI `slima2a`).
+Cross-language checks that **A2A over SLIMRPC** behaves consistently across **Go** ([slim-a2a-go](https://github.com/agntcy/slim-a2a-go)), **Python** ([slim-a2a-python](https://github.com/agntcy/slim-a2a-python) / PyPI `slima2a`), and **.NET** ([slim-a2a-dotnet](https://github.com/agntcy/slim-a2a-dotnet) / NuGet `Agntcy.SlimA2A`). Every client↔server language pair is exercised (a 3×3 matrix).
 
 This is separate from [`integrations/agntcy-a2a`](../agntcy-a2a) (JSON-RPC / REST / gRPC only) and from [`integrations/agntcy-slim`](../agntcy-slim) (Kubernetes SLIM topology).
 
-> **Default baseline: a pinned _released_ slim node (`slim-v1.4.0` / `ghcr.io/agntcy/slim:1.4.0`).** Against that node the full **Go + Python 2×2** matrix works off-the-shelf — the prebuilt `slim-bindings` 1.4.x static lib and PyPI `slima2a` pins line up with the node's dataplane wire, so **no overrides and no SDK fork** are needed. Running a node from **`slim` `main` / 2.0** is a **dev-only** mode that requires the override env vars below.
+> **Default baseline: a pinned _released_ slim node (`slim-v1.4.0` / `ghcr.io/agntcy/slim:1.4.0`).** Against that node the full **Go + Python + .NET 3×3** matrix works off-the-shelf — the prebuilt `slim-bindings` 1.4.x static lib, PyPI `slima2a`, and the `Agntcy.SlimA2A` NuGet all line up with the node's dataplane wire (all generate the `lf.a2a.v1` A2A service), so **no overrides and no SDK fork** are needed. Running a node from **`slim` `main` / 2.0** is a **dev-only** mode that requires the override env vars below.
 
 ## Prerequisites
 
 1. **SLIM node** reachable from your machine (default `http://127.0.0.1:46357`). **Bindings must match the dataplane wire** of the slim you run.
-   - **Recommended (released baseline):** run **`slim-v1.4.0`** — locally `git checkout slim-v1.4.0 && cargo run --bin slim -- --config data-plane/config/base/server-config.yaml` in your slim checkout, or pull `ghcr.io/agntcy/slim:1.4.0`. The default `slim-bindings-setup@v1.4.1` prebuilt lib (Go) and PyPI `slim-bindings` 1.4.x (Python) match it, so the **full 2×2 passes with no overrides**.
+   - **Recommended (released baseline):** run **`slim-v1.4.0`** — locally `git checkout slim-v1.4.0 && cargo run --bin slim -- --config data-plane/config/base/server-config.yaml` in your slim checkout, or pull `ghcr.io/agntcy/slim:1.4.0`. The default `slim-bindings-setup@v1.4.1` prebuilt lib (Go), PyPI `slim-bindings` 1.4.x (Python), and the `Agntcy.SlimA2A` NuGet (.NET) all match it, so the **full 3×3 passes with no overrides**.
    - **Dev-only (`slim` `main` / 2.0):** the v1.4.1 prebuild is **too old** for a `main` node → protobuf / handshake failures unless you supply a matching native library (see **`CSIT_SLIM_NATIVE_LIB`** and [Go native and `slim` `main`](#go-native-and-slim-main-dev-only)), and Python is limited to go-only (see [Python and `slim` `main`](#python-and-slim-main-dev-only)).
 2. **Environment**
    - `SLIM_SERVER` — SLIM HTTP endpoint (optional; default `http://127.0.0.1:46357`).
-   - `SLIM_SHARED_SECRET` — shared secret for apps (optional; default matches Go/Python fixtures and must match the SLIM node configuration).
+   - `SLIM_SHARED_SECRET` — shared secret for apps (optional; default matches the Go/Python/.NET fixtures and must match the SLIM node configuration).
    - `CSIT_SLIM_STREAM_SERVER_LOGS=1` — stream fixture server stdout/stderr to your terminal (default off; avoids IDE overload when the dataplane logs reconnect storms).
    - **`CSIT_SLIM_NATIVE_LIB`** — absolute path to a locally built `libslim_bindings_*.a`, **or** a directory that contains that file (see [Go native and `slim` `main`](#go-native-and-slim-main-dev-only)). The suite copies it into `$GOPATH/.cgo-cache/slim-bindings/v1.4.1/` before linking Go fixtures (same tier upstream CGO uses).
    - **`CSIT_SLIM_GO_ONLY=1`** — run only the **go→go** interop spec (required for **slim 2.0 / `main`** until PyPI `slima2a` supports `slim-bindings` 2.x).
 3. **Go SLIM fixtures (native library)**: `slim-bindings-go` links against `$GOPATH/.cgo-cache/slim-bindings/v1.4.1/` (that **`v1.4.1` segment is fixed in upstream `slim_bindings.go`**, not derived from a `go.mod` pseudo-version). The suite runs **`go run …/slim-bindings-setup@v1.4.1`** so the prebuilt zip exists on [slim releases](https://github.com/agntcy/slim/releases), then optionally **overwrites** that copy when `CSIT_SLIM_NATIVE_LIB` is set. Needs **network** the first time unless you skip setup and provide the override library yourself. To skip the download step: `SKIP_SLIM_BINDINGS_SETUP=1` (native override still runs if `CSIT_SLIM_NATIVE_LIB` is set).
 
-4. **Toolchains**: Go version **≥ the `go` line in [`fixtures/go/go.mod`](fixtures/go/go.mod)** (currently **1.25.2**, driven by [`slim-a2a-go`](https://github.com/agntcy/slim-a2a-go) v0.2.0); the repo root [`integrations/go.mod`](../go.mod) may differ. **Python 3.10+** on `PATH` with `venv` (macOS `/usr/bin/python3` is often 3.9 and cannot install `slima2a`; use Homebrew `python@3.12` or set `PYTHON=/path/to/python3.10`).
+4. **Toolchains**: Go version **≥ the `go` line in [`fixtures/go/go.mod`](fixtures/go/go.mod)** (currently **1.25.2**, driven by [`slim-a2a-go`](https://github.com/agntcy/slim-a2a-go) v0.2.0); the repo root [`integrations/go.mod`](../go.mod) may differ. **Python 3.10+** on `PATH` with `venv` (macOS `/usr/bin/python3` is often 3.9 and cannot install `slima2a`; use Homebrew `python@3.12` or set `PYTHON=/path/to/python3.10`). **.NET 8 SDK** on `PATH` (`dotnet`) for the .NET fixture; the suite runs `dotnet build` in [`fixtures/dotnet`](fixtures/dotnet) and restores `Agntcy.SlimA2A` from nuget.org (needs network on first run). Set **`CSIT_SLIM_NO_DOTNET=1`** to drop the .NET axis if no SDK is available.
 
 ## Run
 
-### Quickstart (released baseline, full 2×2)
+### Quickstart (released baseline, full 3×3)
 
 In your `slim` checkout, run the matching released node:
 
@@ -35,7 +35,7 @@ cargo run --bin slim -- --config data-plane/config/base/server-config.yaml   # i
 Then, from this repo's root (no override env vars):
 
 ```bash
-task integrations:a2a-slimrpc:test   # expect 4/4 specs: go/python × go/python
+task integrations:a2a-slimrpc:test   # expect 9/9 pairs: {go,python,dotnet} client × {go,python,dotnet} server
 ```
 
 `task integrations:a2a-slimrpc:versions` prints the exact pinned node image / release / bindings.

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- CSIT fixture: A2A echo agent + probe over SLIMRPC (lf.a2a.v1) for cross-language interop.
+       Mirrors fixtures/go (cmd/server, cmd/probe) and fixtures/python (csit_server.py, csit_probe.py).
+       One binary, two modes: `csit-slim-a2a server ...` and `csit-slim-a2a probe ...`. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Csit</RootNamespace>
+    <AssemblyName>csit-slim-a2a</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Agntcy.SlimA2A" Version="0.1.0-preview.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+  </ItemGroup>
+
+</Project>

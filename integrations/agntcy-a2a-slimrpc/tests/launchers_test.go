@@ -389,11 +389,27 @@ func slimGoOnly() bool {
 }
 
 // interopLanguages is the server/client language matrix for this run.
+// CSIT_SLIM_NO_DOTNET=1 drops the .NET axis (e.g. when no .NET 8 SDK is available);
+// CSIT_SLIM_GO_ONLY=1 collapses to go→go (slim 2.0 / main, where PyPI slima2a lags).
 func interopLanguages() []string {
 	if slimGoOnly() {
 		return []string{"go"}
 	}
-	return []string{"go", "python"}
+	langs := []string{"go", "python"}
+	if os.Getenv("CSIT_SLIM_NO_DOTNET") != "1" {
+		langs = append(langs, "dotnet")
+	}
+	return langs
+}
+
+// hasLang reports whether lang is part of this run's matrix.
+func hasLang(lang string) bool {
+	for _, l := range interopLanguages() {
+		if l == lang {
+			return true
+		}
+	}
+	return false
 }
 
 func slimServerURL() string {
@@ -471,6 +487,29 @@ func resolvePythonCommand() (string, error) {
 		"no Python >=%d.%d on PATH (PyPI slima2a requires it); install python3.10+ (e.g. brew install python@3.12) or set PYTHON=/path/to/python3.10",
 		pythonMinMajor, pythonMinMinor,
 	)
+}
+
+// buildDotnetFixture builds the .NET fixture (Csit.csproj) and returns the path to the
+// produced csit-slim-a2a.dll. `dotnet build` is incremental and restores the published
+// Agntcy.SlimA2A package from nuget.org (needs network on first run). Returns a clear
+// error if the .NET SDK is absent so the failure is obvious (set CSIT_SLIM_NO_DOTNET=1
+// to drop the .NET axis entirely).
+func buildDotnetFixture(ctx context.Context, root string) (string, error) {
+	dir := filepath.Join(root, "fixtures", "dotnet")
+	cmd := exec.CommandContext(ctx, "dotnet", "build", "-c", "Release", "--nologo")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf(
+			"dotnet build failed (needs .NET 8 SDK + network on first restore): %w\n%s\n"+
+				"fix: install the .NET 8 SDK, or set CSIT_SLIM_NO_DOTNET=1 to skip the .NET axis",
+			err, string(out),
+		)
+	}
+	dll := filepath.Join(dir, "bin", "Release", "net8.0", "csit-slim-a2a.dll")
+	if _, err := os.Stat(dll); err != nil {
+		return "", fmt.Errorf("dotnet fixture dll not found after build: %w", err)
+	}
+	return dll, nil
 }
 
 func buildGoFixture(ctx context.Context, root, outServer, outProbe string) error {
@@ -660,7 +699,7 @@ func clientIdentity(lang string) string {
 
 func readyMarkerForServer(lang string) string {
 	switch lang {
-	case "go", "python":
+	case "go", "python", "dotnet":
 		return "CSIT_SLIM_SERVER_READY"
 	default:
 		return "CSIT_SLIM_SERVER_READY"
@@ -706,6 +745,21 @@ func startServer(ctx context.Context, lang, slimURL, secret string, assets *fixt
 			return nil, err
 		}
 		return cmd, nil
+	case "dotnet":
+		// Invoked as `dotnet <dll> server ...` (the framework-dependent apphost cannot
+		// locate the runtime on some installs; running the dll via `dotnet` is portable).
+		cmd := exec.CommandContext(ctx, "dotnet", assets.dotnetDLL,
+			"server",
+			"--slim-endpoint", slimURL,
+			"--identity", srvID,
+			"--secret", secret,
+		)
+		cmd.Stdout = outW
+		cmd.Stderr = errW
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+		return cmd, nil
 	default:
 		return nil, fmt.Errorf("unknown server language %q", lang)
 	}
@@ -741,6 +795,18 @@ func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID, 
 		cmd.Dir = assets.pythonFixtureDir
 		out, err := cmd.CombinedOutput()
 		return string(out), err
+	case "dotnet":
+		cmd := exec.CommandContext(ctx, "dotnet", assets.dotnetDLL,
+			"probe",
+			"--slim-endpoint", slimURL,
+			"--local", local,
+			"--remote", remoteServerID,
+			"--secret", secret,
+			"--scenario", scenario,
+			"--text", text,
+		)
+		out, err := cmd.CombinedOutput()
+		return string(out), err
 	default:
 		return "", fmt.Errorf("unknown client language %q", clientLang)
 	}
@@ -751,6 +817,7 @@ type fixtureAssets struct {
 	goProbeBin       string
 	pythonBin        string
 	pythonFixtureDir string
+	dotnetDLL        string // built csit-slim-a2a.dll, run via `dotnet <dll> server|probe`
 }
 
 var errStoppedEarly = errors.New("server exited before ready")
