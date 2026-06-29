@@ -1,3 +1,6 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
 name: test-slim-vs-a2a
 
 on:
@@ -16,8 +19,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  slim-vs-a2a-smoke:
+  slim-vs-a2a:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -31,25 +35,65 @@ jobs:
         with:
           go: true
 
-      - name: Install slimctl
-        shell: bash
-        run: |
-          task benchmarks:slim-vs-a2a:deps:slimctl-download
-          echo "$(pwd)/benchmarks/agntcy-slim/bin" >> "$GITHUB_PATH"
-
-      - name: Run SLIM vs A2A comparison smoke
+      - name: Run SLIM vs A2A comparison suite
         shell: bash
         working-directory: benchmarks/slim-vs-a2a
-        env:
-          RUN_SLIM_VS_A2A: "1"
         run: |
           set -o pipefail
-          task compare:ci:smoke
+          task compare:suite
+
+      - name: Build comparison report
+        if: always()
+        shell: bash
+        working-directory: benchmarks/slim-vs-a2a
+        run: task compare:report
+
+      - name: Publish step summary
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="benchmarks/slim-vs-a2a/reports"
+          {
+            echo "# SLIM vs A2A — Consensus Comparison"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+            if [ -f "$REPORT_DIR/results.tsv" ]; then
+              echo "## results.tsv"
+              echo
+              echo '```'
+              cat "$REPORT_DIR/results.tsv"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload comparison report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: slim-vs-a2a-smoke-report
+          name: slim-vs-a2a-report
           path: benchmarks/slim-vs-a2a/reports/
+          retention-days: 30
           if-no-files-found: warn
+
+  publish-pages:
+    needs: [slim-vs-a2a]
+    if: always() && github.ref == 'refs/heads/main' && needs.slim-vs-a2a.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-vs-a2a
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.slim-vs-a2a.result }}

@@ -5,7 +5,7 @@
 # Build one gh-pages docs section from a staging directory populated by download-artifact.
 #
 # Required env:
-#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-mcp | slim-benchmarks | slim-multicluster-private | directory-conformance | agentic-evidence
+#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-mcp | slim-benchmarks | slim-vs-a2a | slim-multicluster-private | directory-conformance | agentic-evidence
 #   STAGING_DIR   directory with downloaded artifact contents
 #   SITE_DIR      gh-pages docs root (e.g. site/docs; suite dirs a2a/, directory/, …)
 #   REPO_ROOT     csit checkout (for go run)
@@ -114,6 +114,16 @@ case "$SUITE" in
         args+=(--basic-csv "$basic_csv")
       fi
       (cd "$REPO_ROOT/benchmarks" && "${args[@]}")
+      has_report=true
+    fi
+    ;;
+
+  slim-vs-a2a)
+    # compare:report already produced a self-contained index.html (plus TSVs);
+    # publish it verbatim under benchmarks/slim-vs-a2a/.
+    if [[ -f "$STAGING_DIR/index.html" ]]; then
+      mkdir -p "$SITE_DIR/benchmarks/slim-vs-a2a"
+      cp -a "$STAGING_DIR/." "$SITE_DIR/benchmarks/slim-vs-a2a/"
       has_report=true
     fi
     ;;
