@@ -87,7 +87,8 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           python: true
-          go: false
+          go: true
+          go-version: "1.25.0"
 
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s
@@ -128,6 +129,22 @@ jobs:
       - name: Run slim topology test
         run: task integrations:slim:test:topology
         shell: bash
+
+      - name: Render topology test report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports_dir="${GITHUB_WORKSPACE}/integrations/agntcy-slim/reports"
+          if [[ -f "${reports_dir}/report-slim-topology.json" ]]; then
+            task integrations:slim:test:topology:report
+            test -f "${reports_dir}/index.html"
+            echo "### Topology report artifacts" >> "$GITHUB_STEP_SUMMARY"
+            ls -la "${reports_dir}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No topology JSON report to render (checked ${reports_dir}/report-slim-topology.json)" >> "$GITHUB_STEP_SUMMARY"
+            find "${GITHUB_WORKSPACE}" -name 'report-slim-topology.json' 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+          fi
 
       - name: Create artifact from integrations test reports
         if: always()

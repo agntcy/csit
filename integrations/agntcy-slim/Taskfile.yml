@@ -301,6 +301,15 @@ tasks:
       - mkdir -p ./reports
       - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH=../{{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
+  test:topology:report:
+    desc: Render HTML dashboard from topology test Ginkgo JSON report
+    preconditions:
+      - sh: test -f ./reports/report-slim-topology.json
+        msg: run test:topology first (missing reports/report-slim-topology.json)
+    cmds:
+      - mkdir -p ./reports
+      - ./scripts/render-report.sh ./reports ./reports/index.html "Slim Topology Test Report"
+
   test:mcp-server:
     desc: Test MCP over Slim
     cmds:
