@@ -12,7 +12,7 @@ import (
 
 const (
 	SlimMessagingPort        = "46357"
-	ServerConfigTemplatePath = "config/server-config.tpl"
+	ServerConfigTemplatePath = "config/topology/server-config.tpl"
 )
 
 // SpireConfig represents the spire configuration section
@@ -110,7 +110,7 @@ func main() {
 	fmt.Println("Configuration loaded successfully!")
 	fmt.Printf("Found %d clusters in topology\n", len(topology.Topology.Clusters))
 
-	outputPath := "config/.gen"
+	outputPath := "config/topology/.gen"
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputPath, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)

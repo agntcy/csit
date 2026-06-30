@@ -13,14 +13,6 @@ inputs:
     description: 'Path to checkout AGNTCY repository'
     required: false
     default: ''
-  deploy-slim:
-    description: 'Deploy slim to a kind cluster'
-    required: false
-    default: 'false'
-  slim-config:
-    description: 'Set slim configuration to deploy'
-    required: false
-    default: 'base'
   deploy-spire:    
     description: 'Deploy SPIRE to a kind cluster'
     required: false
@@ -35,6 +27,10 @@ inputs:
     default: ''
   slim-chart-tag:
     description: 'Set slim chart version (OCI only; ignored when slim-repo-path is set)'
+    required: false
+    default: ''
+  slim-repo-path:
+    description: 'Path to local agntcy/slim repo (charts/). Empty uses OCI charts.'
     required: false
     default: ''
   slim-controller-image-tag:
@@ -130,7 +126,7 @@ runs:
       if: ${{ inputs.deploy-slim-topology != 'false' }}      
       shell: bash
       run: |
-        task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:controller \
+        task -d ./${{ inputs.checkout-path }} integrations:slim:test:topology:deploy:controller \
           SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
@@ -138,22 +134,10 @@ runs:
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
 
-        task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy:clusters \
+        task -d ./${{ inputs.checkout-path }} integrations:slim:test:topology:deploy:clusters \
           SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
           SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CONTROLLER_IMAGE_TAG=${{ inputs.slim-controller-image-tag }} \
-          SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
-          KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
-          HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}
-
-    - name: Deploy Slim
-      if: ${{ inputs.deploy-slim != 'false' }}
-      shell: bash
-      run: |
-        task -d ./${{ inputs.checkout-path }} integrations:slim:test-env:deploy \
-          SLIM_REPO_PATH='${{ inputs.slim-repo-path }}' \
-          SLIM_CONFIG=${{ inputs.slim-config }} \
-          SLIM_IMAGE_TAG=${{ inputs.slim-image-tag }} \
           SLIM_CHART_TAG=${{ inputs.slim-chart-tag }} \
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }} \
           HELM_NAMESPACE=${{ inputs.kind-cluster-namespace }}

@@ -113,12 +113,10 @@ func slimClientConfigVolumes(configMapName string) ([]corev1.Volume, []corev1.Vo
 var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	var (
 		namespace      string
-		slimctlPath    string
 		topologyConfig string
 		topology       *config.Topology
 		clientset      kubernetes.Interface
 		dynamicClient  dynamic.Interface
-		//slimController string
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -132,9 +130,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
 
 		namespace = os.Getenv("NAMESPACE")
-		slimctlPath = os.Getenv("SLIMCTL_PATH")
 		topologyConfig = os.Getenv("TOPOLOGY_CONFIG")
-		//slimController = os.Getenv("SLIM_CONTROLLER_LOCAL_ENDPOINT")
 		// Parse the topology configuration
 		config, err := config.ParseTopology(topologyConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
@@ -144,10 +140,6 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	})
 
 	ginkgo.Context("Slim topology test", ginkgo.Ordered, func() {
-		ginkgo.BeforeAll(func() {
-			log.Print(slimctlPath)
-		})
-
 		ginkgo.It("Create SLIM client Pods", func() {
 			// alphanumerically order topology.Clients by key
 			clientNames := make([]string, 0, len(topology.Clients))

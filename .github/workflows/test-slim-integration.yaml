@@ -112,10 +112,8 @@ jobs:
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
         with:
-          deploy-slim: "false"
           deploy-spire: "true"
           deploy-slim-topology: "true"
-          slim-config: "spire"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-controller-image-tag: ${{ inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
@@ -127,7 +125,7 @@ jobs:
           kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:local" --name "agntcy-test"
 
       - name: Run slim topology test
-        run: task integrations:slim:test:topology
+        run: task integrations:slim:test:topology:run
         shell: bash
 
       - name: Render topology test report

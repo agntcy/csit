@@ -10,9 +10,7 @@ vars:
   KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
 
   ## Image config
-  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'  
-  MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.1.5" }}'
-  SLIM_CONFIG: '{{ .SLIM_CONFIG | default "base" }}'
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
   SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
   SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
@@ -21,97 +19,23 @@ vars:
   SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.4.0" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
-  SLIM_CONTROLLER_LOCAL_ENDPOINT: '{{ .SLIM_CONTROLLER_LOCAL_ENDPOINT | default "localhost:50051" }}'
-  SLIMCTL_VERSION: '{{ .SLIMCTL_VERSION | default "v0.2.1" }}'
-  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
-
-  IMAGE_BAKE_OPTS: '{{ .IMAGE_BAKE_OPTS | default "--set *.platform=linux/arm64" }}'
-  LANGCHAIN_APP_TAG: '{{ .LANGCHAIN_APP_TAG | default "v0.0.16" }}'
-  AUTOGEN_APP_TAG: '{{ .AUTOGEN_APP_TAG | default "v0.0.16" }}'
-
-  AZURE_OPENAI_API_KEY: '{{ .AZURE_OPENAI_API_KEY | default "" }}'
-  AZURE_OPENAI_ENDPOINT: '{{ .AZURE_OPENAI_ENDPOINT | default "" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
-  MCP_PROXY_DEPLOY: '{{ .MCP_PROXY_DEPLOY | default "true" }}'
-  LLAMAINDEX_TIME_AGENT_TAG: '{{ .LLAMAINDEX_TIME_AGENT_TAG | default "0.1.2" }}'
-  MCP_SERVER_TIME_TAG: '{{ .MCP_SERVER_TIME_TAG | default "0.1.2" }}'
-
-  REMOVE_CONTAINERS: '{{ .REMOVE_CONTAINERS | default "true" }}'
-
-  RUNNER_TYPE: '{{ .RUNNER_TYPE | default "docker" }}'
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/topology/peer-to-peer.yaml" }}'
 
   # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
 tasks:
-  k8s:port-forward:setup:
-    internal: true
-    cmds:
-      - kubectl port-forward svc/agntcy-slim -n {{ .HELM_NAMESPACE }} 46357 &
-      - sleep 1
-
-  k8s:port-forward:teardown:
-    internal: true
-    cmds:
-      - kill -9 $(ps aux | grep port-forward | grep agntcy-slim | awk '{print $2}') || true
-
-  k8s:port-forward:controller:setup:
-    cmds:
-      - kubectl port-forward svc/slim-control -n {{ .HELM_NAMESPACE }} 50051:50051 &
-      - sleep 1
-
-  k8s:port-forward:controller:teardown:
-    cmds:
-      - kill -9 $(ps aux | grep port-forward | grep slim-control | awk '{print $2}') || true
-
-  test-env:deploy:
-    desc: Deploy agntcy slim test env
-    cmds:
-      - |
-        set -euo pipefail
-        REPO='{{ .SLIM_REPO_PATH }}'
-        if [ -n "$REPO" ]; then
-          if [ ! -d "$REPO/charts/slim" ]; then
-            echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
-            exit 1
-          fi
-          helm upgrade agntcy-slim \
-            "$REPO/charts/slim" \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-            -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
-            --namespace {{ .HELM_NAMESPACE }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --wait-for-jobs \
-            --timeout "15m"
-        else
-          helm upgrade agntcy-slim \
-            oci://{{ .IMAGE_REPO }}/slim/helm/slim \
-            --version {{ .SLIM_CHART_TAG }} \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
-            --set mcpProxy.image.tag="{{ .MCP_PROXY_IMAGE_TAG }}" \
-            -f components/config/{{ .SLIM_CONFIG }}/server-config.yaml \
-            --namespace {{ .HELM_NAMESPACE }} \
-            --create-namespace \
-            --install \
-            --wait \
-            --wait-for-jobs \
-            --timeout "15m"
-        fi
-
-  test-env:generate:cluster-configs:
+  test:topology:generate:cluster-configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
     cmd: |
       TOPOLOGY_CONFIG={{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_ENDPOINT={{ .SLIM_CONTROLLER_ENDPOINT }} go run ./tests/config/main/
 
-  test-env:deploy:controller:
+  test:topology:deploy:controller:
     desc: Deploy slim controller
     cmds:
       - |
@@ -125,7 +49,7 @@ tasks:
           helm upgrade slim-controller \
             "$REPO/charts/slim-control-plane" \
             --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-            -f ./config/controller-values.yaml \
+            -f ./config/topology/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
@@ -137,7 +61,7 @@ tasks:
             oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
             --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
             --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-            -f ./config/controller-values.yaml \
+            -f ./config/topology/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
@@ -146,16 +70,15 @@ tasks:
             --timeout "15m"
         fi
 
-  test-env:cleanup:controller:
-    desc: Remove agent slim test env
+  test:topology:cleanup:controller:
+    desc: Remove slim controller test env
     cmds:
-      - task k8s:port-forward:controller:teardown
       - helm delete --namespace "admin" slim-controller
 
-  test-env:deploy:clusters:
-    desc: Deploy agntcy slim test env for each values file in config/.generated
+  test:topology:deploy:clusters:
+    desc: Deploy agntcy slim test env for each values file in config/topology/.gen
     deps:
-      - test-env:generate:cluster-configs
+      - test:topology:generate:cluster-configs
     cmd: |
       #!/bin/sh
       REPO='{{ .SLIM_REPO_PATH }}'
@@ -164,7 +87,7 @@ tasks:
         exit 1
       fi
 
-      for file in "./config/.gen"/*.yaml ;do
+      for file in "./config/topology/.gen"/*.yaml ;do
         if [ -n "$REPO" ]; then
           helm upgrade agntcy-$(basename "$file" .yaml) \
             "$REPO/charts/slim" \
@@ -192,44 +115,14 @@ tasks:
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
 
-  test-env:cleanup:clusters:
-    desc: Undeploy agntcy slim test env for each values file in config/.generated
+  test:topology:cleanup:clusters:
+    desc: Undeploy agntcy slim test env for each values file in config/topology/.gen
     cmd: |
       #!/bin/sh
-      for file in "./config/.gen"/*.yaml ;do
-        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml) 
+      for file in "./config/topology/.gen"/*.yaml ;do
+        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml)
         echo "Deleted agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
-
-  test-env:cleanup:
-    desc: Remove agent slim test env
-    cmds:
-      - helm delete --namespace {{ .HELM_NAMESPACE }} agntcy-slim
-
-  cert-manager:deploy:
-    desc: Deploy cert-manager
-    cmds:
-      - |
-        helm repo add jetstack https://charts.jetstack.io --force-update
-        helm upgrade cert-manager jetstack/cert-manager \
-          --namespace cert-manager \
-          --create-namespace \
-          --version v1.17.2 \
-          --set crds.enabled=true \
-          --install \
-          --wait \
-          --wait-for-jobs \
-          --timeout "15m"
-
-  cert-manager:remove:
-    desc: Remove cert-manager
-    cmds:
-      - helm delete cert-manger -n cert-manger
-
-  certificates:create:
-    desc: Create certificates
-    cmds:
-      - kubectl apply -f components/certificates
 
   spire:deploy:
     desc: Deploy SPIRE server
@@ -261,69 +154,20 @@ tasks:
       - helm delete spire -n {{ .SPIRE_NAMESPACE }}
       - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
-  build:agentic-apps:
-    desc: Build agentic containers
-    dir: ./agentic-apps
-    cmds:
-      - IMAGE_TAG={{ .LANGCHAIN_APP_TAG }} docker buildx bake {{ .IMAGE_BAKE_OPTS }} --load
-
-  test:sanity:
-    desc: Sanity slim test
-    cmds:
-      - SLIM_CONFIG={{ .SLIM_CONFIG }} NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} LANGCHAIN_APP_TAG={{.LANGCHAIN_APP_TAG}} AUTOGEN_APP_TAG={{.AUTOGEN_APP_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Agntcy slim sanity test" --ginkgo.json-report=../reports/report-slim-sanity-{{ .SLIM_CONFIG }}.json --ginkgo.junit-report=../reports/report-slim-sanity-{{ .SLIM_CONFIG }}.xml
-
-  test:slimctl-download:
-    desc: Download slimctl executable for current OS and architecture
-    cmds:
-      - |
-        set -e        
-        SLIMCTL_ARCH=$(arch)
-        SLIMCTL_OS=$(echo $(uname -s) | tr '[:upper:]' '[:lower:]')        
-        # Map x86_64 to amd64 for Linux
-        if [[ "$SLIMCTL_ARCH" == "x86_64" && "$SLIMCTL_OS" == "linux" ]]; then
-          SLIMCTL_ARCH="amd64"
-        fi      
-        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH"
-        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/slimctl-{{.SLIMCTL_VERSION}}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH"
-        echo "Downloading slimctl from $SLIMCTL_URL"
-        TARGET_DIR=$(dirname {{ .SLIMCTL_PATH }})
-        mkdir -p $TARGET_DIR
-        curl -L -o {{ .SLIMCTL_PATH }} $SLIMCTL_URL
-        chmod +x {{ .SLIMCTL_PATH }}
-        echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
-
-  test:topology:
+  test:topology:run:
     desc: Slim topology test
-    # deps:
-    #   - test:slimctl-download
     cmds:
-      # - task k8s:port-forward:controller:setup
       - mkdir -p ./reports
-      - NAMESPACE={{.HELM_NAMESPACE}} SLIMCTL_PATH=../{{.SLIMCTL_PATH}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_LOCAL_ENDPOINT={{.SLIM_CONTROLLER_LOCAL_ENDPOINT}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
+      - NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:topology:report:
     desc: Render HTML dashboard from topology test Ginkgo JSON report
     preconditions:
       - sh: test -f ./reports/report-slim-topology.json
-        msg: run test:topology first (missing reports/report-slim-topology.json)
+        msg: run test:topology:run first (missing reports/report-slim-topology.json)
     cmds:
       - mkdir -p ./reports
       - ./scripts/render-report.sh ./reports ./reports/index.html "Slim Topology Test Report"
-
-  test:mcp-server:
-    desc: Test MCP over Slim
-    cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP over Slim test" --ginkgo.json-report=../reports/report-slim-mcp-server.json --ginkgo.junit-report=../reports/report-slim-mcp-server.xml
-
-  test:mcp-server:slim-native:
-    desc: Test Slim native MCP server
-    cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim native MCP server" --ginkgo.json-report=../reports/report-slim-native-mcp-server.json --ginkgo.junit-report=../reports/report-slim-native-mcp-server.xml
-
-  test:mcp-server:mcp-proxy:
-    desc: Test MCP server via MCP proxy
-    cmds:
-      - NAMESPACE={{.HELM_NAMESPACE}} IMAGE_REPO={{.IMAGE_REPO}} MCP_SERVER_TIME_TAG={{.MCP_SERVER_TIME_TAG}} LLAMAINDEX_TIME_AGENT_TAG={{.LLAMAINDEX_TIME_AGENT_TAG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "MCP server via MCP proxy" --ginkgo.json-report=../reports/report-slim-mcp-proxy.json --ginkgo.junit-report=../reports/report-slim-mcp-proxy.xml
 
   default:
     cmd: task -l

@@ -37,7 +37,9 @@ csit
 │   │   ├── Taskfile.yml                          # Tasks for A2A interoperability tests
 │   │   └── tests
 │   ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
-│   │   ├── agentic-apps
+│   │   ├── config
+│   │   │   └── topology
+│   │   ├── examples
 │   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   │   └── tests
 │   ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
@@ -78,25 +80,15 @@ task: Available tasks for this project:
 * integrations:a2a:test:rust-go:*:                       Rust and Go transport task. Use test:rust-go:<jsonrpc|rest|grpc>.
 * integrations:a2a:test:rust-go:*:*:                     Rust and Go per-case task. Use test:rust-go:<jsonrpc|rest|grpc>:<go-go|go-rust|rust-go|rust-rust>.
 * integrations:a2a:test:rust-python:                     Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
-* integrations:slim:build:agentic-apps:                   Build agentic containers
-* integrations:slim:cert-manager:deploy:                  Deploy cert-manager
-* integrations:slim:cert-manager:remove:                  Remove cert-manager
-* integrations:slim:certificates:create:                  Create certificates
 * integrations:slim:spire:deploy:                         Deploy SPIRE server
 * integrations:slim:spire:remove:                         Remove SPIRE server
-* integrations:slim:test-env:cleanup:                     Remove agent slim test env
-* integrations:slim:test-env:cleanup:contoroller:         Remove slim controller test env
-* integrations:slim:test-env:cleanup:generated:           Undeploy agntcy slim test env for each values file in config/.generated
-* integrations:slim:test-env:deploy:                      Deploy agntcy slim test env
-* integrations:slim:test-env:deploy:controller:           Deploy slim controller
-* integrations:slim:test-env:deploy:generated:            Deploy agntcy slim test env for each values file in config/.generated
-* integrations:slim:test-env:generate:configs:            Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
-* integrations:slim:test:mcp-server:                      Test MCP over Slim
-* integrations:slim:test:mcp-server:mcp-proxy:            Test MCP server via MCP proxy
-* integrations:slim:test:mcp-server:slim-native:          Test Slim native MCP server
-* integrations:slim:test:sanity:                          Sanity slim test
-* integrations:slim:test:slimctl-download:                Download slimctl executable for current OS and architecture
-* integrations:slim:test:topology:                        Slim topology test
+* integrations:slim:test:topology:cleanup:clusters:         Undeploy agntcy slim test env for each values file in config/topology/.gen
+* integrations:slim:test:topology:cleanup:controller:       Remove slim controller test env
+* integrations:slim:test:topology:deploy:clusters:          Deploy agntcy slim test env for each values file in config/topology/.gen
+* integrations:slim:test:topology:deploy:controller:        Deploy slim controller
+* integrations:slim:test:topology:generate:cluster-configs: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
+* integrations:slim:test:topology:run:                      Slim topology test
+* integrations:slim:test:topology:report:                   Render HTML dashboard from topology test Ginkgo JSON report
 * integrations:kind:create:                               Create kind cluster
 * integrations:kind:destroy:                              Destroy kind cluster
 * integrations:version:                                   Get version
@@ -113,7 +105,9 @@ environment, deploying the components that will be tested, and running the tests
 
 ```
 ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
-│   ├── agentic-apps
+│   ├── config
+│   │   └── topology
+│   ├── examples
 │   ├── Taskfile.yml                          # Tasks for Slim integration tests
 │   └── tests
 ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
