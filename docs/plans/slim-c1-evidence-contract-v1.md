@@ -23,7 +23,7 @@ This document locks the three **C1** dashboard rows, the `slim-benchmark-smoke-r
 | Scenario name | Local messaging smoke |
 | Repo path | `benchmarks/agntcy-slim/` |
 | CI task | `task benchmarks:slim:benchmark:ci:suite-smoke` |
-| CI workflow | `.github/workflows/test-benchmarks-slim.yaml` → job `slim-benchmark-smoke` |
+| CI workflow | `.github/workflows/test-slim-benchmarks.yaml` → job `slim-benchmark-smoke` |
 | Ginkgo label | `benchmark-suite` (via `scripts/run_suite.sh`) |
 | Smoke matrix (CI) | modes: `request-reply`, `fire-and-forget`, `write`; clients: `1`; size: `16` B; duration: `1s`; repeats: `25` (see `benchmark:ci:suite-smoke` in `benchmarks/agntcy-slim/Taskfile.yml`) |
 
@@ -38,9 +38,9 @@ All three rows share one evidence bundle. Per-row proof is distinguished by **mo
 | Step | Location |
 |------|----------|
 | Run suite | `task benchmarks:slim:benchmark:ci:suite-smoke` → writes under `benchmarks/agntcy-slim/reports/` |
-| Stage + render | `.github/workflows/test-benchmarks-slim.yaml` → copies into `benchmarks/agntcy-slim/published/smoke/`, runs `task benchmarks:slim:reports:dashboard` |
+| Stage + render | `.github/workflows/test-slim-benchmarks.yaml` → copies into `benchmarks/agntcy-slim/published/smoke/`, runs `task benchmarks:slim:reports:dashboard` |
 | Upload | Artifact name **`slim-benchmark-smoke-report`**, path `benchmarks/agntcy-slim/published/smoke`, retention 30 days |
-| Pages ingest | `.github/workflows/publish-test-reports-pages.yaml` → `site/benchmarks/slim/smoke/` then merged into `site/benchmarks/slim/index.html` |
+| Pages ingest | `.github/actions/publish-test-reports-pages` (suite: `slim-benchmarks`) → `gh-pages` branch `docs/benchmarks/slim/smoke/` merged into `docs/benchmarks/slim/index.html` |
 
 ### Required files (artifact root)
 
@@ -83,7 +83,7 @@ Each C1 row uses the same field set. Values are populated at dashboard build or 
 | `class` | string | Always `C1` |
 | `mode` | string | SLIM mechanism slug: `request-reply`, `fire-and-forget`, `write` |
 | `status` | enum | `verified` \| `failed` \| `unknown` — see [Status rules](#status-rules) |
-| `last_run` | string | GitHub Actions run ID for workflow `test-benchmarks-slim`, job `slim-benchmark-smoke` |
+| `last_run` | string | GitHub Actions run ID for workflow `test-slim-benchmarks`, job `slim-benchmark-smoke` |
 | `last_run_url` | URL | `https://github.com/{owner}/{repo}/actions/runs/{run_id}` |
 | `evidence_url` | URL | Primary reader link (Pages); see [URL templates](#url-templates) |
 | `artifact_url` | URL | Fallback: Actions run artifact `slim-benchmark-smoke-report` |
@@ -122,10 +122,10 @@ Replace `{owner}`, `{repo}`, `{run_id}`, `{pages_base}` at publish time.
 | `evidence_url` (mode detail, optional) | `{pages_base}/benchmarks/slim/smoke/index.html` or anchor within merged dashboard when mode table exists |
 | `evidence_url` (fallback file) | Artifact path `suite_summary.md` or `technical_report.md` |
 
-Published smoke files on Pages (after `publish-test-reports-pages`):
+Published smoke files on Pages (after `publish-test-reports-pages` action):
 
-- `site/benchmarks/slim/smoke/` — raw bundle mirror
-- `site/benchmarks/slim/index.html` — merged dashboard (includes smoke section when artifact present)
+- `docs/benchmarks/slim/smoke/` on `gh-pages` — raw bundle mirror
+- `docs/benchmarks/slim/index.html` on `gh-pages` — merged dashboard (includes smoke section when artifact present)
 
 ---
 
@@ -156,7 +156,7 @@ mode	clients	size	rate	repeat	...	sender_runtime_errors	...	sink_errors	...
 ## Contract acceptance checklist
 
 - [x] Exactly **3** rows, each tagged **C1**
-- [x] Artifact contract **v1** lists files produced by `.github/workflows/test-benchmarks-slim.yaml` staging step
+- [x] Artifact contract **v1** lists files produced by `.github/workflows/test-slim-benchmarks.yaml` staging step
 - [x] Each row maps to documented `status`, `last_run`, `evidence_url`, `artifact_url`, `rerun_cmd` sources
 - [ ] Next: implement extraction in dashboard template / runbook (`slim-c1-runbook-and-verification`, `slim-c1-dashboard-template`)
 

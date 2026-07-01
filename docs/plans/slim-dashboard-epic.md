@@ -2,7 +2,7 @@
 
 **Status:** Working draft — not final. Taxonomy **v0.2** uses three classes (centralized, decentralized, distributed). Refine via discussion before July dashboard freeze.
 
-**End goal:** Publish `site/benchmarks/slim/index.html` so readers see which **classes of agentic systems** and **use cases** SLIM addresses, backed by CSIT evidence — not benchmark leaderboards.
+**End goal:** Publish `gh-pages/docs/benchmarks/slim/index.html` so readers see which **classes of agentic systems** and **use cases** SLIM addresses, backed by CSIT evidence — not benchmark leaderboards.
 
 **Context:** [Discussion #195](https://github.com/agntcy/csit/discussions/195) · deadline **2026-07-31** · dashboard: [`../../analitics/published/index.html`](../../analitics/published/index.html)
 
@@ -197,9 +197,9 @@ task benchmarks:slim:reports:dashboard \
 
 Workflow anchors:
 
-- CI producer: `.github/workflows/test-benchmarks-slim.yaml` (`slim-benchmark-smoke` job)
+- CI producer: `.github/workflows/test-slim-benchmarks.yaml` (`slim-benchmark-smoke` job)
 - Artifact name: `slim-benchmark-smoke-report`
-- Pages publisher: `.github/workflows/publish-test-reports-pages.yaml`
+- Pages publisher: `.github/actions/publish-test-reports-pages` (invoked from `test-slim-benchmarks.yaml` `publish-pages` job)
 
 ### C1 evidence contract (v1)
 
@@ -261,7 +261,7 @@ Three lanes, one handoff (contract `v1` from Lane A). Issue bodies and acceptanc
 - [ ] Each July dashboard row maps to **class + use case**  
 - [ ] Reader can answer which **class** SLIM is demonstrated for  
 - [ ] Gaps explicit; perf only in appendix  
-- [ ] Published `site/benchmarks/slim/index.html`
+- [ ] Published `gh-pages/docs/benchmarks/slim/index.html`
 
 ---
 
@@ -295,4 +295,4 @@ C1 first slice (tracked as dependent issues — details in GitHub, not duplicate
 - `integrations/agntcy-slim/TopologyTest.md` — C2 proof  
 - `kind-slim-multi-host/`, `integrations/kind-slim-multicluster/` — C3 proof  
 - `integrations/agntcy-apps/` — C2 example (workflow-driven)  
-- `.github/workflows/publish-test-reports-pages.yaml` — Pages publish  
+- `.github/actions/publish-test-reports-pages` — Pages publish
