@@ -381,6 +381,7 @@ tasks:
     deps:
       - benchmark:local:cleanup
       - deps:slim-bindings-setup
+      - deps:slimctl-download
     env:
       MODES: "request-reply fire-and-forget write"
       CLIENTS: "1"
@@ -391,7 +392,13 @@ tasks:
       REPEATS: "{{ .CI_BENCH_REPEATS }}"
       MIN_CONFIDENCE_INTERVAL_RUNS: "{{ .MIN_CONFIDENCE_INTERVAL_RUNS }}"
     cmds:
-      - bash ./scripts/run_suite.sh
+      - |
+        export PATH="$(pwd)/bin:${PATH}"
+        if ! command -v slimctl >/dev/null 2>&1; then
+          echo "slimctl not found on PATH after download (expected $(pwd)/bin/slimctl)" >&2
+          exit 1
+        fi
+        bash ./scripts/run_suite.sh
 
   benchmark:ci:capacity:
     desc: Run bounded CI-safe capacity sweeps for fire-and-forget, request-reply, and write with 1 client at 16kB and statistically meaningful repeats
