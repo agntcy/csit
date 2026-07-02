@@ -37,11 +37,11 @@ csit
 │   │   ├── Taskfile.yml                          # Tasks for A2A interoperability tests
 │   │   └── tests
 │   ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
-│   │   ├── config
-│   │   │   └── topology
-│   │   ├── examples
-│   │   ├── Taskfile.yml                          # Tasks for Slim integration tests
-│   │   └── tests
+│   │   └── topology                            # KinD multicluster topology tests
+│   │       ├── config
+│   │       ├── examples
+│   │       ├── Taskfile.yml
+│   │       └── tests
 │   ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
 │   │   ├── components
 │   │   ├── examples
@@ -82,9 +82,9 @@ task: Available tasks for this project:
 * integrations:a2a:test:rust-python:                     Rust and Python v1.0 interoperability test matrix across JSON-RPC, HTTP+JSON, and gRPC
 * integrations:slim:spire:deploy:                         Deploy SPIRE server
 * integrations:slim:spire:remove:                         Remove SPIRE server
-* integrations:slim:test:topology:cleanup:clusters:         Undeploy agntcy slim test env for each values file in config/topology/.gen
+* integrations:slim:test:topology:cleanup:clusters:         Undeploy agntcy slim test env for each values file in config/.gen
 * integrations:slim:test:topology:cleanup:controller:       Remove slim controller test env
-* integrations:slim:test:topology:deploy:clusters:          Deploy agntcy slim test env for each values file in config/topology/.gen
+* integrations:slim:test:topology:deploy:clusters:          Deploy agntcy slim test env for each values file in config/.gen
 * integrations:slim:test:topology:deploy:controller:        Deploy slim controller
 * integrations:slim:test:topology:generate:cluster-configs: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
 * integrations:slim:test:topology:run:                      Slim topology test
@@ -105,11 +105,11 @@ environment, deploying the components that will be tested, and running the tests
 
 ```
 ├── agntcy-slim                                # Integration tests for [agntcy/slim](https://github.com/agntcy/slim)
-│   ├── config
-│   │   └── topology
-│   ├── examples
-│   ├── Taskfile.yml                          # Tasks for Slim integration tests
-│   └── tests
+│   └── topology                            # KinD multicluster topology tests
+│       ├── config
+│       ├── examples
+│       ├── Taskfile.yml
+│       └── tests
 ├── agntcy-dir                                # Integration tests for [agntcy/dir](https://github.com/agntcy/dir)
 │   ├── components
 │   ├── examples

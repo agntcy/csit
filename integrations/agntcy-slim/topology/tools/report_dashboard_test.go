@@ -22,7 +22,7 @@ func TestBuildEventViews(t *testing.T) {
 				Time:  time.Date(2026, 6, 10, 8, 7, 24, 0, time.UTC),
 			},
 			CodeLocation: failureLocation{
-				FileName:   "/home/runner/work/csit/csit/integrations/agntcy-slim/tests/topology_test.go",
+				FileName:   "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
 				LineNumber: 147,
 			},
 		},
@@ -34,7 +34,7 @@ func TestBuildEventViews(t *testing.T) {
 				Time:  time.Date(2026, 6, 10, 8, 8, 27, 0, time.UTC),
 			},
 			CodeLocation: failureLocation{
-				FileName:   "/home/runner/work/csit/csit/integrations/agntcy-slim/tests/topology_test.go",
+				FileName:   "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
 				LineNumber: 278,
 			},
 		},
@@ -92,7 +92,7 @@ func TestRenderDashboardIncludesTimeline(t *testing.T) {
 				"Message": "Waiting for bob to show Sent message hello - 10/10 message",
 				"TimelineLocation": {"Order": 9, "Time": "2026-06-10T08:08:27.327461626Z"},
 				"CodeLocation": {
-					"FileName": "/home/runner/work/csit/csit/integrations/agntcy-slim/tests/topology_test.go",
+					"FileName": "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
 					"LineNumber": 278
 				}
 			}]

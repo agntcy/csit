@@ -29,8 +29,8 @@ If each KinD mapping binds ingress to a **different** host address (e.g. **127.0
 
 ### integrations/ topology automation (future)
 
-- [`integrations/agntcy-slim/config/topology/peer-to-peer.yaml`](../../integrations/agntcy-slim/config/topology/peer-to-peer.yaml) — multiple clusters in topology YAML.
-- [`integrations/agntcy-slim/tests/config/main/generate_configs.go`](../../integrations/agntcy-slim/tests/config/main/generate_configs.go) — today may still use a **single** `SLIM_CONTROLLER_ENDPOINT`; multicluster needs **per-cluster** controller client endpoints (ingress URL on B, in-cluster on A).
+- [`integrations/agntcy-slim/topology/config/peer-to-peer.yaml`](../../integrations/agntcy-slim/topology/config/peer-to-peer.yaml) — multiple clusters in topology YAML.
+- [`integrations/agntcy-slim/topology/tests/config/main/generate_configs.go`](../../integrations/agntcy-slim/topology/tests/config/main/generate_configs.go) — today may still use a **single** `SLIM_CONTROLLER_ENDPOINT`; multicluster needs **per-cluster** controller client endpoints (ingress URL on B, in-cluster on A).
 - Topology tests may still assume **one** kube client — multi-cluster runs need two contexts or merged kubeconfig.
 
 | Gap | Direction |

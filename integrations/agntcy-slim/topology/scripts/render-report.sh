@@ -13,7 +13,7 @@ OUTPUT="${2:?output HTML path required}"
 TITLE="${3:-Slim integration}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INTEGRATIONS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+INTEGRATIONS_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 resolve_path() {
   if [[ "$1" = /* ]]; then
@@ -36,7 +36,7 @@ OUTPUT="$(resolve_path "$OUTPUT")"
 
 (
   cd "$INTEGRATIONS_ROOT"
-  go run ./agntcy-slim/tools/report_dashboard.go \
+  go run ./agntcy-slim/topology/tools/report_dashboard.go \
     --reports-dir "$REPORTS_DIR" \
     --output "$OUTPUT" \
     --title "$TITLE"

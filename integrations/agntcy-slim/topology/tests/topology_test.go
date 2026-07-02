@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/agntcy/csit/integrations/agntcy-slim/tests/config"
+	"github.com/agntcy/csit/integrations/agntcy-slim/topology/tests/config"
 	"github.com/agntcy/csit/integrations/testutils/k8shelper"
 )
 

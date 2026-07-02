@@ -22,6 +22,14 @@ on:
         description: "Override Slim chart tag"
         required: false
         default: ""
+      override_slim_controller_image_tag:
+        description: "Override Slim controller image tag (falls back to override_slim_image_tag when empty)"
+        required: false
+        default: ""
+      override_slim_controller_chart_tag:
+        description: "Override Slim controller chart tag (falls back to override_slim_chart_tag when empty)"
+        required: false
+        default: ""
 
 jobs:
   detect:
@@ -106,8 +114,8 @@ jobs:
             --platform linux/amd64 \
             --load \
             --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
-            --file integrations/agntcy-slim/examples/Dockerfile \
-            integrations/agntcy-slim/examples
+            --file integrations/agntcy-slim/topology/examples/Dockerfile \
+            integrations/agntcy-slim/topology/examples
 
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
@@ -115,8 +123,9 @@ jobs:
           deploy-spire: "true"
           deploy-slim-topology: "true"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-controller-image-tag: ${{ inputs.override_slim_image_tag }}
+          slim-controller-image-tag: ${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+          slim-controller-chart-tag: ${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}
 
       - name: Load slim bindings examples image into kind
         shell: bash
@@ -133,7 +142,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          reports_dir="${GITHUB_WORKSPACE}/integrations/agntcy-slim/reports"
+          reports_dir="${GITHUB_WORKSPACE}/integrations/agntcy-slim/topology/reports"
           if [[ -f "${reports_dir}/report-slim-topology.json" ]]; then
             task integrations:slim:test:topology:report
             test -f "${reports_dir}/index.html"
@@ -149,7 +158,7 @@ jobs:
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: slim-integration-test-result
-          path-to-archive: integrations/agntcy-slim/reports/
+          path-to-archive: integrations/agntcy-slim/topology/reports/
 
   publish-pages:
     needs: [run-tests-slim-integration]

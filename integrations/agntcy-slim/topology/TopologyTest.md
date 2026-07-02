@@ -18,7 +18,7 @@ The TopologyTest framework enables you to:
 
 1. **Navigate to the integration directory:**
    ```bash
-   cd integrations/agntcy-slim
+   cd integrations/agntcy-slim/topology
    ```
 
 2. **Deploy SPIRE (when using SPIRE-backed topologies):**
@@ -119,7 +119,7 @@ servers:
 
 ## Example: Fire-and-Forget Topology
 
-The `config/topology/fire-and-forget.yaml` sets up 3 SLIM nodes connected with two clients using fire & forget session:
+The `config/fire-and-forget.yaml` sets up 3 SLIM nodes connected with two clients using fire & forget session:
 
 ```yaml
 topology:

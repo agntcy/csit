@@ -24,7 +24,7 @@ vars:
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/topology/peer-to-peer.yaml" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
 
   # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
@@ -49,7 +49,7 @@ tasks:
           helm upgrade slim-controller \
             "$REPO/charts/slim-control-plane" \
             --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-            -f ./config/topology/controller-values.yaml \
+            -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
@@ -61,7 +61,7 @@ tasks:
             oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
             --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
             --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
-            -f ./config/topology/controller-values.yaml \
+            -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
@@ -76,7 +76,7 @@ tasks:
       - helm delete --namespace "admin" slim-controller
 
   test:topology:deploy:clusters:
-    desc: Deploy agntcy slim test env for each values file in config/topology/.gen
+    desc: Deploy agntcy slim test env for each values file in config/.gen
     deps:
       - test:topology:generate:cluster-configs
     cmd: |
@@ -87,7 +87,7 @@ tasks:
         exit 1
       fi
 
-      for file in "./config/topology/.gen"/*.yaml ;do
+      for file in "./config/.gen"/*.yaml ;do
         if [ -n "$REPO" ]; then
           helm upgrade agntcy-$(basename "$file" .yaml) \
             "$REPO/charts/slim" \
@@ -116,10 +116,10 @@ tasks:
       done
 
   test:topology:cleanup:clusters:
-    desc: Undeploy agntcy slim test env for each values file in config/topology/.gen
+    desc: Undeploy agntcy slim test env for each values file in config/.gen
     cmd: |
       #!/bin/sh
-      for file in "./config/topology/.gen"/*.yaml ;do
+      for file in "./config/.gen"/*.yaml ;do
         helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml)
         echo "Deleted agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done

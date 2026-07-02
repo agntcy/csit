@@ -372,7 +372,7 @@ func shortSourcePath(location failureLocation) string {
 		return ""
 	}
 	path := location.FileName
-	markers := []string{"/integrations/agntcy-slim/", "integrations/agntcy-slim/"}
+	markers := []string{"/integrations/agntcy-slim/topology/", "integrations/agntcy-slim/topology/", "/integrations/agntcy-slim/", "integrations/agntcy-slim/"}
 	for _, marker := range markers {
 		if idx := strings.Index(path, marker); idx >= 0 {
 			path = path[idx+len(marker):]
