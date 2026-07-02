@@ -30,6 +30,10 @@ on:
         description: "Override Slim controller chart tag (falls back to override_slim_chart_tag when empty)"
         required: false
         default: ""
+      override_slim_bindings_version:
+        description: "Override slim-bindings examples version"
+        required: false
+        default: ""
 
 jobs:
   detect:
@@ -110,9 +114,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          build_args=()
+          if [[ -n "${{ inputs.override_slim_bindings_version }}" ]]; then
+            build_args+=(--build-arg "SLIM_BINDINGS_VERSION=${{ inputs.override_slim_bindings_version }}")
+          fi
           docker buildx build \
             --platform linux/amd64 \
             --load \
+            "${build_args[@]}" \
             --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
             --file integrations/agntcy-slim/topology/examples/Dockerfile \
             integrations/agntcy-slim/topology/examples
