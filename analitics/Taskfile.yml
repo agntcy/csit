@@ -7,8 +7,25 @@ vars:
   PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
   SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
   SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+  SLIM_BINDINGS_SETUP_VERSION: '{{ .SLIM_BINDINGS_SETUP_VERSION | default "v1.2.0" }}'
 
 tasks:
+  deps:slim-bindings-setup:
+    desc: Install native SLIM bindings required to build echo-client and rate-client
+    cmds:
+      - |
+        set -e
+        GOMODCACHE="$(go env GOMODCACHE)"
+        GO_WORKSPACE="${GOMODCACHE%/pkg/mod}"
+        export GOPATH="$GO_WORKSPACE"
+        CACHE_DIR="$GOPATH/.cgo-cache/slim-bindings"
+        if [ -d "$CACHE_DIR" ] && find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' | grep -q .; then
+          echo "Using existing SLIM bindings in $CACHE_DIR"
+          find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' -print
+          exit 0
+        fi
+        go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup@{{ .SLIM_BINDINGS_SETUP_VERSION }}
+
   deps:slimctl-download:
     desc: Download slimctl executable for the current OS and architecture
     cmds:
@@ -138,12 +155,14 @@ tasks:
 
   test:c1-evidence:
     desc: Run C1 use-case Ginkgo evidence tests (writes reports/c1-evidence.json)
-    deps: [deps:slimctl-download]
+    deps: [deps:slim-bindings-setup, deps:slimctl-download]
     env:
       C1_EVIDENCE_REPORT_DIR: '{{.REPORTS_DIR}}'
     cmds:
       - |
         set -euo pipefail
+        GOMODCACHE="$(go env GOMODCACHE)"
+        export GOPATH="${GOMODCACHE%/pkg/mod}"
         export PATH="$(pwd)/bin:${PATH}"
         if ! command -v slimctl >/dev/null 2>&1; then
           echo "slimctl not found on PATH after download (expected ./bin/slimctl)" >&2

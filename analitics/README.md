@@ -96,4 +96,5 @@ C2/C3 rows use static status until their test evidence is wired into the build f
 
 - Go 1.22+
 - `task` in the shell
+- Native SLIM bindings for CGO (`task -t analitics/Taskfile.yml deps:slim-bindings-setup`)
 - `slimctl` on `PATH`, or install via `task -t analitics/Taskfile.yml deps:slimctl-download`

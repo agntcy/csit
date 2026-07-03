@@ -134,7 +134,7 @@ var _ = ginkgo.Describe("C1 centralized use-case evidence", ginkgo.Label("c1-evi
 			RowID:       "c1-write",
 			Mode:        "write",
 			UseCase:     "Publish into the mesh without a paired responder",
-			Responder:   "",
+			Responder:   "blackhole",
 			CollectSink: false,
 			assert: func(sender harness.SenderReport, sink harness.SinkStats) {
 				gomega.Expect(sender.TotalMessages).To(gomega.Equal(int64(c1EvidenceMessageCount)))
