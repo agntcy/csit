@@ -21,7 +21,7 @@ After build, open:
 Optional:
 
 - **`published/c1-evidence-summary.md`** — C1-only markdown summary
-- **`published/smoke/c1-evidence.json`** — synced Ginkgo assertion report
+- **`published/evidence/c1-evidence.json`** — synced Ginkgo assertion report
 
 ## Build
 
@@ -41,7 +41,7 @@ that assert behavioral proof for each C1 use case (not the benchmark throughput 
 Steps:
 
 1. Run `test:c1-evidence` → writes `reports/c1-evidence.json`
-2. Sync JSON into `published/smoke/`
+2. Sync JSON into `published/evidence/`
 3. Evaluate C1 row status from `c1-evidence.json`
 4. Render `published/index.html`
 
@@ -71,7 +71,7 @@ analitics/
 └── published/                 # generated (gitignored)
     ├── index.html
     ├── c1-evidence-summary.md
-    └── smoke/
+    └── evidence/
 ```
 
 ## Planning references
@@ -87,8 +87,6 @@ C1 use-case status is derived from `reports/c1-evidence.json`
 - `verified` — assertion-based test passed for the mode
 - `failed` — test failed or case reports non-zero errors
 - `unknown` — no case entry for the mode
-
-Falls back to legacy `results.tsv` parsing when the JSON report is absent.
 
 C2/C3 rows use static status until their test evidence is wired into the build flow.
 

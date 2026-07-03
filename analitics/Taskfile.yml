@@ -61,7 +61,7 @@ tasks:
   dashboard:prepare:
     desc: Create analitics publish directories
     cmds:
-      - mkdir -p "{{.PUBLISHED_DIR}}/smoke"
+      - mkdir -p "{{.PUBLISHED_DIR}}/evidence"
 
   dashboard:run:c1-evidence:
     desc: Run C1 Ginkgo evidence tests (assertion-based, not benchmark matrix)
@@ -76,8 +76,9 @@ tasks:
     deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
-        if [ -f "{{.REPORTS_DIR}}/c1-evidence.json" ]; then
-          cp "{{.REPORTS_DIR}}/c1-evidence.json" "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
+          cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
         fi
 
   dashboard:render:
@@ -85,7 +86,8 @@ tasks:
     deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
-        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
         TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
         bash ./scripts/render-dashboard.sh
@@ -95,7 +97,8 @@ tasks:
     deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
-        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
         TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
         bash ./scripts/render-c1-summary.sh
@@ -117,8 +120,9 @@ tasks:
     deps: [dashboard:prepare]
     cmds:
       - |
-        if [ -f "{{.REPORTS_DIR}}/c1-evidence.json" ]; then
-          cp "{{.REPORTS_DIR}}/c1-evidence.json" "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
+          cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
         fi
 
   dashboard:render:only:
@@ -126,7 +130,8 @@ tasks:
     deps: [dashboard:prepare]
     cmds:
       - |
-        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
         TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
         bash ./scripts/render-dashboard.sh
@@ -136,7 +141,8 @@ tasks:
     deps: [dashboard:prepare]
     cmds:
       - |
-        REPORTS_DIR="{{.REPORTS_DIR}}" \
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
         TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
         bash ./scripts/render-c1-summary.sh
@@ -146,7 +152,7 @@ tasks:
     cmds:
       - rm -f "{{.PUBLISHED_DIR}}/index.html"
       - rm -f "{{.PUBLISHED_DIR}}/c1-evidence-summary.md"
-      - rm -f "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
 
   # Backward-compatible aliases
   c1:build:
@@ -156,8 +162,6 @@ tasks:
   test:c1-evidence:
     desc: Run C1 use-case Ginkgo evidence tests (writes reports/c1-evidence.json)
     deps: [deps:slim-bindings-setup, deps:slimctl-download]
-    env:
-      C1_EVIDENCE_REPORT_DIR: '{{.REPORTS_DIR}}'
     cmds:
       - |
         set -euo pipefail
@@ -168,7 +172,9 @@ tasks:
           echo "slimctl not found on PATH after download (expected ./bin/slimctl)" >&2
           exit 1
         fi
-        mkdir -p "{{.REPORTS_DIR}}"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        export C1_EVIDENCE_REPORT_DIR="$REPORTS_ABS"
+        mkdir -p "$REPORTS_ABS"
         go test ./tests -count=1 -v -failfast -test.paniconexit0 \
           --ginkgo.label-filter=c1-evidence \
           --ginkgo.timeout 10m -timeout 10m

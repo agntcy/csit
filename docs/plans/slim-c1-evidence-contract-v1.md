@@ -4,7 +4,10 @@
 **Epic:** [`slim-dashboard-epic.md`](slim-dashboard-epic.md)  
 **Issue:** `slim-c1-scope-and-evidence-contract`
 
-This document locks the three **C1** dashboard rows, the `slim-benchmark-smoke-report` artifact bundle, and per-row metadata sources. Template and Pages work should consume this contract only — do not duplicate field definitions elsewhere.
+This document locks the three **C1** dashboard rows and their evidence sources. The
+**analitics** dashboard (`analitics/published/index.html`) uses only `c1-evidence.json`.
+Benchmark smoke artifacts (`slim-benchmark-smoke-report`) are documented separately below
+for the benchmarks CI/Pages pipeline and are **not** part of analitics.
 
 ---
 
@@ -30,7 +33,7 @@ This document locks the three **C1** dashboard rows, the `slim-benchmark-smoke-r
 | Ginkgo label (benchmark matrix) | `benchmark-suite` (via `scripts/run_suite.sh`) |
 | Smoke matrix (CI) | modes: `request-reply`, `fire-and-forget`, `write`; clients: `1`; size: `16` B; duration: `1s`; repeats: `25` (see `benchmark:ci:suite-smoke` in `benchmarks/agntcy-slim/Taskfile.yml`) |
 
-All three rows share one evidence bundle. Per-row proof is distinguished by **mode** inside that bundle (see [Row metadata](#row-metadata-dashboard-fields)).
+All three rows share the `c1-evidence.json` bundle. Per-row proof is distinguished by **mode** inside that file (see [Row metadata](#row-metadata-dashboard-fields)).
 
 ---
 
@@ -105,23 +108,39 @@ These files **must** be present after a successful smoke job staging step (CI co
 
 ## Row metadata (dashboard fields)
 
-Each C1 row uses the same field set. Values are populated at dashboard build or publish time.
+Each C1 row uses the same field set. Values are populated at analitics dashboard build time.
 
-### Field definitions
+### Analitics dashboard status rules
+
+Apply in order (`analitics/scripts/evidence-lib.sh`):
+
+1. Read `analitics/reports/c1-evidence.json` (or synced `published/evidence/c1-evidence.json`).
+2. For each row, find the case where `mode` matches the row’s mechanism.
+3. Use the case `status` field (`verified`, `failed`, or `unknown` if missing).
+
+No benchmark artifacts (`results.tsv`, `suite_summary.md`, `technical_report.md`) are used by analitics.
+
+### Field definitions (analitics publish)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `row_id` | string | Stable key: `c1-request-reply`, `c1-fire-and-forget`, `c1-write` |
 | `class` | string | Always `C1` |
 | `mode` | string | SLIM mechanism slug: `request-reply`, `fire-and-forget`, `write` |
-| `status` | enum | `verified` \| `failed` \| `unknown` — see [Status rules](#status-rules) |
+| `status` | enum | `verified` \| `failed` \| `unknown` — from `c1-evidence.json` |
+| `evidence_url` | path | `published/evidence/c1-evidence.json` or `published/c1-evidence-summary.md` |
+| `rerun_cmd` | string | `task -t analitics/Taskfile.yml test:c1-evidence` |
+
+### Benchmark smoke status rules (benchmarks CI only)
+
+> Not used by `analitics/`. Retained for `benchmarks/agntcy-slim` and GH Pages benchmark dashboards.
+
+| Field | Type | Description |
+|-------|------|-------------|
 | `last_run` | string | GitHub Actions run ID for workflow `test-slim-benchmarks`, job `slim-benchmark-smoke` |
 | `last_run_url` | URL | `https://github.com/{owner}/{repo}/actions/runs/{run_id}` |
-| `evidence_url` | URL | Primary reader link (Pages); see [URL templates](#url-templates) |
 | `artifact_url` | URL | Fallback: Actions run artifact `slim-benchmark-smoke-report` |
-| `rerun_cmd` | string | `task benchmarks:slim:benchmark:ci:suite-smoke` (after `slimctl` on `PATH`; see epic runbook issue) |
-
-### Status rules
+| `rerun_cmd` | string | `task benchmarks:slim:benchmark:ci:suite-smoke` |
 
 Apply in order:
 
@@ -162,6 +181,16 @@ Published smoke files on Pages (after `publish-test-reports-pages` action):
 ---
 
 ## Per-row source mapping
+
+### Analitics dashboard
+
+| Row ID | `mode` | `status` source | Detail evidence |
+|--------|--------|-----------------|-----------------|
+| `c1-request-reply` | `request-reply` | `c1-evidence.json` case `mode=request-reply` | `published/evidence/c1-evidence.json` |
+| `c1-fire-and-forget` | `fire-and-forget` | `c1-evidence.json` case `mode=fire-and-forget` | same |
+| `c1-write` | `write` | `c1-evidence.json` case `mode=write` | same |
+
+### Benchmark smoke (benchmarks CI / Pages only)
 
 | Row ID | `mode` | `status` sources | Detail evidence |
 |--------|--------|------------------|-----------------|
