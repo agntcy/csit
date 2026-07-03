@@ -27,7 +27,7 @@ jobs:
           suite: a2a-slimrpc
 
   run-tests-a2a-slimrpc:
-    # A2A over SLIMRPC (Go + Python). Starts a pinned Slim data-plane container per matrix row.
+    # A2A over SLIMRPC (Go + Python + .NET + Java). Starts a pinned Slim data-plane container per matrix row.
     needs: detect
     if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
@@ -71,6 +71,34 @@ jobs:
             display-name: .NET→.NET
             task: integrations:a2a-slimrpc:test:dotnet-dotnet
             artifact-name: a2a-slimrpc-test-result-dotnet-dotnet
+          - id: go-java
+            display-name: Go→Java
+            task: integrations:a2a-slimrpc:test:go-java
+            artifact-name: a2a-slimrpc-test-result-go-java
+          - id: python-java
+            display-name: Python→Java
+            task: integrations:a2a-slimrpc:test:python-java
+            artifact-name: a2a-slimrpc-test-result-python-java
+          - id: dotnet-java
+            display-name: .NET→Java
+            task: integrations:a2a-slimrpc:test:dotnet-java
+            artifact-name: a2a-slimrpc-test-result-dotnet-java
+          - id: java-go
+            display-name: Java→Go
+            task: integrations:a2a-slimrpc:test:java-go
+            artifact-name: a2a-slimrpc-test-result-java-go
+          - id: java-python
+            display-name: Java→Python
+            task: integrations:a2a-slimrpc:test:java-python
+            artifact-name: a2a-slimrpc-test-result-java-python
+          - id: java-dotnet
+            display-name: Java→.NET
+            task: integrations:a2a-slimrpc:test:java-dotnet
+            artifact-name: a2a-slimrpc-test-result-java-dotnet
+          - id: java-java
+            display-name: Java→Java
+            task: integrations:a2a-slimrpc:test:java-java
+            artifact-name: a2a-slimrpc-test-result-java-java
 
     name: A2A SLIMRPC ${{ matrix.display-name }}
 
@@ -125,6 +153,8 @@ jobs:
           go-version: "1.25.2"
           dotnet: true
           dotnet-version: "8.0.x"
+          java: true
+          java-version: "21"
 
       - name: Run A2A SLIMRPC ${{ matrix.display-name }} interoperability tests
         id: run-tests

@@ -399,7 +399,66 @@ func interopLanguages() []string {
 	if os.Getenv("CSIT_SLIM_NO_DOTNET") != "1" {
 		langs = append(langs, "dotnet")
 	}
+	if os.Getenv("CSIT_SLIM_NO_JAVA") != "1" {
+		langs = append(langs, "java")
+	}
 	return langs
+}
+
+// slimJavaHome returns the JDK home to use for the Java fixture (build + run).
+// slim-a2a-java targets JDK 21 with --enable-preview; a machine's default java may be a
+// different major (which cannot load the preview class files). Honor CSIT_SLIM_JAVA_HOME,
+// then JAVA_HOME; empty means "trust `java`/`mvn` on PATH".
+func slimJavaHome() string {
+	if v := strings.TrimSpace(os.Getenv("CSIT_SLIM_JAVA_HOME")); v != "" {
+		return v
+	}
+	return strings.TrimSpace(os.Getenv("JAVA_HOME"))
+}
+
+// slimJavaBin resolves the `java` executable from slimJavaHome (falls back to PATH `java`).
+func slimJavaBin() string {
+	if home := slimJavaHome(); home != "" {
+		return filepath.Join(home, "bin", "java")
+	}
+	return "java"
+}
+
+// withJavaHome sets JAVA_HOME on cmd when slimJavaHome is configured, so `mvn` compiles
+// the fixture with the intended JDK 21 rather than the machine default.
+func withJavaHome(cmd *exec.Cmd) {
+	home := slimJavaHome()
+	if home == "" {
+		return
+	}
+	if cmd.Env == nil {
+		cmd.Env = os.Environ()
+	}
+	cmd.Env = appendEnvKV(cmd.Env, "JAVA_HOME", home)
+	cmd.Env = appendEnvKV(cmd.Env, "PATH", filepath.Join(home, "bin")+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+// buildJavaFixture packages the Java fixture (fixtures/java) into a shaded runnable jar and
+// returns its path. Uses `mvn -q -DskipTests package`, which resolves the published
+// io.agntcy.slim:slim-a2a-java from Maven Central (needs network on first run). Set
+// CSIT_SLIM_NO_JAVA=1 to drop the Java axis if no JDK 21 / Maven is available.
+func buildJavaFixture(ctx context.Context, root string) (string, error) {
+	dir := filepath.Join(root, "fixtures", "java")
+	cmd := exec.CommandContext(ctx, "mvn", "-q", "-B", "-DskipTests", "package")
+	cmd.Dir = dir
+	withJavaHome(cmd)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf(
+			"mvn package failed for Java fixture (needs JDK 21 + Maven + network on first run): %w\n%s\n"+
+				"fix: install JDK 21 and Maven (set CSIT_SLIM_JAVA_HOME=/path/to/jdk21), or set CSIT_SLIM_NO_JAVA=1 to skip the Java axis",
+			err, string(out),
+		)
+	}
+	jar := filepath.Join(dir, "target", "csit-slim-a2a-java.jar")
+	if _, err := os.Stat(jar); err != nil {
+		return "", fmt.Errorf("java fixture jar not found after build: %w", err)
+	}
+	return jar, nil
 }
 
 // hasLang reports whether lang is part of this run's matrix.
@@ -699,7 +758,7 @@ func clientIdentity(lang string) string {
 
 func readyMarkerForServer(lang string) string {
 	switch lang {
-	case "go", "python", "dotnet":
+	case "go", "python", "dotnet", "java":
 		return "CSIT_SLIM_SERVER_READY"
 	default:
 		return "CSIT_SLIM_SERVER_READY"
@@ -760,6 +819,20 @@ func startServer(ctx context.Context, lang, slimURL, secret string, assets *fixt
 			return nil, err
 		}
 		return cmd, nil
+	case "java":
+		// Shaded jar; --enable-preview because slim-a2a-java is compiled with preview features.
+		cmd := exec.CommandContext(ctx, slimJavaBin(), "--enable-preview", "-jar", assets.javaJar,
+			"server",
+			"--slim-endpoint", slimURL,
+			"--identity", srvID,
+			"--secret", secret,
+		)
+		cmd.Stdout = outW
+		cmd.Stderr = errW
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+		return cmd, nil
 	default:
 		return nil, fmt.Errorf("unknown server language %q", lang)
 	}
@@ -807,6 +880,18 @@ func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID, 
 		)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
+	case "java":
+		cmd := exec.CommandContext(ctx, slimJavaBin(), "--enable-preview", "-jar", assets.javaJar,
+			"probe",
+			"--slim-endpoint", slimURL,
+			"--local", local,
+			"--remote", remoteServerID,
+			"--secret", secret,
+			"--scenario", scenario,
+			"--text", text,
+		)
+		out, err := cmd.CombinedOutput()
+		return string(out), err
 	default:
 		return "", fmt.Errorf("unknown client language %q", clientLang)
 	}
@@ -818,6 +903,7 @@ type fixtureAssets struct {
 	pythonBin        string
 	pythonFixtureDir string
 	dotnetDLL        string // built csit-slim-a2a.dll, run via `dotnet <dll> server|probe`
+	javaJar          string // shaded csit-slim-a2a-java.jar, run via `java --enable-preview -jar <jar> server|probe`
 }
 
 var errStoppedEarly = errors.New("server exited before ready")

@@ -66,6 +66,13 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 		assets.dotnetDLL = dll
 	}
+	if hasLang("java") {
+		jar, err := buildJavaFixture(buildCtx, root)
+		if err != nil {
+			ginkgo.Fail(err.Error())
+		}
+		assets.javaJar = jar
+	}
 	sharedAssets = assets
 })
 

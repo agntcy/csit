@@ -44,6 +44,15 @@ inputs:
     required: false
     default: '8.0.x'
 
+  java:
+    description: 'Install a JDK (Temurin) + Maven cache; sets JAVA_HOME'
+    required: false
+    default: 'false'
+  java-version:
+    description: 'JDK version to install'
+    required: false
+    default: '21'
+
 runs:
   using: 'composite'
   steps:
@@ -76,6 +85,14 @@ runs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Setup Java
+      if: ${{ inputs.java == 'true' }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: maven
 
     - name: Update GITHUB_PATH
       shell: bash
