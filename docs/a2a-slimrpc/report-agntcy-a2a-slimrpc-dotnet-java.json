@@ -12,17 +12,17 @@
       "TotalSpecs": 176,
       "SpecsThatWillRun": 11
     },
-    "StartTime": "2026-07-03T11:59:50.602602702Z",
-    "EndTime": "2026-07-03T12:01:07.601134524Z",
-    "RunTime": 76998531822,
+    "StartTime": "2026-07-03T11:59:46.302831951Z",
+    "EndTime": "2026-07-03T12:01:13.800871599Z",
+    "RunTime": 87498039657,
     "SuiteConfig": {
-      "RandomSeed": 1783079990,
+      "RandomSeed": 1783079986,
       "RandomizeAllSpecs": false,
       "FocusStrings": null,
       "SkipStrings": null,
       "FocusFiles": null,
       "SkipFiles": null,
-      "LabelFilter": "suite-slim-a2a \u0026\u0026 pair-dotnet-go",
+      "LabelFilter": "suite-slim-a2a \u0026\u0026 pair-dotnet-java",
       "SemVerFilter": "",
       "FailOnPending": false,
       "FailOnEmpty": false,
@@ -57,9 +57,9 @@
         "LeafNodeSemVerConstraints": null,
         "LeafNodeText": "",
         "State": "passed",
-        "StartTime": "2026-07-03T11:59:50.60270275Z",
-        "EndTime": "2026-07-03T12:01:00.59422025Z",
-        "RunTime": 69991517500,
+        "StartTime": "2026-07-03T11:59:46.302933161Z",
+        "EndTime": "2026-07-03T12:00:48.832954155Z",
+        "RunTime": 62530020964,
         "ParallelProcess": 1,
         "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
@@ -73,7 +73,7 @@
             },
             "TimelineLocation": {
               "Order": 1,
-              "Time": "2026-07-03T11:59:50.602703982Z"
+              "Time": "2026-07-03T11:59:46.302934674Z"
             },
             "Message": "TOP-LEVEL",
             "NodeType": "BeforeSuite"
@@ -86,10 +86,10 @@
             },
             "TimelineLocation": {
               "Order": 3,
-              "Time": "2026-07-03T12:01:00.594215501Z"
+              "Time": "2026-07-03T12:00:48.832950568Z"
             },
             "Message": "TOP-LEVEL",
-            "Duration": 69991511550,
+            "Duration": 62530015894,
             "NodeType": "BeforeSuite"
           }
         ]
@@ -130,7 +130,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server go and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594560317Z",
+        "StartTime": "2026-07-03T12:00:48.833246123Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -174,7 +174,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server go and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594582309Z",
+        "StartTime": "2026-07-03T12:00:48.8332659Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -218,7 +218,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server go and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594592347Z",
+        "StartTime": "2026-07-03T12:00:48.833274216Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -262,7 +262,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server go and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594600002Z",
+        "StartTime": "2026-07-03T12:00:48.833280217Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -306,7 +306,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the message-only response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594608327Z",
+        "StartTime": "2026-07-03T12:00:48.833286349Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -350,7 +350,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-failure response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594616342Z",
+        "StartTime": "2026-07-03T12:00:48.83329252Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -394,7 +394,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the input-required response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594624357Z",
+        "StartTime": "2026-07-03T12:00:48.83329786Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -438,7 +438,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the streaming response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.59463133Z",
+        "StartTime": "2026-07-03T12:00:48.833303301Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -482,7 +482,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-cancel response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.59464205Z",
+        "StartTime": "2026-07-03T12:00:48.833310624Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -526,7 +526,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the multi-turn response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594653732Z",
+        "StartTime": "2026-07-03T12:00:48.833323038Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -569,7 +569,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes a completed task with an echoed artifact from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594661778Z",
+        "StartTime": "2026-07-03T12:00:48.833328398Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -613,7 +613,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server go and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594669652Z",
+        "StartTime": "2026-07-03T12:00:48.833333888Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -657,7 +657,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server go and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594677307Z",
+        "StartTime": "2026-07-03T12:00:48.833339759Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -701,7 +701,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server go and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594686073Z",
+        "StartTime": "2026-07-03T12:00:48.83334568Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -745,7 +745,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server go and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594693577Z",
+        "StartTime": "2026-07-03T12:00:48.833359366Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -789,7 +789,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the message-only response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594700841Z",
+        "StartTime": "2026-07-03T12:00:48.833366028Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -833,7 +833,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-failure response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594729634Z",
+        "StartTime": "2026-07-03T12:00:48.8333935Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -877,7 +877,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the input-required response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594742619Z",
+        "StartTime": "2026-07-03T12:00:48.833402327Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -921,7 +921,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the streaming response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594749221Z",
+        "StartTime": "2026-07-03T12:00:48.833406695Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -965,7 +965,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-cancel response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594755714Z",
+        "StartTime": "2026-07-03T12:00:48.833410351Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -1009,7 +1009,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the multi-turn response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594762055Z",
+        "StartTime": "2026-07-03T12:00:48.833413798Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -1052,7 +1052,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes a completed task with an echoed artifact from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:00.594768547Z",
+        "StartTime": "2026-07-03T12:00:48.833421873Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -1095,97 +1095,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server go and echoes the ascii payload",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:00.594821046Z",
-        "EndTime": "2026-07-03T12:01:03.174435327Z",
-        "RunTime": 2579614281,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833432413Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 4,
-              "Time": "2026-07-03T12:01:00.594885617Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 6,
-              "Time": "2026-07-03T12:01:00.595209554Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 323937,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 7,
-              "Time": "2026-07-03T12:01:00.595211357Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the ascii payload",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 9,
-              "Time": "2026-07-03T12:01:03.171942727Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the ascii payload",
-            "Duration": 2576731371,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 10,
-              "Time": "2026-07-03T12:01:03.171952636Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 12,
-              "Time": "2026-07-03T12:01:03.174432372Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 2479746,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1222,97 +1139,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server go and echoes the unicode payload",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:03.174519855Z",
-        "EndTime": "2026-07-03T12:01:03.64160712Z",
-        "RunTime": 467087264,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833438645Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 13,
-              "Time": "2026-07-03T12:01:03.174523262Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 15,
-              "Time": "2026-07-03T12:01:03.175252849Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 729597,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 16,
-              "Time": "2026-07-03T12:01:03.175257127Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the unicode payload",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 18,
-              "Time": "2026-07-03T12:01:03.640134321Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the unicode payload",
-            "Duration": 464877184,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 19,
-              "Time": "2026-07-03T12:01:03.640141804Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 21,
-              "Time": "2026-07-03T12:01:03.641603683Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1461878,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1349,97 +1183,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server go and echoes the symbols payload",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:03.641780525Z",
-        "EndTime": "2026-07-03T12:01:04.109457068Z",
-        "RunTime": 467676523,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833443023Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 22,
-              "Time": "2026-07-03T12:01:03.641784592Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 24,
-              "Time": "2026-07-03T12:01:03.642360261Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 575659,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 25,
-              "Time": "2026-07-03T12:01:03.642362415Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the symbols payload",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 27,
-              "Time": "2026-07-03T12:01:04.107922162Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the symbols payload",
-            "Duration": 465559758,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 28,
-              "Time": "2026-07-03T12:01:04.107930778Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 30,
-              "Time": "2026-07-03T12:01:04.109454313Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1523534,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1476,97 +1227,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server go and echoes the long payload",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:04.109561163Z",
-        "EndTime": "2026-07-03T12:01:04.562965446Z",
-        "RunTime": 453404273,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833446209Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 31,
-              "Time": "2026-07-03T12:01:04.109565541Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 33,
-              "Time": "2026-07-03T12:01:04.109984035Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 418504,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 34,
-              "Time": "2026-07-03T12:01:04.109987722Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the long payload",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 101
-            },
-            "TimelineLocation": {
-              "Order": 36,
-              "Time": "2026-07-03T12:01:04.561427234Z"
-            },
-            "Message": "SLIMRPC client dotnet calls server go and echoes the long payload",
-            "Duration": 451439512,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 37,
-              "Time": "2026-07-03T12:01:04.561435449Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 39,
-              "Time": "2026-07-03T12:01:04.562963241Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1527793,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1603,97 +1271,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the message-only response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:04.563198141Z",
-        "EndTime": "2026-07-03T12:01:04.981136297Z",
-        "RunTime": 417938155,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833450016Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 40,
-              "Time": "2026-07-03T12:01:04.563201338Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 42,
-              "Time": "2026-07-03T12:01:04.563685573Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 484235,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 43,
-              "Time": "2026-07-03T12:01:04.563687847Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the message-only response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 45,
-              "Time": "2026-07-03T12:01:04.979574401Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the message-only response from server go",
-            "Duration": 415886554,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 46,
-              "Time": "2026-07-03T12:01:04.979581995Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 48,
-              "Time": "2026-07-03T12:01:04.981133612Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1551627,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1730,97 +1315,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-failure response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:04.981246143Z",
-        "EndTime": "2026-07-03T12:01:05.388777848Z",
-        "RunTime": 407531715,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833453342Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 49,
-              "Time": "2026-07-03T12:01:04.981251914Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 51,
-              "Time": "2026-07-03T12:01:04.981479523Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 227649,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 52,
-              "Time": "2026-07-03T12:01:04.981481988Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the task-failure response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 54,
-              "Time": "2026-07-03T12:01:05.38735369Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the task-failure response from server go",
-            "Duration": 405871693,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 55,
-              "Time": "2026-07-03T12:01:05.387361404Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 57,
-              "Time": "2026-07-03T12:01:05.388774822Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1413428,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1857,97 +1359,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the input-required response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:05.388878597Z",
-        "EndTime": "2026-07-03T12:01:05.804604243Z",
-        "RunTime": 415725636,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833456718Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 58,
-              "Time": "2026-07-03T12:01:05.388882424Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 60,
-              "Time": "2026-07-03T12:01:05.389242589Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 360165,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 61,
-              "Time": "2026-07-03T12:01:05.389245053Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the input-required response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 63,
-              "Time": "2026-07-03T12:01:05.803179092Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the input-required response from server go",
-            "Duration": 413934049,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 64,
-              "Time": "2026-07-03T12:01:05.803186816Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 66,
-              "Time": "2026-07-03T12:01:05.804601798Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1414981,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -1984,97 +1403,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the streaming response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:05.8046667Z",
-        "EndTime": "2026-07-03T12:01:06.217970617Z",
-        "RunTime": 413303927,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833459985Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 67,
-              "Time": "2026-07-03T12:01:05.80467189Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 69,
-              "Time": "2026-07-03T12:01:05.805033019Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 361130,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 70,
-              "Time": "2026-07-03T12:01:05.805036896Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the streaming response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 72,
-              "Time": "2026-07-03T12:01:06.216310918Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the streaming response from server go",
-            "Duration": 411274022,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 73,
-              "Time": "2026-07-03T12:01:06.216318583Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 75,
-              "Time": "2026-07-03T12:01:06.217967731Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1649148,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -2111,97 +1447,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-cancel response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:06.21812181Z",
-        "EndTime": "2026-07-03T12:01:06.706005835Z",
-        "RunTime": 487884024,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833463481Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 76,
-              "Time": "2026-07-03T12:01:06.218125958Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 78,
-              "Time": "2026-07-03T12:01:06.2183465Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 220543,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 79,
-              "Time": "2026-07-03T12:01:06.218349757Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the task-cancel response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 81,
-              "Time": "2026-07-03T12:01:06.704036865Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the task-cancel response from server go",
-            "Duration": 485687109,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 82,
-              "Time": "2026-07-03T12:01:06.7040449Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 84,
-              "Time": "2026-07-03T12:01:06.706002368Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1957468,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -2238,97 +1491,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the multi-turn response from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:06.706098197Z",
-        "EndTime": "2026-07-03T12:01:07.189618137Z",
-        "RunTime": 483519939,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.833466727Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 85,
-              "Time": "2026-07-03T12:01:06.706101975Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 87,
-              "Time": "2026-07-03T12:01:06.706380236Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 278251,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 88,
-              "Time": "2026-07-03T12:01:06.706383272Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the multi-turn response from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 116
-            },
-            "TimelineLocation": {
-              "Order": 90,
-              "Time": "2026-07-03T12:01:07.188021685Z"
-            },
-            "Message": "SLIMRPC client dotnet observes the multi-turn response from server go",
-            "Duration": 481638414,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 91,
-              "Time": "2026-07-03T12:01:07.18802958Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 93,
-              "Time": "2026-07-03T12:01:07.189615452Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1585882,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -2364,97 +1534,14 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server go",
-        "State": "passed",
-        "StartTime": "2026-07-03T12:01:07.189732892Z",
-        "EndTime": "2026-07-03T12:01:07.599688903Z",
-        "RunTime": 409956011,
+        "State": "skipped",
+        "StartTime": "2026-07-03T12:00:48.83347339Z",
+        "EndTime": "0001-01-01T00:00:00Z",
+        "RunTime": 0,
         "ParallelProcess": 1,
-        "NumAttempts": 1,
+        "NumAttempts": 0,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0,
-        "SpecEvents": [
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 94,
-              "Time": "2026-07-03T12:01:07.189737521Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 82
-            },
-            "TimelineLocation": {
-              "Order": 96,
-              "Time": "2026-07-03T12:01:07.190187114Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 449643,
-            "NodeType": "BeforeEach"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 146
-            },
-            "TimelineLocation": {
-              "Order": 97,
-              "Time": "2026-07-03T12:01:07.190189308Z"
-            },
-            "Message": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server go",
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 146
-            },
-            "TimelineLocation": {
-              "Order": 99,
-              "Time": "2026-07-03T12:01:07.598263284Z"
-            },
-            "Message": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server go",
-            "Duration": 408073966,
-            "NodeType": "It"
-          },
-          {
-            "SpecEventType": "Node",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 100,
-              "Time": "2026-07-03T12:01:07.598271659Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "NodeType": "DeferCleanup (Each)"
-          },
-          {
-            "SpecEventType": "Node (End)",
-            "CodeLocation": {
-              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
-              "LineNumber": 183
-            },
-            "TimelineLocation": {
-              "Order": 102,
-              "Time": "2026-07-03T12:01:07.599685777Z"
-            },
-            "Message": "A2A SLIMRPC interoperability",
-            "Duration": 1414138,
-            "NodeType": "DeferCleanup (Each)"
-          }
-        ]
+        "MaxMustPassRepeatedly": 0
       },
       {
         "ContainerHierarchyTexts": [
@@ -2492,7 +1579,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server go and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.59974067Z",
+        "StartTime": "2026-07-03T12:00:48.833486164Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2536,7 +1623,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server go and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599760337Z",
+        "StartTime": "2026-07-03T12:00:48.833503326Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2580,7 +1667,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server go and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599770235Z",
+        "StartTime": "2026-07-03T12:00:48.833514457Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2624,7 +1711,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server go and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599777379Z",
+        "StartTime": "2026-07-03T12:00:48.833518655Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2668,7 +1755,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the message-only response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.59978366Z",
+        "StartTime": "2026-07-03T12:00:48.833525908Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2712,7 +1799,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-failure response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599790133Z",
+        "StartTime": "2026-07-03T12:00:48.833534825Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2756,7 +1843,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the input-required response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599797757Z",
+        "StartTime": "2026-07-03T12:00:48.833541478Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2800,7 +1887,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the streaming response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599804089Z",
+        "StartTime": "2026-07-03T12:00:48.833549323Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2844,7 +1931,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-cancel response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599810341Z",
+        "StartTime": "2026-07-03T12:00:48.833554863Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2888,7 +1975,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the multi-turn response from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599816612Z",
+        "StartTime": "2026-07-03T12:00:48.833560724Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2931,7 +2018,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes a completed task with an echoed artifact from server go",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599824457Z",
+        "StartTime": "2026-07-03T12:00:48.833598425Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -2975,7 +2062,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server python and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599903455Z",
+        "StartTime": "2026-07-03T12:00:48.833603234Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3019,7 +2106,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server python and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599916209Z",
+        "StartTime": "2026-07-03T12:00:48.833615957Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3063,7 +2150,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server python and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599922601Z",
+        "StartTime": "2026-07-03T12:00:48.833643199Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3107,7 +2194,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server python and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599928001Z",
+        "StartTime": "2026-07-03T12:00:48.833655592Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3151,7 +2238,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the message-only response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599934683Z",
+        "StartTime": "2026-07-03T12:00:48.833661133Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3195,7 +2282,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-failure response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599944642Z",
+        "StartTime": "2026-07-03T12:00:48.833669117Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3239,7 +2326,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the input-required response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599950473Z",
+        "StartTime": "2026-07-03T12:00:48.833675459Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3283,7 +2370,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the streaming response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599960852Z",
+        "StartTime": "2026-07-03T12:00:48.833681932Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3327,7 +2414,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-cancel response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599972134Z",
+        "StartTime": "2026-07-03T12:00:48.833693824Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3371,7 +2458,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the multi-turn response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599978706Z",
+        "StartTime": "2026-07-03T12:00:48.833699675Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3414,7 +2501,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes a completed task with an echoed artifact from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599983305Z",
+        "StartTime": "2026-07-03T12:00:48.833703642Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3458,7 +2545,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server python and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599992803Z",
+        "StartTime": "2026-07-03T12:00:48.833707529Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3502,7 +2589,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server python and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.599999385Z",
+        "StartTime": "2026-07-03T12:00:48.833716296Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3546,7 +2633,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server python and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600004715Z",
+        "StartTime": "2026-07-03T12:00:48.833722117Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3590,7 +2677,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server python and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600009955Z",
+        "StartTime": "2026-07-03T12:00:48.833728028Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3634,7 +2721,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the message-only response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600019212Z",
+        "StartTime": "2026-07-03T12:00:48.833735302Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3678,7 +2765,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-failure response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600025083Z",
+        "StartTime": "2026-07-03T12:00:48.833745651Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3722,7 +2809,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the input-required response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600030503Z",
+        "StartTime": "2026-07-03T12:00:48.833754979Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3766,7 +2853,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the streaming response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600035613Z",
+        "StartTime": "2026-07-03T12:00:48.833764897Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3810,7 +2897,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-cancel response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600040702Z",
+        "StartTime": "2026-07-03T12:00:48.833770137Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3854,7 +2941,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the multi-turn response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600046353Z",
+        "StartTime": "2026-07-03T12:00:48.833778493Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3897,7 +2984,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes a completed task with an echoed artifact from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600051452Z",
+        "StartTime": "2026-07-03T12:00:48.833788331Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3941,7 +3028,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server python and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600056311Z",
+        "StartTime": "2026-07-03T12:00:48.833793541Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -3985,7 +3072,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server python and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600064747Z",
+        "StartTime": "2026-07-03T12:00:48.833804291Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4029,7 +3116,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server python and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600069877Z",
+        "StartTime": "2026-07-03T12:00:48.833811635Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4073,7 +3160,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server python and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600089894Z",
+        "StartTime": "2026-07-03T12:00:48.833870676Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4117,7 +3204,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the message-only response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600105804Z",
+        "StartTime": "2026-07-03T12:00:48.833882729Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4161,7 +3248,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-failure response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600112256Z",
+        "StartTime": "2026-07-03T12:00:48.833886476Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4205,7 +3292,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the input-required response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600118037Z",
+        "StartTime": "2026-07-03T12:00:48.833892327Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4249,7 +3336,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the streaming response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60013014Z",
+        "StartTime": "2026-07-03T12:00:48.833901434Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4293,7 +3380,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-cancel response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600136782Z",
+        "StartTime": "2026-07-03T12:00:48.833908627Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4337,7 +3424,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the multi-turn response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600143244Z",
+        "StartTime": "2026-07-03T12:00:48.833914959Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4380,7 +3467,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600149165Z",
+        "StartTime": "2026-07-03T12:00:48.833925769Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4424,7 +3511,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server python and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600156209Z",
+        "StartTime": "2026-07-03T12:00:48.833929356Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4468,7 +3555,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server python and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600178019Z",
+        "StartTime": "2026-07-03T12:00:48.833932913Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4512,7 +3599,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server python and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600184351Z",
+        "StartTime": "2026-07-03T12:00:48.833936209Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4556,7 +3643,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server python and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600189982Z",
+        "StartTime": "2026-07-03T12:00:48.833939656Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4600,7 +3687,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the message-only response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600196614Z",
+        "StartTime": "2026-07-03T12:00:48.833943403Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4644,7 +3731,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-failure response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600202215Z",
+        "StartTime": "2026-07-03T12:00:48.833946699Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4688,7 +3775,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the input-required response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600207515Z",
+        "StartTime": "2026-07-03T12:00:48.833958531Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4732,7 +3819,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the streaming response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600212865Z",
+        "StartTime": "2026-07-03T12:00:48.833964352Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4776,7 +3863,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-cancel response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600219247Z",
+        "StartTime": "2026-07-03T12:00:48.833970874Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4820,7 +3907,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the multi-turn response from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600227933Z",
+        "StartTime": "2026-07-03T12:00:48.833975553Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4863,7 +3950,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes a completed task with an echoed artifact from server python",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600233544Z",
+        "StartTime": "2026-07-03T12:00:48.83397938Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4907,7 +3994,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server dotnet and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600239354Z",
+        "StartTime": "2026-07-03T12:00:48.833982776Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4951,7 +4038,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server dotnet and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600245316Z",
+        "StartTime": "2026-07-03T12:00:48.833986343Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -4995,7 +4082,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server dotnet and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600251958Z",
+        "StartTime": "2026-07-03T12:00:48.833989719Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5039,7 +4126,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server dotnet and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600257328Z",
+        "StartTime": "2026-07-03T12:00:48.833993066Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5083,7 +4170,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the message-only response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600266125Z",
+        "StartTime": "2026-07-03T12:00:48.833996432Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5127,7 +4214,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-failure response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600272246Z",
+        "StartTime": "2026-07-03T12:00:48.83400059Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5171,7 +4258,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the input-required response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600279119Z",
+        "StartTime": "2026-07-03T12:00:48.834003876Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5215,7 +4302,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the streaming response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600288857Z",
+        "StartTime": "2026-07-03T12:00:48.834007252Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5259,7 +4346,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-cancel response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600294959Z",
+        "StartTime": "2026-07-03T12:00:48.834011951Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5303,7 +4390,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the multi-turn response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600301491Z",
+        "StartTime": "2026-07-03T12:00:48.834037128Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5346,7 +4433,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes a completed task with an echoed artifact from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60031164Z",
+        "StartTime": "2026-07-03T12:00:48.834044492Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5390,7 +4477,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server dotnet and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600317872Z",
+        "StartTime": "2026-07-03T12:00:48.834050714Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5434,7 +4521,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server dotnet and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600330786Z",
+        "StartTime": "2026-07-03T12:00:48.834056856Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5478,7 +4565,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server dotnet and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600345453Z",
+        "StartTime": "2026-07-03T12:00:48.834064009Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5522,7 +4609,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server dotnet and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600353619Z",
+        "StartTime": "2026-07-03T12:00:48.834070621Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5566,7 +4653,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the message-only response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.6003595Z",
+        "StartTime": "2026-07-03T12:00:48.834073988Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5610,7 +4697,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-failure response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60037037Z",
+        "StartTime": "2026-07-03T12:00:48.834077444Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5654,7 +4741,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the input-required response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600377123Z",
+        "StartTime": "2026-07-03T12:00:48.834080781Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5698,7 +4785,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the streaming response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600388113Z",
+        "StartTime": "2026-07-03T12:00:48.834084367Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5742,7 +4829,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-cancel response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600394315Z",
+        "StartTime": "2026-07-03T12:00:48.834087643Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5786,7 +4873,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the multi-turn response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600404294Z",
+        "StartTime": "2026-07-03T12:00:48.834091Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5829,7 +4916,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes a completed task with an echoed artifact from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600410565Z",
+        "StartTime": "2026-07-03T12:00:48.834094406Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5873,7 +4960,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server dotnet and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600416486Z",
+        "StartTime": "2026-07-03T12:00:48.834098033Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5917,7 +5004,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server dotnet and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600422618Z",
+        "StartTime": "2026-07-03T12:00:48.834101269Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -5961,7 +5048,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server dotnet and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600431665Z",
+        "StartTime": "2026-07-03T12:00:48.834104545Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6005,7 +5092,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server dotnet and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600437646Z",
+        "StartTime": "2026-07-03T12:00:48.834107781Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6049,7 +5136,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the message-only response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600443507Z",
+        "StartTime": "2026-07-03T12:00:48.834111308Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6093,7 +5180,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-failure response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.6004506Z",
+        "StartTime": "2026-07-03T12:00:48.834114784Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6137,7 +5224,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the input-required response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60046106Z",
+        "StartTime": "2026-07-03T12:00:48.834118111Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6181,7 +5268,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the streaming response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600467061Z",
+        "StartTime": "2026-07-03T12:00:48.834121367Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6225,7 +5312,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-cancel response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600472922Z",
+        "StartTime": "2026-07-03T12:00:48.834124923Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6269,7 +5356,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the multi-turn response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600483271Z",
+        "StartTime": "2026-07-03T12:00:48.834128219Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6312,7 +5399,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600489393Z",
+        "StartTime": "2026-07-03T12:00:48.834131496Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6356,7 +5443,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server dotnet and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600495815Z",
+        "StartTime": "2026-07-03T12:00:48.834134782Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6400,7 +5487,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server dotnet and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600505283Z",
+        "StartTime": "2026-07-03T12:00:48.834138098Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6444,7 +5531,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server dotnet and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600512436Z",
+        "StartTime": "2026-07-03T12:00:48.834148408Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6488,7 +5575,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server dotnet and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600522345Z",
+        "StartTime": "2026-07-03T12:00:48.834159228Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6532,7 +5619,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the message-only response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600527665Z",
+        "StartTime": "2026-07-03T12:00:48.834165279Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6576,7 +5663,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-failure response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600532985Z",
+        "StartTime": "2026-07-03T12:00:48.834171501Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6620,7 +5707,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the input-required response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600539287Z",
+        "StartTime": "2026-07-03T12:00:48.834178524Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6664,7 +5751,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the streaming response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600568551Z",
+        "StartTime": "2026-07-03T12:00:48.834187461Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6708,7 +5795,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-cancel response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600575515Z",
+        "StartTime": "2026-07-03T12:00:48.834193221Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6752,7 +5839,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the multi-turn response from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600582417Z",
+        "StartTime": "2026-07-03T12:00:48.834200235Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6795,7 +5882,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes a completed task with an echoed artifact from server dotnet",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600592717Z",
+        "StartTime": "2026-07-03T12:00:48.834211746Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6839,7 +5926,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server java and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60060003Z",
+        "StartTime": "2026-07-03T12:00:48.834216104Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6883,7 +5970,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server java and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600606763Z",
+        "StartTime": "2026-07-03T12:00:48.834223518Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6927,7 +6014,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server java and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60061563Z",
+        "StartTime": "2026-07-03T12:00:48.834233748Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -6971,7 +6058,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go calls server java and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600621601Z",
+        "StartTime": "2026-07-03T12:00:48.834239949Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7015,7 +6102,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the message-only response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600628213Z",
+        "StartTime": "2026-07-03T12:00:48.834251811Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7059,7 +6146,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-failure response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600636939Z",
+        "StartTime": "2026-07-03T12:00:48.834258073Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7103,7 +6190,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the input-required response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600643752Z",
+        "StartTime": "2026-07-03T12:00:48.834265477Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7147,7 +6234,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the streaming response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600788904Z",
+        "StartTime": "2026-07-03T12:00:48.834318236Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7191,7 +6278,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the task-cancel response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600810525Z",
+        "StartTime": "2026-07-03T12:00:48.834327905Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7235,7 +6322,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes the multi-turn response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600817468Z",
+        "StartTime": "2026-07-03T12:00:48.834331802Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7278,7 +6365,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client go observes a completed task with an echoed artifact from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600822147Z",
+        "StartTime": "2026-07-03T12:00:48.834335449Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7322,7 +6409,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server java and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600825423Z",
+        "StartTime": "2026-07-03T12:00:48.834338945Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7366,7 +6453,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server java and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60082913Z",
+        "StartTime": "2026-07-03T12:00:48.834342752Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7410,7 +6497,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server java and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600832636Z",
+        "StartTime": "2026-07-03T12:00:48.834351148Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7454,7 +6541,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python calls server java and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600944758Z",
+        "StartTime": "2026-07-03T12:00:48.834360616Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7498,7 +6585,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the message-only response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600960979Z",
+        "StartTime": "2026-07-03T12:00:48.834366517Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7542,7 +6629,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-failure response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600969986Z",
+        "StartTime": "2026-07-03T12:00:48.834376356Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7586,7 +6673,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the input-required response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600976468Z",
+        "StartTime": "2026-07-03T12:00:48.834385833Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7630,7 +6717,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the streaming response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600987128Z",
+        "StartTime": "2026-07-03T12:00:48.834390101Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7674,7 +6761,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the task-cancel response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600993981Z",
+        "StartTime": "2026-07-03T12:00:48.834398567Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7718,7 +6805,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes the multi-turn response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.600999741Z",
+        "StartTime": "2026-07-03T12:00:48.834408636Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7761,7 +6848,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client python observes a completed task with an echoed artifact from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601006043Z",
+        "StartTime": "2026-07-03T12:00:48.834412694Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -7804,14 +6891,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server java and echoes the ascii payload",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601011564Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:00:48.834459241Z",
+        "EndTime": "2026-07-03T12:00:54.752483302Z",
+        "RunTime": 5918024061,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 4,
+              "Time": "2026-07-03T12:00:48.834475943Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 6,
+              "Time": "2026-07-03T12:00:48.834837812Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 361979,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 7,
+              "Time": "2026-07-03T12:00:48.834882977Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the ascii payload",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 9,
+              "Time": "2026-07-03T12:00:54.422202161Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the ascii payload",
+            "Duration": 5587319184,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 10,
+              "Time": "2026-07-03T12:00:54.422210276Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 12,
+              "Time": "2026-07-03T12:00:54.75247654Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330266264,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -7848,14 +7018,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server java and echoes the unicode payload",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601017365Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:00:54.752592086Z",
+        "EndTime": "2026-07-03T12:00:56.591515448Z",
+        "RunTime": 1838923341,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 13,
+              "Time": "2026-07-03T12:00:54.75259921Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 15,
+              "Time": "2026-07-03T12:00:54.75285471Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 255499,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 16,
+              "Time": "2026-07-03T12:00:54.752856904Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the unicode payload",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 18,
+              "Time": "2026-07-03T12:00:56.259609935Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the unicode payload",
+            "Duration": 1506753021,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 19,
+              "Time": "2026-07-03T12:00:56.25961769Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 21,
+              "Time": "2026-07-03T12:00:56.591509296Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 331891616,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -7892,14 +7145,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server java and echoes the symbols payload",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601022865Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:00:56.591617309Z",
+        "EndTime": "2026-07-03T12:00:58.423360009Z",
+        "RunTime": 1831742700,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 22,
+              "Time": "2026-07-03T12:00:56.591621286Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 24,
+              "Time": "2026-07-03T12:00:56.591931502Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 310216,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 25,
+              "Time": "2026-07-03T12:00:56.59197326Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the symbols payload",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 27,
+              "Time": "2026-07-03T12:00:58.092792109Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the symbols payload",
+            "Duration": 1500818849,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 28,
+              "Time": "2026-07-03T12:00:58.092800034Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 30,
+              "Time": "2026-07-03T12:00:58.423352896Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330552862,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -7936,14 +7272,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet calls server java and echoes the long payload",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601029187Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:00:58.42342429Z",
+        "EndTime": "2026-07-03T12:01:00.248076812Z",
+        "RunTime": 1824652532,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 31,
+              "Time": "2026-07-03T12:00:58.423428067Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 33,
+              "Time": "2026-07-03T12:00:58.423716659Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 288582,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 34,
+              "Time": "2026-07-03T12:00:58.423718552Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the long payload",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 101
+            },
+            "TimelineLocation": {
+              "Order": 36,
+              "Time": "2026-07-03T12:00:59.917301906Z"
+            },
+            "Message": "SLIMRPC client dotnet calls server java and echoes the long payload",
+            "Duration": 1493583364,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 37,
+              "Time": "2026-07-03T12:00:59.917651881Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 39,
+              "Time": "2026-07-03T12:01:00.24807052Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330418639,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -7980,14 +7399,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the message-only response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601034557Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:00.248166951Z",
+        "EndTime": "2026-07-03T12:01:01.906752317Z",
+        "RunTime": 1658585366,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 40,
+              "Time": "2026-07-03T12:01:00.248172121Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 42,
+              "Time": "2026-07-03T12:01:00.248628628Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 456507,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 43,
+              "Time": "2026-07-03T12:01:00.248631754Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the message-only response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 45,
+              "Time": "2026-07-03T12:01:01.577608572Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the message-only response from server java",
+            "Duration": 1328976818,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 46,
+              "Time": "2026-07-03T12:01:01.577616677Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 48,
+              "Time": "2026-07-03T12:01:01.906747638Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 329130971,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8024,14 +7526,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-failure response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601040177Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:01.9068236Z",
+        "EndTime": "2026-07-03T12:01:03.721979237Z",
+        "RunTime": 1815155727,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 49,
+              "Time": "2026-07-03T12:01:01.906843027Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 51,
+              "Time": "2026-07-03T12:01:01.907131629Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 288592,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 52,
+              "Time": "2026-07-03T12:01:01.907136127Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the task-failure response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 54,
+              "Time": "2026-07-03T12:01:03.392129309Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the task-failure response from server java",
+            "Duration": 1484993192,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 55,
+              "Time": "2026-07-03T12:01:03.392138957Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 57,
+              "Time": "2026-07-03T12:01:03.721973486Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 329834530,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8068,14 +7653,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the input-required response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601045738Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:03.72205523Z",
+        "EndTime": "2026-07-03T12:01:05.92662991Z",
+        "RunTime": 2204574670,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 58,
+              "Time": "2026-07-03T12:01:03.722058807Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 60,
+              "Time": "2026-07-03T12:01:03.72232139Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 262593,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 61,
+              "Time": "2026-07-03T12:01:03.722323454Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the input-required response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 63,
+              "Time": "2026-07-03T12:01:05.596385941Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the input-required response from server java",
+            "Duration": 1874062487,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 64,
+              "Time": "2026-07-03T12:01:05.596393786Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 66,
+              "Time": "2026-07-03T12:01:05.926623959Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330230193,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8112,14 +7780,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the streaming response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601051709Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:05.926719038Z",
+        "EndTime": "2026-07-03T12:01:07.763150504Z",
+        "RunTime": 1836431476,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 67,
+              "Time": "2026-07-03T12:01:05.926722925Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 69,
+              "Time": "2026-07-03T12:01:05.926969638Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 246713,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 70,
+              "Time": "2026-07-03T12:01:05.926971542Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the streaming response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 72,
+              "Time": "2026-07-03T12:01:07.432766916Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the streaming response from server java",
+            "Duration": 1505795364,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 73,
+              "Time": "2026-07-03T12:01:07.432781092Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 75,
+              "Time": "2026-07-03T12:01:07.763143902Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330362820,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8156,14 +7907,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the task-cancel response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601057209Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:07.76321756Z",
+        "EndTime": "2026-07-03T12:01:09.559348157Z",
+        "RunTime": 1796130597,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 76,
+              "Time": "2026-07-03T12:01:07.763223702Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 78,
+              "Time": "2026-07-03T12:01:07.763711886Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 488184,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 79,
+              "Time": "2026-07-03T12:01:07.763714271Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the task-cancel response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 81,
+              "Time": "2026-07-03T12:01:09.227677522Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the task-cancel response from server java",
+            "Duration": 1463963251,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 82,
+              "Time": "2026-07-03T12:01:09.227687691Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 84,
+              "Time": "2026-07-03T12:01:09.559342326Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 331654635,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8200,14 +8034,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes the multi-turn response from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601062639Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:09.559431944Z",
+        "EndTime": "2026-07-03T12:01:11.967542126Z",
+        "RunTime": 2408110192,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 85,
+              "Time": "2026-07-03T12:01:09.55944015Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 87,
+              "Time": "2026-07-03T12:01:09.559755342Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 315192,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 88,
+              "Time": "2026-07-03T12:01:09.559757075Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the multi-turn response from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 116
+            },
+            "TimelineLocation": {
+              "Order": 90,
+              "Time": "2026-07-03T12:01:11.637093455Z"
+            },
+            "Message": "SLIMRPC client dotnet observes the multi-turn response from server java",
+            "Duration": 2077336390,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 91,
+              "Time": "2026-07-03T12:01:11.637101841Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 93,
+              "Time": "2026-07-03T12:01:11.967535784Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330433953,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8243,14 +8160,97 @@
         ],
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server java",
-        "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60106806Z",
-        "EndTime": "0001-01-01T00:00:00Z",
-        "RunTime": 0,
+        "State": "passed",
+        "StartTime": "2026-07-03T12:01:11.96765064Z",
+        "EndTime": "2026-07-03T12:01:13.800747927Z",
+        "RunTime": 1833097287,
         "ParallelProcess": 1,
-        "NumAttempts": 0,
+        "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
-        "MaxMustPassRepeatedly": 0
+        "MaxMustPassRepeatedly": 0,
+        "SpecEvents": [
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 94,
+              "Time": "2026-07-03T12:01:11.967654587Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 82
+            },
+            "TimelineLocation": {
+              "Order": 96,
+              "Time": "2026-07-03T12:01:11.967923051Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 268464,
+            "NodeType": "BeforeEach"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 146
+            },
+            "TimelineLocation": {
+              "Order": 97,
+              "Time": "2026-07-03T12:01:11.967925185Z"
+            },
+            "Message": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server java",
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 146
+            },
+            "TimelineLocation": {
+              "Order": 99,
+              "Time": "2026-07-03T12:01:13.47021332Z"
+            },
+            "Message": "SLIMRPC client dotnet observes a completed task with an echoed artifact from server java",
+            "Duration": 1502288135,
+            "NodeType": "It"
+          },
+          {
+            "SpecEventType": "Node",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 100,
+              "Time": "2026-07-03T12:01:13.470222196Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "NodeType": "DeferCleanup (Each)"
+          },
+          {
+            "SpecEventType": "Node (End)",
+            "CodeLocation": {
+              "FileName": "/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go",
+              "LineNumber": 183
+            },
+            "TimelineLocation": {
+              "Order": 102,
+              "Time": "2026-07-03T12:01:13.800741485Z"
+            },
+            "Message": "A2A SLIMRPC interoperability",
+            "Duration": 330519278,
+            "NodeType": "DeferCleanup (Each)"
+          }
+        ]
       },
       {
         "ContainerHierarchyTexts": [
@@ -8288,7 +8288,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server java and echoes the ascii payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.6010738Z",
+        "StartTime": "2026-07-03T12:01:13.800795877Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8332,7 +8332,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server java and echoes the unicode payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60107912Z",
+        "StartTime": "2026-07-03T12:01:13.800801377Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8376,7 +8376,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server java and echoes the symbols payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60108456Z",
+        "StartTime": "2026-07-03T12:01:13.800805725Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8420,7 +8420,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java calls server java and echoes the long payload",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.60108993Z",
+        "StartTime": "2026-07-03T12:01:13.800814943Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8464,7 +8464,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the message-only response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601095651Z",
+        "StartTime": "2026-07-03T12:01:13.800821245Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8508,7 +8508,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-failure response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601101031Z",
+        "StartTime": "2026-07-03T12:01:13.800827056Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8552,7 +8552,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the input-required response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601106211Z",
+        "StartTime": "2026-07-03T12:01:13.800832165Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8596,7 +8596,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the streaming response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601111681Z",
+        "StartTime": "2026-07-03T12:01:13.800838928Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8640,7 +8640,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the task-cancel response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601117161Z",
+        "StartTime": "2026-07-03T12:01:13.80084541Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8684,7 +8684,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes the multi-turn response from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601123363Z",
+        "StartTime": "2026-07-03T12:01:13.80085097Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
@@ -8727,7 +8727,7 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "SLIMRPC client java observes a completed task with an echoed artifact from server java",
         "State": "skipped",
-        "StartTime": "2026-07-03T12:01:07.601128843Z",
+        "StartTime": "2026-07-03T12:01:13.800865869Z",
         "EndTime": "0001-01-01T00:00:00Z",
         "RunTime": 0,
         "ParallelProcess": 1,
