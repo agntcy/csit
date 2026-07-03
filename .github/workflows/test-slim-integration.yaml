@@ -22,6 +22,18 @@ on:
         description: "Override Slim chart tag"
         required: false
         default: ""
+      override_slim_controller_image_tag:
+        description: "Override Slim controller image tag (falls back to override_slim_image_tag when empty)"
+        required: false
+        default: ""
+      override_slim_controller_chart_tag:
+        description: "Override Slim controller chart tag (falls back to override_slim_chart_tag when empty)"
+        required: false
+        default: ""
+      override_slim_bindings_version:
+        description: "Override slim-bindings examples version"
+        required: false
+        default: ""
 
 jobs:
   detect:
@@ -87,7 +99,8 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           python: true
-          go: false
+          go: true
+          go-version: "1.25.0"
 
       - name: Setup K8S Tools
         uses: ./.github/actions/setup-k8s
@@ -101,23 +114,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          build_args=()
+          if [[ -n "${{ inputs.override_slim_bindings_version }}" ]]; then
+            build_args+=(--build-arg "SLIM_BINDINGS_VERSION=${{ inputs.override_slim_bindings_version }}")
+          fi
           docker buildx build \
             --platform linux/amd64 \
             --load \
+            "${build_args[@]}" \
             --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
-            --file integrations/agntcy-slim/examples/Dockerfile \
-            integrations/agntcy-slim/examples
+            --file integrations/agntcy-slim/topology/examples/Dockerfile \
+            integrations/agntcy-slim/topology/examples
 
       - name: Deploy Slim with Controller
         uses: ./.github/actions/deploy-components
         with:
-          deploy-slim: "false"
           deploy-spire: "true"
           deploy-slim-topology: "true"
-          slim-config: "spire"
           slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-controller-image-tag: ${{ inputs.override_slim_image_tag }}
+          slim-controller-image-tag: ${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}
           slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
+          slim-controller-chart-tag: ${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}
 
       - name: Load slim bindings examples image into kind
         shell: bash
@@ -126,15 +143,31 @@ jobs:
           kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:local" --name "agntcy-test"
 
       - name: Run slim topology test
-        run: task integrations:slim:test:topology
+        run: task integrations:slim:test:topology:run
         shell: bash
+
+      - name: Render topology test report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports_dir="${GITHUB_WORKSPACE}/integrations/agntcy-slim/topology/reports"
+          if [[ -f "${reports_dir}/report-slim-topology.json" ]]; then
+            task integrations:slim:test:topology:report
+            test -f "${reports_dir}/index.html"
+            echo "### Topology report artifacts" >> "$GITHUB_STEP_SUMMARY"
+            ls -la "${reports_dir}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No topology JSON report to render (checked ${reports_dir}/report-slim-topology.json)" >> "$GITHUB_STEP_SUMMARY"
+            find "${GITHUB_WORKSPACE}" -name 'report-slim-topology.json' 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+          fi
 
       - name: Create artifact from integrations test reports
         if: always()
         uses: ./.github/actions/create-artifact
         with:
           artifact-name: slim-integration-test-result
-          path-to-archive: integrations/agntcy-slim/reports/
+          path-to-archive: integrations/agntcy-slim/topology/reports/
 
   publish-pages:
     needs: [run-tests-slim-integration]

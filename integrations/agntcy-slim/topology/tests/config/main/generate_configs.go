@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/agntcy/csit/integrations/agntcy-slim/tests/config"
+	"github.com/agntcy/csit/integrations/agntcy-slim/topology/tests/config"
 )
 
 const (

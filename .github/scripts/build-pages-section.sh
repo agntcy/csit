@@ -53,7 +53,7 @@ case "$SUITE" in
     mkdir -p "$SITE_DIR/slim-integration"
     find "$STAGING_DIR" -type f \( -name '*.json' -o -name '*.xml' \) -exec cp {} "$SITE_DIR/slim-integration/" \;
     if compgen -G "$SITE_DIR/slim-integration/*.json" > /dev/null; then
-      "$(dirname "$0")/render-slim-integration-report.sh" \
+      "${REPO_ROOT}/integrations/agntcy-slim/topology/scripts/render-report.sh" \
         "$SITE_DIR/slim-integration" \
         "$SITE_DIR/slim-integration/index.html" \
         "Slim integration"

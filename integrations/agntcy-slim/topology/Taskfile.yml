@@ -1,0 +1,173 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+vars:
+  KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME | default "agntcy-test" }}'
+
+  ## Image config
+  IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
+
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
+
+  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.4.0" }}'
+  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.4.0" }}'
+
+  SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
+
+  HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
+
+  SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
+
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
+
+  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
+  SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
+
+tasks:
+  test:topology:generate:cluster-configs:
+    desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
+    cmd: |
+      TOPOLOGY_CONFIG={{.TOPOLOGY_CONFIG}} SLIM_CONTROLLER_ENDPOINT={{ .SLIM_CONTROLLER_ENDPOINT }} go run ./tests/config/main/
+
+  test:topology:deploy:controller:
+    desc: Deploy slim controller
+    cmds:
+      - |
+        set -euo pipefail
+        REPO='{{ .SLIM_REPO_PATH }}'
+        if [ -n "$REPO" ]; then
+          if [ ! -d "$REPO/charts/slim-control-plane" ]; then
+            echo "SLIM_REPO_PATH is set but charts/slim-control-plane not found under: $REPO" >&2
+            exit 1
+          fi
+          helm upgrade slim-controller \
+            "$REPO/charts/slim-control-plane" \
+            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            -f ./config/controller-values.yaml \
+            --namespace "admin" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        else
+          helm upgrade slim-controller \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
+            --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
+            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            -f ./config/controller-values.yaml \
+            --namespace "admin" \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        fi
+
+  test:topology:cleanup:controller:
+    desc: Remove slim controller test env
+    cmds:
+      - helm delete --namespace "admin" slim-controller
+
+  test:topology:deploy:clusters:
+    desc: Deploy agntcy slim test env for each values file in config/.gen
+    deps:
+      - test:topology:generate:cluster-configs
+    cmd: |
+      #!/bin/sh
+      REPO='{{ .SLIM_REPO_PATH }}'
+      if [ -n "$REPO" ] && [ ! -d "$REPO/charts/slim" ]; then
+        echo "SLIM_REPO_PATH is set but charts/slim not found under: $REPO" >&2
+        exit 1
+      fi
+
+      for file in "./config/.gen"/*.yaml ;do
+        if [ -n "$REPO" ]; then
+          helm upgrade agntcy-$(basename "$file" .yaml) \
+            "$REPO/charts/slim" \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f "$file" \
+            --namespace $(basename "$file" .yaml) \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        else
+          helm upgrade agntcy-$(basename "$file" .yaml) \
+            oci://{{ .IMAGE_REPO }}/slim/helm/slim \
+            --version {{ .SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            -f "$file" \
+            --namespace $(basename "$file" .yaml) \
+            --create-namespace \
+            --install \
+            --wait \
+            --wait-for-jobs \
+            --timeout "15m"
+        fi
+      echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
+      done
+
+  test:topology:cleanup:clusters:
+    desc: Undeploy agntcy slim test env for each values file in config/.gen
+    cmd: |
+      #!/bin/sh
+      for file in "./config/.gen"/*.yaml ;do
+        helm delete --namespace $(basename "$file" .yaml) agntcy-$(basename "$file" .yaml)
+        echo "Deleted agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
+      done
+
+  spire:deploy:
+    desc: Deploy SPIRE server
+    cmds:
+      - |
+        helm upgrade --install  \
+        spire-crds \
+        spire-crds \
+        --repo https://spiffe.github.io/helm-charts-hardened/ \
+        --namespace {{ .SPIRE_NAMESPACE }} \
+        --create-namespace \
+        --wait \
+        --wait-for-jobs \
+        --timeout "15m"
+      - |
+        helm upgrade --install  \
+        spire \
+        spire \
+        --repo https://spiffe.github.io/helm-charts-hardened/ \
+        --namespace {{ .SPIRE_NAMESPACE }} \
+        --create-namespace \
+        --wait \
+        --wait-for-jobs \
+        --timeout "15m"
+
+  spire:remove:
+    desc: Remove SPIRE server
+    cmds:
+      - helm delete spire -n {{ .SPIRE_NAMESPACE }}
+      - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
+
+  test:topology:run:
+    desc: Slim topology test
+    cmds:
+      - mkdir -p ./reports
+      - NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
+
+  test:topology:report:
+    desc: Render HTML dashboard from topology test Ginkgo JSON report
+    preconditions:
+      - sh: test -f ./reports/report-slim-topology.json
+        msg: run test:topology:run first (missing reports/report-slim-topology.json)
+    cmds:
+      - mkdir -p ./reports
+      - ./scripts/render-report.sh ./reports ./reports/index.html "Slim Topology Test Report"
+
+  default:
+    cmd: task -l

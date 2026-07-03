@@ -38,14 +38,29 @@ type suiteConfig struct {
 }
 
 type specReport struct {
-	ContainerHierarchyTexts  []string   `json:"ContainerHierarchyTexts"`
-	ContainerHierarchyLabels [][]string `json:"ContainerHierarchyLabels"`
-	LeafNodeLabels           []string   `json:"LeafNodeLabels"`
-	LeafNodeText             string     `json:"LeafNodeText"`
-	State                    string     `json:"State"`
-	RunTime                  int64      `json:"RunTime"`
-	Failure                  failure    `json:"Failure"`
-	AdditionalFailures       []failure  `json:"AdditionalFailures"`
+	ContainerHierarchyTexts  []string    `json:"ContainerHierarchyTexts"`
+	ContainerHierarchyLabels [][]string  `json:"ContainerHierarchyLabels"`
+	LeafNodeLabels           []string    `json:"LeafNodeLabels"`
+	LeafNodeText             string      `json:"LeafNodeText"`
+	State                    string      `json:"State"`
+	RunTime                  int64       `json:"RunTime"`
+	Failure                  failure     `json:"Failure"`
+	AdditionalFailures       []failure   `json:"AdditionalFailures"`
+	SpecEvents               []specEvent `json:"SpecEvents"`
+}
+
+type specEvent struct {
+	SpecEventType    string           `json:"SpecEventType"`
+	CodeLocation     failureLocation  `json:"CodeLocation"`
+	TimelineLocation timelineLocation `json:"TimelineLocation"`
+	Message          string           `json:"Message"`
+	Duration         int64            `json:"Duration"`
+	NodeType         string           `json:"NodeType"`
+}
+
+type timelineLocation struct {
+	Order int       `json:"Order"`
+	Time  time.Time `json:"Time"`
 }
 
 type failure struct {
@@ -117,6 +132,18 @@ type specView struct {
 	FailureMessage  string
 	FailureDetail   string
 	FailureLocation string
+	Events          []eventView
+}
+
+type eventView struct {
+	Order      int
+	Time       string
+	EventType  string
+	EventClass string
+	Badge      string
+	Message    string
+	Duration   string
+	Source     string
 }
 
 func main() {
@@ -266,6 +293,9 @@ func buildReportView(jsonFile string, updatedAt time.Time, suite suiteReportFile
 		}
 
 		labelsForSearch = append(labelsForSearch, specView.Name, specView.Labels)
+		for _, event := range specView.Events {
+			labelsForSearch = append(labelsForSearch, event.Message, event.Badge, event.EventType)
+		}
 	}
 
 	if report.Failed > 0 || !suite.SuiteSucceeded {
@@ -296,7 +326,63 @@ func buildSpecView(spec specReport) specView {
 		FailureMessage:  summarizeFailure(fullMessage),
 		FailureDetail:   fullMessage,
 		FailureLocation: formatLocation(primaryFailure.Location),
+		Events:          buildEventViews(spec.SpecEvents),
 	}
+}
+
+func buildEventViews(events []specEvent) []eventView {
+	if len(events) == 0 {
+		return nil
+	}
+
+	views := make([]eventView, 0, len(events))
+	for _, event := range events {
+		badge := strings.TrimSpace(event.NodeType)
+		if badge == "" {
+			badge = strings.TrimSpace(event.SpecEventType)
+		}
+
+		views = append(views, eventView{
+			Order:      event.TimelineLocation.Order,
+			Time:       formatTimestamp(event.TimelineLocation.Time),
+			EventType:  event.SpecEventType,
+			EventClass: eventClass(event.SpecEventType),
+			Badge:      badge,
+			Message:    event.Message,
+			Duration:   formatDuration(time.Duration(event.Duration)),
+			Source:     shortSourcePath(event.CodeLocation),
+		})
+	}
+	return views
+}
+
+func eventClass(eventType string) string {
+	switch {
+	case eventType == "By":
+		return "event-by"
+	case strings.Contains(eventType, "(End)"):
+		return "event-end"
+	default:
+		return "event-node"
+	}
+}
+
+func shortSourcePath(location failureLocation) string {
+	if location.FileName == "" {
+		return ""
+	}
+	path := location.FileName
+	markers := []string{"/integrations/agntcy-slim/topology/", "integrations/agntcy-slim/topology/", "/integrations/agntcy-slim/", "integrations/agntcy-slim/"}
+	for _, marker := range markers {
+		if idx := strings.Index(path, marker); idx >= 0 {
+			path = path[idx+len(marker):]
+			break
+		}
+	}
+	if location.LineNumber > 0 {
+		return fmt.Sprintf("%s:%d", path, location.LineNumber)
+	}
+	return path
 }
 
 func accumulateSummary(summary *summaryView, report reportView) {
@@ -603,6 +689,58 @@ const dashboardTemplate = `<!doctype html>
       white-space: pre-wrap;
       font-size: 0.82rem;
     }
+    .timeline-details {
+      margin-top: 8px;
+    }
+    .timeline-details summary {
+      cursor: pointer;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 0;
+      display: list-item;
+      list-style: disclosure-closed inside;
+    }
+    .timeline-details[open] summary {
+      list-style: disclosure-open inside;
+      margin-bottom: 8px;
+    }
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .timeline-table th, .timeline-table td {
+      border-top: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .timeline-table th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .timeline-table tr.event-by td { background: #eff6ff; }
+    .timeline-table tr.event-by .event-msg { color: #1d4ed8; font-style: italic; }
+    .timeline-table tr.event-end td { color: var(--muted); }
+    .event-order { color: var(--muted); width: 2rem; }
+    .event-time { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .event-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .event-dur { color: var(--pass); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .event-src { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; color: var(--muted); }
     .empty {
       background: var(--panel);
       border: 1px dashed var(--border);
@@ -671,6 +809,28 @@ const dashboardTemplate = `<!doctype html>
               {{if .FailureMessage}}<div>{{.FailureMessage}}</div>{{end}}
               {{if .FailureLocation}}<div class="subtitle">{{.FailureLocation}}</div>{{end}}
               {{if .FailureDetail}}<pre class="failure">{{.FailureDetail}}</pre>{{end}}
+              {{if .Events}}
+              <details class="timeline-details"{{if eq .StateClass "pass"}} open{{end}}>
+                <summary>Timeline ({{len .Events}} events)</summary>
+                <table class="timeline-table">
+                  <thead>
+                    <tr><th>#</th><th>Time</th><th>Type</th><th>Message</th><th>Duration</th><th>Source</th></tr>
+                  </thead>
+                  <tbody>
+                    {{range .Events}}
+                    <tr class="{{.EventClass}}">
+                      <td class="event-order">{{.Order}}</td>
+                      <td class="event-time">{{.Time}}</td>
+                      <td><span class="event-badge">{{.Badge}}</span></td>
+                      <td class="event-msg">{{.Message}}</td>
+                      <td class="event-dur">{{.Duration}}</td>
+                      <td class="event-src">{{.Source}}</td>
+                    </tr>
+                    {{end}}
+                  </tbody>
+                </table>
+              </details>
+              {{end}}
             </td>
           </tr>
           {{end}}

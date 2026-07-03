@@ -94,7 +94,7 @@ runs:
         REPO_ROOT: ${{ github.workspace }}
       run: |
         set -euo pipefail
-        chmod +x .github/scripts/build-pages-section.sh .github/scripts/render-slim-integration-report.sh
+        chmod +x .github/scripts/build-pages-section.sh integrations/agntcy-slim/topology/scripts/render-report.sh
         ./.github/scripts/build-pages-section.sh | tee /tmp/build-section.out
         has_report="$(grep '^has_report=' /tmp/build-section.out | tail -1 | cut -d= -f2)"
         echo "has_report=${has_report:-false}" >> "$GITHUB_OUTPUT"

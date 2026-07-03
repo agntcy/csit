@@ -16,36 +16,51 @@ The TopologyTest framework enables you to:
 
 ### Steps to Run Topology Test
 
-1. **Navigate to the test directory:**
+1. **Navigate to the integration directory:**
    ```bash
-   cd integrations/agntcy-slim/agentic-apps
+   cd integrations/agntcy-slim/topology
    ```
 
-2. **Deploy the SLIM controller:**
+2. **Deploy SPIRE (when using SPIRE-backed topologies):**
    ```bash
-   task test-env:deploy:controller
+   task spire:deploy
    ```
 
-3. **Deploy the generated topology:**
+3. **Deploy the SLIM controller:**
    ```bash
-   task test-env:deploy:generated
+   task test:topology:deploy:controller
    ```
 
-4. **Run the topology test:**
+4. **Deploy the generated topology:**
    ```bash
-   task test:topology
+   task test:topology:deploy:clusters
+   ```
+
+5. **Run the topology test:**
+   ```bash
+   task test:topology:run
+   ```
+
+6. **Render the HTML report (optional):**
+   ```bash
+   task test:topology:report
    ```
 
 ### Tear Down
 
 1. **Clean up generated resources:**
    ```bash
-   task test-env:cleanup:generated
+   task test:topology:cleanup:clusters
    ```
 
 2. **Clean up controller:**
    ```bash
-   task test-env:cleanup:controller
+   task test:topology:cleanup:controller
+   ```
+
+3. **Remove SPIRE (optional):**
+   ```bash
+   task spire:remove
    ```
 
 ## Topology Configuration Format
@@ -151,8 +166,8 @@ The test framework performs the following steps:
 
 1. **Parse the topology YAML** file and generate SLIM helm chart values & configs 
 2. **Deploy SLIM controller & SLIM server nodes** using helm charts with appropriate configurations
-3. **Create routes using Controller API** with `slimctl`
-4. **Deploy client pods** with connection parameters
-5. **Watch pod logs** for assertion strings
-6. **Validate** that all expected behaviors occur within timeout periods
-7. **Clean up** resources after test completion
+
+3. **Deploy client pods** with connection parameters
+4. **Watch pod logs** for assertion strings
+5. **Validate** that all expected behaviors occur within timeout periods
+6. **Clean up** resources after test completion

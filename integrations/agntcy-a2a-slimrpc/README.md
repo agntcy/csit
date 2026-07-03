@@ -2,7 +2,7 @@
 
 Cross-language checks that **A2A over SLIMRPC** behaves consistently across **Go** ([slim-a2a-go](https://github.com/agntcy/slim-a2a-go)), **Python** ([slim-a2a-python](https://github.com/agntcy/slim-a2a-python) / PyPI `slima2a`), and **.NET** ([slim-a2a-dotnet](https://github.com/agntcy/slim-a2a-dotnet) / NuGet `Agntcy.SlimA2A`). Every client↔server language pair is exercised (a 3×3 matrix).
 
-This is separate from [`integrations/agntcy-a2a`](../agntcy-a2a) (JSON-RPC / REST / gRPC only) and from [`integrations/agntcy-slim`](../agntcy-slim) (Kubernetes SLIM topology).
+This is separate from [`integrations/agntcy-a2a`](../agntcy-a2a) (JSON-RPC / REST / gRPC only) and from [`integrations/agntcy-slim/topology`](../agntcy-slim/topology) (Kubernetes SLIM topology).
 
 > **Default baseline: a pinned _released_ slim node (`slim-v1.4.0` / `ghcr.io/agntcy/slim:1.4.0`).** Against that node the full **Go + Python + .NET 3×3** matrix works off-the-shelf — the prebuilt `slim-bindings` 1.4.x static lib, PyPI `slima2a`, and the `Agntcy.SlimA2A` NuGet all line up with the node's dataplane wire (all generate the `lf.a2a.v1` A2A service), so **no overrides and no SDK fork** are needed. Running a node from **`slim` `main` / 2.0** is a **dev-only** mode that requires the override env vars below.
 
