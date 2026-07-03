@@ -46,6 +46,20 @@ tasks:
         ignore_error: true
       - task: test:dotnet-dotnet
         ignore_error: true
+      - task: test:go-java
+        ignore_error: true
+      - task: test:python-java
+        ignore_error: true
+      - task: test:dotnet-java
+        ignore_error: true
+      - task: test:java-go
+        ignore_error: true
+      - task: test:java-python
+        ignore_error: true
+      - task: test:java-dotnet
+        ignore_error: true
+      - task: test:java-java
+        ignore_error: true
 
   test:go-go:
     desc: SLIMRPC interop — Go client → Go server
@@ -110,6 +124,62 @@ tasks:
         vars:
           LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-python'
           REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-python
+
+  test:go-java:
+    desc: SLIMRPC interop — Go client → Java server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-java'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-java
+
+  test:python-java:
+    desc: SLIMRPC interop — Python client → Java server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-python-java'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-python-java
+
+  test:dotnet-java:
+    desc: SLIMRPC interop — .NET client → Java server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-java'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-java
+
+  test:java-go:
+    desc: SLIMRPC interop — Java client → Go server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-java-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-java-go
+
+  test:java-python:
+    desc: SLIMRPC interop — Java client → Python server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-java-python'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-java-python
+
+  test:java-dotnet:
+    desc: SLIMRPC interop — Java client → .NET server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-java-dotnet'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-java-dotnet
+
+  test:java-java:
+    desc: SLIMRPC interop — Java client → Java server
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-java-java'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-java-java
 
   test:dotnet-dotnet:
     desc: SLIMRPC interop — .NET client → .NET server
