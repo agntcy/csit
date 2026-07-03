@@ -725,6 +725,7 @@ var knownSDKs = []struct {
 	{"dotnet", ".NET"},
 	{"python", "Python"},
 	{"rust", "Rust"},
+	{"java", "Java"},
 	{"go", "Go"},
 }
 
@@ -849,6 +850,8 @@ func prettyToken(token string) string {
 		return "SlimRPC"
 	case "python":
 		return "Python"
+	case "java":
+		return "Java"
 	case "rest":
 		return "REST"
 	case "rust":
