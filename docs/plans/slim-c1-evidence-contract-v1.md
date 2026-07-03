@@ -12,7 +12,7 @@ This document locks the three **C1** dashboard rows, the `slim-benchmark-smoke-r
 
 | Row ID | Class | Use case (reader) | SLIM mechanism | Why SLIM | CSIT scenario | July status |
 |--------|-------|-------------------|----------------|----------|---------------|-------------|
-| `c1-request-reply` | **C1** | Agent A calls B and waits for a reply | `request-reply` | Named endpoints with synchronous round-trip on one node | Local messaging smoke (`benchmarks/agntcy-slim`, CI smoke) | Proven |
+| `c1-request-reply` | **C1** | Agent A calls B and waits for a reply | `request-reply` | Named endpoints with synchronous round-trip on one node | C1 Ginkgo evidence (`analitics/tests`) | Proven |
 | `c1-fire-and-forget` | **C1** | Agent fires an event; consumer handles async | `fire-and-forget` | One-way delivery through a single SLIM authority with sink observation | Same | Proven |
 | `c1-write` | **C1** | Publish into the mesh without a paired responder | `write` | Ingress/write path without a bound responder process | Same | Proven |
 
@@ -20,18 +20,50 @@ This document locks the three **C1** dashboard rows, the `slim-benchmark-smoke-r
 
 | Property | Value |
 |----------|--------|
-| Scenario name | Local messaging smoke |
-| Repo path | `benchmarks/agntcy-slim/` |
-| CI task | `task benchmarks:slim:benchmark:ci:suite-smoke` |
+| Scenario name | C1 Ginkgo evidence |
+| Repo path | `analitics/` (`tests/`, `harness/`, `clients/`) |
+| CI task (dashboard) | `task -t analitics/Taskfile.yml test:c1-evidence` |
+| slimctl install | `task -t analitics/Taskfile.yml deps:slimctl-download` |
+| CI task (benchmark matrix, legacy) | `task benchmarks:slim:benchmark:ci:suite-smoke` |
 | CI workflow | `.github/workflows/test-slim-benchmarks.yaml` → job `slim-benchmark-smoke` |
-| Ginkgo label | `benchmark-suite` (via `scripts/run_suite.sh`) |
+| Ginkgo label (C1 evidence) | `c1-evidence` (`analitics/tests/c1_evidence_test.go`) |
+| Ginkgo label (benchmark matrix) | `benchmark-suite` (via `scripts/run_suite.sh`) |
 | Smoke matrix (CI) | modes: `request-reply`, `fire-and-forget`, `write`; clients: `1`; size: `16` B; duration: `1s`; repeats: `25` (see `benchmark:ci:suite-smoke` in `benchmarks/agntcy-slim/Taskfile.yml`) |
 
 All three rows share one evidence bundle. Per-row proof is distinguished by **mode** inside that bundle (see [Row metadata](#row-metadata-dashboard-fields)).
 
 ---
 
+## C1 Ginkgo evidence report (`c1-evidence.json` v1)
+
+### Producer
+
+| Step | Location |
+|------|----------|
+| Run C1 specs | `task -t analitics/Taskfile.yml test:c1-evidence` → Ginkgo label `c1-evidence` |
+| Output | `analitics/reports/c1-evidence.json` |
+| Dashboard ingest | `analitics/scripts/evidence-lib.sh` reads per-mode `status` from JSON |
+
+Each case asserts behavioral proof (message counts, errors, round-trip latency) rather than
+benchmark throughput statistics. See `analitics/tests/c1_evidence_test.go`.
+
+### Required JSON fields per case
+
+| Field | Role |
+|-------|------|
+| `row_id` | Stable key (`c1-request-reply`, …) |
+| `mode` | SLIM mechanism slug |
+| `status` | `verified` when Ginkgo assertions pass |
+| `sender_messages` / `sender_errors` | Sender-side proof |
+| `sink_received` / `sink_replies` / `sink_errors` | Sink proof (request-reply, fire-and-forget) |
+| `assertions` | Human-readable assertion summary lines |
+
+---
+
 ## Smoke artifact contract (`slim-benchmark-smoke-report` v1)
+
+> **Note:** Benchmark smoke artifacts remain for throughput dashboards. The C1 evidence
+> dashboard (`analitics/`) uses `c1-evidence.json` as the primary status source.
 
 ### Producer
 
@@ -102,7 +134,7 @@ Apply in order:
    - Any row with non-zero errors → `failed`
 4. If sources are missing → `unknown` (do not mark `verified`).
 
-**Log line shapes** (from `benchmarks/agntcy-slim/tests/benchmark_suite_test.go`):
+**Log line shapes** (from `analitics/tests/c1_evidence_test.go` via `analitics/harness`):
 
 ```text
 MODE_SUMMARY mode=request-reply runs=%d cases=%d ... total_errors=%d

@@ -99,8 +99,8 @@
               <div class="use-meta">Named endpoints with synchronous round-trip on one node</div>
             </td>
             <td><code>request-reply</code></td>
-            <td>{{C1_RR_STATUS_SPAN}}<div class="use-meta">{{C1_RR_ROWS}} runs in results.tsv</div></td>
-            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>{{C1_RR_STATUS_SPAN}}<div class="use-meta">{{C1_RR_ROWS}} C1 evidence case(s)</div></td>
+            <td>C1 Ginkgo evidence<br><span class="use-meta">analitics/tests</span></td>
             <td>
               <ul class="evidence-links">
                 <li><a href="smoke/suite_summary.md">Suite summary</a></li>
@@ -115,8 +115,8 @@
               <div class="use-meta">One-way delivery through a single SLIM authority with sink observation</div>
             </td>
             <td><code>fire-and-forget</code></td>
-            <td>{{C1_FF_STATUS_SPAN}}<div class="use-meta">{{C1_FF_ROWS}} runs in results.tsv</div></td>
-            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>{{C1_FF_STATUS_SPAN}}<div class="use-meta">{{C1_FF_ROWS}} C1 evidence case(s)</div></td>
+            <td>C1 Ginkgo evidence<br><span class="use-meta">analitics/tests</span></td>
             <td>
               <ul class="evidence-links">
                 <li><a href="smoke/suite_summary.md">Suite summary</a></li>
@@ -130,8 +130,8 @@
               <div class="use-meta">Ingress/write path without a bound responder process</div>
             </td>
             <td><code>write</code></td>
-            <td>{{C1_W_STATUS_SPAN}}<div class="use-meta">{{C1_W_ROWS}} runs in results.tsv</div></td>
-            <td>Local messaging smoke<br><span class="use-meta">benchmarks/agntcy-slim</span></td>
+            <td>{{C1_W_STATUS_SPAN}}<div class="use-meta">{{C1_W_ROWS}} C1 evidence case(s)</div></td>
+            <td>C1 Ginkgo evidence<br><span class="use-meta">analitics/tests</span></td>
             <td>
               <ul class="evidence-links">
                 <li><a href="smoke/suite_summary.md">Suite summary</a></li>
@@ -143,10 +143,10 @@
       </table>
 
       <article class="scenario-card" id="c1-scenario-smoke">
-        <h3>Test evidence: local messaging smoke</h3>
-        <p class="scenario-meta">Single-node · task benchmarks:slim:benchmark:ci:suite-smoke</p>
-        <p>Proves all three C1 messaging modes on one local <code>slimctl</code> node. Status per row is evaluated from <code>results.tsv</code> (zero sender/sink errors).</p>
-        <div class="rerun"><strong>Rerun:</strong><br><code>task benchmarks:slim:deps:slimctl-download SLIMCTL_PATH="$HOME/.local/bin/slimctl"</code><br><code>export PATH="$HOME/.local/bin:$PATH"</code><br><code>task benchmarks:slim:benchmark:ci:suite-smoke</code><br><code>task -t analitics/Taskfile.yml dashboard:build</code></div>
+        <h3>Test evidence: C1 Ginkgo assertions</h3>
+        <p class="scenario-meta">Single-node · task -t analitics/Taskfile.yml test:c1-evidence</p>
+        <p>Proves all three C1 messaging modes on one local <code>slimctl</code> node. Status per row is evaluated from <code>reports/c1-evidence.json</code> (behavioral assertions, not benchmark throughput matrix).</p>
+        <div class="rerun"><strong>Rerun:</strong><br><code>task -t analitics/Taskfile.yml deps:slimctl-download</code><br><code>export PATH="$(pwd)/analitics/bin:$PATH"</code><br><code>task -t analitics/Taskfile.yml test:c1-evidence</code><br><code>task -t analitics/Taskfile.yml dashboard:build:only</code></div>
       </article>
     </section>
 

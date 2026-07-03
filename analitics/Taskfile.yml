@@ -2,40 +2,70 @@ version: "3"
 
 silent: true
 
-includes:
-  slim:
-    taskfile: ../benchmarks/agntcy-slim/Taskfile.yml
-    dir: ../benchmarks/agntcy-slim
-    excludes: [default]
-
 vars:
-  REPORTS_DIR: '{{.REPORTS_DIR | default "../benchmarks/agntcy-slim/reports"}}'
+  REPORTS_DIR: '{{.REPORTS_DIR | default "./reports"}}'
   PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
+  SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
 
 tasks:
+  deps:slimctl-download:
+    desc: Download slimctl executable for the current OS and architecture
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH${SLIMCTL_ABI}"
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .SLIMCTL_RELEASE_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        echo "Downloading slimctl from $SLIMCTL_URL"
+        TARGET_DIR=$(dirname {{ .SLIMCTL_PATH }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .SLIMCTL_PATH }}
+        chmod +x {{ .SLIMCTL_PATH }}
+        echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
+        {{ .SLIMCTL_PATH }} version || true
+
   dashboard:prepare:
     desc: Create analitics publish directories
     cmds:
       - mkdir -p "{{.PUBLISHED_DIR}}/smoke"
 
+  dashboard:run:c1-evidence:
+    desc: Run C1 Ginkgo evidence tests (assertion-based, not benchmark matrix)
+    deps: [test:c1-evidence]
+
   dashboard:run:smoke:
-    desc: Run SLIM CI smoke suite (imported from benchmarks/agntcy-slim)
-    deps: [slim:benchmark:ci:suite-smoke]
+    desc: Alias for dashboard:run:c1-evidence
+    deps: [dashboard:run:c1-evidence]
 
   dashboard:sync:markdown:
-    desc: Sync smoke markdown outputs from benchmark reports
-    deps: [dashboard:prepare, dashboard:run:smoke]
+    desc: Sync C1 evidence outputs from reports
+    deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
-        for file in ci-smoke-report.md suite_summary.md technical_report.md; do
-          if [ -f "{{.REPORTS_DIR}}/$file" ]; then
-            cp "{{.REPORTS_DIR}}/$file" "{{.PUBLISHED_DIR}}/smoke/$file"
-          fi
-        done
+        if [ -f "{{.REPORTS_DIR}}/c1-evidence.json" ]; then
+          cp "{{.REPORTS_DIR}}/c1-evidence.json" "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
+        fi
 
   dashboard:render:
     desc: Render static HTML evidence dashboard
-    deps: [dashboard:prepare, dashboard:run:smoke]
+    deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
         REPORTS_DIR="{{.REPORTS_DIR}}" \
@@ -45,7 +75,7 @@ tasks:
 
   dashboard:render:summary:
     desc: Render optional C1 markdown summary
-    deps: [dashboard:prepare, dashboard:run:smoke]
+    deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - |
         REPORTS_DIR="{{.REPORTS_DIR}}" \
@@ -54,27 +84,25 @@ tasks:
         bash ./scripts/render-c1-summary.sh
 
   dashboard:build:
-    desc: Run smoke tests, sync evidence markdown, render static HTML dashboard
-    deps: [dashboard:prepare, dashboard:run:smoke]
+    desc: Run C1 evidence tests, sync artifacts, render static HTML dashboard
+    deps: [dashboard:prepare, dashboard:run:c1-evidence]
     cmds:
       - task: dashboard:sync:only
       - task: dashboard:render:only
       - task: dashboard:render:summary:only
 
   dashboard:build:only:
-    desc: Render dashboard from existing benchmark reports (skip smoke run)
+    desc: Render dashboard from existing evidence reports (skip test run)
     deps: [dashboard:sync:only, dashboard:render:only, dashboard:render:summary:only]
 
   dashboard:sync:only:
-    desc: Sync smoke markdown without re-running tests
+    desc: Sync C1 evidence JSON without re-running tests
     deps: [dashboard:prepare]
     cmds:
       - |
-        for file in ci-smoke-report.md suite_summary.md technical_report.md; do
-          if [ -f "{{.REPORTS_DIR}}/$file" ]; then
-            cp "{{.REPORTS_DIR}}/$file" "{{.PUBLISHED_DIR}}/smoke/$file"
-          fi
-        done
+        if [ -f "{{.REPORTS_DIR}}/c1-evidence.json" ]; then
+          cp "{{.REPORTS_DIR}}/c1-evidence.json" "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
+        fi
 
   dashboard:render:only:
     desc: Render HTML dashboard without re-running tests
@@ -101,9 +129,27 @@ tasks:
     cmds:
       - rm -f "{{.PUBLISHED_DIR}}/index.html"
       - rm -f "{{.PUBLISHED_DIR}}/c1-evidence-summary.md"
-      - rm -f "{{.PUBLISHED_DIR}}/smoke/ci-smoke-report.md" "{{.PUBLISHED_DIR}}/smoke/suite_summary.md" "{{.PUBLISHED_DIR}}/smoke/technical_report.md"
+      - rm -f "{{.PUBLISHED_DIR}}/smoke/c1-evidence.json"
 
   # Backward-compatible aliases
   c1:build:
     desc: Alias for dashboard:build
     deps: [dashboard:build]
+
+  test:c1-evidence:
+    desc: Run C1 use-case Ginkgo evidence tests (writes reports/c1-evidence.json)
+    deps: [deps:slimctl-download]
+    env:
+      C1_EVIDENCE_REPORT_DIR: '{{.REPORTS_DIR}}'
+    cmds:
+      - |
+        set -euo pipefail
+        export PATH="$(pwd)/bin:${PATH}"
+        if ! command -v slimctl >/dev/null 2>&1; then
+          echo "slimctl not found on PATH after download (expected ./bin/slimctl)" >&2
+          exit 1
+        fi
+        mkdir -p "{{.REPORTS_DIR}}"
+        go test ./tests -count=1 -v -failfast -test.paniconexit0 \
+          --ginkgo.label-filter=c1-evidence \
+          --ginkgo.timeout 10m -timeout 10m

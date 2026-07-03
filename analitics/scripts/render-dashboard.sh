@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPORTS_DIR="${REPORTS_DIR:-$BASE_DIR/../benchmarks/agntcy-slim/reports}"
+REPORTS_DIR="${REPORTS_DIR:-$BASE_DIR/reports}"
 TEMPLATE_FILE="${TEMPLATE_FILE:-$BASE_DIR/templates/dashboard.html.tmpl}"
 OUTPUT_FILE="${OUTPUT_FILE:-$BASE_DIR/published/index.html}"
 

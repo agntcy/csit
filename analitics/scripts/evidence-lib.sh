@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
-# Shared helpers for evaluating C1 smoke benchmark evidence from results.tsv.
+# Shared helpers for evaluating C1 evidence from Ginkgo assertion reports or legacy benchmark TSV.
 
-mode_rows() {
-  local mode="$1"
-  local results_file="${REPORTS_DIR}/results.tsv"
-  if [[ ! -f "$results_file" ]]; then
-    echo "0"
-    return 0
-  fi
-
-  awk -F'\t' -v wanted_mode="$mode" '
-    NR == 1 {
-      for (i = 1; i <= NF; i++) {
-        if ($i == "mode") mode_col = i
-      }
-      next
-    }
-    $mode_col == wanted_mode { count++ }
-    END { print count + 0 }
-  ' "$results_file"
+evidence_json() {
+  echo "${REPORTS_DIR}/c1-evidence.json"
 }
 
 mode_status() {
   local mode="$1"
+  local json_file
+  json_file="$(evidence_json)"
+
+  if [[ -f "$json_file" ]] && command -v jq >/dev/null 2>&1; then
+    local status
+    status="$(jq -r --arg mode "$mode" '.cases[] | select(.mode == $mode) | .status' "$json_file" 2>/dev/null | head -1)"
+    if [[ -n "$status" && "$status" != "null" ]]; then
+      echo "$status"
+      return 0
+    fi
+    echo "unknown"
+    return 0
+  fi
+
   local results_file="${REPORTS_DIR}/results.tsv"
   if [[ ! -f "$results_file" ]]; then
     echo "unknown"
@@ -53,6 +51,34 @@ mode_status() {
         print "verified"
       }
     }
+  ' "$results_file"
+}
+
+mode_rows() {
+  local mode="$1"
+  local json_file
+  json_file="$(evidence_json)"
+
+  if [[ -f "$json_file" ]] && command -v jq >/dev/null 2>&1; then
+    jq -r --arg mode "$mode" '[.cases[] | select(.mode == $mode)] | length' "$json_file" 2>/dev/null || echo "0"
+    return 0
+  fi
+
+  local results_file="${REPORTS_DIR}/results.tsv"
+  if [[ ! -f "$results_file" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  awk -F'\t' -v wanted_mode="$mode" '
+    NR == 1 {
+      for (i = 1; i <= NF; i++) {
+        if ($i == "mode") mode_col = i
+      }
+      next
+    }
+    $mode_col == wanted_mode { count++ }
+    END { print count + 0 }
   ' "$results_file"
 }
 
