@@ -8,12 +8,7 @@ silent: true
 
 vars:
   G_BEHAVIOR_LABELS:
-    map:
-      core: behavior-core
-      task-streaming: behavior-task-streaming
-      lifecycle: behavior-lifecycle
-      push-config: behavior-push-config
-      parity: behavior-parity
+    ref: 'fromJson "{\"core\":\"behavior-core\",\"task-streaming\":\"behavior-task-streaming\",\"lifecycle\":\"behavior-lifecycle\",\"push-config\":\"behavior-push-config\",\"parity\":\"behavior-parity\"}"'
 
 tasks:
   deps:update:
