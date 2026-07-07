@@ -1,0 +1,194 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: "3"
+
+silent: true
+
+vars:
+  MCP_KIND_CLUSTER_NAME: mcp-test
+  SLIM_MCP_RUST_REF: '{{ .SLIM_MCP_RUST_REF | default "helm-mcp-proxy-v0.1.4" }}'
+  SLIM_MCP_RUST_REPO: '{{ .SLIM_MCP_RUST_REPO | default "https://github.com/agntcy/slim-mcp-rust.git" }}'
+  SLIM_MCP_RUST_CACHE: '{{ .TASKFILE_DIR }}/.cache/slim-mcp-rust'
+  MCP_PROXY_CHART_PATH: '{{ .SLIM_MCP_RUST_CACHE }}/charts/mcp-proxy'
+  K8S_TEST_EXAMPLES_PATH: '{{ .SLIM_MCP_RUST_CACHE }}/mcp-proxy/examples/k8s-test'
+  MCP_PROXY_VALUES: '{{ .K8S_TEST_EXAMPLES_PATH }}/mcp-proxy-config/mcp-proxy-values.yaml'
+  K8S_MCP_SERVER_VALUES: '{{ .K8S_TEST_EXAMPLES_PATH }}/mcp-server-config/kubernetes-mcp-server-values.yaml'
+  KIND_CLUSTER_CONFIG: '{{ .K8S_TEST_EXAMPLES_PATH }}/kind-config/kind-cluster-config.yaml'
+  MCP_CLIENT_DIR: '{{ .K8S_TEST_EXAMPLES_PATH }}/mcp-client'
+
+  MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.2.5" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
+
+  K8S_MCP_SERVER_CHART: '{{ .K8S_MCP_SERVER_CHART | default "oci://ghcr.io/containers/charts/kubernetes-mcp-server" }}'
+  MCP_HELM_NAMESPACE: mcp-system
+  SHARED_SECRET: '{{ .SHARED_SECRET | default "secretsecretsecretsecretsecretsecret" }}'
+
+tasks:
+  deps:fetch-repo:
+    desc: Clone slim-mcp-rust at a pinned ref (chart + k8s-test examples)
+    cmds:
+      - |
+        set -euo pipefail
+        CACHE='{{ .SLIM_MCP_RUST_CACHE }}'
+        REF='{{ .SLIM_MCP_RUST_REF }}'
+        REPO='{{ .SLIM_MCP_RUST_REPO }}'
+        SLIM_CHART_TAG='{{ .SLIM_CHART_TAG }}'
+
+        if [ -d "$CACHE/.git" ]; then
+          git -C "$CACHE" fetch --depth 1 origin "refs/tags/${REF}:refs/tags/${REF}" 2>/dev/null || \
+            git -C "$CACHE" fetch --depth 1 origin "$REF"
+          git -C "$CACHE" checkout "$REF"
+        else
+          rm -rf "$CACHE"
+          git clone --depth 1 --branch "$REF" "$REPO" "$CACHE"
+        fi
+
+        CHART_YAML="${CACHE}/charts/mcp-proxy/Chart.yaml"
+        sed -i.bak "s/version: \"v[0-9.]*\"/version: \"${SLIM_CHART_TAG}\"/" "$CHART_YAML"
+        rm -f "${CHART_YAML}.bak"
+
+        helm dependency update "${CACHE}/charts/mcp-proxy"
+
+  kind:create:
+    desc: Create KinD cluster for MCP integration tests
+    deps:
+      - deps:fetch-repo
+    cmds:
+      - |
+        set -euo pipefail
+        CLUSTER='{{ .MCP_KIND_CLUSTER_NAME }}'
+        if kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
+          echo "KinD cluster ${CLUSTER} already exists"
+        else
+          kind create cluster --config '{{ .KIND_CLUSTER_CONFIG }}' --wait 60s
+        fi
+        kubectl config use-context "kind-${CLUSTER}"
+        kubectl config set-cluster "kind-${CLUSTER}" --server="https://127.0.0.1:6443"
+        kubectl cluster-info --context "kind-${CLUSTER}"
+
+  kind:destroy:
+    desc: Delete KinD cluster for MCP integration tests
+    cmds:
+      - kind delete cluster --name {{ .MCP_KIND_CLUSTER_NAME }}
+
+  deploy:stack:
+    desc: Install kubernetes-mcp-server and mcp-proxy (with SLIM) via Helm
+    deps:
+      - deps:fetch-repo
+    cmds:
+      - kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
+      - |
+        set -euo pipefail
+        helm upgrade --install kubernetes-mcp-server \
+          '{{ .K8S_MCP_SERVER_CHART }}' \
+          --namespace '{{ .MCP_HELM_NAMESPACE }}' \
+          --create-namespace \
+          -f '{{ .K8S_MCP_SERVER_VALUES }}' \
+          --wait \
+          --wait-for-jobs \
+          --timeout 15m
+      - |
+        set -euo pipefail
+        helm upgrade --install mcp-proxy \
+          '{{ .MCP_PROXY_CHART_PATH }}' \
+          --namespace '{{ .MCP_HELM_NAMESPACE }}' \
+          --create-namespace \
+          -f '{{ .MCP_PROXY_VALUES }}' \
+          --set image.tag='{{ .MCP_PROXY_IMAGE_TAG }}' \
+          --set slim.slim.image.tag='{{ .SLIM_IMAGE_TAG }}' \
+          --wait \
+          --wait-for-jobs \
+          --timeout 15m
+
+  deploy:wait:
+    desc: Wait for MCP stack workloads to become ready
+    cmds:
+      - kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
+      - |
+        set -euo pipefail
+        NS='{{ .MCP_HELM_NAMESPACE }}'
+        for dep in mcp-proxy kubernetes-mcp-server; do
+          kubectl wait --for=condition=available "deployment/${dep}" \
+            -n "$NS" --timeout=15m
+        done
+        kubectl rollout status "statefulset/slim" -n "$NS" --timeout=15m
+
+  cleanup:stack:
+    desc: Uninstall Helm releases from the MCP test namespace
+    cmds:
+      - |
+        helm uninstall mcp-proxy -n {{ .MCP_HELM_NAMESPACE }} 2>/dev/null || true
+        helm uninstall kubernetes-mcp-server -n {{ .MCP_HELM_NAMESPACE }} 2>/dev/null || true
+
+  test:port-forward:start:
+    desc: Port-forward SLIM service to localhost
+    cmds:
+      - mkdir -p ./reports ./.cache
+      - |
+        set -euo pipefail
+        kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
+        kubectl port-forward svc/slim 46357:46357 -n {{ .MCP_HELM_NAMESPACE }} >/dev/null 2>&1 &
+        echo $$! > ./.cache/port-forward.pid
+        sleep 5
+
+  test:port-forward:stop:
+    desc: Stop SLIM port-forward
+    cmds:
+      - |
+        if [ -f ./.cache/port-forward.pid ]; then
+          kill "$(cat ./.cache/port-forward.pid)" 2>/dev/null || true
+          rm -f ./.cache/port-forward.pid
+        fi
+
+  test:client:run:
+    desc: Run the upstream Python MCP test client
+    deps:
+      - deps:fetch-repo
+    preconditions:
+      - sh: test -f '{{ .MCP_CLIENT_DIR }}/client.py'
+        msg: run deps:fetch-repo first (missing client.py)
+    cmds:
+      - mkdir -p '{{ .TASKFILE_DIR }}/reports'
+      - |
+        set -euo pipefail
+        set -o pipefail
+        cd '{{ .MCP_CLIENT_DIR }}'
+        uv sync
+        uv run client.py \
+          --local-name org/mcp/k8s-client \
+          --proxy-name org/mcp/k8s-proxy \
+          --shared-secret '{{ .SHARED_SECRET }}' \
+          2>&1 | tee '{{ .TASKFILE_DIR }}/reports/test-output.log'
+
+  test:run:
+    desc: Run MCP-over-SLIM client test against deployed stack
+    cmds:
+      - defer: { task: test:port-forward:stop }
+      - task: test:port-forward:start
+      - task: test:client:run
+
+  up:
+    desc: Create cluster and deploy MCP test stack
+    cmds:
+      - task: kind:create
+      - task: deploy:stack
+      - task: deploy:wait
+
+  down:
+    desc: Tear down MCP test stack and KinD cluster
+    cmds:
+      - task: cleanup:stack
+      - task: kind:destroy
+
+  test:
+    desc: Full MCP integration test (up, run client, down)
+    cmds:
+      - defer: { task: down }
+      - task: up
+      - task: test:run
+
+  default:
+    cmd: task -l

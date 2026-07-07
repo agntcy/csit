@@ -5,7 +5,7 @@
 # Build one gh-pages docs section from a staging directory populated by download-artifact.
 #
 # Required env:
-#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-benchmarks | slim-multicluster-private | directory-conformance
+#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-mcp | slim-benchmarks | slim-multicluster-private | directory-conformance
 #   STAGING_DIR   directory with downloaded artifact contents
 #   SITE_DIR      gh-pages docs root (e.g. site/docs; suite dirs a2a/, directory/, …)
 #   REPO_ROOT     csit checkout (for go run)
@@ -57,6 +57,25 @@ case "$SUITE" in
         "$SITE_DIR/slim-integration" \
         "$SITE_DIR/slim-integration/index.html" \
         "Slim integration"
+      has_report=true
+    fi
+    ;;
+
+  slim-mcp)
+    log_file=""
+    if [[ -f "$STAGING_DIR/test-output.log" ]]; then
+      log_file="$STAGING_DIR/test-output.log"
+    else
+      log_file="$(find "$STAGING_DIR" -name 'test-output.log' -print -quit || true)"
+    fi
+    if [[ -n "$log_file" && -f "$log_file" ]]; then
+      mkdir -p "$SITE_DIR/slim-mcp"
+      cp "$log_file" "$SITE_DIR/slim-mcp/test-output.log"
+      {
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Slim MCP integration</title></head><body><pre>'
+        sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$log_file"
+        echo '</pre></body></html>'
+      } > "$SITE_DIR/slim-mcp/index.html"
       has_report=true
     fi
     ;;

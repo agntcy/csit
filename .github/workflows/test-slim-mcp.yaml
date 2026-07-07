@@ -1,0 +1,154 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-slim-mcp
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      kind_version:
+        description: "Kind version"
+        required: false
+        default: "0.24.0"
+      override_mcp_proxy_image_tag:
+        description: "Override MCP proxy image tag"
+        required: false
+        default: ""
+      override_slim_image_tag:
+        description: "Override Slim image tag"
+        required: false
+        default: ""
+      override_slim_chart_tag:
+        description: "Override Slim chart tag"
+        required: false
+        default: ""
+      override_slim_mcp_rust_ref:
+        description: "Override slim-mcp-rust git ref (e.g. helm-mcp-proxy-v0.1.4)"
+        required: false
+        default: ""
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: slim-mcp
+
+  set-kind-version:
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      kind-version: ${{ steps.set-kind-version.outputs.kind-version }}
+    steps:
+      - name: Set KinD version
+        id: set-kind-version
+        env:
+          KIND_VERSION: "0.24.0"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == 'workflow_dispatch' ]; then
+              KIND_VERSION="${{ inputs.kind_version }}"
+          fi
+
+          echo "Set KinD version to: $KIND_VERSION"
+          echo "kind-version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
+
+  run-tests-slim-mcp:
+    needs: [detect, set-kind-version]
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      attestations: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: true
+          python-version: "3.13"
+          go: false
+
+      - name: Setup K8S Tools
+        uses: ./.github/actions/setup-k8s
+        with:
+          kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
+
+      - name: Run Slim MCP integration test
+        shell: bash
+        env:
+          MCP_PROXY_IMAGE_TAG: ${{ inputs.override_mcp_proxy_image_tag }}
+          SLIM_IMAGE_TAG: ${{ inputs.override_slim_image_tag }}
+          SLIM_CHART_TAG: ${{ inputs.override_slim_chart_tag }}
+          SLIM_MCP_RUST_REF: ${{ inputs.override_slim_mcp_rust_ref }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "${MCP_PROXY_IMAGE_TAG}" ]]; then
+            args+=(MCP_PROXY_IMAGE_TAG="${MCP_PROXY_IMAGE_TAG}")
+          fi
+          if [[ -n "${SLIM_IMAGE_TAG}" ]]; then
+            args+=(SLIM_IMAGE_TAG="${SLIM_IMAGE_TAG}")
+          fi
+          if [[ -n "${SLIM_CHART_TAG}" ]]; then
+            args+=(SLIM_CHART_TAG="${SLIM_CHART_TAG}")
+          fi
+          if [[ -n "${SLIM_MCP_RUST_REF}" ]]; then
+            args+=(SLIM_MCP_RUST_REF="${SLIM_MCP_RUST_REF}")
+          fi
+          env "${args[@]}" task integrations:slim-mcp:test
+
+      - name: Create artifact from MCP test reports
+        if: always()
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: slim-mcp-test-result
+          path-to-archive: integrations/agntcy-slim/mcp/reports/
+
+  publish-pages:
+    needs: [run-tests-slim-mcp]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-slim-mcp.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-mcp
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-slim-mcp.result }}
