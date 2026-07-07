@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	slim "github.com/agntcy/slim-bindings-go"
@@ -39,22 +38,26 @@ type Runtime struct {
 	mu        sync.Mutex
 	runnerCtx *slim.MessageContext
 	lastPush  time.Time
+	// lastStartedEpoch dedupes repeated KindStart for the same epoch;
+	// currentEpoch is the attempt currently running (used to drop stale peer
+	// findings and to stop a superseded epoch loop).
+	lastStartedEpoch int
+	currentEpoch     int
 
 	pubMu sync.Mutex // serializes publishes on the session
 
-	running   atomic.Bool
-	done      chan struct{}
 	startedAt time.Time
 }
 
 func NewRuntime(s *scenario.ConsensusScenario, agentIndex int, slimName, endpoint string) *Runtime {
 	return &Runtime{
-		scenario:   s,
-		agentIndex: agentIndex,
-		slimName:   slimName,
-		endpoint:   endpoint,
-		engine:     consensus.NewEngine(s.Spec, agentIndex),
-		done:       make(chan struct{}),
+		scenario:         s,
+		agentIndex:       agentIndex,
+		slimName:         slimName,
+		endpoint:         endpoint,
+		engine:           consensus.NewEngine(s.Spec, agentIndex),
+		lastStartedEpoch: -1,
+		currentEpoch:     -1,
 	}
 }
 
@@ -118,12 +121,16 @@ func (r *Runtime) Run() error {
 		switch env.Kind {
 		case protocol.KindStart:
 			ctx := msg.Context
-			r.mu.Lock()
-			r.runnerCtx = &ctx
-			r.mu.Unlock()
-			r.startRun()
+			r.startEpoch(env.Epoch, &ctx)
 		case protocol.KindFinding:
 			if env.Finding == nil || env.Finding.AgentIndex == r.agentIndex {
+				continue
+			}
+			// Drop stragglers from a different (usually previous) epoch.
+			r.mu.Lock()
+			cur := r.currentEpoch
+			r.mu.Unlock()
+			if env.Finding.Epoch != cur {
 				continue
 			}
 			r.applyFinding(*env.Finding)
@@ -133,22 +140,40 @@ func (r *Runtime) Run() error {
 	}
 }
 
-func (r *Runtime) startRun() {
-	if r.running.Swap(true) {
+// startEpoch resets the engine for a fresh attempt and launches the epoch loop.
+// Repeated starts for the same (or older) epoch are ignored so a duplicated
+// broadcast cannot double-run an attempt.
+func (r *Runtime) startEpoch(epoch int, ctx *slim.MessageContext) {
+	r.mu.Lock()
+	if epoch <= r.lastStartedEpoch {
+		r.mu.Unlock()
 		return
 	}
+	r.lastStartedEpoch = epoch
+	r.currentEpoch = epoch
+	r.runnerCtx = ctx
+	r.mu.Unlock()
+
+	r.engine.Reset(epoch)
 	r.startedAt = time.Now()
 	benchlog.SetRunStart(r.startedAt)
-	go r.runLoop()
+	go r.runEpoch(epoch)
 }
 
-func (r *Runtime) runLoop() {
-	defer close(r.done)
+func (r *Runtime) runEpoch(epoch int) {
 	spec := r.scenario.Spec
 	think := time.Duration(spec.ThinkTimeMs) * time.Millisecond
 	emitGap := time.Duration(spec.FindingEmitDelayMs) * time.Millisecond
 
 	for round := 0; round < spec.MaxRounds; round++ {
+		// Stop early if a newer epoch has superseded this one.
+		r.mu.Lock()
+		superseded := r.currentEpoch != epoch
+		r.mu.Unlock()
+		if superseded {
+			return
+		}
+
 		time.Sleep(think)
 
 		finding, emit := r.engine.Think()

@@ -19,6 +19,7 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2asrv/taskstore"
 	agentrt "github.com/agntcy/csit/benchmarks/slim-vs-a2a/a2a/internal/agent"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/a2a/internal/protocol"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/benchlog"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
 	"google.golang.org/grpc"
 )
@@ -92,7 +93,12 @@ func main() {
 	scenarioFile := flag.String("scenario-file", "", "consensus scenario yaml")
 	agentIndex := flag.Int("agent-index", 0, "agent index")
 	relayCardURL := flag.String("relay-card-url", "", "runner relay agent card base URL")
+	quiet := flag.Bool("quiet", false, "disable benchmark logs")
 	flag.Parse()
+
+	if *quiet {
+		benchlog.SetEnabled(false)
+	}
 
 	if *agentID == "" || *grpcPort == 0 || *scenarioFile == "" || *relayCardURL == "" {
 		log.Fatal("agent-id, grpc-port, scenario-file, and relay-card-url are required")
@@ -150,11 +156,9 @@ func main() {
 		}
 	}()
 
-	// Subscribe to the runner relay stream as soon as we are up; it retries
-	// until the relay server is reachable.
-	rt.StartRelaySubscription(context.Background())
-
-	fmt.Printf("A2A_AGENT_READY agent=%s grpc=%d card=%d\n", *agentID, *grpcPort, card)
+	if !*quiet {
+		fmt.Printf("A2A_AGENT_READY agent=%s grpc=%d card=%d\n", *agentID, *grpcPort, card)
+	}
 	if err := grpcServer.Serve(grpcListener); err != nil {
 		log.Fatalf("grpc serve: %v", err)
 	}

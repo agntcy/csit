@@ -1,13 +1,13 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-10agents-20ms
+    name: hypothesis-convergence-5agents-10ms
     domain: hypothesis-convergence
     description: Generated consensus scenario for transport sweeps
 spec:
-    agents: 10
-    thinkTimeMs: 20
-    findingEmitDelayMs: 2
+    agents: 5
+    thinkTimeMs: 10
+    findingEmitDelayMs: 1
     maxRounds: 200
     targetMode: majority
     seed: 42
@@ -34,24 +34,4 @@ agents:
     - id: agent-4
       slimName: agntcy/bench-v2/agent-4
       a2aPort: 9744
-      role: worker
-    - id: agent-5
-      slimName: agntcy/bench-v2/agent-5
-      a2aPort: 9755
-      role: worker
-    - id: agent-6
-      slimName: agntcy/bench-v2/agent-6
-      a2aPort: 9766
-      role: worker
-    - id: agent-7
-      slimName: agntcy/bench-v2/agent-7
-      a2aPort: 9777
-      role: worker
-    - id: agent-8
-      slimName: agntcy/bench-v2/agent-8
-      a2aPort: 9788
-      role: worker
-    - id: agent-9
-      slimName: agntcy/bench-v2/agent-9
-      a2aPort: 9799
       role: worker

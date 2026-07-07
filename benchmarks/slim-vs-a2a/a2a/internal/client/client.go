@@ -44,9 +44,9 @@ func New(ctx context.Context, s *scenario.ConsensusScenario) (*Client, error) {
 	return &Client{clients: clients}, nil
 }
 
-func (c *Client) StartAll(ctx context.Context, agentIDs []string) error {
+func (c *Client) StartAll(ctx context.Context, agentIDs []string, epoch int) error {
 	for _, id := range agentIDs {
-		if err := c.send(ctx, id, protocol.Request{Op: protocol.OpStart}); err != nil {
+		if err := c.send(ctx, id, protocol.Request{Op: protocol.OpStart, Epoch: epoch}); err != nil {
 			return err
 		}
 	}

@@ -12,6 +12,8 @@ spec:
     targetMode: majority
     seed: 42
     valueSpace: 3
+    epochs: 10
+    maxEpochTimeMs: 30000
 agents:
     - id: agent-0
       slimName: agntcy/bench-v2/agent-0

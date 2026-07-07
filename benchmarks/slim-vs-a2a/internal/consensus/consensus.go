@@ -18,6 +18,7 @@ const consensusConfidence = 0.55
 type Finding struct {
 	FindingID  int64   `json:"findingId"`
 	AgentIndex int     `json:"agentIndex"`
+	Epoch      int     `json:"epoch,omitempty"`
 	Round      int     `json:"round"`
 	Value      int     `json:"value"`
 	Confidence float64 `json:"confidence"`
@@ -42,6 +43,7 @@ type Engine struct {
 
 	mu sync.Mutex
 
+	epoch            int
 	round            int
 	value            int
 	confidence       float64
@@ -83,6 +85,33 @@ func NewEngine(spec scenario.Spec, agentIndex int) *Engine {
 		distinctSupports: map[int]map[int]struct{}{},
 		payload:          makePayload(spec.PayloadBytes, spec.Seed, agentIndex),
 	}
+}
+
+// Reset restores the engine to its initial per-epoch state so the same
+// consensus attempt can be re-run. The topology-defining fields (targetValue,
+// payload, cfg) are preserved so every epoch is an identical repeat; only the
+// accumulated round/convergence/propagation state is cleared. The new epoch
+// index is stamped onto every finding and snapshot the engine produces next.
+func (e *Engine) Reset(epoch int) {
+	e.mu.Lock()
+	e.epoch = epoch
+	e.round = 0
+	e.value = e.cfg.AgentIndex % e.cfg.ValueSpace
+	e.confidence = 0.1
+	e.lastEmitValue = -1
+	e.lastEmitConf = 0
+	e.lastEmitRound = 0
+	e.nextFindingID = 0
+	e.distinctSupports = map[int]map[int]struct{}{}
+	e.convergedAt = 0
+	e.consensusRound = 0
+	e.findingsEmitted = 0
+	e.findingsApplied = 0
+	e.mu.Unlock()
+
+	e.propMu.Lock()
+	e.propDurations = nil
+	e.propMu.Unlock()
 }
 
 // makePayload returns deterministic, reproducible padding of n bytes. It is used
@@ -146,6 +175,7 @@ func (e *Engine) Think() (finding *Finding, emit bool) {
 	f := Finding{
 		FindingID:  e.nextFindingID,
 		AgentIndex: e.cfg.AgentIndex,
+		Epoch:      e.epoch,
 		Round:      e.round,
 		Value:      e.value,
 		Confidence: e.confidence,
@@ -286,6 +316,7 @@ func percentile(values []int64, p float64) int64 {
 
 type AgentSnapshot struct {
 	AgentIndex       int     `json:"agentIndex"`
+	Epoch            int     `json:"epoch,omitempty"`
 	Value            int     `json:"value"`
 	Confidence       float64 `json:"confidence"`
 	Round            int     `json:"round"`
@@ -298,11 +329,18 @@ type AgentSnapshot struct {
 	P95PropagationMs int64   `json:"p95PropagationMs"`
 }
 
+func (e *Engine) Epoch() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.epoch
+}
+
 func (e *Engine) Snapshot() AgentSnapshot {
 	value, conf, round := e.LocalState()
 	avg, p95 := e.PropagationStats()
 	return AgentSnapshot{
 		AgentIndex:       e.cfg.AgentIndex,
+		Epoch:            e.Epoch(),
 		Value:            value,
 		Confidence:       conf,
 		Round:            round,

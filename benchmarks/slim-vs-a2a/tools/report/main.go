@@ -69,7 +69,7 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 
 	var out []metrics.RunResult
 	for _, row := range records[1:] {
-		if len(row) < 17 {
+		if len(row) < 19 {
 			continue
 		}
 		r := metrics.RunResult{
@@ -89,10 +89,12 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 		r.LastAgentConvergeMS = atoi64(row[12])
 		r.CoordFanoutMS = atoi64(row[13])
 		r.StreamRPCCount = atoi(row[14])
-		r.UnicastRPCCount = atoi(row[15])
-		r.Success = row[16] == "true"
-		if len(row) > 17 {
-			r.Error = row[17]
+		r.Epochs = atoi(row[15])
+		r.EpochsSucceeded = atoi(row[16])
+		r.EpochsFailed = atoi(row[17])
+		r.Success = row[18] == "true"
+		if len(row) > 19 {
+			r.Error = row[19]
 		}
 		out = append(out, r)
 	}
@@ -206,18 +208,18 @@ const htmlTemplate = `<!DOCTYPE html>
     <tr><td>Avg propagation (ms)</td><td>{{if .HasA2A}}{{.A2A.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.AvgPropagationMS .SLIM.AvgPropagationMS}}{{else}}—{{end}}</td></tr>
     <tr><td>P95 propagation (ms)</td><td>{{if .HasA2A}}{{.A2A.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.P95PropagationMS .SLIM.P95PropagationMS}}{{else}}—{{end}}</td></tr>
     <tr><td>Stream RPC count</td><td>{{if .HasA2A}}{{.A2A.StreamRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.StreamRPCCount}}{{else}}—{{end}}</td><td>—</td></tr>
-    <tr><td>Unicast RPC count</td><td>{{if .HasA2A}}{{.A2A.UnicastRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.UnicastRPCCount}}{{else}}—{{end}}</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>{{if .HasA2A}}{{.A2A.EpochsSucceeded}} / {{.A2A.EpochsFailed}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.EpochsSucceeded}} / {{.SLIM.EpochsFailed}}{{else}}—{{end}}</td><td>—</td></tr>
     <tr><td>Success</td><td>{{if .HasA2A}}{{.A2A.Success}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.Success}}{{else}}—{{end}}</td><td>—</td></tr>
   </table>
   {{end}}
   {{if .Sweep}}
   <h2>Sweep results</h2>
   <table>
-    <tr><th>Scenario</th><th>Impl</th><th>Agents</th><th>Think ms</th><th>Payload B</th><th>Consensus wall</th><th>Avg propagation</th><th>P95 propagation</th><th>Stream RPCs</th></tr>
+    <tr><th>Scenario</th><th>Impl</th><th>Agents</th><th>Think ms</th><th>Payload B</th><th>Consensus wall</th><th>Avg propagation</th><th>P95 propagation</th><th>Stream RPCs</th><th>Epochs ok/failed</th></tr>
     {{range .Sweep}}
     <tr>
       <td>{{.ScenarioName}}</td><td>{{.Implementation}}</td><td>{{.Agents}}</td><td>{{.ThinkTimeMs}}</td><td>{{.PayloadBytes}}</td>
-      <td>{{.ConsensusWallMS}}</td><td>{{.AvgPropagationMS}}</td><td>{{.P95PropagationMS}}</td><td>{{.StreamRPCCount}}</td>
+      <td>{{.ConsensusWallMS}}</td><td>{{.AvgPropagationMS}}</td><td>{{.P95PropagationMS}}</td><td>{{.StreamRPCCount}}</td><td>{{.EpochsSucceeded}}/{{.EpochsFailed}}</td>
     </tr>
     {{end}}
   </table>
@@ -239,8 +241,12 @@ const htmlTemplate = `<!DOCTYPE html>
     <dd>Number of finding-carrying messages on the data path. For SLIM this equals findings emitted (one
       native multicast each). For A2A it is the relay deliveries, ≈ <code>findings × (N−1)</code>, because the
       hub re-sends every finding to all other agents.</dd>
-    <dt>Unicast RPC count</dt>
-    <dd>Control-plane unary RPCs only (start / snapshot polling), not the data path.</dd>
+    <dt>Epochs (ok / failed)</dt>
+    <dd>Each run repeats the same consensus attempt over several <em>epochs</em>. An epoch succeeds if every
+      agent reaches global consensus within <code>spec.maxEpochTimeMs</code> (each attempt runs up to
+      <code>maxRounds</code>); otherwise it is counted as failed. This surfaces reliability differences: under
+      load A2A may miss the per-epoch budget while SLIM still converges. Overall <em>Success</em> is true only
+      when no epoch failed.</dd>
     <dt>Coord fanout (ms)</dt>
     <dd>Cumulative time the A2A relay hub spent fanning findings out to peers. <code>0</code> for SLIM because
       there is no relay — the dataplane does the fan-out.</dd>

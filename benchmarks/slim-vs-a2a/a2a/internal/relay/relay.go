@@ -8,7 +8,9 @@
 // subscribes and receives a server stream of every relayed finding. The runner
 // separately subscribes to each agent's OpStreamFindings stream and calls
 // Broadcast for every finding, which fans it out to all other agents' relay
-// streams. This relay fan-out is exactly the work native SLIM avoids.
+// streams. Broadcast drops findings whose epoch does not match the hub's
+// current epoch so stragglers from a prior attempt are not relayed. This
+// relay fan-out is exactly the work native SLIM avoids.
 package relay
 
 import (
@@ -18,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
@@ -42,6 +45,10 @@ type Hub struct {
 	subs           map[*subscriber]struct{}
 	streamRPCCount int
 	fanoutMS       int64
+	// currentEpoch is the consensus attempt the hub will relay. Findings tagged
+	// with a different epoch are dropped so stragglers from a prior attempt do
+	// not fan out or grow relay-stream task history.
+	currentEpoch atomic.Int32
 }
 
 func NewHub(grpcPort, cardPort int) *Hub {
@@ -104,8 +111,32 @@ func (h *Hub) Serve() error {
 	return nil
 }
 
+// ResetStreams closes every active relay subscription so agents open fresh
+// OpStreamRelay tasks on the next epoch instead of growing one task forever.
+func (h *Hub) ResetStreams() {
+	h.mu.Lock()
+	subs := make([]*subscriber, 0, len(h.subs))
+	for s := range h.subs {
+		subs = append(subs, s)
+	}
+	h.subs = map[*subscriber]struct{}{}
+	h.mu.Unlock()
+	for _, s := range subs {
+		close(s.ch)
+	}
+}
+
+// SetCurrentEpoch advances the relay filter to the given epoch. Only findings
+// stamped with this epoch are broadcast; older (or future) epochs are ignored.
+func (h *Hub) SetCurrentEpoch(epoch int) {
+	h.currentEpoch.Store(int32(epoch))
+}
+
 // Broadcast fans a finding out to every subscriber except its producer.
 func (h *Hub) Broadcast(f consensus.Finding) {
+	if int(h.currentEpoch.Load()) != f.Epoch {
+		return
+	}
 	start := time.Now()
 	h.mu.Lock()
 	targets := make([]*subscriber, 0, len(h.subs))
@@ -181,7 +212,11 @@ func (e *relayExecutor) Execute(ctx context.Context, execCtx *a2asrv.ExecutorCon
 			case <-ctx.Done():
 				yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 				return
-			case f := <-sub.ch:
+			case f, ok := <-sub.ch:
+				if !ok {
+					yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
+					return
+				}
 				body, err := consensus.EncodeFinding(f)
 				if err != nil {
 					continue

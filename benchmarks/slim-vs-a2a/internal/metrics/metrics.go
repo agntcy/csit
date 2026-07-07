@@ -27,7 +27,9 @@ type RunResult struct {
 	LastAgentConvergeMS   int64   `json:"last_agent_converge_ms"`
 	CoordFanoutMS         int64   `json:"coord_fanout_ms"`
 	StreamRPCCount        int     `json:"stream_rpc_count"`
-	UnicastRPCCount       int     `json:"unicast_rpc_count"`
+	Epochs                int     `json:"epochs"`
+	EpochsSucceeded       int     `json:"epochs_succeeded"`
+	EpochsFailed          int     `json:"epochs_failed"`
 	Success               bool    `json:"success"`
 	Error                 string  `json:"error,omitempty"`
 }
@@ -68,7 +70,8 @@ func AppendTSV(path string, result RunResult) error {
 			"payload_bytes",
 			"consensus_wall_ms", "consensus_round", "findings_emitted", "findings_received_total",
 			"avg_propagation_ms", "p95_propagation_ms", "last_agent_converge_ms",
-			"coord_fanout_ms", "stream_rpc_count", "unicast_rpc_count",
+			"coord_fanout_ms", "stream_rpc_count",
+			"epochs", "epochs_succeeded", "epochs_failed",
 			"success", "error",
 		}); err != nil {
 			return err
@@ -90,7 +93,9 @@ func AppendTSV(path string, result RunResult) error {
 		strconv.FormatInt(result.LastAgentConvergeMS, 10),
 		strconv.FormatInt(result.CoordFanoutMS, 10),
 		strconv.Itoa(result.StreamRPCCount),
-		strconv.Itoa(result.UnicastRPCCount),
+		strconv.Itoa(result.Epochs),
+		strconv.Itoa(result.EpochsSucceeded),
+		strconv.Itoa(result.EpochsFailed),
 		strconv.FormatBool(result.Success),
 		result.Error,
 	}); err != nil {

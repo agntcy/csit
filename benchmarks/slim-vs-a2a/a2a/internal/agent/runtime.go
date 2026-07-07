@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"iter"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
@@ -44,30 +43,62 @@ type Runtime struct {
 	engine *consensus.Engine
 
 	outbound  chan consensus.Finding
-	running   atomic.Bool
-	done      chan struct{}
 	startedAt time.Time
-	relayOnce sync.Once
+
+	relayMu    sync.Mutex
+	relayCancel context.CancelFunc
+
+	mu sync.Mutex
+	// lastStartedEpoch dedupes repeated OpStart for the same epoch;
+	// currentEpoch is the attempt currently running (used to drop stale relayed
+	// findings and to stop a superseded epoch loop).
+	lastStartedEpoch int
+	currentEpoch     int
 }
 
 func NewRuntime(s *scenario.ConsensusScenario, agentIndex int, agentID, relayCardURL string) *Runtime {
 	return &Runtime{
-		scenario:     s,
-		agentIndex:   agentIndex,
-		agentID:      agentID,
-		relayCardURL: relayCardURL,
-		engine:       consensus.NewEngine(s.Spec, agentIndex),
-		outbound:     make(chan consensus.Finding, 1024),
-		done:         make(chan struct{}),
+		scenario:         s,
+		agentIndex:       agentIndex,
+		agentID:          agentID,
+		relayCardURL:     relayCardURL,
+		engine:           consensus.NewEngine(s.Spec, agentIndex),
+		outbound:         make(chan consensus.Finding, 1024),
+		lastStartedEpoch: -1,
+		currentEpoch:     -1,
 	}
 }
 
-// StartRelaySubscription dials the runner relay and subscribes to the relayed
-// finding stream (OpStreamRelay). It runs once and retries until the relay is up.
-func (r *Runtime) StartRelaySubscription(ctx context.Context) {
-	r.relayOnce.Do(func() {
-		go r.relayLoop(ctx)
-	})
+// stopRelay ends the current OpStreamRelay subscription, if any.
+func (r *Runtime) stopRelay() {
+	r.relayMu.Lock()
+	if r.relayCancel != nil {
+		r.relayCancel()
+		r.relayCancel = nil
+	}
+	r.relayMu.Unlock()
+}
+
+// startRelay dials the runner relay and subscribes to OpStreamRelay for the
+// current epoch. Each epoch gets a fresh stream so a2a-go task history does
+// not accumulate across attempts.
+func (r *Runtime) startRelay() {
+	r.stopRelay()
+	relayCtx, cancel := context.WithCancel(context.Background())
+	r.relayMu.Lock()
+	r.relayCancel = cancel
+	r.relayMu.Unlock()
+	go r.relayLoop(relayCtx)
+}
+
+func (r *Runtime) drainOutbound() {
+	for {
+		select {
+		case <-r.outbound:
+		default:
+			return
+		}
+	}
 }
 
 func (r *Runtime) relayLoop(ctx context.Context) {
@@ -93,6 +124,13 @@ func (r *Runtime) relayLoop(ctx context.Context) {
 			}
 			f, ok := findingFromEvent(ev)
 			if !ok || f.AgentIndex == r.agentIndex {
+				continue
+			}
+			// Drop stragglers from a different (usually previous) epoch.
+			r.mu.Lock()
+			cur := r.currentEpoch
+			r.mu.Unlock()
+			if f.Epoch != cur {
 				continue
 			}
 			r.applyFinding(f)
@@ -129,7 +167,7 @@ func (r *Runtime) dialRelay(ctx context.Context) *a2aclient.Client {
 func (r *Runtime) HandleUnary(_ context.Context, req protocol.Request) protocol.Response {
 	switch req.Op {
 	case protocol.OpStart:
-		r.StartRun()
+		r.startEpoch(req.Epoch)
 		return protocol.Response{OK: true}
 	case protocol.OpSnapshot:
 		body, err := json.Marshal(r.engine.Snapshot())
@@ -172,22 +210,42 @@ func (r *Runtime) StreamFindings(ctx context.Context, execCtx *a2asrv.ExecutorCo
 	}
 }
 
-func (r *Runtime) StartRun() {
-	if r.running.Swap(true) {
+// startEpoch resets the engine for a fresh attempt and launches the epoch loop.
+// Repeated starts for the same (or older) epoch are ignored so a duplicated
+// call cannot double-run an attempt.
+func (r *Runtime) startEpoch(epoch int) {
+	r.mu.Lock()
+	if epoch <= r.lastStartedEpoch {
+		r.mu.Unlock()
 		return
 	}
+	r.lastStartedEpoch = epoch
+	r.currentEpoch = epoch
+	r.mu.Unlock()
+
+	r.stopRelay()
+	r.drainOutbound()
+	r.engine.Reset(epoch)
 	r.startedAt = time.Now()
 	benchlog.SetRunStart(r.startedAt)
-	go r.runLoop()
+	r.startRelay()
+	go r.runEpoch(epoch)
 }
 
-func (r *Runtime) runLoop() {
-	defer close(r.done)
+func (r *Runtime) runEpoch(epoch int) {
 	spec := r.scenario.Spec
 	think := time.Duration(spec.ThinkTimeMs) * time.Millisecond
 	emitGap := time.Duration(spec.FindingEmitDelayMs) * time.Millisecond
 
 	for round := 0; round < spec.MaxRounds; round++ {
+		// Stop early if a newer epoch has superseded this one.
+		r.mu.Lock()
+		superseded := r.currentEpoch != epoch
+		r.mu.Unlock()
+		if superseded {
+			return
+		}
+
 		time.Sleep(think)
 
 		finding, emit := r.engine.Think()

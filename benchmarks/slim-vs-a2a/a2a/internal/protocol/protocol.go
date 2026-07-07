@@ -30,6 +30,8 @@ type Request struct {
 	// AgentIndex identifies the subscriber on OpStreamRelay so the relay can
 	// avoid echoing an agent's own findings back to it.
 	AgentIndex int `json:"agentIndex,omitempty"`
+	// Epoch identifies which consensus attempt an OpStart begins.
+	Epoch int `json:"epoch,omitempty"`
 }
 
 type Response struct {

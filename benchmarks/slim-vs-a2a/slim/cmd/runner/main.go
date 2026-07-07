@@ -63,7 +63,7 @@ func main() {
 		log.Fatal("set --agent-bin or SLIM_AGENT_BIN")
 	}
 
-	procs := startAgents(s, agentPath, *endpoint, *scenarioPath)
+	procs := startAgents(s, agentPath, *endpoint, *scenarioPath, *quiet)
 	defer stopAgents(procs)
 
 	mod, err := newModerator(*endpoint, s)
@@ -80,9 +80,6 @@ func main() {
 
 	runStart := time.Now()
 	benchlog.SetRunStart(runStart)
-	if err := mod.Start(); err != nil {
-		log.Fatalf("broadcast start: %v", err)
-	}
 
 	result := metrics.RunResult{
 		ScenarioName:   s.Metadata.Name,
@@ -91,35 +88,63 @@ func main() {
 		Agents:         len(s.Agents),
 		ThinkTimeMs:    s.Spec.ThinkTimeMs,
 		PayloadBytes:   s.Spec.PayloadBytes,
+		Epochs:         s.Spec.Epochs,
 	}
 
-	latest := map[int]consensus.AgentSnapshot{}
 	n := len(s.Agents)
-	deadline := time.Now().Add(2 * time.Minute)
-	for time.Now().Before(deadline) {
-		timeout := time.Second
-		msg, err := mod.session.GetMessageAsync(&timeout)
-		if err != nil {
-			if isTimeout(err) {
-				continue
-			}
-			break
+	maxEpochTime := time.Duration(s.Spec.MaxEpochTimeMs) * time.Millisecond
+	var (
+		wallSamples  []int64
+		allSnapshots []consensus.AgentSnapshot
+	)
+	for epoch := 0; epoch < s.Spec.Epochs; epoch++ {
+		log.Printf("epoch %d/%d started (budget %s)", epoch+1, s.Spec.Epochs, maxEpochTime)
+		if err := mod.Start(epoch); err != nil {
+			log.Fatalf("broadcast start (epoch %d): %v", epoch, err)
 		}
-		env, derr := protocol.Decode(msg.Payload)
-		if derr != nil || env.Kind != protocol.KindSnapshot || env.Snapshot == nil {
-			continue
-		}
-		latest[env.Snapshot.AgentIndex] = *env.Snapshot
-		if len(latest) == n {
-			if ok, _ := consensus.GlobalConsensus(snapshotSlice(latest)); ok {
-				result.Success = true
+		epochStart := time.Now()
+		latest := map[int]consensus.AgentSnapshot{}
+		deadline := epochStart.Add(maxEpochTime)
+		success := false
+		for time.Now().Before(deadline) {
+			timeout := time.Second
+			msg, err := mod.session.GetMessageAsync(&timeout)
+			if err != nil {
+				if isTimeout(err) {
+					continue
+				}
 				break
 			}
+			env, derr := protocol.Decode(msg.Payload)
+			if derr != nil || env.Kind != protocol.KindSnapshot || env.Snapshot == nil {
+				continue
+			}
+			// Ignore stragglers from other epochs.
+			if env.Snapshot.Epoch != epoch {
+				continue
+			}
+			latest[env.Snapshot.AgentIndex] = *env.Snapshot
+			if len(latest) == n {
+				if ok, _ := consensus.GlobalConsensus(snapshotSlice(latest)); ok {
+					success = true
+					break
+				}
+			}
+		}
+		allSnapshots = append(allSnapshots, snapshotSlice(latest)...)
+		epochWall := time.Since(epochStart)
+		if success {
+			result.EpochsSucceeded++
+			wallSamples = append(wallSamples, epochWall.Milliseconds())
+			log.Printf("epoch %d/%d ok wall_ms=%d", epoch+1, s.Spec.Epochs, epochWall.Milliseconds())
+		} else {
+			result.EpochsFailed++
+			log.Printf("epoch %d/%d failed after %s (budget %s exhausted)", epoch+1, s.Spec.Epochs, epochWall.Round(time.Millisecond), maxEpochTime)
 		}
 	}
 
-	snapshots := snapshotSlice(latest)
-	result = aggregateResult(result, runStart, snapshots)
+	result.Success = result.EpochsFailed == 0
+	result = aggregateResult(result, wallSamples, allSnapshots)
 
 	stopAgents(procs)
 
@@ -212,8 +237,8 @@ func (m *moderator) InviteAll() error {
 	return nil
 }
 
-func (m *moderator) Start() error {
-	payload, err := protocol.Encode(protocol.Envelope{Kind: protocol.KindStart})
+func (m *moderator) Start(epoch int) error {
+	payload, err := protocol.Encode(protocol.Envelope{Kind: protocol.KindStart, Epoch: epoch})
 	if err != nil {
 		return err
 	}
@@ -229,22 +254,21 @@ func (m *moderator) Close() {
 	}
 }
 
-func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []consensus.AgentSnapshot) metrics.RunResult {
+// aggregateResult folds the snapshots collected across every epoch into the run
+// result. wallSamples holds the wall-clock duration of each successful epoch.
+func aggregateResult(result metrics.RunResult, wallSamples []int64, snapshots []consensus.AgentSnapshot) metrics.RunResult {
 	if len(snapshots) == 0 {
 		result.Error = "no agent snapshots"
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
 		return result
 	}
 
 	var (
 		totalEmitted      int
 		totalApplied      int
-		lastConvergeMS    int64
 		propDurations     []int64
 		maxConsensusRound int
 		maxRound          int
 	)
-
 	for _, snap := range snapshots {
 		totalEmitted += snap.FindingsEmitted
 		totalApplied += snap.FindingsApplied
@@ -254,25 +278,16 @@ func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []c
 		if snap.Round > maxRound {
 			maxRound = snap.Round
 		}
-		if snap.ConvergedAtNs > 0 {
-			ms := (snap.ConvergedAtNs - runStart.UnixNano()) / int64(time.Millisecond)
-			if ms > lastConvergeMS {
-				lastConvergeMS = ms
-			}
-		}
 		if snap.AvgPropagationMs > 0 {
 			propDurations = append(propDurations, snap.AvgPropagationMs)
 		}
 	}
 
-	if result.Success {
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
-		if lastConvergeMS > 0 {
-			result.ConsensusWallMS = lastConvergeMS
-		}
-	} else {
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
-		result.Error = "consensus not reached"
+	meanWall, maxWall := summarizeWall(wallSamples)
+	result.ConsensusWallMS = meanWall
+	result.LastAgentConvergeMS = maxWall
+	if result.EpochsSucceeded == 0 {
+		result.Error = "consensus not reached in any epoch"
 	}
 
 	result.ConsensusRound = maxConsensusRound
@@ -281,12 +296,26 @@ func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []c
 	}
 	result.FindingsEmitted = totalEmitted
 	result.FindingsReceivedTotal = totalApplied
-	result.LastAgentConvergeMS = lastConvergeMS
 	result.AvgPropagationMS, result.P95PropagationMS = metrics.AggregatePropagation(propDurations)
 	// Native group session: findings are broadcast peer-to-peer, no relay.
 	result.StreamRPCCount = totalEmitted
 	result.CoordFanoutMS = 0
 	return result
+}
+
+// summarizeWall returns the mean and max of the per-epoch wall-clock samples.
+func summarizeWall(wallSamples []int64) (mean, max int64) {
+	if len(wallSamples) == 0 {
+		return 0, 0
+	}
+	var sum int64
+	for _, w := range wallSamples {
+		sum += w
+		if w > max {
+			max = w
+		}
+	}
+	return sum / int64(len(wallSamples)), max
 }
 
 func snapshotSlice(m map[int]consensus.AgentSnapshot) []consensus.AgentSnapshot {
@@ -297,16 +326,19 @@ func snapshotSlice(m map[int]consensus.AgentSnapshot) []consensus.AgentSnapshot 
 	return out
 }
 
-func startAgents(s *scenario.ConsensusScenario, agentBin, endpoint, scenarioFile string) []*exec.Cmd {
+func startAgents(s *scenario.ConsensusScenario, agentBin, endpoint, scenarioFile string, quiet bool) []*exec.Cmd {
 	var procs []*exec.Cmd
 	for i, agent := range s.Agents {
-		cmd := exec.Command(
-			agentBin,
+		args := []string{
 			"--slim-name", agent.SlimName,
 			"--endpoint", endpoint,
 			"--scenario-file", scenarioFile,
 			"--agent-index", fmt.Sprintf("%d", i),
-		)
+		}
+		if quiet {
+			args = append(args, "--quiet")
+		}
+		cmd := exec.Command(agentBin, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {

@@ -19,6 +19,8 @@ func main() {
 	thinkMS := flag.Int64("think-ms", 10, "think time per agent in ms")
 	seed := flag.Int64("seed", 42, "random seed")
 	payloadBytes := flag.Int("payload-bytes", 0, "fixed-size padding added to every finding (bytes)")
+	epochs := flag.Int("epochs", 0, "number of consensus epochs to run (default 10)")
+	maxEpochMS := flag.Int64("max-epoch-ms", 0, "per-epoch consensus time budget in ms (default 120000)")
 	output := flag.String("output", "", "output yaml path")
 	flag.Parse()
 
@@ -27,11 +29,13 @@ func main() {
 	}
 
 	s, err := scenario.Generate(scenario.GenerateOptions{
-		Family:       *family,
-		Agents:       *agents,
-		ThinkTimeMs:  *thinkMS,
-		Seed:         *seed,
-		PayloadBytes: *payloadBytes,
+		Family:         *family,
+		Agents:         *agents,
+		ThinkTimeMs:    *thinkMS,
+		Seed:           *seed,
+		PayloadBytes:   *payloadBytes,
+		Epochs:         *epochs,
+		MaxEpochTimeMs: *maxEpochMS,
 	})
 	if err != nil {
 		log.Fatalf("generate: %v", err)

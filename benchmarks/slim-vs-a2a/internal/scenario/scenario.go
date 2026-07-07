@@ -40,6 +40,13 @@ type Spec struct {
 	// PayloadBytes inflates every finding with fixed-size padding to stress
 	// transport bandwidth. 0 (default) keeps findings at their minimal size.
 	PayloadBytes int `yaml:"payloadBytes,omitempty"`
+	// Epochs is how many times the same consensus attempt is repeated. Each
+	// epoch resets the agents and re-runs; the runner counts successful vs
+	// failed epochs. Defaults to 10.
+	Epochs int `yaml:"epochs,omitempty"`
+	// MaxEpochTimeMs is the per-epoch wall-clock budget: if global consensus is
+	// not reached within it, the epoch is counted as failed. Defaults to 120000.
+	MaxEpochTimeMs int64 `yaml:"maxEpochTimeMs,omitempty"`
 }
 
 type Agent struct {
@@ -98,6 +105,12 @@ func (s *ConsensusScenario) Validate() error {
 	}
 	if s.Spec.PayloadBytes < 0 {
 		s.Spec.PayloadBytes = 0
+	}
+	if s.Spec.Epochs <= 0 {
+		s.Spec.Epochs = 10
+	}
+	if s.Spec.MaxEpochTimeMs <= 0 {
+		s.Spec.MaxEpochTimeMs = 120000
 	}
 	for i, a := range s.Agents {
 		if a.ID == "" {
@@ -170,11 +183,13 @@ func (s *ConsensusScenario) SlimNames() []string {
 }
 
 type GenerateOptions struct {
-	Family       string
-	Agents       int
-	ThinkTimeMs  int64
-	Seed         int64
-	PayloadBytes int
+	Family         string
+	Agents         int
+	ThinkTimeMs    int64
+	Seed           int64
+	PayloadBytes   int
+	Epochs         int
+	MaxEpochTimeMs int64
 }
 
 func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
@@ -192,6 +207,12 @@ func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
 	}
 	if opts.PayloadBytes < 0 {
 		opts.PayloadBytes = 0
+	}
+	if opts.Epochs <= 0 {
+		opts.Epochs = 10
+	}
+	if opts.MaxEpochTimeMs <= 0 {
+		opts.MaxEpochTimeMs = 120000
 	}
 
 	name := fmt.Sprintf("%s-%dagents-%dms", opts.Family, opts.Agents, opts.ThinkTimeMs)
@@ -230,6 +251,8 @@ func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
 			Seed:               opts.Seed,
 			ValueSpace:         3,
 			PayloadBytes:       opts.PayloadBytes,
+			Epochs:             opts.Epochs,
+			MaxEpochTimeMs:     opts.MaxEpochTimeMs,
 		},
 		Agents: agents,
 	}

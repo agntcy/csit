@@ -63,11 +63,12 @@ func main() {
 		log.Fatalf("relay serve: %v", err)
 	}
 
-	procs := startAgents(s, agentPath, *scenarioPath, hub.CardURL())
+	procs := startAgents(s, agentPath, *scenarioPath, hub.CardURL(), *quiet)
 	defer stopAgents(procs)
 	time.Sleep(*waitReady)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	overall := time.Duration(s.Spec.Epochs)*time.Duration(s.Spec.MaxEpochTimeMs)*time.Millisecond + 5*time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), overall)
 	defer cancel()
 
 	cli, err := newClientWithRetry(ctx, s)
@@ -108,10 +109,6 @@ func main() {
 
 	runStart := time.Now()
 	benchlog.SetRunStart(runStart)
-	if err := cli.StartAll(ctx, agentIDs); err != nil {
-		stopAgents(procs)
-		log.Fatalf("start agents: %v", err)
-	}
 
 	result := metrics.RunResult{
 		ScenarioName:   s.Metadata.Name,
@@ -120,37 +117,59 @@ func main() {
 		Agents:         len(s.Agents),
 		ThinkTimeMs:    s.Spec.ThinkTimeMs,
 		PayloadBytes:   s.Spec.PayloadBytes,
+		Epochs:         s.Spec.Epochs,
 	}
 
-	var snapshots []consensus.AgentSnapshot
-	deadline := time.Now().Add(2 * time.Minute)
-	for time.Now().Before(deadline) {
-		snapshots = snapshots[:0]
-		var pollErr error
-		for _, id := range agentIDs {
-			snap, err := cli.Snapshot(ctx, id)
-			if err != nil {
-				pollErr = err
-				break
+	maxEpochTime := time.Duration(s.Spec.MaxEpochTimeMs) * time.Millisecond
+	var (
+		wallSamples  []int64
+		allSnapshots []consensus.AgentSnapshot
+	)
+	for epoch := 0; epoch < s.Spec.Epochs; epoch++ {
+		log.Printf("epoch %d/%d started (budget %s)", epoch+1, s.Spec.Epochs, maxEpochTime)
+		hub.SetCurrentEpoch(epoch)
+		if err := cli.StartAll(ctx, agentIDs, epoch); err != nil {
+			stopAgents(procs)
+			log.Fatalf("start agents (epoch %d): %v", epoch, err)
+		}
+		epochStart := time.Now()
+		deadline := epochStart.Add(maxEpochTime)
+		var snapshots []consensus.AgentSnapshot
+		success := false
+		for time.Now().Before(deadline) {
+			snapshots = snapshots[:0]
+			var pollErr error
+			for _, id := range agentIDs {
+				snap, err := cli.Snapshot(ctx, id)
+				if err != nil {
+					pollErr = err
+					break
+				}
+				snapshots = append(snapshots, snap)
 			}
-			snapshots = append(snapshots, snap)
-		}
-		if pollErr == nil {
-			if ok, _ := consensus.GlobalConsensus(snapshots); ok {
-				result.Success = true
-				break
+			// Only accept consensus once every agent has reset into this epoch.
+			if pollErr == nil && allForEpoch(snapshots, epoch) {
+				if ok, _ := consensus.GlobalConsensus(snapshots); ok {
+					success = true
+					break
+				}
 			}
+			time.Sleep(20 * time.Millisecond)
 		}
-		time.Sleep(20 * time.Millisecond)
+		allSnapshots = append(allSnapshots, snapshots...)
+		epochWall := time.Since(epochStart)
+		if success {
+			result.EpochsSucceeded++
+			wallSamples = append(wallSamples, epochWall.Milliseconds())
+			log.Printf("epoch %d/%d ok wall_ms=%d", epoch+1, s.Spec.Epochs, epochWall.Milliseconds())
+		} else {
+			result.EpochsFailed++
+			log.Printf("epoch %d/%d failed after %s (budget %s exhausted)", epoch+1, s.Spec.Epochs, epochWall.Round(time.Millisecond), maxEpochTime)
+		}
 	}
 
-	if !result.Success && len(snapshots) > 0 {
-		if ok, _ := consensus.GlobalConsensus(snapshots); ok {
-			result.Success = true
-		}
-	}
-
-	result = aggregateResult(result, runStart, snapshots, hub)
+	result.Success = result.EpochsFailed == 0
+	result = aggregateResult(result, wallSamples, allSnapshots, hub)
 
 	stopAgents(procs)
 
@@ -189,22 +208,41 @@ func newClientWithRetry(ctx context.Context, s *scenario.ConsensusScenario) (*cl
 	return nil, lastErr
 }
 
-func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []consensus.AgentSnapshot, hub *relay.Hub) metrics.RunResult {
+// allForEpoch reports whether every polled snapshot belongs to the given epoch,
+// i.e. all agents have reset into it. Empty input is treated as not-yet-ready.
+func allForEpoch(snapshots []consensus.AgentSnapshot, epoch int) bool {
+	if len(snapshots) == 0 {
+		return false
+	}
+	for _, snap := range snapshots {
+		if snap.Epoch != epoch {
+			return false
+		}
+	}
+	return true
+}
+
+// aggregateResult folds the snapshots collected across every epoch into the run
+// result. wallSamples holds the wall-clock duration of each successful epoch.
+func aggregateResult(result metrics.RunResult, wallSamples []int64, snapshots []consensus.AgentSnapshot, hub *relay.Hub) metrics.RunResult {
+	// Relay hub did all the fan-out work; report its real counters (cumulative
+	// across every epoch).
+	streamCount, fanoutMS := hub.Stats()
+	result.StreamRPCCount = streamCount
+	result.CoordFanoutMS = fanoutMS
+
 	if len(snapshots) == 0 {
 		result.Error = "no agent snapshots"
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
 		return result
 	}
 
 	var (
 		totalEmitted      int
 		totalApplied      int
-		lastConvergeMS    int64
 		propDurations     []int64
 		maxConsensusRound int
 		maxRound          int
 	)
-
 	for _, snap := range snapshots {
 		totalEmitted += snap.FindingsEmitted
 		totalApplied += snap.FindingsApplied
@@ -214,25 +252,16 @@ func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []c
 		if snap.Round > maxRound {
 			maxRound = snap.Round
 		}
-		if snap.ConvergedAtNs > 0 {
-			ms := (snap.ConvergedAtNs - runStart.UnixNano()) / int64(time.Millisecond)
-			if ms > lastConvergeMS {
-				lastConvergeMS = ms
-			}
-		}
 		if snap.AvgPropagationMs > 0 {
 			propDurations = append(propDurations, snap.AvgPropagationMs)
 		}
 	}
 
-	if result.Success {
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
-		if lastConvergeMS > 0 {
-			result.ConsensusWallMS = lastConvergeMS
-		}
-	} else {
-		result.ConsensusWallMS = time.Since(runStart).Milliseconds()
-		result.Error = "consensus not reached"
+	meanWall, maxWall := summarizeWall(wallSamples)
+	result.ConsensusWallMS = meanWall
+	result.LastAgentConvergeMS = maxWall
+	if result.EpochsSucceeded == 0 {
+		result.Error = "consensus not reached in any epoch"
 	}
 
 	result.ConsensusRound = maxConsensusRound
@@ -241,27 +270,40 @@ func aggregateResult(result metrics.RunResult, runStart time.Time, snapshots []c
 	}
 	result.FindingsEmitted = totalEmitted
 	result.FindingsReceivedTotal = totalApplied
-	result.LastAgentConvergeMS = lastConvergeMS
 	result.AvgPropagationMS, result.P95PropagationMS = metrics.AggregatePropagation(propDurations)
-	// Relay hub did all the fan-out work; report its real counters.
-	streamCount, fanoutMS := hub.Stats()
-	result.StreamRPCCount = streamCount
-	result.CoordFanoutMS = fanoutMS
 	return result
 }
 
-func startAgents(s *scenario.ConsensusScenario, agentBin, scenarioFile, relayCardURL string) []*exec.Cmd {
+// summarizeWall returns the mean and max of the per-epoch wall-clock samples.
+func summarizeWall(wallSamples []int64) (mean, max int64) {
+	if len(wallSamples) == 0 {
+		return 0, 0
+	}
+	var sum int64
+	for _, w := range wallSamples {
+		sum += w
+		if w > max {
+			max = w
+		}
+	}
+	return sum / int64(len(wallSamples)), max
+}
+
+func startAgents(s *scenario.ConsensusScenario, agentBin, scenarioFile, relayCardURL string, quiet bool) []*exec.Cmd {
 	var procs []*exec.Cmd
 	for i, agent := range s.Agents {
-		cmd := exec.Command(
-			agentBin,
+		args := []string{
 			"--agent-id", agent.ID,
 			"--grpc-port", fmt.Sprintf("%d", agent.A2APort),
 			"--card-port", fmt.Sprintf("%d", s.CardPort(agent)),
 			"--scenario-file", scenarioFile,
 			"--agent-index", fmt.Sprintf("%d", i),
 			"--relay-card-url", relayCardURL,
-		)
+		}
+		if quiet {
+			args = append(args, "--quiet")
+		}
+		cmd := exec.Command(agentBin, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {

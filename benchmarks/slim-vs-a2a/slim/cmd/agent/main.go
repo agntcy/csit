@@ -9,6 +9,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/benchlog"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/agent"
 )
@@ -18,7 +19,12 @@ func main() {
 	endpoint := flag.String("endpoint", "http://127.0.0.1:46357", "SLIM dataplane endpoint")
 	scenarioFile := flag.String("scenario-file", "", "path to consensus scenario yaml")
 	agentIndex := flag.Int("agent-index", 0, "agent index in scenario")
+	quiet := flag.Bool("quiet", false, "disable benchmark logs")
 	flag.Parse()
+
+	if *quiet {
+		benchlog.SetEnabled(false)
+	}
 
 	if *slimName == "" || *scenarioFile == "" {
 		log.Fatal("--slim-name and --scenario-file are required")
@@ -38,7 +44,9 @@ func main() {
 	}
 	defer rt.Close()
 
-	fmt.Printf("SLIM_AGENT_READY name=%s index=%d scenario=%s\n", *slimName, *agentIndex, s.Metadata.Name)
+	if !*quiet {
+		fmt.Printf("SLIM_AGENT_READY name=%s index=%d scenario=%s\n", *slimName, *agentIndex, s.Metadata.Name)
+	}
 
 	// Block until the moderator invites us into the group session.
 	if err := rt.Join(60 * time.Second); err != nil {

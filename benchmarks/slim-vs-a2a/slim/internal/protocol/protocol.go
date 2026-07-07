@@ -26,8 +26,10 @@ const (
 type Envelope struct {
 	Kind       string                   `json:"kind"`
 	AgentIndex int                      `json:"agentIndex,omitempty"`
-	Finding    *consensus.Finding       `json:"finding,omitempty"`
-	Snapshot   *consensus.AgentSnapshot `json:"snapshot,omitempty"`
+	// Epoch identifies which consensus attempt a KindStart begins.
+	Epoch    int                      `json:"epoch,omitempty"`
+	Finding  *consensus.Finding       `json:"finding,omitempty"`
+	Snapshot *consensus.AgentSnapshot `json:"snapshot,omitempty"`
 }
 
 func Encode(e Envelope) ([]byte, error) {

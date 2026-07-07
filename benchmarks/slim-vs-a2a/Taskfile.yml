@@ -131,6 +131,7 @@ tasks:
         {{ .BIN_DIR }}/a2a-runner \
           --scenario "$SCENARIO_PATH" \
           --agent-bin {{ .BIN_DIR }}/a2a-agent \
+          --quiet \
           --output-json {{ .REPORTS_DIR }}/a2a-${base}.json \
           --output-tsv {{ .RESULTS_TSV }}
       - task: compare:slim-stack
@@ -181,7 +182,7 @@ tasks:
                   tls:
                     insecure: true
         EOF
-        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" >>{{ .REPORTS_DIR }}/slimctl.log 2>&1 &
         SLIM_PID=$!
         for i in $(seq 1 50); do
           if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
@@ -221,6 +222,8 @@ tasks:
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
       SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
       SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
+      SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS | default "10" }}'
+      SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS | default "30000" }}'
     cmds:
       - task: compare:cleanup
       - rm -f {{ .SWEEP_TSV }}
@@ -230,6 +233,8 @@ tasks:
           SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
           SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
           SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
+          SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS }}'
+          SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS }}'
 
   compare:sweep:payload:
     desc: High-N / short-window / large-payload sweep highlighting SLIM multicast (10kB default)
@@ -240,6 +245,8 @@ tasks:
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "10,50" }}'
       SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "5" }}'
       SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0,10240" }}'
+      SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS | default "10" }}'
+      SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS | default "30000" }}'
     cmds:
       - task: compare:cleanup
       - rm -f {{ .SWEEP_TSV }}
@@ -249,6 +256,8 @@ tasks:
           SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
           SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
           SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
+          SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS }}'
+          SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS }}'
       - task: compare:report
 
   compare:sweep:run:
@@ -258,6 +267,8 @@ tasks:
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
       SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
       SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
+      SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS | default "10" }}'
+      SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS | default "30000" }}'
     cmds:
       - |
         set -euo pipefail
@@ -276,6 +287,8 @@ tasks:
                 -agents "$agents" \
                 -think-ms "$think" \
                 -payload-bytes "$payload" \
+                -epochs {{ .SWEEP_EPOCHS }} \
+                -max-epoch-ms {{ .SWEEP_MAX_EPOCH_MS }} \
                 -output "$scenario_path"
               base=$(basename "$scenario_path" .yaml)
               echo "==> sweep A2A $base"
@@ -294,6 +307,8 @@ tasks:
           SWEEP_AGENTS: '{{ .SWEEP_AGENTS }}'
           SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS }}'
           SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES }}'
+          SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS }}'
+          SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS }}'
 
   compare:sweep:slim:
     internal: true
@@ -304,6 +319,8 @@ tasks:
       SWEEP_AGENTS: '{{ .SWEEP_AGENTS | default "2,5,10,17" }}'
       SWEEP_THINK_MS: '{{ .SWEEP_THINK_MS | default "10,20,50" }}'
       SWEEP_PAYLOAD_BYTES: '{{ .SWEEP_PAYLOAD_BYTES | default "0" }}'
+      SWEEP_EPOCHS: '{{ .SWEEP_EPOCHS | default "10" }}'
+      SWEEP_MAX_EPOCH_MS: '{{ .SWEEP_MAX_EPOCH_MS | default "30000" }}'
     cmds:
       - |
         set -euo pipefail
@@ -334,7 +351,7 @@ tasks:
                   tls:
                     insecure: true
         EOF
-        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" &
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" >>{{ .REPORTS_DIR }}/slimctl.log 2>&1 &
         SLIM_PID=$!
         for i in $(seq 1 50); do
           if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
@@ -373,7 +390,7 @@ tasks:
         set -euo pipefail
         mkdir -p {{ .SCENARIO_DIR }} {{ .REPORTS_DIR }}
         scenario_path="{{ .SCENARIO_DIR }}/ci-smoke-hypothesis-5ag-20ms.yaml"
-        go run ./tools/gen_scenario -family hypothesis-convergence -agents 5 -think-ms 20 -output "$scenario_path"
+        go run ./tools/gen_scenario -family hypothesis-convergence -agents 5 -think-ms 20 -epochs 10 -max-epoch-ms 10000 -output "$scenario_path"
         echo "==> smoke A2A"
         {{ .BIN_DIR }}/a2a-runner \
           --scenario "$scenario_path" \
