@@ -8,7 +8,7 @@ description: Decide whether a test suite workflow should run based on path filte
 
 inputs:
   suite:
-    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-multicluster-private, directory-conformance)"
+    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-multicluster-private, directory-conformance, c1-evidence)"
     required: true
 
 outputs:
@@ -47,6 +47,9 @@ runs:
           slim-multicluster-private:
             - kind-slim-multi-host/**
             - .github/workflows/test-slim-multicluster-private.yaml
+          c1-evidence:
+            - analitics/**
+            - .github/workflows/test-c1-evidence.yaml
           shared:
             - .github/actions/detect-suite-changes/**
             - Taskfile.yml
@@ -100,6 +103,9 @@ runs:
             ;;
           slim-multicluster-private)
             [[ "${{ steps.filter.outputs.slim-multicluster-private }}" == "true" ]] && suite_match=true
+            ;;
+          c1-evidence)
+            [[ "${{ steps.filter.outputs.c1-evidence }}" == "true" ]] && suite_match=true
             ;;
           *)
             echo "Unknown suite: $SUITE" >&2

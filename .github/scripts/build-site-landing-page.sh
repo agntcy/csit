@@ -14,7 +14,7 @@
 #   OUTPUT              landing page path (default: site/docs/index.html)
 #
 # New report paths (under docs/, from sources.json):
-#   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/
+#   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/, analitics/
 
 set -euo pipefail
 
@@ -266,6 +266,9 @@ HTML
         ;;
       test-directory-conformance)
         blurb="Client/server conformance results across supported Directory client and server versions."
+        ;;
+      test-c1-evidence)
+        blurb="SLIM C1 use-case evidence dashboard with assertion-based Ginkgo proof for request-reply, fire-and-forget, and write modes."
         ;;
       *)
         blurb="Published CI report output."

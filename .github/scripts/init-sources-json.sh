@@ -96,6 +96,17 @@ cat > "$defaults" <<'JSON'
       "last_run_updated_at": "",
       "published_report_run_id": "",
       "published_report_updated_at": ""
+    },
+    {
+      "id": "test-c1-evidence",
+      "name": "C1 evidence dashboard",
+      "workflow_file": "test-c1-evidence.yaml",
+      "report_path": "analitics/",
+      "last_run_id": "",
+      "last_run_conclusion": "",
+      "last_run_updated_at": "",
+      "published_report_run_id": "",
+      "published_report_updated_at": ""
     }
   ]
 }

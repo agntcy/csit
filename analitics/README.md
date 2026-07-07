@@ -90,6 +90,12 @@ C1 use-case status is derived from `reports/c1-evidence.json`
 
 C2/C3 rows use static status until their test evidence is wired into the build flow.
 
+## GitHub Pages
+
+On `main`, the `test-c1-evidence` workflow publishes the generated dashboard to the shared
+CSIT test reports site under **`docs/analitics/`** on the `gh-pages` branch (linked from
+`docs/index.html` as **C1 evidence dashboard**).
+
 ## Prerequisites
 
 - Go 1.22+
