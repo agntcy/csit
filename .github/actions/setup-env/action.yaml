@@ -6,59 +6,60 @@ name: Setup Environment
 description: setup environment with common tools/vars
 inputs:
   python:
-    description: 'Install python and poetry'
+    description: "Install python and poetry"
     required: false
-    default: 'false'
+    default: "false"
   python-version:
-    description: 'Python version to install'
+    description: "Python version to install"
     required: false
-    default: '3.12'
+    default: "3.12"
   py-poetry-version:
-    description: 'Poetry version to install'
+    description: "Poetry version to install"
     required: false
-    default: '2.1.1'
+    default: "2.1.1"
   uv:
-    description: 'Install uv (Python package manager). Automatically true when python is true.'
+    description: "Install uv (Python package manager). Automatically true when python is true."
     required: false
-    default: 'false'
+    default: "false"
   uv-python-version:
-    description: 'Python version for uv to install and manage'
+    description: "Python version for uv to install and manage"
     required: false
-    default: '3.12'
+    default: "3.12"
 
   go:
-    description: 'Install golang'
+    description: "Install golang"
     required: false
-    default: 'false'
+    default: "false"
   go-version:
-    description: 'Go version to install'
+    description: "Go version to install"
     required: false
-    default: '1.23.1'
+    default: "1.23.1"
 
   dotnet:
-    description: 'Install dotnet'
+    description: "Install dotnet"
     required: false
-    default: 'false'
+    default: "false"
   dotnet-version:
-    description: 'Dotnet version to install'
+    description: "Dotnet version to install"
     required: false
-    default: '8.0.x'
+    default: "8.0.x"
 
   java:
-    description: 'Install a JDK (Temurin) + Maven cache; sets JAVA_HOME'
+    description: "Install a JDK (Temurin) + Maven cache; sets JAVA_HOME"
     required: false
-    default: 'false'
+    default: "false"
   java-version:
-    description: 'JDK version to install'
+    description: "JDK version to install"
     required: false
-    default: '21'
+    default: "21"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - name: Setup Taskfile
-      shell: bash
-      run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+    - name: Install Taskfile
+      uses: go-task/setup-task@v2
+      with:
+        version: 3.x
 
     - name: Setup Python
       if: ${{ inputs.python == 'true' }}
@@ -72,7 +73,7 @@ runs:
       uses: ./.github/actions/setup-python
       with:
         py-version: ${{ inputs.uv-python-version }}
-        uv-only: 'true'
+        uv-only: "true"
 
     - name: Setup Golang
       if: ${{ inputs.go == 'true' }}

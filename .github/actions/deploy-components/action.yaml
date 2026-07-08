@@ -6,77 +6,77 @@ name: Deploy agntcy components
 description: Deploy agntcy components for integration testing
 inputs:
   checkout-repository:
-    description: 'Checkout AGNTCY repository'
+    description: "Checkout AGNTCY repository"
     required: false
-    default: 'false'
+    default: "false"
   checkout-path:
-    description: 'Path to checkout AGNTCY repository'
+    description: "Path to checkout AGNTCY repository"
     required: false
-    default: ''
-  deploy-spire:    
-    description: 'Deploy SPIRE to a kind cluster'
+    default: ""
+  deploy-spire:
+    description: "Deploy SPIRE to a kind cluster"
     required: false
-    default: 'false'
+    default: "false"
   deploy-slim-topology:
-    description: 'Deploy slim topology to a kind cluster'
+    description: "Deploy slim topology to a kind cluster"
     required: false
-    default: 'false'
+    default: "false"
   slim-image-tag:
-    description: 'Set slim container image version'
+    description: "Set slim container image version"
     required: false
-    default: ''
+    default: ""
   slim-chart-tag:
-    description: 'Set slim chart version (OCI only; ignored when slim-repo-path is set)'
+    description: "Set slim chart version (OCI only; ignored when slim-repo-path is set)"
     required: false
-    default: ''
+    default: ""
   slim-repo-path:
-    description: 'Path to local agntcy/slim repo (charts/). Empty uses OCI charts.'
+    description: "Path to local agntcy/slim repo (charts/). Empty uses OCI charts."
     required: false
-    default: ''
+    default: ""
   slim-controller-image-tag:
-    description: 'Set slim controller container image version'
+    description: "Set slim controller container image version"
     required: false
-    default: ''
+    default: ""
   slim-controller-chart-tag:
-    description: 'Set slim controller chart version (OCI only; ignored when slim-repo-path is set)'
+    description: "Set slim controller chart version (OCI only; ignored when slim-repo-path is set)"
     required: false
-    default: ''
+    default: ""
   deploy-directory:
-    description: 'Deploy directory to a kind cluster'
+    description: "Deploy directory to a kind cluster"
     required: false
-    default: 'false'
+    default: "false"
   directory-image-tag:
-    description: 'Set directory container image version'
+    description: "Set directory container image version"
     required: false
-    default: ''
+    default: ""
   directory-chart-tag:
-    description: 'Set directory chart version'
+    description: "Set directory chart version"
     required: false
-    default: ''
+    default: ""
   kind-cluster-name:
-    description: 'Set kind cluster name where components are deployed'
+    description: "Set kind cluster name where components are deployed"
     required: false
-    default: 'agntcy-test'
+    default: "agntcy-test"
   kind-cluster-namespace:
-    description: 'Set cluster namespace where components are deployed'
+    description: "Set cluster namespace where components are deployed"
     required: false
-    default: 'default'
+    default: "default"
   github-repository-ref:
-    description: 'Set a ref for git checkout'
+    description: "Set a ref for git checkout"
     required: false
-    default: 'main'
+    default: "main"
   install-kind-dependency:
-    description: 'KinD installer'
+    description: "KinD installer"
     required: false
-    default: 'false'
+    default: "false"
   kind-binary-version:
-    description: 'Installed KinD version'
+    description: "Installed KinD version"
     required: false
-    default: 'v0.27.0'
+    default: "v0.27.0"
   install-taskfile-dependency:
-    description: 'Taskfile installer'
+    description: "Taskfile installer"
     required: false
-    default: 'false'
+    default: "false"
 
 runs:
   using: composite
@@ -85,7 +85,7 @@ runs:
       if: ${{ inputs.checkout-repository != 'false' }}
       uses: actions/checkout@v4
       with:
-        repository: 'agntcy/csit'
+        repository: "agntcy/csit"
         ref: ${{ inputs.github-repository-ref }}
         path: ${{ inputs.checkout-path }}
 
@@ -110,7 +110,7 @@ runs:
 
     - name: Install Taskfile
       if: ${{ inputs.install-taskfile-depedency != 'false' }}
-      uses: arduino/setup-task@v2
+      uses: go-task/setup-task@v2
       with:
         version: 3.x
 
@@ -121,13 +121,13 @@ runs:
           KIND_CLUSTER_NAME=${{ inputs.kind-cluster-name }}
 
     - name: Deploy SPIRE
-      if: ${{ inputs.deploy-spire != 'false' }}      
+      if: ${{ inputs.deploy-spire != 'false' }}
       shell: bash
       run: |
-        task -d ./${{ inputs.checkout-path }} integrations:slim:spire:deploy          
+        task -d ./${{ inputs.checkout-path }} integrations:slim:spire:deploy
 
     - name: Deploy SLIM topology
-      if: ${{ inputs.deploy-slim-topology != 'false' }}      
+      if: ${{ inputs.deploy-slim-topology != 'false' }}
       shell: bash
       run: |
         task -d ./${{ inputs.checkout-path }} integrations:slim:test:topology:deploy:controller \
