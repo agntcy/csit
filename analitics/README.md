@@ -17,7 +17,7 @@ test-derived evidence artifacts.
 ```text
 Class (C1 / C2 / C3)
   └── Use cases (table rows)
-        └── Evidence links (markdown reports, integration docs, rerun commands)
+        └── Evidence links (JSON report, integration docs, rerun commands)
 ```
 
 ## Primary output
@@ -25,10 +25,6 @@ Class (C1 / C2 / C3)
 After build, open:
 
 - **`published/index.html`** — generated static dashboard
-
-Optional:
-
-- **`published/c1-evidence-summary.md`** — C1-only markdown summary
 - **`published/evidence/c1-evidence.json`** — synced Ginkgo assertion report
 
 ## Build
@@ -36,22 +32,33 @@ Optional:
 From repo root:
 
 ```bash
-# Full pipeline: run C1 Ginkgo evidence tests, then render dashboard
+# Full pipeline: run C1 tests, sync JSON, render dashboard
 task -t analitics/Taskfile.yml dashboard:build
 
-# Fast rebuild from existing evidence report (no test run)
+# Re-render from existing reports/c1-evidence.json (no test run)
 task -t analitics/Taskfile.yml dashboard:build:only
 ```
 
-`dashboard:build` runs `test:c1-evidence` — three Ginkgo specs in `tests/`
-that assert behavioral proof for each C1 use case (not the benchmark throughput matrix).
+`dashboard:build` runs `test:agentic-evidence` (currently `test:c1-evidence` only) — three
+Ginkgo specs that assert behavioral proof for each C1 use case.
 
 Steps:
 
 1. Run `test:c1-evidence` → writes `reports/c1-evidence.json`
-2. Sync JSON into `published/evidence/`
-3. Evaluate C1 row status from `c1-evidence.json`
-4. Render `published/index.html`
+2. `dashboard:sync` copies JSON into `published/evidence/`
+3. `dashboard:render` evaluates row status from JSON and writes `published/index.html`
+
+## Task reference
+
+| Task | Purpose |
+|------|---------|
+| `deps:slim-bindings-setup` | Install native SLIM bindings for CGO clients |
+| `deps:slimctl-download` | Download `slimctl` into `analitics/bin/` |
+| `test:c1-evidence` | Run C1 Ginkgo specs only |
+| `test:agentic-evidence` | Run all class evidence tests (C1 today) |
+| `dashboard:build` | Tests + sync + render |
+| `dashboard:build:only` | Sync + render from existing JSON |
+| `dashboard:clean` | Remove generated `published/` artifacts |
 
 ## Layout
 
@@ -62,24 +69,21 @@ analitics/
 ├── go.mod
 ├── harness/                   # SLIM stack + client build helpers for C1 tests
 ├── clients/
-│   ├── echo-client/           # Responder/sink helper (shared with benchmarks)
-│   └── rate-client/           # Traffic generator (shared with benchmarks)
+│   ├── echo-client/           # Responder/sink helper
+│   └── rate-client/           # Traffic generator
 ├── tests/
 │   ├── c1_evidence_test.go
 │   └── c1_evidence_report.go
-├── test-dashboard.html          # legacy mockup reference
 ├── templates/
-│   ├── dashboard.html.tmpl    # static HTML source template
-│   └── c1-summary.md.tmpl
+│   └── dashboard.html.tmpl
 ├── scripts/
 │   ├── evidence-lib.sh
-│   ├── render-dashboard.sh
-│   └── render-c1-summary.sh
+│   └── render-dashboard.sh
 ├── reports/                   # generated (gitignored)
 └── published/                 # generated (gitignored)
     ├── index.html
-    ├── c1-evidence-summary.md
     └── evidence/
+        └── c1-evidence.json
 ```
 
 ## Planning references

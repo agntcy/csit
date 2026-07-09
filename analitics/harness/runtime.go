@@ -79,7 +79,7 @@ func (r *Runtime) Cleanup() {
 	}
 }
 
-// StartStack starts slimctl and a default echo peer.
+// StartStack starts a local slimctl node (responders are started per scenario).
 func (r *Runtime) StartStack() {
 	r.startLocalSlimStack()
 }
@@ -144,15 +144,6 @@ services:
 	r.slimSession, err = gexec.Start(slimctlCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(waitForPort(fmt.Sprintf("127.0.0.1:%d", dataplanePort), 10*time.Second)).To(gomega.Succeed())
-
-	echoCmd := exec.Command(
-		r.EchoClientPath,
-		"-local", "agntcy/demo/echo",
-		"-server", r.ServerEndpoint,
-	)
-	r.echoSession, err = gexec.Start(echoCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.Eventually(r.echoSession.Out, 10*time.Second).Should(gbytes.Say("ready"))
 }
 
 func (r *Runtime) startEchoResponder(mode string, clients int, statsFile string) {

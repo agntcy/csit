@@ -59,21 +59,13 @@ tasks:
         {{ .SLIMCTL_PATH }} version || true
 
   dashboard:prepare:
-    desc: Create analitics publish directories
+    desc: Create report and publish directories
     cmds:
-      - mkdir -p "{{.PUBLISHED_DIR}}/evidence"
+      - mkdir -p "{{.REPORTS_DIR}}" "{{.PUBLISHED_DIR}}/evidence"
 
-  dashboard:run:c1-evidence:
-    desc: Run C1 Ginkgo evidence tests (assertion-based, not benchmark matrix)
-    deps: [test:c1-evidence]
-
-  dashboard:run:smoke:
-    desc: Alias for dashboard:run:c1-evidence
-    deps: [dashboard:run:c1-evidence]
-
-  dashboard:sync:markdown:
-    desc: Sync C1 evidence outputs from reports
-    deps: [dashboard:prepare, dashboard:run:c1-evidence]
+  dashboard:sync:
+    desc: Copy c1-evidence.json into published/evidence
+    deps: [dashboard:prepare]
     cmds:
       - |
         REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
@@ -82,8 +74,8 @@ tasks:
         fi
 
   dashboard:render:
-    desc: Render static HTML evidence dashboard
-    deps: [dashboard:prepare, dashboard:run:c1-evidence]
+    desc: Render static HTML dashboard from reports/c1-evidence.json
+    deps: [dashboard:prepare]
     cmds:
       - |
         REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
@@ -91,80 +83,29 @@ tasks:
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
         TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
         bash ./scripts/render-dashboard.sh
-
-  dashboard:render:summary:
-    desc: Render optional C1 markdown summary
-    deps: [dashboard:prepare, dashboard:run:c1-evidence]
-    cmds:
-      - |
-        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
-        REPORTS_DIR="$REPORTS_ABS" \
-        OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
-        TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
-        bash ./scripts/render-c1-summary.sh
-
-  dashboard:build:
-    desc: Run C1 evidence tests, sync artifacts, render static HTML dashboard
-    deps: [dashboard:prepare, dashboard:run:c1-evidence]
-    cmds:
-      - task: dashboard:sync:only
-      - task: dashboard:render:only
-      - task: dashboard:render:summary:only
 
   dashboard:build:only:
-    desc: Render dashboard from existing evidence reports (skip test run)
-    deps: [dashboard:sync:only, dashboard:render:only, dashboard:render:summary:only]
+    desc: Sync evidence JSON and render dashboard (skip test run)
+    deps: [dashboard:sync, dashboard:render]
 
-  dashboard:sync:only:
-    desc: Sync C1 evidence JSON without re-running tests
-    deps: [dashboard:prepare]
+  dashboard:build:
+    desc: Run C1 evidence tests, sync JSON, render dashboard
+    deps: [test:agentic-evidence]
     cmds:
-      - |
-        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
-        if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
-          cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
-        fi
-
-  dashboard:render:only:
-    desc: Render HTML dashboard without re-running tests
-    deps: [dashboard:prepare]
-    cmds:
-      - |
-        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
-        REPORTS_DIR="$REPORTS_ABS" \
-        OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
-        TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
-        bash ./scripts/render-dashboard.sh
-
-  dashboard:render:summary:only:
-    desc: Render C1 markdown summary without re-running tests
-    deps: [dashboard:prepare]
-    cmds:
-      - |
-        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
-        REPORTS_DIR="$REPORTS_ABS" \
-        OUTPUT_FILE="{{.PUBLISHED_DIR}}/c1-evidence-summary.md" \
-        TEMPLATE_FILE="./templates/c1-summary.md.tmpl" \
-        bash ./scripts/render-c1-summary.sh
+      - task: dashboard:build:only
 
   dashboard:clean:
     desc: Remove generated publish artifacts
     cmds:
       - rm -f "{{.PUBLISHED_DIR}}/index.html"
-      - rm -f "{{.PUBLISHED_DIR}}/c1-evidence-summary.md"
       - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
 
-  # Backward-compatible aliases
-  c1:build:
-    desc: Alias for dashboard:build
-    deps: [dashboard:build]
-
   test:agentic-evidence:
-    desc: Run all agentic evidence class tests (currently delegates to C1)
+    desc: Run all agentic evidence class tests (currently C1 only)
     deps: [test:c1-evidence]
 
   test:c1-evidence:
-    desc: Run C1 use-case Ginkgo evidence tests (writes reports/c1-evidence.json)
+    desc: Run C1 Ginkgo evidence tests (writes reports/c1-evidence.json)
     deps: [deps:slim-bindings-setup, deps:slimctl-download]
     cmds:
       - |

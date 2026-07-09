@@ -4,31 +4,14 @@
 package harness
 
 type SenderReport struct {
-	TotalMessages  int64
-	ThroughputMPS  float64
-	MeanLatencyMS  float64
-	P50LatencyMS   float64
-	P90LatencyMS   float64
-	P99LatencyMS   float64
-	MaxLatencyMS   float64
-	RuntimeErrors  int64
-	ActualDuration string
+	TotalMessages int64
+	ThroughputMPS float64
+	MeanLatencyMS float64
+	RuntimeErrors int64
 }
 
 type SinkStats struct {
-	Mode                 string
-	ReceivedMessages     int64
-	ReceivedBytes        int64
-	ReplyMessages        int64
-	Errors               int64
-	WarmupMessages       int64
-	WarmupReplies        int64
-	DrainMessages        int64
-	DrainReplies         int64
-	ElapsedSeconds       float64
-	ActiveReceiveSeconds float64
-	ReceiveMPS           float64
-	ReceiveMBPS          float64
-	ActiveReceiveMPS     float64
-	ActiveReceiveMBPS    float64
+	ReceivedMessages int64
+	ReplyMessages    int64
+	Errors           int64
 }

@@ -13,41 +13,24 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// ParseSenderReport extracts sender metrics from a rate-client markdown report.
+// ParseSenderReport extracts C1 evidence fields from a rate-client markdown report.
 func ParseSenderReport(report string) SenderReport {
 	lines := strings.Split(report, "\n")
 	return SenderReport{
-		TotalMessages:  mustParseInt(extractMarkdownValue(lines, "- **Total Messages:** ")),
-		ThroughputMPS:  mustParseReportFloat(extractThroughputValue(lines)),
-		MeanLatencyMS:  mustParseDurationMS(extractLatencyTableValue(lines, "**Mean**")),
-		P50LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P50 (Median)**")),
-		P90LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P90**")),
-		P99LatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**P99**")),
-		MaxLatencyMS:   mustParseDurationMS(extractLatencyTableValue(lines, "**Max**")),
-		RuntimeErrors:  mustParseInt(extractMarkdownValue(lines, "- **Runtime Errors:** ")),
-		ActualDuration: extractMarkdownValue(lines, "- **Actual Duration:** "),
+		TotalMessages: mustParseInt(extractMarkdownValue(lines, "- **Total Messages:** ")),
+		ThroughputMPS: mustParseReportFloat(extractThroughputValue(lines)),
+		MeanLatencyMS: mustParseDurationMS(extractLatencyTableValue(lines, "**Mean**")),
+		RuntimeErrors: mustParseInt(extractMarkdownValue(lines, "- **Runtime Errors:** ")),
 	}
 }
 
-// ParseSinkStats parses echo-client stats file content.
+// ParseSinkStats parses echo-client stats used by C1 evidence assertions.
 func ParseSinkStats(content string) SinkStats {
 	values := parseKeyValueLines(content)
 	return SinkStats{
-		Mode:                 values["mode"],
-		ReceivedMessages:     mustParseIntWithDefault(values["received_messages"], 0),
-		ReceivedBytes:        mustParseIntWithDefault(values["received_bytes"], 0),
-		ReplyMessages:        mustParseIntWithDefault(values["reply_messages"], 0),
-		Errors:               mustParseIntWithDefault(values["errors"], 0),
-		WarmupMessages:       mustParseIntWithDefault(values["warmup_messages"], 0),
-		WarmupReplies:        mustParseIntWithDefault(values["warmup_replies"], 0),
-		DrainMessages:        mustParseIntWithDefault(values["drain_messages"], 0),
-		DrainReplies:         mustParseIntWithDefault(values["drain_replies"], 0),
-		ElapsedSeconds:       mustParseFloatWithDefault(values["elapsed_seconds"], 0),
-		ActiveReceiveSeconds: mustParseFloatWithDefault(values["active_receive_seconds"], 0),
-		ReceiveMPS:           mustParseFloatWithDefault(values["receive_mps"], 0),
-		ReceiveMBPS:          mustParseFloatWithDefault(values["receive_mbps"], 0),
-		ActiveReceiveMPS:     mustParseFloatWithDefault(values["active_receive_mps"], 0),
-		ActiveReceiveMBPS:    mustParseFloatWithDefault(values["active_receive_mbps"], 0),
+		ReceivedMessages: mustParseIntWithDefault(values["received_messages"], 0),
+		ReplyMessages:    mustParseIntWithDefault(values["reply_messages"], 0),
+		Errors:           mustParseIntWithDefault(values["errors"], 0),
 	}
 }
 
@@ -122,11 +105,4 @@ func mustParseDurationMS(value string) float64 {
 	parsed, err := time.ParseDuration(strings.TrimSpace(value))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "invalid duration value %q", value)
 	return parsed.Seconds() * 1000
-}
-
-func mustParseFloatWithDefault(value string, defaultValue float64) float64 {
-	if strings.TrimSpace(value) == "" {
-		return defaultValue
-	}
-	return mustParseReportFloat(value)
 }
