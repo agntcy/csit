@@ -98,10 +98,10 @@ cat > "$defaults" <<'JSON'
       "published_report_updated_at": ""
     },
     {
-      "id": "test-c1-evidence",
-      "name": "C1 evidence dashboard",
-      "workflow_file": "test-c1-evidence.yaml",
-      "report_path": "analitics/",
+      "id": "test-agentic-evidence",
+      "name": "Agentic evidence dashboard",
+      "workflow_file": "test-agentic-evidence.yaml",
+      "report_path": "agentic-evidence/",
       "last_run_id": "",
       "last_run_conclusion": "",
       "last_run_updated_at": "",

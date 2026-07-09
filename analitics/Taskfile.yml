@@ -159,6 +159,10 @@ tasks:
     desc: Alias for dashboard:build
     deps: [dashboard:build]
 
+  test:agentic-evidence:
+    desc: Run all agentic evidence class tests (currently delegates to C1)
+    deps: [test:c1-evidence]
+
   test:c1-evidence:
     desc: Run C1 use-case Ginkgo evidence tests (writes reports/c1-evidence.json)
     deps: [deps:slim-bindings-setup, deps:slimctl-download]

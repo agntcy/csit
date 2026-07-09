@@ -1,7 +1,7 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-name: test-c1-evidence
+name: test-agentic-evidence
 
 on:
   push:
@@ -24,9 +24,9 @@ jobs:
       - id: detect-suite
         uses: ./.github/actions/detect-suite-changes
         with:
-          suite: c1-evidence
+          suite: agentic-evidence
 
-  run-tests-c1-evidence:
+  run-tests-agentic-evidence:
     needs: detect
     if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
@@ -46,15 +46,15 @@ jobs:
           go: true
           go-version: "1.24.4"
 
-      - name: Run C1 evidence tests and build dashboard
-        id: c1-dashboard
+      - name: Run agentic evidence tests and build dashboard
+        id: agentic-dashboard
         shell: bash
         run: |
           set -euo pipefail
           task -t analitics/Taskfile.yml dashboard:build
 
       - name: Propagate test result
-        if: ${{ steps.c1-dashboard.outcome == 'failure' }}
+        if: ${{ steps.agentic-dashboard.outcome == 'failure' }}
         shell: bash
         run: exit 1
 
@@ -62,12 +62,12 @@ jobs:
         if: always() && hashFiles('analitics/published/index.html') != ''
         uses: ./.github/actions/create-artifact
         with:
-          artifact-name: c1-evidence-dashboard
+          artifact-name: agentic-evidence-dashboard
           path-to-archive: analitics/published/
 
   publish-pages:
-    needs: [run-tests-c1-evidence]
-    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-c1-evidence.result != 'skipped'
+    needs: [run-tests-agentic-evidence]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-agentic-evidence.result != 'skipped'
     runs-on: ubuntu-latest
     concurrency:
       group: test-report-pages
@@ -80,6 +80,6 @@ jobs:
 
       - uses: ./.github/actions/publish-test-reports-pages
         with:
-          suite: c1-evidence
+          suite: agentic-evidence
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.run-tests-c1-evidence.result }}
+          source-run-conclusion: ${{ needs.run-tests-agentic-evidence.result }}

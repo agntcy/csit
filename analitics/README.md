@@ -4,6 +4,14 @@ This directory builds a **static HTML evidence dashboard** organized by agentic-
 taxonomy (C1 / C2 / C3). Each class section lists use cases; each use case links to
 test-derived evidence artifacts.
 
+## Naming
+
+| Term | Scope | Examples |
+|------|-------|----------|
+| **`agentic-evidence`** | Umbrella: dashboard pipeline, CI, GitHub Pages | `test-agentic-evidence` workflow, `docs/agentic-evidence/` on `gh-pages`, `agentic-evidence-dashboard` artifact |
+| **`c{N}-evidence`** | Class-specific tests and reports (C1 today; C2/C3 later) | Ginkgo label `c1-evidence`, `reports/c1-evidence.json`, `test:c1-evidence` task |
+| **`analitics/`** | Implementation root (Go module, templates, scripts) | This directory; not the public Pages URL slug |
+
 ## Structure
 
 ```text
@@ -92,9 +100,10 @@ C2/C3 rows use static status until their test evidence is wired into the build f
 
 ## GitHub Pages
 
-On `main`, the `test-c1-evidence` workflow publishes the generated dashboard to the shared
-CSIT test reports site under **`docs/analitics/`** on the `gh-pages` branch (linked from
-`docs/index.html` as **C1 evidence dashboard**).
+On `main`, the `test-agentic-evidence` workflow publishes the generated dashboard to the shared
+CSIT test reports site under **`docs/agentic-evidence/`** on the `gh-pages` branch (linked from
+`docs/index.html` as **Agentic evidence dashboard**). C1 class proof remains in
+`published/evidence/c1-evidence.json`.
 
 ## Prerequisites
 
