@@ -31,7 +31,7 @@ tasks:
     desc: Clone slim-mcp-rust at a pinned ref (chart + k8s-test examples)
     cmds:
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         CACHE='{{ .SLIM_MCP_RUST_CACHE }}'
         REF='{{ .SLIM_MCP_RUST_REF }}'
         REPO='{{ .SLIM_MCP_RUST_REPO }}'
@@ -58,7 +58,7 @@ tasks:
       - deps:fetch-repo
     cmds:
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         CLUSTER='{{ .MCP_KIND_CLUSTER_NAME }}'
         if kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
           echo "KinD cluster ${CLUSTER} already exists"
@@ -81,7 +81,7 @@ tasks:
     cmds:
       - kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         helm upgrade --install kubernetes-mcp-server \
           '{{ .K8S_MCP_SERVER_CHART }}' \
           --namespace '{{ .MCP_HELM_NAMESPACE }}' \
@@ -91,7 +91,7 @@ tasks:
           --wait-for-jobs \
           --timeout 15m
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         helm upgrade --install mcp-proxy \
           '{{ .MCP_PROXY_CHART_PATH }}' \
           --namespace '{{ .MCP_HELM_NAMESPACE }}' \
@@ -108,7 +108,7 @@ tasks:
     cmds:
       - kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         NS='{{ .MCP_HELM_NAMESPACE }}'
         for dep in mcp-proxy kubernetes-mcp-server; do
           kubectl wait --for=condition=available "deployment/${dep}" \
@@ -128,7 +128,7 @@ tasks:
     cmds:
       - mkdir -p ./reports ./.cache
       - |
-        set -euo pipefail
+        set -eu -o pipefail
         kubectl config use-context kind-{{ .MCP_KIND_CLUSTER_NAME }}
         kubectl port-forward svc/slim 46357:46357 -n {{ .MCP_HELM_NAMESPACE }} >/dev/null 2>&1 &
         echo $$! > ./.cache/port-forward.pid
@@ -147,14 +147,10 @@ tasks:
     desc: Run the upstream Python MCP test client
     deps:
       - deps:fetch-repo
-    preconditions:
-      - sh: test -f '{{ .MCP_CLIENT_DIR }}/client.py'
-        msg: run deps:fetch-repo first (missing client.py)
     cmds:
       - mkdir -p '{{ .TASKFILE_DIR }}/reports'
       - |
-        set -euo pipefail
-        set -o pipefail
+        set -eu -o pipefail
         cd '{{ .MCP_CLIENT_DIR }}'
         uv sync
         uv run client.py \
