@@ -74,7 +74,7 @@ tasks:
         fi
 
   dashboard:render:
-    desc: Render static HTML dashboard from reports/c1-evidence.json
+    desc: Render taxonomy dashboard and C1 evidence reports from JSON
     deps: [dashboard:prepare]
     cmds:
       - |
@@ -83,6 +83,9 @@ tasks:
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
         TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
         bash ./scripts/render-dashboard.sh
+        REPORTS_DIR="$REPORTS_ABS" \
+        OUTPUT_DIR="{{.PUBLISHED_DIR}}/evidence" \
+        bash ./scripts/render-evidence-report.sh
 
   dashboard:build:only:
     desc: Sync evidence JSON and render dashboard (skip test run)
@@ -99,6 +102,8 @@ tasks:
     cmds:
       - rm -f "{{.PUBLISHED_DIR}}/index.html"
       - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.md"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.html"
 
   test:agentic-evidence:
     desc: Run all agentic evidence class tests (currently C1 only)

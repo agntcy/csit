@@ -66,3 +66,12 @@ status_css_class() {
     *) echo "status-unknown" ;;
   esac
 }
+
+html_escape() {
+  local value="$1"
+  value="${value//&/&amp;}"
+  value="${value//</&lt;}"
+  value="${value//>/&gt;}"
+  value="${value//\"/&quot;}"
+  printf '%s' "$value"
+}

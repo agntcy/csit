@@ -24,8 +24,10 @@ Class (C1 / C2 / C3)
 
 After build, open:
 
-- **`published/index.html`** — generated static dashboard
-- **`published/evidence/c1-evidence.json`** — synced Ginkgo assertion report
+- **`published/index.html`** — taxonomy dashboard (HTML)
+- **`published/evidence/c1-evidence.json`** — machine-readable assertion report
+- **`published/evidence/c1-evidence.md`** — human-readable report (from JSON)
+- **`published/evidence/c1-evidence.html`** — standalone HTML report (from JSON)
 
 ## Build
 
@@ -46,7 +48,7 @@ Steps:
 
 1. Run `test:c1-evidence` → writes `reports/c1-evidence.json`
 2. `dashboard:sync` copies JSON into `published/evidence/`
-3. `dashboard:render` evaluates row status from JSON and writes `published/index.html`
+3. `dashboard:render` builds `published/index.html` plus `published/evidence/c1-evidence.{md,html}` from JSON
 
 ## Task reference
 
@@ -78,12 +80,15 @@ analitics/
 │   └── dashboard.html.tmpl
 ├── scripts/
 │   ├── evidence-lib.sh
-│   └── render-dashboard.sh
+│   ├── render-dashboard.sh
+│   └── render-evidence-report.sh
 ├── reports/                   # generated (gitignored)
 └── published/                 # generated (gitignored)
     ├── index.html
     └── evidence/
-        └── c1-evidence.json
+        ├── c1-evidence.json
+        ├── c1-evidence.md
+        └── c1-evidence.html
 ```
 
 ## Planning references
