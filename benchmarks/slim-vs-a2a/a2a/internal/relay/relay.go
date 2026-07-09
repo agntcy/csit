@@ -35,6 +35,15 @@ import (
 type subscriber struct {
 	agentIndex int
 	ch         chan consensus.Finding
+	// done is closed to terminate the relay execution serving this subscriber.
+	// a2a-go runs executors on a detached context, so a client disconnect never
+	// cancels the server-side stream; this is the only way to end it.
+	done     chan struct{}
+	stopOnce sync.Once
+}
+
+func (s *subscriber) stop() {
+	s.stopOnce.Do(func() { close(s.done) })
 }
 
 type Hub struct {
@@ -111,7 +120,7 @@ func (h *Hub) Serve() error {
 	return nil
 }
 
-// ResetStreams closes every active relay subscription so agents open fresh
+// ResetStreams terminates every active relay subscription so agents open fresh
 // OpStreamRelay tasks on the next epoch instead of growing one task forever.
 func (h *Hub) ResetStreams() {
 	h.mu.Lock()
@@ -122,7 +131,7 @@ func (h *Hub) ResetStreams() {
 	h.subs = map[*subscriber]struct{}{}
 	h.mu.Unlock()
 	for _, s := range subs {
-		close(s.ch)
+		s.stop()
 	}
 }
 
@@ -153,6 +162,7 @@ func (h *Hub) Broadcast(f consensus.Finding) {
 		select {
 		case s.ch <- f:
 			delivered++
+		case <-s.done:
 		case <-time.After(5 * time.Second):
 		}
 	}
@@ -170,8 +180,21 @@ func (h *Hub) Stats() (streamRPCCount int, fanoutMS int64) {
 }
 
 func (h *Hub) register(agentIndex int) *subscriber {
-	s := &subscriber{agentIndex: agentIndex, ch: make(chan consensus.Finding, 1024)}
+	s := &subscriber{
+		agentIndex: agentIndex,
+		ch:         make(chan consensus.Finding, 1024),
+		done:       make(chan struct{}),
+	}
 	h.mu.Lock()
+	// A new subscription for an agent supersedes its previous one: terminate any
+	// existing subscriber for this agentIndex so the prior epoch's relay
+	// execution ends instead of blocking forever on a detached context.
+	for existing := range h.subs {
+		if existing.agentIndex == agentIndex {
+			existing.stop()
+			delete(h.subs, existing)
+		}
+	}
 	h.subs[s] = struct{}{}
 	h.mu.Unlock()
 	return s
@@ -210,6 +233,9 @@ func (e *relayExecutor) Execute(ctx context.Context, execCtx *a2asrv.ExecutorCon
 		for {
 			select {
 			case <-ctx.Done():
+				yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
+				return
+			case <-sub.done:
 				yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 				return
 			case f, ok := <-sub.ch:

@@ -45,8 +45,19 @@ type Runtime struct {
 	outbound  chan consensus.Finding
 	startedAt time.Time
 
-	relayMu    sync.Mutex
+	relayMu     sync.Mutex
 	relayCancel context.CancelFunc
+	// relayClient is dialed once and reused across epochs. Re-dialing every
+	// epoch leaked a gRPC connection (and its server-side transport goroutines)
+	// per attempt, which was the dominant source of cross-epoch slowdown.
+	relayClient *a2aclient.Client
+
+	// findingsDone terminates the previous epoch's OpStreamFindings execution
+	// when a new one starts. a2a-go runs executors on a detached context, so a
+	// runner disconnect never cancels the server stream; superseding is the only
+	// way to keep the findings-leg executions from accumulating.
+	findingsMu   sync.Mutex
+	findingsDone chan struct{}
 
 	mu sync.Mutex
 	// lastStartedEpoch dedupes repeated OpStart for the same epoch;
@@ -102,7 +113,7 @@ func (r *Runtime) drainOutbound() {
 }
 
 func (r *Runtime) relayLoop(ctx context.Context) {
-	cli := r.dialRelay(ctx)
+	cli := r.relayConn(ctx)
 	if cli == nil {
 		return
 	}
@@ -143,6 +154,35 @@ func (r *Runtime) relayLoop(ctx context.Context) {
 	}
 }
 
+// relayConn returns the shared relay client, dialing it once on first use. The
+// connection outlives individual epochs, so it is created with a background
+// context rather than the per-epoch relay context (which is cancelled at every
+// epoch boundary).
+func (r *Runtime) relayConn(ctx context.Context) *a2aclient.Client {
+	r.relayMu.Lock()
+	if r.relayClient != nil {
+		cli := r.relayClient
+		r.relayMu.Unlock()
+		return cli
+	}
+	r.relayMu.Unlock()
+
+	cli := r.dialRelay(context.Background())
+	if cli == nil {
+		return nil
+	}
+	r.relayMu.Lock()
+	if r.relayClient == nil {
+		r.relayClient = cli
+	} else {
+		// Lost a race; keep the existing connection and discard this one.
+		_ = cli.Destroy()
+	}
+	shared := r.relayClient
+	r.relayMu.Unlock()
+	return shared
+}
+
 func (r *Runtime) dialRelay(ctx context.Context) *a2aclient.Client {
 	for attempt := 0; attempt < 100; attempt++ {
 		select {
@@ -180,11 +220,22 @@ func (r *Runtime) HandleUnary(_ context.Context, req protocol.Request) protocol.
 	}
 }
 
-// StreamFindings serves OpStreamFindings: a long-lived server stream that emits
-// every finding this agent produces. The first event establishes the task; each
-// finding is delivered as a non-terminal Working status update so the stream
-// stays open.
+// StreamFindings serves OpStreamFindings: a server stream that emits every
+// finding this agent produces. The runner opens a fresh stream (hence a fresh
+// task) each epoch, so findings-leg task history does not accumulate across
+// epochs. The first event establishes the task; each finding is delivered as a
+// non-terminal Working status update so the stream stays open for the epoch.
 func (r *Runtime) StreamFindings(ctx context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
+	// A new findings stream supersedes the previous one so its execution ends
+	// (a2a-go never cancels the executor's detached context on disconnect).
+	done := make(chan struct{})
+	r.findingsMu.Lock()
+	if r.findingsDone != nil {
+		close(r.findingsDone)
+	}
+	r.findingsDone = done
+	r.findingsMu.Unlock()
+
 	return func(yield func(a2a.Event, error) bool) {
 		task := a2a.NewSubmittedTask(execCtx, execCtx.Message)
 		if !yield(task, nil) {
@@ -193,6 +244,9 @@ func (r *Runtime) StreamFindings(ctx context.Context, execCtx *a2asrv.ExecutorCo
 		for {
 			select {
 			case <-ctx.Done():
+				yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
+				return
+			case <-done:
 				yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, nil), nil)
 				return
 			case f := <-r.outbound:
@@ -279,7 +333,22 @@ func (r *Runtime) Snapshot() consensus.AgentSnapshot {
 	return r.engine.Snapshot()
 }
 
-func (r *Runtime) Close() {}
+func (r *Runtime) Close() {
+	r.stopRelay()
+	r.relayMu.Lock()
+	if r.relayClient != nil {
+		_ = r.relayClient.Destroy()
+		r.relayClient = nil
+	}
+	r.relayMu.Unlock()
+
+	r.findingsMu.Lock()
+	if r.findingsDone != nil {
+		close(r.findingsDone)
+		r.findingsDone = nil
+	}
+	r.findingsMu.Unlock()
+}
 
 // findingFromEvent extracts a finding from a streamed event, ignoring the
 // initial submitted-task event and any event without a message payload.

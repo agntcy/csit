@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/a2a/internal/client"
@@ -34,6 +35,7 @@ func main() {
 	waitReady := flag.Duration("wait-ready", 3*time.Second, "wait for agents to start")
 	relayGRPCPort := flag.Int("relay-grpc-port", 9600, "relay hub gRPC port")
 	relayCardPort := flag.Int("relay-card-port", 9601, "relay hub agent card port")
+	snapshotIntervalMs := flag.Int("snapshot-interval-ms", 20, "delay between consensus snapshot polls")
 	quiet := flag.Bool("quiet", false, "disable benchmark logs")
 	flag.Parse()
 
@@ -83,30 +85,6 @@ func main() {
 		agentIndexByID[a.ID] = i
 	}
 
-	// Runner subscribes to every agent's findings stream and relays each finding
-	// to all other agents. Retries keep the subscription alive across restarts.
-	for _, id := range agentIDs {
-		go func(agentID string) {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-				err := cli.SubscribeFindings(ctx, agentID, func(f consensus.Finding) {
-					hub.Broadcast(f)
-				})
-				if err == nil || ctx.Err() != nil {
-					return
-				}
-				time.Sleep(300 * time.Millisecond)
-			}
-		}(id)
-	}
-
-	// Let finding subscriptions establish before agents start producing.
-	time.Sleep(500 * time.Millisecond)
-
 	runStart := time.Now()
 	benchlog.SetRunStart(runStart)
 
@@ -121,6 +99,7 @@ func main() {
 	}
 
 	maxEpochTime := time.Duration(s.Spec.MaxEpochTimeMs) * time.Millisecond
+	snapshotInterval := time.Duration(*snapshotIntervalMs) * time.Millisecond
 	var (
 		wallSamples  []int64
 		allSnapshots []consensus.AgentSnapshot
@@ -128,7 +107,40 @@ func main() {
 	for epoch := 0; epoch < s.Spec.Epochs; epoch++ {
 		log.Printf("epoch %d/%d started (budget %s)", epoch+1, s.Spec.Epochs, maxEpochTime)
 		hub.SetCurrentEpoch(epoch)
+
+		// Open a fresh OpStreamFindings subscription to every agent for this
+		// epoch, so a2a-go task history on the findings leg does not accumulate
+		// across epochs. The subscriptions are torn down at the end of the
+		// epoch (mirrors the per-epoch OpStreamRelay reset on the agent side).
+		epochCtx, epochCancel := context.WithCancel(ctx)
+		var subWG sync.WaitGroup
+		for _, id := range agentIDs {
+			subWG.Add(1)
+			go func(agentID string) {
+				defer subWG.Done()
+				for {
+					select {
+					case <-epochCtx.Done():
+						return
+					default:
+					}
+					err := cli.SubscribeFindings(epochCtx, agentID, func(f consensus.Finding) {
+						hub.Broadcast(f)
+					})
+					if err == nil || epochCtx.Err() != nil {
+						return
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
+			}(id)
+		}
+		// Let this epoch's finding subscriptions establish before agents start
+		// producing (findings emitted before then buffer in the agent outbound).
+		time.Sleep(300 * time.Millisecond)
+
 		if err := cli.StartAll(ctx, agentIDs, epoch); err != nil {
+			epochCancel()
+			subWG.Wait()
 			stopAgents(procs)
 			log.Fatalf("start agents (epoch %d): %v", epoch, err)
 		}
@@ -154,7 +166,7 @@ func main() {
 					break
 				}
 			}
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(snapshotInterval)
 		}
 		allSnapshots = append(allSnapshots, snapshots...)
 		epochWall := time.Since(epochStart)
@@ -166,6 +178,11 @@ func main() {
 			result.EpochsFailed++
 			log.Printf("epoch %d/%d failed after %s (budget %s exhausted)", epoch+1, s.Spec.Epochs, epochWall.Round(time.Millisecond), maxEpochTime)
 		}
+
+		// Close this epoch's findings streams so the next epoch opens fresh
+		// tasks instead of growing one findings task across the whole run.
+		epochCancel()
+		subWG.Wait()
 	}
 
 	result.Success = result.EpochsFailed == 0
