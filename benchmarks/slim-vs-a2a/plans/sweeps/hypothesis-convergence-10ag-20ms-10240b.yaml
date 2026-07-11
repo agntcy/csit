@@ -1,19 +1,21 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-10agents-20ms
+    name: hypothesis-convergence-10agents-20ms-10240b
     domain: hypothesis-convergence
-    description: Generated consensus scenario for transport sweeps
+    description: "Introduces a large (10 KB) payload at a moderate agent count. Isolates the effect of payload size alone on each transport."
+    order: 3
 spec:
     agents: 10
     thinkTimeMs: 20
-    findingEmitDelayMs: 2
+    findingEmitDelayMs: 1
     maxRounds: 200
     targetMode: majority
     seed: 42
     valueSpace: 3
-    epochs: 10
-    maxEpochTimeMs: 10000
+    payloadBytes: 10240
+    epochs: 5
+    maxEpochTimeMs: 5000
 agents:
     - id: agent-0
       slimName: agntcy/bench-v2/agent-0

@@ -27,6 +27,9 @@ type Metadata struct {
 	Name        string `yaml:"name"`
 	Domain      string `yaml:"domain"`
 	Description string `yaml:"description"`
+	// Order is an optional display/run rank used to sort scenarios in the
+	// dashboard and driver (lower runs/renders first). Zero means unordered.
+	Order int `yaml:"order,omitempty"`
 }
 
 type Spec struct {

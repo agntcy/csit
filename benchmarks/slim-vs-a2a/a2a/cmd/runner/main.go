@@ -69,7 +69,12 @@ func main() {
 	defer stopAgents(procs)
 	time.Sleep(*waitReady)
 
-	overall := time.Duration(s.Spec.Epochs)*time.Duration(s.Spec.MaxEpochTimeMs)*time.Millisecond + 5*time.Minute
+	// Budget generously: besides each epoch's own consensus window, high-agent
+	// runs spend significant time between epochs re-subscribing and restarting
+	// agents. Under-budgeting here causes StartAll/Snapshot to hit the overall
+	// deadline mid-run, so add a per-epoch overhead allowance plus slack.
+	perEpochOverhead := 60 * time.Second
+	overall := time.Duration(s.Spec.Epochs)*(time.Duration(s.Spec.MaxEpochTimeMs)*time.Millisecond+perEpochOverhead) + 5*time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), overall)
 	defer cancel()
 
@@ -139,10 +144,15 @@ func main() {
 		time.Sleep(300 * time.Millisecond)
 
 		if err := cli.StartAll(ctx, agentIDs, epoch); err != nil {
+			// Don't abort the whole run: at high agent counts an overloaded
+			// stack can fail to start an epoch. Record it as a failed epoch and
+			// move on so the run still completes and writes results (which is
+			// itself the signal that A2A breaks down at this scale).
 			epochCancel()
 			subWG.Wait()
-			stopAgents(procs)
-			log.Fatalf("start agents (epoch %d): %v", epoch, err)
+			result.EpochsFailed++
+			log.Printf("epoch %d/%d failed to start: %v", epoch+1, s.Spec.Epochs, err)
+			continue
 		}
 		epochStart := time.Now()
 		deadline := epochStart.Add(maxEpochTime)

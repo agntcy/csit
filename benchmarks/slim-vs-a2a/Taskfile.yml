@@ -91,7 +91,15 @@ tasks:
       - rm -f {{ .RESULTS_TSV }}
       - |
         set -euo pipefail
-        for scenario in {{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml; do
+        # Run plans in the order declared by each plan's metadata.order (plans
+        # without an order sink to the end), so results are produced 3ag, 5ag, 10ag, ...
+        ordered=$(for scenario in {{ .SCENARIO_DIR }}/hypothesis-convergence-*.yaml; do
+          [ -f "$scenario" ] || continue
+          ord=$(awk '/^[[:space:]]*order:/ {print $2; exit}' "$scenario")
+          [ -n "$ord" ] || ord=9999
+          printf '%s\t%s\n' "$ord" "$scenario"
+        done | sort -n | cut -f2-)
+        for scenario in $ordered; do
           [ -f "$scenario" ] || continue
           base=$(basename "$scenario" .yaml)
           echo "==> A2A $base"
@@ -191,7 +199,17 @@ tasks:
           sleep 0.2
         done
         if [[ "$SCENARIO_INPUT" == *"*"* ]]; then
-          SCENARIO_LIST=($SCENARIO_INPUT)
+          # Expand the glob and order by each plan's metadata.order so SLIM runs
+          # in the same 3ag, 5ag, 10ag, ... sequence as the A2A leg.
+          SCENARIO_LIST=()
+          while IFS= read -r scenario; do
+            [ -n "$scenario" ] && SCENARIO_LIST+=("$scenario")
+          done < <(for f in $SCENARIO_INPUT; do
+            [ -f "$f" ] || continue
+            ord=$(awk '/^[[:space:]]*order:/ {print $2; exit}' "$f")
+            [ -n "$ord" ] || ord=9999
+            printf '%s\t%s\n' "$ord" "$f"
+          done | sort -n | cut -f2-)
         else
           SCENARIO_LIST=("$(resolve_scenario "$SCENARIO_INPUT")")
         fi
@@ -211,7 +229,7 @@ tasks:
   compare:report:
     desc: Build HTML dashboard from comparison TSV results
     cmds:
-      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --output {{ .REPORTS_DIR }}/index.html
+      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --scenario-dir {{ .SCENARIO_DIR }} --output {{ .REPORTS_DIR }}/index.html
 
   compare:sweep:
     desc: Run agent/think-time/payload sweep (SWEEP_AGENTS, SWEEP_THINK_MS, SWEEP_PAYLOAD_BYTES env lists)

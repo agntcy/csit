@@ -1,19 +1,20 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-5agents-10ms
+    name: hypothesis-convergence-3agents-20ms
     domain: hypothesis-convergence
-    description: Generated consensus scenario for transport sweeps
+    description: "Baseline at small scale with no payload. Measures the floor cost of each transport when fan-out is trivial."
+    order: 1
 spec:
-    agents: 5
-    thinkTimeMs: 10
+    agents: 3
+    thinkTimeMs: 20
     findingEmitDelayMs: 1
     maxRounds: 200
     targetMode: majority
     seed: 42
     valueSpace: 3
-    epochs: 10
-    maxEpochTimeMs: 10000
+    epochs: 5
+    maxEpochTimeMs: 5000
 agents:
     - id: agent-0
       slimName: agntcy/bench-v2/agent-0
@@ -26,12 +27,4 @@ agents:
     - id: agent-2
       slimName: agntcy/bench-v2/agent-2
       a2aPort: 9722
-      role: worker
-    - id: agent-3
-      slimName: agntcy/bench-v2/agent-3
-      a2aPort: 9733
-      role: worker
-    - id: agent-4
-      slimName: agntcy/bench-v2/agent-4
-      a2aPort: 9744
       role: worker

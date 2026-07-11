@@ -10,13 +10,22 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/metrics"
+	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
 )
+
+type planMeta struct {
+	Description string
+	Order       int
+}
 
 type scenarioComparison struct {
 	ScenarioName string
+	Description  string
+	Order        int
 	A2A          metrics.RunResult
 	SLIM         metrics.RunResult
 	HasA2A       bool
@@ -26,6 +35,7 @@ type scenarioComparison struct {
 func main() {
 	tsvPath := flag.String("tsv", "./reports/results.tsv", "comparison results tsv")
 	sweepTSV := flag.String("sweep-tsv", "./reports/sweep.tsv", "optional sweep results tsv")
+	scenarioDir := flag.String("scenario-dir", "./plans/sweeps", "directory of scenario yaml files (for per-plan descriptions)")
 	output := flag.String("output", "./reports/index.html", "html dashboard output")
 	flag.Parse()
 
@@ -34,7 +44,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "read tsv: %v\n", err)
 		os.Exit(1)
 	}
-	comparisons := groupByScenario(results)
+	planMetas := loadPlanMeta(*scenarioDir)
+	comparisons := groupByScenario(results, planMetas)
 
 	var sweepResults []metrics.RunResult
 	if *sweepTSV != "" {
@@ -101,12 +112,42 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 	return out, nil
 }
 
-func groupByScenario(results []metrics.RunResult) []scenarioComparison {
+// loadPlanMeta scans a scenario directory and maps each scenario's
+// metadata.name to its description and order so the dashboard can annotate and
+// sort every comparison using values sourced from the plan yaml.
+func loadPlanMeta(dir string) map[string]planMeta {
+	out := map[string]planMeta{}
+	if dir == "" {
+		return out
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+	if err != nil {
+		return out
+	}
+	for _, path := range matches {
+		s, err := scenario.LoadFile(path)
+		if err != nil {
+			continue
+		}
+		out[s.Metadata.Name] = planMeta{
+			Description: s.Metadata.Description,
+			Order:       s.Metadata.Order,
+		}
+	}
+	return out
+}
+
+func groupByScenario(results []metrics.RunResult, metas map[string]planMeta) []scenarioComparison {
 	byScenario := map[string]*scenarioComparison{}
 	for _, r := range results {
 		sc, ok := byScenario[r.ScenarioName]
 		if !ok {
-			sc = &scenarioComparison{ScenarioName: r.ScenarioName}
+			meta := metas[r.ScenarioName]
+			sc = &scenarioComparison{
+				ScenarioName: r.ScenarioName,
+				Description:  meta.Description,
+				Order:        meta.Order,
+			}
 			byScenario[r.ScenarioName] = sc
 		}
 		switch r.Implementation {
@@ -122,6 +163,21 @@ func groupByScenario(results []metrics.RunResult) []scenarioComparison {
 	for _, sc := range byScenario {
 		out = append(out, *sc)
 	}
+	// Sort by explicit plan order first (0 == unordered sinks to the bottom),
+	// then alphabetically by name for a stable, predictable layout.
+	sort.SliceStable(out, func(i, j int) bool {
+		oi, oj := out[i].Order, out[j].Order
+		switch {
+		case oi != 0 && oj != 0 && oi != oj:
+			return oi < oj
+		case oi != 0 && oj == 0:
+			return true
+		case oi == 0 && oj != 0:
+			return false
+		default:
+			return out[i].ScenarioName < out[j].ScenarioName
+		}
+	})
 	return out
 }
 
@@ -183,6 +239,7 @@ const htmlTemplate = `<!DOCTYPE html>
     dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
     dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
     .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
+    p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }
   </style>
 </head>
 <body>
@@ -201,6 +258,7 @@ const htmlTemplate = `<!DOCTYPE html>
   </div>
   {{range .Comparisons}}
   <h2>{{.ScenarioName}}</h2>
+  {{if .Description}}<p class="plandesc">{{.Description}}</p>{{end}}
   <table>
     <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
     <tr><td>Consensus wall (ms)</td><td>{{if .HasA2A}}{{.A2A.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if and .HasA2A .HasSLIM}}{{deltaPct .A2A.ConsensusWallMS .SLIM.ConsensusWallMS}}{{else}}—{{end}}</td></tr>
