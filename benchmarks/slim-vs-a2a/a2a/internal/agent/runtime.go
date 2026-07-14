@@ -40,6 +40,10 @@ type Runtime struct {
 	agentID      string
 	relayCardURL string
 
+	// latency is the extra one-way delay applied to this agent's finding sends
+	// and receives, simulating an agent in a distant region.
+	latency time.Duration
+
 	engine *consensus.Engine
 
 	outbound  chan consensus.Finding
@@ -68,11 +72,19 @@ type Runtime struct {
 }
 
 func NewRuntime(s *scenario.ConsensusScenario, agentIndex int, agentID, relayCardURL string) *Runtime {
+	var latency time.Duration
+	// The agent boundary only applies latency in the "boundary" model. In the
+	// "relay" model the central hub accounts for the two relay legs instead, so
+	// the agent itself stays fast (see internal/relay).
+	if scenario.LatencyModel() != scenario.LatencyModelRelay && agentIndex >= 0 && agentIndex < len(s.Agents) {
+		latency = time.Duration(s.Agents[agentIndex].LatencyMs) * time.Millisecond
+	}
 	return &Runtime{
 		scenario:         s,
 		agentIndex:       agentIndex,
 		agentID:          agentID,
 		relayCardURL:     relayCardURL,
+		latency:          latency,
 		engine:           consensus.NewEngine(s.Spec, agentIndex),
 		outbound:         make(chan consensus.Finding, 1024),
 		lastStartedEpoch: -1,
@@ -144,7 +156,17 @@ func (r *Runtime) relayLoop(ctx context.Context) {
 			if f.Epoch != cur {
 				continue
 			}
-			r.applyFinding(f)
+			// Apply the receive-side (downlink) delay off the relay-stream loop
+			// so a distant agent does not block draining its stream. The engine
+			// is mutex-guarded, so concurrent async applies are safe.
+			if r.latency > 0 {
+				go func(f consensus.Finding) {
+					time.Sleep(r.latency)
+					r.applyFinding(f)
+				}(f)
+			} else {
+				r.applyFinding(f)
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -304,6 +326,10 @@ func (r *Runtime) runEpoch(epoch int) {
 
 		finding, emit := r.engine.Think()
 		if emit && finding != nil {
+			// Simulate this agent's uplink delay before its finding leaves.
+			if r.latency > 0 {
+				time.Sleep(r.latency)
+			}
 			select {
 			case r.outbound <- *finding:
 				benchlog.Finding(benchlog.ImplA2A, "published", r.agentIndex, finding.FindingID)

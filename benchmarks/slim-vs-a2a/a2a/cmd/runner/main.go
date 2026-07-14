@@ -61,6 +61,15 @@ func main() {
 
 	// Start the relay hub first so agents can subscribe as they come up.
 	hub := relay.NewHub(*relayGRPCPort, *relayCardPort)
+	// In the relay-hop latency model the hub (not the agents) accounts for
+	// per-agent network delay on both relay legs.
+	if scenario.LatencyModel() == scenario.LatencyModelRelay {
+		latencies := make([]time.Duration, len(s.Agents))
+		for i, a := range s.Agents {
+			latencies[i] = time.Duration(a.LatencyMs) * time.Millisecond
+		}
+		hub.SetRelayLatency(latencies)
+	}
 	if err := hub.Serve(); err != nil {
 		log.Fatalf("relay serve: %v", err)
 	}

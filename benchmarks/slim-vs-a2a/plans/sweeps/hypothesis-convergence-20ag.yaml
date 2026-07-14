@@ -1,19 +1,18 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-10agents-20ms-10240b
+    name: hypothesis-convergence-20agents
     domain: hypothesis-convergence
-    description: "Introduces a large (10 KB) payload at a moderate agent count. Isolates the effect of payload size alone on each transport."
-    order: 3
+    description: "Raises the agent count but keeps messages tiny (no payload). Isolates the effect of agent count alone on fan-out cost."
+    order: 4
 spec:
-    agents: 10
+    agents: 20
     thinkTimeMs: 20
     findingEmitDelayMs: 1
     maxRounds: 200
     targetMode: majority
     seed: 42
     valueSpace: 3
-    payloadBytes: 10240
     epochs: 5
     maxEpochTimeMs: 5000
 agents:
@@ -56,4 +55,44 @@ agents:
     - id: agent-9
       slimName: agntcy/bench-v2/agent-9
       a2aPort: 9799
+      role: worker
+    - id: agent-10
+      slimName: agntcy/bench-v2/agent-10
+      a2aPort: 9810
+      role: worker
+    - id: agent-11
+      slimName: agntcy/bench-v2/agent-11
+      a2aPort: 9821
+      role: worker
+    - id: agent-12
+      slimName: agntcy/bench-v2/agent-12
+      a2aPort: 9832
+      role: worker
+    - id: agent-13
+      slimName: agntcy/bench-v2/agent-13
+      a2aPort: 9843
+      role: worker
+    - id: agent-14
+      slimName: agntcy/bench-v2/agent-14
+      a2aPort: 9854
+      role: worker
+    - id: agent-15
+      slimName: agntcy/bench-v2/agent-15
+      a2aPort: 9865
+      role: worker
+    - id: agent-16
+      slimName: agntcy/bench-v2/agent-16
+      a2aPort: 9876
+      role: worker
+    - id: agent-17
+      slimName: agntcy/bench-v2/agent-17
+      a2aPort: 9887
+      role: worker
+    - id: agent-18
+      slimName: agntcy/bench-v2/agent-18
+      a2aPort: 9898
+      role: worker
+    - id: agent-19
+      slimName: agntcy/bench-v2/agent-19
+      a2aPort: 9909
       role: worker

@@ -251,10 +251,54 @@ const htmlTemplate = `<!DOCTYPE html>
     dataplane fans it out — there is <em>no relay</em>. <strong>A2A</strong> (<code>a2a-relay-stream</code>)
     has no peer multicast, so the runner is an explicit <em>relay hub</em>: every finding makes two streaming
     hops (<code>agent → runner → N−1 agents</code>).</p>
+    <p><strong>How the test works.</strong> Each agent runs a small consensus engine. In every round an agent
+    <em>thinks</em> and, when its opinion changes, <em>emits a finding</em> — its current value and confidence —
+    to the group. Peers <em>apply</em> incoming findings: a value gains confidence as more distinct agents
+    support it, and agents drift toward the shared majority <em>target value</em>. An agent reaches
+    <em>local consensus</em> once it holds the target value with confidence above a fixed threshold, and the
+    epoch reaches <em>global consensus</em> the moment <em>every</em> agent agrees. Each run repeats this attempt
+    over several <em>epochs</em> to expose reliability under load. The only thing that differs between the two
+    runs is <em>how findings travel</em> between agents — shown in the architecture below.</p>
     <p>The <strong>Improvement vs SLIM</strong> column is <code>(A2A − SLIM) / SLIM × 100</code> — how much
     more time/work A2A costs relative to SLIM. It is unbounded: e.g. <code>+4000%</code> means A2A took ~41×
-    as long as SLIM. Positive values favor SLIM. See <a href="#defs">metric definitions</a> and the
-    <a href="#arch">architecture diagram</a> below.</p>
+    as long as SLIM. Positive values favor SLIM. See <a href="#defs">metric definitions</a> below.</p>
+    <p><em>Note: absolute timings depend on the CPU and load of the machine that produced this report, so the
+    raw numbers vary run to run. Compare the two transports within the same run rather than across machines.</em></p>
+  </div>
+
+  <h2 id="arch">Architecture</h2>
+  <p>Both runs use the same agents and consensus logic; only the message path differs. <strong>SLIM</strong>
+    agents publish each finding once to a native group session and the dataplane fans it out to all peers (the
+    runner only observes). <strong>A2A</strong> streams every finding to the runner acting as a
+    <em>relay hub</em>, which re-streams it to every other agent — two hops per finding, all through one point.</p>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+  subgraph slim["SLIM native group session — no relay"]
+    R1["runner (passive observer: start signal + consumes pushed metrics)"]
+    SA0["agent-0"]
+    SA1["agent-1"]
+    SA2["agent-2"]
+    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
+    SA1 --- SA2
+    SA0 --- SA2
+    SA0 -.->|"push snapshot on convergence"| R1
+    SA1 -.-> R1
+    SA2 -.-> R1
+  end
+  subgraph a2a["A2A — runner is the relay hub"]
+    R2["runner = RELAY (hosts A2A server)"]
+    AA0["agent-0"]
+    AA1["agent-1"]
+    AA2["agent-2"]
+    AA0 -->|"stream findings → runner"| R2
+    AA1 --> R2
+    AA2 --> R2
+    R2 -->|"stream relayed findings → agent"| AA0
+    R2 --> AA1
+    R2 --> AA2
+  end
+    </pre>
   </div>
   {{range .Comparisons}}
   <h2>{{.ScenarioName}}</h2>
@@ -317,39 +361,6 @@ const htmlTemplate = `<!DOCTYPE html>
       also appends each relayed finding to task history and deep-copies per update, which amplifies A2A cost
       super-linearly at large payloads — a property of the A2A streaming/task model.)</dd>
   </dl>
-
-  <h2 id="arch">Architecture</h2>
-  <p>SLIM agents form a peer mesh over a native group session and the runner only observes; A2A routes every
-    finding through the runner acting as a relay hub.</p>
-  <div class="diagram">
-    <pre class="mermaid">
-flowchart TB
-  subgraph slim["SLIM native group session — no relay"]
-    R1["runner (passive observer: start signal + consumes pushed metrics)"]
-    SA0["agent-0"]
-    SA1["agent-1"]
-    SA2["agent-2"]
-    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
-    SA1 --- SA2
-    SA0 --- SA2
-    SA0 -.->|"push snapshot on convergence"| R1
-    SA1 -.-> R1
-    SA2 -.-> R1
-  end
-  subgraph a2a["A2A — runner is the relay hub"]
-    R2["runner = RELAY (hosts A2A server)"]
-    AA0["agent-0"]
-    AA1["agent-1"]
-    AA2["agent-2"]
-    AA0 -->|"stream findings → runner"| R2
-    AA1 --> R2
-    AA2 --> R2
-    R2 -->|"stream relayed findings → agent"| AA0
-    R2 --> AA1
-    R2 --> AA2
-  end
-    </pre>
-  </div>
 
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

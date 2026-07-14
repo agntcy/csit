@@ -78,22 +78,22 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  publish-pages:
-    needs: [slim-vs-a2a]
-    if: always() && github.ref == 'refs/heads/main' && needs.slim-vs-a2a.result != 'skipped'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    concurrency:
-      group: test-report-pages
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      actions: read
-    steps:
-      - uses: actions/checkout@v4
+  # publish-pages:
+  #   needs: [slim-vs-a2a]
+  #   if: always() && github.ref == 'refs/heads/main' && needs.slim-vs-a2a.result != 'skipped'
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
+  #   concurrency:
+  #     group: test-report-pages
+  #     cancel-in-progress: false
+  #   permissions:
+  #     contents: write
+  #     actions: read
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/publish-test-reports-pages
-        with:
-          suite: slim-vs-a2a
-          source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.slim-vs-a2a.result }}
+  #     - uses: ./.github/actions/publish-test-reports-pages
+  #       with:
+  #         suite: slim-vs-a2a
+  #         source-run-id: ${{ github.run_id }}
+  #         source-run-conclusion: ${{ needs.slim-vs-a2a.result }}

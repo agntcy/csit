@@ -1,12 +1,12 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-30agents-20ms-10240b
+    name: hypothesis-convergence-20agents-10240b-lat100
     domain: hypothesis-convergence
-    description: "Stress case: highest agent count with a large (10 KB) payload. Measures each transport's behavior as the central relay is pushed toward its saturation point."
-    order: 6
+    description: "Distant-region case with a large (10 KB) payload: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures the combined effect of remote-region latency and payload size on each transport's fan-out."
+    order: 8
 spec:
-    agents: 30
+    agents: 20
     thinkTimeMs: 20
     findingEmitDelayMs: 1
     maxRounds: 200
@@ -73,67 +73,34 @@ agents:
       slimName: agntcy/bench-v2/agent-13
       a2aPort: 9843
       role: worker
+      latencyMs: 100
     - id: agent-14
       slimName: agntcy/bench-v2/agent-14
       a2aPort: 9854
       role: worker
+      latencyMs: 100
     - id: agent-15
       slimName: agntcy/bench-v2/agent-15
       a2aPort: 9865
       role: worker
+      latencyMs: 100
     - id: agent-16
       slimName: agntcy/bench-v2/agent-16
       a2aPort: 9876
       role: worker
+      latencyMs: 100
     - id: agent-17
       slimName: agntcy/bench-v2/agent-17
       a2aPort: 9887
       role: worker
+      latencyMs: 100
     - id: agent-18
       slimName: agntcy/bench-v2/agent-18
       a2aPort: 9898
       role: worker
+      latencyMs: 100
     - id: agent-19
       slimName: agntcy/bench-v2/agent-19
       a2aPort: 9909
       role: worker
-    - id: agent-20
-      slimName: agntcy/bench-v2/agent-20
-      a2aPort: 9920
-      role: worker
-    - id: agent-21
-      slimName: agntcy/bench-v2/agent-21
-      a2aPort: 9931
-      role: worker
-    - id: agent-22
-      slimName: agntcy/bench-v2/agent-22
-      a2aPort: 9942
-      role: worker
-    - id: agent-23
-      slimName: agntcy/bench-v2/agent-23
-      a2aPort: 9953
-      role: worker
-    - id: agent-24
-      slimName: agntcy/bench-v2/agent-24
-      a2aPort: 9964
-      role: worker
-    - id: agent-25
-      slimName: agntcy/bench-v2/agent-25
-      a2aPort: 9975
-      role: worker
-    - id: agent-26
-      slimName: agntcy/bench-v2/agent-26
-      a2aPort: 9986
-      role: worker
-    - id: agent-27
-      slimName: agntcy/bench-v2/agent-27
-      a2aPort: 9997
-      role: worker
-    - id: agent-28
-      slimName: agntcy/bench-v2/agent-28
-      a2aPort: 10008
-      role: worker
-    - id: agent-29
-      slimName: agntcy/bench-v2/agent-29
-      a2aPort: 10019
-      role: worker
+      latencyMs: 100

@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	slim "github.com/agntcy/slim-bindings-go"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/benchlog"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/consensus"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/internal/scenario"
 	"github.com/agntcy/csit/benchmarks/slim-vs-a2a/slim/internal/protocol"
+	slim "github.com/agntcy/slim-bindings-go"
 )
 
 const defaultSharedSecret = "demo-shared-secret-min-32-chars!!"
@@ -29,6 +29,10 @@ type Runtime struct {
 	agentIndex int
 	slimName   string
 	endpoint   string
+
+	// latency is the extra one-way delay applied to this agent's finding sends
+	// and receives, simulating an agent in a distant region.
+	latency time.Duration
 
 	engine  *consensus.Engine
 	app     *slim.App
@@ -50,11 +54,16 @@ type Runtime struct {
 }
 
 func NewRuntime(s *scenario.ConsensusScenario, agentIndex int, slimName, endpoint string) *Runtime {
+	var latency time.Duration
+	if agentIndex >= 0 && agentIndex < len(s.Agents) {
+		latency = time.Duration(s.Agents[agentIndex].LatencyMs) * time.Millisecond
+	}
 	return &Runtime{
 		scenario:         s,
 		agentIndex:       agentIndex,
 		slimName:         slimName,
 		endpoint:         endpoint,
+		latency:          latency,
 		engine:           consensus.NewEngine(s.Spec, agentIndex),
 		lastStartedEpoch: -1,
 		currentEpoch:     -1,
@@ -133,9 +142,21 @@ func (r *Runtime) Run() error {
 			if env.Finding.Epoch != cur {
 				continue
 			}
-			r.applyFinding(*env.Finding)
-			// Keep the runner's view fresh if we already converged.
-			r.maybePushSnapshot(false)
+			// Apply the receive-side (downlink) delay off this single receive
+			// loop so a distant agent stays responsive to epoch-control
+			// (KindStart) messages and never falls behind. The engine is
+			// mutex-guarded, so concurrent async applies are safe.
+			if r.latency > 0 {
+				go func(f consensus.Finding) {
+					time.Sleep(r.latency)
+					r.applyFinding(f)
+					r.maybePushSnapshot(false)
+				}(*env.Finding)
+			} else {
+				r.applyFinding(*env.Finding)
+				// Keep the runner's view fresh if we already converged.
+				r.maybePushSnapshot(false)
+			}
 		}
 	}
 }
@@ -178,6 +199,10 @@ func (r *Runtime) runEpoch(epoch int) {
 
 		finding, emit := r.engine.Think()
 		if emit && finding != nil {
+			// Simulate this agent's uplink delay before its finding leaves.
+			if r.latency > 0 {
+				time.Sleep(r.latency)
+			}
 			if err := r.publishFinding(*finding); err != nil {
 				benchlog.Finding(benchlog.ImplSLIM, "publish_error", r.agentIndex, finding.FindingID,
 					fmt.Sprintf("err=%v", err))

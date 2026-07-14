@@ -21,6 +21,8 @@ func main() {
 	payloadBytes := flag.Int("payload-bytes", 0, "fixed-size padding added to every finding (bytes)")
 	epochs := flag.Int("epochs", 0, "number of consensus epochs to run (default 10)")
 	maxEpochMS := flag.Int64("max-epoch-ms", 0, "per-epoch consensus time budget in ms (default 120000)")
+	latencyMS := flag.Int64("latency-ms", 0, "one-way delay applied to a subset of agents in ms (distant-region simulation)")
+	latencyCount := flag.Int("latency-count", 0, "how many trailing agents get latency-ms (default round(agents/3) when latency-ms>0)")
 	output := flag.String("output", "", "output yaml path")
 	flag.Parse()
 
@@ -36,6 +38,8 @@ func main() {
 		PayloadBytes:   *payloadBytes,
 		Epochs:         *epochs,
 		MaxEpochTimeMs: *maxEpochMS,
+		LatencyMs:      *latencyMS,
+		LatencyCount:   *latencyCount,
 	})
 	if err != nil {
 		log.Fatalf("generate: %v", err)

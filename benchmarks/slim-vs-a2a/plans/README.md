@@ -47,6 +47,7 @@ agents:
     slimName: agntcy/bench-v2/agent-1
     a2aPort: 9711
     role: worker
+    latencyMs: 100      # optional per-agent one-way network delay (distant region)
 ```
 
 ## Generate sweep scenarios
@@ -105,11 +106,44 @@ task compare:sweep:payload \
 > A2A cost super-linearly. That is a property of the A2A streaming/task model, but
 > note it when attributing the delta.
 
+### Selective agent latency (distant-region) knob
+
+`agents[].latencyMs` adds a per-agent one-way network delay, simulating members
+hosted in a distant region. Set it on a subset of agents (the sweep tool stamps
+the trailing ~1/3, keeping the coordinator local) to model a geo-distributed
+group. Generate latency variants with:
+
+```bash
+go run ./tools/gen_scenario \
+  -family hypothesis-convergence -agents 30 -think-ms 20 \
+  -payload-bytes 10240 -epochs 5 -max-epoch-ms 5000 \
+  -latency-ms 100 \        # one-way delay stamped on the laggy subset
+  -latency-count 10 \      # optional; defaults to round(agents/3)
+  -output plans/sweeps/hypothesis-convergence-30ag-10240b-lat100.yaml
+```
+
+Two injection models are available via the `BENCH_LAT_MODEL` env var (zero-latency
+scenarios are unaffected by the choice):
+
+- `relay` (**default**) — latency is charged at the network hop. The A2A relay
+  pays each distant agent's delay on **both** legs (agent→relay and relay→agent)
+  during its sequential fan-out, while native SLIM multicast pays it **once**, in
+  parallel. This models the real 1-hop-vs-2-hop cost of a central relay for
+  geo-distributed members and is the shipped default because it is deterministic
+  (both transports keep every epoch green; the difference is purely wall time).
+- `boundary` — latency is applied at each agent's own send/receive boundary
+  (non-blocking), identical for both transports; differentiation then comes only
+  from topology/backpressure and mostly appears at high agent counts.
+
+The committed latency plans (`*-lat100`, order 7–9) hold the CI-safe base params
+(`thinkTimeMs: 20`, `epochs: 5`, `maxEpochTimeMs: 5000`) so they stay within the
+suite's time budget.
+
 ## Run comparison
 
 ```bash
 task build
-task compare:plan PLAN=hypothesis-convergence-5ag-20ms
+task compare:plan PLAN=hypothesis-convergence-5ag
 task compare:report
 ```
 

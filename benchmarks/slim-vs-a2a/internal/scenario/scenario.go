@@ -5,6 +5,7 @@ package scenario
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -58,6 +59,9 @@ type Agent struct {
 	A2APort  int    `yaml:"a2aPort"`
 	CardPort int    `yaml:"cardPort,omitempty"`
 	Role     string `yaml:"role,omitempty"`
+	// LatencyMs adds a one-way network delay to this agent's finding sends and
+	// receives, simulating an agent in a distant region. 0 (default) = local.
+	LatencyMs int64 `yaml:"latencyMs,omitempty"`
 }
 
 func LoadFile(path string) (*ConsensusScenario, error) {
@@ -124,6 +128,9 @@ func (s *ConsensusScenario) Validate() error {
 		}
 		if a.A2APort <= 0 {
 			return fmt.Errorf("agents[%d].a2aPort is required", i)
+		}
+		if a.LatencyMs < 0 {
+			s.Agents[i].LatencyMs = 0
 		}
 	}
 	return nil
@@ -193,6 +200,12 @@ type GenerateOptions struct {
 	PayloadBytes   int
 	Epochs         int
 	MaxEpochTimeMs int64
+	// LatencyMs, when > 0, is stamped on the last LatencyCount agents to
+	// simulate a subset of agents living in a distant region.
+	LatencyMs int64
+	// LatencyCount is how many (trailing) agents get LatencyMs. When 0 and
+	// LatencyMs > 0, it defaults to round(Agents/3).
+	LatencyCount int
 }
 
 func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
@@ -218,23 +231,50 @@ func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
 		opts.MaxEpochTimeMs = 120000
 	}
 
+	if opts.LatencyMs < 0 {
+		opts.LatencyMs = 0
+	}
+	latencyCount := 0
+	if opts.LatencyMs > 0 {
+		latencyCount = opts.LatencyCount
+		if latencyCount <= 0 {
+			latencyCount = int(math.Round(float64(opts.Agents) / 3.0))
+		}
+		if latencyCount < 1 {
+			latencyCount = 1
+		}
+		if latencyCount > opts.Agents {
+			latencyCount = opts.Agents
+		}
+	}
+
 	name := fmt.Sprintf("%s-%dagents-%dms", opts.Family, opts.Agents, opts.ThinkTimeMs)
 	if opts.PayloadBytes > 0 {
 		name = fmt.Sprintf("%s-%db", name, opts.PayloadBytes)
 	}
+	if latencyCount > 0 {
+		name = fmt.Sprintf("%s-lat%d", name, opts.LatencyMs)
+	}
 	agents := make([]Agent, opts.Agents)
+	// Stamp latency on the trailing latencyCount agents so the coordinator
+	// (agent-0) always stays local/fast.
+	latencyFrom := opts.Agents - latencyCount
 	for i := 0; i < opts.Agents; i++ {
 		id := fmt.Sprintf("agent-%d", i)
 		role := "worker"
 		if i == 0 {
 			role = "coordinator"
 		}
-		agents[i] = Agent{
+		a := Agent{
 			ID:       id,
 			SlimName: fmt.Sprintf("agntcy/bench-v2/%s", id),
 			A2APort:  9700 + i*11,
 			Role:     role,
 		}
+		if latencyCount > 0 && i >= latencyFrom {
+			a.LatencyMs = opts.LatencyMs
+		}
+		agents[i] = a
 	}
 
 	s := &ConsensusScenario{
@@ -283,4 +323,33 @@ func maxInt64(a, b int64) int64 {
 
 func NormalizeFamily(input string) string {
 	return strings.TrimSpace(input)
+}
+
+// Latency-injection models, selected via the BENCH_LAT_MODEL env var.
+const (
+	// LatencyModelBoundary applies each agent's latency at that agent's own
+	// send/receive boundary (identical for both transports). Differences come
+	// only from topology/backpressure.
+	LatencyModelBoundary = "boundary"
+	// LatencyModelRelay accounts for latency at the network hop: the A2A relay
+	// pays each distant agent's delay on both legs (agent->relay and
+	// relay->agent) during its sequential fan-out, while native SLIM multicast
+	// pays it once per direct delivery. This models the real 1-hop vs 2-hop
+	// geo-distribution penalty of a central relay.
+	LatencyModelRelay = "relay"
+)
+
+// LatencyModel returns the configured latency-injection model, defaulting to
+// LatencyModelRelay when BENCH_LAT_MODEL is unset or unrecognized. The relay
+// model is the shipped default because it produces the cleanest, deterministic
+// picture of a central relay's geo penalty; set BENCH_LAT_MODEL=boundary to use
+// the agent-boundary alternative. For zero-latency scenarios both models are
+// identical (no delay is injected anywhere).
+func LatencyModel() string {
+	switch strings.TrimSpace(os.Getenv("BENCH_LAT_MODEL")) {
+	case LatencyModelBoundary:
+		return LatencyModelBoundary
+	default:
+		return LatencyModelRelay
+	}
 }

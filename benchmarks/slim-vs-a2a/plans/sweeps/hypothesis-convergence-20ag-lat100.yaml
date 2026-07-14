@@ -1,10 +1,10 @@
 apiVersion: bench.agntcy.io/v2
 kind: ConsensusScenario
 metadata:
-    name: hypothesis-convergence-20agents-20ms
+    name: hypothesis-convergence-20agents-lat100
     domain: hypothesis-convergence
-    description: "Raises the agent count but keeps messages tiny (no payload). Isolates the effect of agent count alone on fan-out cost."
-    order: 4
+    description: "Distant-region case: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures how each transport's routing (central relay vs native multicast) absorbs per-hop latency for a subset of members."
+    order: 7
 spec:
     agents: 20
     thinkTimeMs: 20
@@ -72,27 +72,34 @@ agents:
       slimName: agntcy/bench-v2/agent-13
       a2aPort: 9843
       role: worker
+      latencyMs: 100
     - id: agent-14
       slimName: agntcy/bench-v2/agent-14
       a2aPort: 9854
       role: worker
+      latencyMs: 100
     - id: agent-15
       slimName: agntcy/bench-v2/agent-15
       a2aPort: 9865
       role: worker
+      latencyMs: 100
     - id: agent-16
       slimName: agntcy/bench-v2/agent-16
       a2aPort: 9876
       role: worker
+      latencyMs: 100
     - id: agent-17
       slimName: agntcy/bench-v2/agent-17
       a2aPort: 9887
       role: worker
+      latencyMs: 100
     - id: agent-18
       slimName: agntcy/bench-v2/agent-18
       a2aPort: 9898
       role: worker
+      latencyMs: 100
     - id: agent-19
       slimName: agntcy/bench-v2/agent-19
       a2aPort: 9909
       role: worker
+      latencyMs: 100

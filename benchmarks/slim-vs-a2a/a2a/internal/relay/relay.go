@@ -58,6 +58,13 @@ type Hub struct {
 	// with a different epoch are dropped so stragglers from a prior attempt do
 	// not fan out or grow relay-stream task history.
 	currentEpoch atomic.Int32
+
+	// relayLatency, when set, makes the hub account for per-agent network delay
+	// at the relay hop: the sender's delay on the agent->relay leg (once) plus
+	// each distant target's delay on the relay->agent leg during the sequential
+	// fan-out. This models the two-hop cost a central relay pays for
+	// geo-distributed members (native SLIM multicast pays it once, in parallel).
+	relayLatency []time.Duration
 }
 
 func NewHub(grpcPort, cardPort int) *Hub {
@@ -70,6 +77,20 @@ func NewHub(grpcPort, cardPort int) *Hub {
 
 func (h *Hub) CardURL() string {
 	return fmt.Sprintf("http://127.0.0.1:%d", h.cardPort)
+}
+
+// SetRelayLatency enables the relay-hop latency model with per-agent one-way
+// delays indexed by agent index. Passing nil (or all-zero) leaves the hub
+// latency-free (the boundary model applies delay at the agents instead).
+func (h *Hub) SetRelayLatency(latencies []time.Duration) {
+	h.relayLatency = latencies
+}
+
+func (h *Hub) latencyFor(agentIndex int) time.Duration {
+	if agentIndex >= 0 && agentIndex < len(h.relayLatency) {
+		return h.relayLatency[agentIndex]
+	}
+	return 0
 }
 
 // Serve binds the relay's gRPC and card listeners and serves them in the
@@ -157,8 +178,21 @@ func (h *Hub) Broadcast(f consensus.Finding) {
 	}
 	h.mu.Unlock()
 
+	// Relay-hop latency model: pay the sender's uplink delay once (agent->relay)
+	// before fanning out.
+	if senderLat := h.latencyFor(f.AgentIndex); senderLat > 0 {
+		time.Sleep(senderLat)
+	}
+
 	delivered := 0
 	for _, s := range targets {
+		// Relay-hop latency model: the hub pays each distant target's delay on
+		// the relay->agent leg, sequentially, because a central relay fans out
+		// through one point. This is exactly the head-of-line cost native SLIM
+		// multicast avoids.
+		if targetLat := h.latencyFor(s.agentIndex); targetLat > 0 {
+			time.Sleep(targetLat)
+		}
 		select {
 		case s.ch <- f:
 			delivered++
