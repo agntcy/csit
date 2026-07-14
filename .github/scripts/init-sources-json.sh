@@ -96,6 +96,17 @@ cat > "$defaults" <<'JSON'
       "last_run_updated_at": "",
       "published_report_run_id": "",
       "published_report_updated_at": ""
+    },
+    {
+      "id": "test-agentic-evidence",
+      "name": "Agentic evidence dashboard",
+      "workflow_file": "test-agentic-evidence.yaml",
+      "report_path": "agentic-evidence/",
+      "last_run_id": "",
+      "last_run_conclusion": "",
+      "last_run_updated_at": "",
+      "published_report_run_id": "",
+      "published_report_updated_at": ""
     }
   ]
 }

@@ -1,0 +1,132 @@
+version: "3"
+
+silent: true
+
+vars:
+  REPORTS_DIR: '{{.REPORTS_DIR | default "./reports"}}'
+  PUBLISHED_DIR: '{{.PUBLISHED_DIR | default "./published"}}'
+  SLIMCTL_RELEASE_TAG: '{{ .SLIMCTL_RELEASE_TAG | default "slimctl-v1.2.0" }}'
+  SLIMCTL_PATH: '{{ .SLIMCTL_PATH | default "./bin/slimctl" }}'
+  SLIM_BINDINGS_SETUP_VERSION: '{{ .SLIM_BINDINGS_SETUP_VERSION | default "v1.2.0" }}'
+
+tasks:
+  deps:slim-bindings-setup:
+    desc: Install native SLIM bindings required to build echo-client and rate-client
+    cmds:
+      - |
+        set -e
+        GOMODCACHE="$(go env GOMODCACHE)"
+        GO_WORKSPACE="${GOMODCACHE%/pkg/mod}"
+        export GOPATH="$GO_WORKSPACE"
+        CACHE_DIR="$GOPATH/.cgo-cache/slim-bindings"
+        if [ -d "$CACHE_DIR" ] && find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' | grep -q .; then
+          echo "Using existing SLIM bindings in $CACHE_DIR"
+          find "$CACHE_DIR" -maxdepth 1 -type f -name 'libslim_bindings_*' -print
+          exit 0
+        fi
+        go run github.com/agntcy/slim-bindings-go/cmd/slim-bindings-setup@{{ .SLIM_BINDINGS_SETUP_VERSION }}
+
+  deps:slimctl-download:
+    desc: Download slimctl executable for the current OS and architecture
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        echo "Detected OS: $SLIMCTL_OS, Architecture: $SLIMCTL_ARCH${SLIMCTL_ABI}"
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .SLIMCTL_RELEASE_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        echo "Downloading slimctl from $SLIMCTL_URL"
+        TARGET_DIR=$(dirname {{ .SLIMCTL_PATH }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .SLIMCTL_PATH }}
+        chmod +x {{ .SLIMCTL_PATH }}
+        echo "slimctl downloaded to {{ .SLIMCTL_PATH }}"
+        {{ .SLIMCTL_PATH }} version || true
+
+  dashboard:prepare:
+    desc: Create report and publish directories
+    cmds:
+      - mkdir -p "{{.REPORTS_DIR}}" "{{.PUBLISHED_DIR}}/evidence"
+
+  dashboard:sync:
+    desc: Copy c1-evidence.json into published/evidence
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        mkdir -p "{{.REPORTS_DIR}}"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
+          cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
+        fi
+
+  dashboard:render:
+    desc: Render taxonomy dashboard and C1 evidence reports from JSON
+    deps: [dashboard:prepare]
+    cmds:
+      - |
+        mkdir -p "{{.REPORTS_DIR}}"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        REPORTS_DIR="$REPORTS_ABS" \
+        OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
+        TEMPLATE_FILE="./templates/dashboard.html.tmpl" \
+        bash ./scripts/render-dashboard.sh
+        REPORTS_DIR="$REPORTS_ABS" \
+        OUTPUT_DIR="{{.PUBLISHED_DIR}}/evidence" \
+        bash ./scripts/render-evidence-report.sh
+
+  dashboard:build:only:
+    desc: Sync evidence JSON and render dashboard (skip test run)
+    deps: [dashboard:sync, dashboard:render]
+
+  dashboard:build:
+    desc: Run C1 evidence tests, sync JSON, render dashboard
+    deps: [test:agentic-evidence]
+    cmds:
+      - task: dashboard:build:only
+
+  dashboard:clean:
+    desc: Remove generated publish artifacts
+    cmds:
+      - rm -f "{{.PUBLISHED_DIR}}/index.html"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.md"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.html"
+
+  test:agentic-evidence:
+    desc: Run all agentic evidence class tests (currently C1 only)
+    deps: [test:c1-evidence]
+
+  test:c1-evidence:
+    desc: Run C1 Ginkgo evidence tests (writes reports/c1-evidence.json)
+    deps: [dashboard:prepare, deps:slim-bindings-setup, deps:slimctl-download]
+    cmds:
+      - |
+        set -euo pipefail
+        GOMODCACHE="$(go env GOMODCACHE)"
+        export GOPATH="${GOMODCACHE%/pkg/mod}"
+        export PATH="$(pwd)/bin:${PATH}"
+        if ! command -v slimctl >/dev/null 2>&1; then
+          echo "slimctl not found on PATH after download (expected ./bin/slimctl)" >&2
+          exit 1
+        fi
+        mkdir -p "{{.REPORTS_DIR}}"
+        REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
+        export C1_EVIDENCE_REPORT_DIR="$REPORTS_ABS"
+        go test ./tests -count=1 -v -failfast -test.paniconexit0 \
+          --ginkgo.label-filter=c1-evidence \
+          --ginkgo.timeout 10m -timeout 10m

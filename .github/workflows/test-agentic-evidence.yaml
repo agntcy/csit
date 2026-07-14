@@ -1,0 +1,86 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-agentic-evidence
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect-suite.outputs.should-run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect-suite
+        uses: ./.github/actions/detect-suite-changes
+        with:
+          suite: agentic-evidence
+
+  run-tests-agentic-evidence:
+    needs: detect
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+          go-version: "1.24.4"
+
+      - name: Run agentic evidence tests and build dashboard
+        id: agentic-dashboard
+        working-directory: analitics
+        shell: bash
+        run: |
+          set -euo pipefail
+          task dashboard:build
+
+      - name: Propagate test result
+        if: ${{ steps.agentic-dashboard.outcome == 'failure' }}
+        shell: bash
+        run: exit 1
+
+      - name: Create artifact from analitics published output
+        if: always() && hashFiles('analitics/published/index.html') != ''
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: agentic-evidence-dashboard
+          path-to-archive: analitics/published/
+
+  publish-pages:
+    needs: [run-tests-agentic-evidence]
+    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-agentic-evidence.result != 'skipped'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: agentic-evidence
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.run-tests-agentic-evidence.result }}

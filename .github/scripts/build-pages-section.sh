@@ -5,7 +5,7 @@
 # Build one gh-pages docs section from a staging directory populated by download-artifact.
 #
 # Required env:
-#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-mcp | slim-benchmarks | slim-multicluster-private | directory-conformance
+#   SUITE         a2a | a2a-slimrpc | slim-integration | slim-mcp | slim-benchmarks | slim-multicluster-private | directory-conformance | agentic-evidence
 #   STAGING_DIR   directory with downloaded artifact contents
 #   SITE_DIR      gh-pages docs root (e.g. site/docs; suite dirs a2a/, directory/, …)
 #   REPO_ROOT     csit checkout (for go run)
@@ -142,6 +142,14 @@ case "$SUITE" in
     if [[ -n "$summary" && -f "$summary" ]]; then
       mkdir -p "$SITE_DIR/directory"
       cp "$summary" "$SITE_DIR/directory/index.html"
+      has_report=true
+    fi
+    ;;
+
+  agentic-evidence)
+    if [[ -f "$STAGING_DIR/index.html" ]]; then
+      mkdir -p "$SITE_DIR/agentic-evidence"
+      cp -a "$STAGING_DIR/." "$SITE_DIR/agentic-evidence/"
       has_report=true
     fi
     ;;
