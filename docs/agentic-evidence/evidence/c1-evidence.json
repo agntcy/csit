@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-07-14T13:45:55Z",
+  "source": "analitics/tests/c1_evidence_test.go",
+  "cases": [
+    {
+      "row_id": "c1-request-reply",
+      "mode": "request-reply",
+      "use_case": "Agent A calls B and waits for a reply",
+      "status": "verified",
+      "sender_messages": 20,
+      "sender_errors": 0,
+      "sink_received": 20,
+      "sink_replies": 20,
+      "mean_latency_ms": 1.0696539999999999,
+      "assertions": [
+        "sender completed 20 messages with 0 runtime errors",
+        "round-trip mean latency 1.070 ms",
+        "sink received 20 messages and replied 20 times with 0 errors"
+      ]
+    },
+    {
+      "row_id": "c1-fire-and-forget",
+      "mode": "fire-and-forget",
+      "use_case": "Agent fires an event; consumer handles async",
+      "status": "verified",
+      "sender_messages": 20,
+      "sender_errors": 0,
+      "sink_received": 20,
+      "mean_latency_ms": 0.110386,
+      "assertions": [
+        "sender completed 20 messages with 0 runtime errors",
+        "sink received 20 async messages with 0 errors"
+      ]
+    },
+    {
+      "row_id": "c1-write",
+      "mode": "write",
+      "use_case": "Publish into the mesh without a paired responder",
+      "status": "verified",
+      "sender_messages": 20,
+      "sender_errors": 0,
+      "mean_latency_ms": 0.11468099999999999,
+      "assertions": [
+        "sender completed 20 messages with 0 runtime errors",
+        "sender wrote at 9.78 msg/sec without a bound responder"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C1 Evidence Report</title>
+  <style>
+    :root {
+      --bg: #f4f6f8; --panel: #fff; --text: #1a2332; --muted: #5a6b7d;
+      --accent: #0d6e6e; --border: #dde3ea;
+      --ok: #1d6b3a; --ok-bg: #e8f5ec; --fail: #9b2c2c; --fail-bg: #fdecec;
+      --unknown: #5a6b7d; --unknown-bg: #eef1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: var(--text); background: var(--bg); padding: 2rem 1rem 3rem; }
+    main { max-width: 820px; margin: 0 auto; }
+    h1 { margin: 0 0 1rem; }
+    .meta { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+    .meta dl { margin: 0; display: grid; grid-template-columns: 10rem 1fr; gap: .35rem .75rem; font-size: .95rem; }
+    .meta dt { color: var(--muted); font-weight: 600; }
+    .meta a { color: var(--accent); }
+    .case-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+    .case-head { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .case-head h2 { margin: 0; font-size: 1.15rem; }
+    .use-case { margin: 0 0 .5rem; color: var(--text); }
+    .mode { margin: 0 0 1rem; color: var(--muted); font-size: .9rem; }
+    .metrics { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: .9rem; }
+    .metrics th, .metrics td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
+    .metrics th { width: 40%; color: var(--muted); font-weight: 600; }
+    .assertions { margin: 0; padding-left: 1.2rem; color: var(--text); }
+    .status { display: inline-block; font-size: .8125rem; font-weight: 600; padding: .2rem .55rem; border-radius: 6px; }
+    .status-verified { background: var(--ok-bg); color: var(--ok); }
+    .status-failed { background: var(--fail-bg); color: var(--fail); }
+    .status-unknown { background: var(--unknown-bg); color: var(--unknown); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>C1 Evidence Report</h1>
+    <section class="meta"><dl>
+      <dt>Schema version</dt><dd>1</dd>
+      <dt>Generated at</dt><dd>2026-07-14T13:45:55Z</dd>
+      <dt>Source</dt><dd><code>analitics/tests/c1_evidence_test.go</code></dd>
+      <dt>Formats</dt><dd><a href="./c1-evidence.json">JSON</a> · <a href="./c1-evidence.md">Markdown</a></dd>
+    </dl></section>
+    <article class="case-card" id="c1-request-reply">
+      <div class="case-head">
+        <h2>c1-request-reply</h2>
+        <span class="status status-verified">Verified</span>
+      </div>
+      <p class="use-case">Agent A calls B and waits for a reply</p>
+      <p class="mode">Mode: <code>request-reply</code></p>
+      <table class="metrics">
+        <tbody>
+          <tr><th>Sender messages</th><td>20</td></tr>
+<tr><th>Sender errors</th><td>0</td></tr>
+<tr><th>Sink received</th><td>20</td></tr>
+<tr><th>Sink replies</th><td>20</td></tr>
+<tr><th>Mean latency (ms)</th><td>1.0696539999999999</td></tr>
+        </tbody>
+      </table>
+      <h3>Assertions</h3>
+      <ul class="assertions">
+        <li>sender completed 20 messages with 0 runtime errors</li><li>round-trip mean latency 1.070 ms</li><li>sink received 20 messages and replied 20 times with 0 errors</li>
+      </ul>
+    </article>
+    <article class="case-card" id="c1-fire-and-forget">
+      <div class="case-head">
+        <h2>c1-fire-and-forget</h2>
+        <span class="status status-verified">Verified</span>
+      </div>
+      <p class="use-case">Agent fires an event; consumer handles async</p>
+      <p class="mode">Mode: <code>fire-and-forget</code></p>
+      <table class="metrics">
+        <tbody>
+          <tr><th>Sender messages</th><td>20</td></tr>
+<tr><th>Sender errors</th><td>0</td></tr>
+<tr><th>Sink received</th><td>20</td></tr>
+<tr><th>Mean latency (ms)</th><td>0.110386</td></tr>
+        </tbody>
+      </table>
+      <h3>Assertions</h3>
+      <ul class="assertions">
+        <li>sender completed 20 messages with 0 runtime errors</li><li>sink received 20 async messages with 0 errors</li>
+      </ul>
+    </article>
+    <article class="case-card" id="c1-write">
+      <div class="case-head">
+        <h2>c1-write</h2>
+        <span class="status status-verified">Verified</span>
+      </div>
+      <p class="use-case">Publish into the mesh without a paired responder</p>
+      <p class="mode">Mode: <code>write</code></p>
+      <table class="metrics">
+        <tbody>
+          <tr><th>Sender messages</th><td>20</td></tr>
+<tr><th>Sender errors</th><td>0</td></tr>
+<tr><th>Mean latency (ms)</th><td>0.11468099999999999</td></tr>
+        </tbody>
+      </table>
+      <h3>Assertions</h3>
+      <ul class="assertions">
+        <li>sender completed 20 messages with 0 runtime errors</li><li>sender wrote at 9.78 msg/sec without a bound responder</li>
+      </ul>
+    </article>
+  </main>
+</body>
+</html>
