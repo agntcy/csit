@@ -14,7 +14,7 @@
 #   OUTPUT              landing page path (default: site/docs/index.html)
 #
 # New report paths (under docs/, from sources.json):
-#   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/
+#   a2a/, slim-integration/, slim-mcp/, benchmarks/slim/, slim-multicluster-private/, directory/
 
 set -euo pipefail
 
@@ -257,6 +257,9 @@ HTML
         ;;
       test-slim-integration)
         blurb="KinD multicluster Slim topology integration tests with bindings examples."
+        ;;
+      test-slim-mcp)
+        blurb="MCP proxy and kubernetes-mcp-server over SLIM in KinD, with client test output."
         ;;
       test-slim-benchmarks)
         blurb="Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts."
