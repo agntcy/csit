@@ -8,7 +8,7 @@ description: Decide whether a test suite workflow should run based on path filte
 
 inputs:
   suite:
-    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, directory-conformance, slim-benchmarks, slim-multicluster-private)"
+    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-multicluster-private, directory-conformance)"
     required: true
 
 outputs:
@@ -34,6 +34,9 @@ runs:
           slim-integration:
             - integrations/agntcy-slim/**
             - .github/workflows/test-slim-integration.yaml
+          slim-mcp:
+            - integrations/agntcy-slim/mcp/**
+            - .github/workflows/test-slim-mcp.yaml
           directory-conformance:
             - integrations/agntcy-dir/**
             - .github/workflows/test-directory-conformance.yaml
@@ -85,6 +88,9 @@ runs:
             ;;
           slim-integration)
             [[ "${{ steps.filter.outputs.slim-integration }}" == "true" ]] && suite_match=true
+            ;;
+          slim-mcp)
+            [[ "${{ steps.filter.outputs.slim-mcp }}" == "true" ]] && suite_match=true
             ;;
           directory-conformance)
             [[ "${{ steps.filter.outputs.directory-conformance }}" == "true" ]] && suite_match=true

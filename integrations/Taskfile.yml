@@ -30,6 +30,16 @@ includes:
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
       SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
+  slim-mcp:
+    taskfile: ./agntcy-slim/mcp/Taskfile.yml
+    dir: ./agntcy-slim/mcp
+    excludes: [ default ]
+    vars:
+      SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
+      SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
+      MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG }}'
+      SLIM_MCP_RUST_REF: '{{ .SLIM_MCP_RUST_REF }}'
+
   directory:
     taskfile: ./agntcy-dir/Taskfile.yml
     dir: ./agntcy-dir

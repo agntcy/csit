@@ -54,6 +54,17 @@ cat > "$defaults" <<'JSON'
       "published_report_updated_at": ""
     },
     {
+      "id": "test-slim-mcp",
+      "name": "Slim MCP integration",
+      "workflow_file": "test-slim-mcp.yaml",
+      "report_path": "slim-mcp/",
+      "last_run_id": "",
+      "last_run_conclusion": "",
+      "last_run_updated_at": "",
+      "published_report_run_id": "",
+      "published_report_updated_at": ""
+    },
+    {
       "id": "test-slim-benchmarks",
       "name": "Slim benchmarks",
       "workflow_file": "test-slim-benchmarks.yaml",

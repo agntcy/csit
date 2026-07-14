@@ -89,6 +89,16 @@ task: Available tasks for this project:
 * integrations:slim:test:topology:generate:cluster-configs: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
 * integrations:slim:test:topology:run:                      Slim topology test
 * integrations:slim:test:topology:report:                   Render HTML dashboard from topology test Ginkgo JSON report
+* integrations:slim-mcp:cleanup:stack:                      Uninstall Helm releases from the MCP test namespace
+* integrations:slim-mcp:deploy:stack:                       Install kubernetes-mcp-server and mcp-proxy (with SLIM) via Helm
+* integrations:slim-mcp:deploy:wait:                          Wait for MCP stack deployments to become available
+* integrations:slim-mcp:deps:fetch-repo:                    Clone slim-mcp-rust at a pinned ref (chart + k8s-test examples)
+* integrations:slim-mcp:down:                                 Tear down MCP test stack and KinD cluster
+* integrations:slim-mcp:kind:create:                          Create KinD cluster for MCP integration tests
+* integrations:slim-mcp:kind:destroy:                         Delete KinD cluster for MCP integration tests
+* integrations:slim-mcp:test:                               Full MCP integration test (up, run client, down)
+* integrations:slim-mcp:test:run:                           Run MCP-over-SLIM client test against deployed stack
+* integrations:slim-mcp:up:                                 Create cluster and deploy MCP test stack
 * integrations:kind:create:                               Create kind cluster
 * integrations:kind:destroy:                              Destroy kind cluster
 * integrations:version:                                   Get version
