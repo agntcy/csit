@@ -48,10 +48,11 @@ jobs:
 
       - name: Run agentic evidence tests and build dashboard
         id: agentic-dashboard
+        working-directory: analitics
         shell: bash
         run: |
           set -euo pipefail
-          task -t analitics/Taskfile.yml dashboard:build
+          task dashboard:build
 
       - name: Propagate test result
         if: ${{ steps.agentic-dashboard.outcome == 'failure' }}

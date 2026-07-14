@@ -68,6 +68,7 @@ tasks:
     deps: [dashboard:prepare]
     cmds:
       - |
+        mkdir -p "{{.REPORTS_DIR}}"
         REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
         if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
           cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
@@ -78,6 +79,7 @@ tasks:
     deps: [dashboard:prepare]
     cmds:
       - |
+        mkdir -p "{{.REPORTS_DIR}}"
         REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
         REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_FILE="{{.PUBLISHED_DIR}}/index.html" \
@@ -111,7 +113,7 @@ tasks:
 
   test:c1-evidence:
     desc: Run C1 Ginkgo evidence tests (writes reports/c1-evidence.json)
-    deps: [deps:slim-bindings-setup, deps:slimctl-download]
+    deps: [dashboard:prepare, deps:slim-bindings-setup, deps:slimctl-download]
     cmds:
       - |
         set -euo pipefail
@@ -122,9 +124,9 @@ tasks:
           echo "slimctl not found on PATH after download (expected ./bin/slimctl)" >&2
           exit 1
         fi
+        mkdir -p "{{.REPORTS_DIR}}"
         REPORTS_ABS="$(cd "{{.REPORTS_DIR}}" && pwd)"
         export C1_EVIDENCE_REPORT_DIR="$REPORTS_ABS"
-        mkdir -p "$REPORTS_ABS"
         go test ./tests -count=1 -v -failfast -test.paniconexit0 \
           --ginkgo.label-filter=c1-evidence \
           --ginkgo.timeout 10m -timeout 10m
