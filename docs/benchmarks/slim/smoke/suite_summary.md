@@ -1,8 +1,8 @@
 # SLIM Benchmark Statistical Summary
 
-**Generated:** 2026-07-14 13:28:37
+**Generated:** 2026-07-14 13:48:46
 
-**Server:** http://127.0.0.1:39839
+**Server:** http://127.0.0.1:41481
 **Destination:** agntcy/demo/echo
 **Modes:** request-reply fire-and-forget write
 **Clients:** 1
@@ -21,16 +21,16 @@ Request-reply prioritizes latency statistics. The configured rate is retained as
 
 | Clients | Payload | Rate | Repeats | Mean Latency ms | Mean Latency Variance | Mean Latency 95% CI | P50 Latency ms | P50 Latency 95% CI | P99 Latency ms | P99 Latency 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 100 | 25 | 0.98 | 0.00 | [0.96, 1.01] | 0.96 | [0.93, 0.98] | 1.59 | [1.41, 1.77] | 8.57 | [8.43, 8.71] | 3.09 | [2.85, 3.33] | 17.95 | [17.53, 18.37] | 0 |
+| 1 | 16B | 100 | 25 | 0.64 | 0.00 | [0.63, 0.65] | 0.63 | [0.62, 0.64] | 0.81 | [0.79, 0.83] | 6.65 | [6.43, 6.86] | 2.08 | [1.83, 2.33] | 12.85 | [12.42, 13.28] | 0 |
 
 ### Fire-And-Forget Results
 
 | Clients | Payload | Rate | Repeats | Sender Mean msg/sec | Sender Variance | Sender 95% CI | Observed Node Throughput Mean msg/sec | Observed Node Throughput Variance | Observed Node Throughput 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Responder Mean CPU % | Responder CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Mean Sender Msgs | Mean Observed Msgs | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 1000 | 25 | 928.07 | 109.62 | [923.75, 932.39] | 971.38 | 58.83 | [968.21, 974.55] | 15.26 | [14.90, 15.63] | 6.06 | [5.87, 6.25] | 2.42 | [2.21, 2.64] | 23.75 | [23.19, 24.31] | 999.88 | 999.88 | 0 |
+| 1 | 16B | 1000 | 25 | 925.12 | 234.63 | [918.80, 931.44] | 971.69 | 57.59 | [968.56, 974.82] | 11.83 | [11.68, 11.98] | 4.62 | [4.55, 4.68] | 1.66 | [1.38, 1.93] | 18.10 | [17.75, 18.45] | 999.96 | 999.96 | 0 |
 
 ### Write Results
 
 | Clients | Payload | Rate | Repeats | Sender Mean msg/sec | Sender Variance | Sender 95% CI | Sender Write Throughput Mean msg/sec | Sender Write Throughput Variance | Sender Write Throughput 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Responder Mean CPU % | Responder CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Mean Sender Msgs | Mean Observed Msgs | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 1000 | 25 | 926.24 | 314.82 | [918.91, 933.56] | 926.24 | 314.82 | [918.91, 933.56] | 15.21 | [14.85, 15.57] | 0.00 | [0.00, 0.00] | 2.42 | [2.24, 2.60] | 17.63 | [17.24, 18.02] | 999.80 | 999.80 | 0 |
+| 1 | 16B | 1000 | 25 | 928.43 | 85.55 | [924.61, 932.25] | 928.43 | 85.55 | [924.61, 932.25] | 11.76 | [11.66, 11.85] | 0.00 | [0.00, 0.00] | 1.66 | [1.44, 1.87] | 13.41 | [13.18, 13.64] | 999.92 | 999.92 | 0 |
