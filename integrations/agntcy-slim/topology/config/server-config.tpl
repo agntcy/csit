@@ -5,7 +5,7 @@ spire:
   enabled: {{ .Spire.Enabled }}
 
 slim:
-  daemonset: {{ .DeployAsDaemonSet }}
+  deploymentMode: {{ if .DeployAsDaemonSet }}"DaemonSet"{{ else }}"Deployment"{{ end }}
   replicaCount: {{ .ReplicaCount }}
   overrideConfig:
     tracing:
@@ -20,7 +20,7 @@ slim:
 
     services:
       slim/0:
-        node_id: ${env:SLIM_SVC_ID}
+        node_id: ${env:SLIM_NODE_ID}
         group_name: "{{ .ClusterName }}"      
         dataplane:
           servers:

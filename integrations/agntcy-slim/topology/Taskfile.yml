@@ -12,11 +12,11 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.5.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "2.0.0-alpha.2" }}'
 
-  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.4.0" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.4.0" }}'
+  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.5.0" }}'
+  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0-alpha.2" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
 

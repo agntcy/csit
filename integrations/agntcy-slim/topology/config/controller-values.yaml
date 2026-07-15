@@ -34,6 +34,15 @@ config:
   tracing:
     log_level: debug
 
+  # Config mode: control plane is the source of truth for topology.
+  # Full mesh links every registered group (cluster) to every other one.
+  # Required since v1.5.0 / control-plane 2.0.0-alpha.x, which defaults to
+  # API mode (topology: {}) and no longer auto-wires groups implicitly.
+  topology:
+    links:
+      - group: "*"
+        neighbors: ["*"]
+
 spire:
   enabled: false
 
