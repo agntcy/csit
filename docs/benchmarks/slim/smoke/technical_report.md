@@ -6,7 +6,7 @@ This report documents the repeated benchmark campaign executed by the Ginkgo ben
 
 ## Test Setup
 
-- Runtime: local SLIM node on `http://127.0.0.1:41481`
+- Runtime: local SLIM node on `http://127.0.0.1:44001`
 - Destination identity: `agntcy/demo/echo`
 - Sender: `tests/rate-client`
 - Sink / responder: `tests/echo-client` (used by request-reply and fire-and-forget; write mode runs without a responder)
@@ -134,19 +134,19 @@ Request-reply prioritizes latency statistics. The configured rate is retained as
 
 | Clients | Payload | Rate | Repeats | Mean Latency ms | Mean Latency Variance | Mean Latency 95% CI | P50 Latency ms | P50 Latency 95% CI | P99 Latency ms | P99 Latency 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 100 | 25 | 0.64 | 0.00 | [0.63, 0.65] | 0.63 | [0.62, 0.64] | 0.81 | [0.79, 0.83] | 6.65 | [6.43, 6.86] | 2.08 | [1.83, 2.33] | 12.85 | [12.42, 13.28] | 0 |
+| 1 | 16B | 100 | 25 | 0.93 | 0.02 | [0.87, 0.99] | 0.92 | [0.85, 0.99] | 1.25 | [1.18, 1.32] | 10.72 | [10.44, 11.00] | 3.46 | [3.17, 3.76] | 21.89 | [21.07, 22.71] | 0 |
 
 ### Fire-And-Forget Results
 
 | Clients | Payload | Rate | Repeats | Sender Mean msg/sec | Sender Variance | Sender 95% CI | Observed Node Throughput Mean msg/sec | Observed Node Throughput Variance | Observed Node Throughput 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Responder Mean CPU % | Responder CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Mean Sender Msgs | Mean Observed Msgs | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 1000 | 25 | 925.12 | 234.63 | [918.80, 931.44] | 971.69 | 57.59 | [968.56, 974.82] | 11.83 | [11.68, 11.98] | 4.62 | [4.55, 4.68] | 1.66 | [1.38, 1.93] | 18.10 | [17.75, 18.45] | 999.96 | 999.96 | 0 |
+| 1 | 16B | 1000 | 25 | 933.19 | 152.29 | [928.09, 938.28] | 976.46 | 122.70 | [971.89, 981.03] | 19.80 | [19.26, 20.33] | 6.80 | [6.59, 7.01] | 2.37 | [2.12, 2.61] | 28.96 | [28.20, 29.73] | 999.96 | 999.96 | 0 |
 
 ### Write Results
 
 | Clients | Payload | Rate | Repeats | Sender Mean msg/sec | Sender Variance | Sender 95% CI | Sender Write Throughput Mean msg/sec | Sender Write Throughput Variance | Sender Write Throughput 95% CI | Sender Mean CPU % | Sender CPU 95% CI | Responder Mean CPU % | Responder CPU 95% CI | Node Mean CPU % | Node CPU 95% CI | Total Mean CPU % | Total CPU 95% CI | Mean Sender Msgs | Mean Observed Msgs | Total Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 16B | 1000 | 25 | 928.43 | 85.55 | [924.61, 932.25] | 928.43 | 85.55 | [924.61, 932.25] | 11.76 | [11.66, 11.85] | 0.00 | [0.00, 0.00] | 1.66 | [1.44, 1.87] | 13.41 | [13.18, 13.64] | 999.92 | 999.92 | 0 |
+| 1 | 16B | 1000 | 25 | 928.32 | 84.97 | [924.51, 932.12] | 928.32 | 84.97 | [924.51, 932.12] | 19.32 | [18.85, 19.80] | 0.00 | [0.00, 0.00] | 2.35 | [2.11, 2.60] | 21.68 | [21.16, 22.19] | 1000.00 | 1000.00 | 0 |
 
 
 ## Result Interpretation
