@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SLIM vs A2A — Consensus Streaming</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1100px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    h2 { margin-top: 2rem; }
+    .intro { background: #f5f7fa; border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem 1.25rem; }
+    .intro code { background: #eceff3; padding: 0.05rem 0.3rem; border-radius: 3px; }
+    dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
+    dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
+    .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
+    p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }
+  </style>
+</head>
+<body>
+  <h1>SLIM vs A2A — Consensus Streaming</h1>
+  <div class="intro">
+    <p>This benchmark runs the same distributed <strong>hypothesis-convergence</strong> workload on two
+    transports and measures how fast N agents reach identical consensus. <strong>SLIM</strong>
+    (<code>slim-group-session</code>) broadcasts each finding once over a native group session and the
+    dataplane fans it out — there is <em>no relay</em>. <strong>A2A</strong> (<code>a2a-relay-stream</code>)
+    has no peer multicast, so the runner is an explicit <em>relay hub</em>: every finding makes two streaming
+    hops (<code>agent → runner → N−1 agents</code>).</p>
+    <p><strong>How the test works.</strong> Each agent runs a small consensus engine. In every round an agent
+    <em>thinks</em> and, when its opinion changes, <em>emits a finding</em> — its current value and confidence —
+    to the group. Peers <em>apply</em> incoming findings: a value gains confidence as more distinct agents
+    support it, and agents drift toward the shared majority <em>target value</em>. An agent reaches
+    <em>local consensus</em> once it holds the target value with confidence above a fixed threshold, and the
+    epoch reaches <em>global consensus</em> the moment <em>every</em> agent agrees. Each run repeats this attempt
+    over several <em>epochs</em> to expose reliability under load. The only thing that differs between the two
+    runs is <em>how findings travel</em> between agents — shown in the architecture below.</p>
+    <p>The <strong>Improvement vs SLIM</strong> column is <code>(A2A − SLIM) / SLIM × 100</code> — how much
+    more time/work A2A costs relative to SLIM. It is unbounded: e.g. <code>+4000%</code> means A2A took ~41×
+    as long as SLIM. Positive values favor SLIM. See <a href="#defs">metric definitions</a> below.</p>
+    <p><em>Note: absolute timings depend on the CPU and load of the machine that produced this report, so the
+    raw numbers vary run to run. Compare the two transports within the same run rather than across machines.</em></p>
+  </div>
+
+  <h2 id="arch">Architecture</h2>
+  <p>Both runs use the same agents and consensus logic; only the message path differs. <strong>SLIM</strong>
+    agents publish each finding once to a native group session and the dataplane fans it out to all peers (the
+    runner only observes). <strong>A2A</strong> streams every finding to the runner acting as a
+    <em>relay hub</em>, which re-streams it to every other agent — two hops per finding, all through one point.</p>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+  subgraph slim["SLIM native group session — no relay"]
+    R1["runner (passive observer: start signal + consumes pushed metrics)"]
+    SA0["agent-0"]
+    SA1["agent-1"]
+    SA2["agent-2"]
+    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
+    SA1 --- SA2
+    SA0 --- SA2
+    SA0 -.->|"push snapshot on convergence"| R1
+    SA1 -.-> R1
+    SA2 -.-> R1
+  end
+  subgraph a2a["A2A — runner is the relay hub"]
+    R2["runner = RELAY (hosts A2A server)"]
+    AA0["agent-0"]
+    AA1["agent-1"]
+    AA2["agent-2"]
+    AA0 -->|"stream findings → runner"| R2
+    AA1 --> R2
+    AA2 --> R2
+    R2 -->|"stream relayed findings → agent"| AA0
+    R2 --> AA1
+    R2 --> AA2
+  end
+    </pre>
+  </div>
+  
+  <h2>hypothesis-convergence-3agents</h2>
+  <p class="plandesc">Baseline at small scale with no payload. Measures the floor cost of each transport when fan-out is trivial.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>57</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>71</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>1</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>1</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>72</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>true</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-5agents</h2>
+  <p class="plandesc">Small scale, no payload, slightly more agents. Measures whether a few extra peers change the relay cost.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>73</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>80</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>1</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>2</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>280</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>true</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-10agents-10240b</h2>
+  <p class="plandesc">Introduces a large (10 KB) payload at a moderate agent count. Isolates the effect of payload size alone on each transport.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>210</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>273</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>54</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>86</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>1719</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>true</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-20agents</h2>
+  <p class="plandesc">Raises the agent count but keeps messages tiny (no payload). Isolates the effect of agent count alone on fan-out cost.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>1790</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>2875</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>837</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>1800</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>51206</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>true</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-20agents-10240b</h2>
+  <p class="plandesc">Combines a high agent count with a large (10 KB) payload. Measures where agents x payload begin to compound.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>0</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>0</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>4314</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>8329</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>156359</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>0 / 5</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>false</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-30agents-10240b</h2>
+  <p class="plandesc">Stress case: highest agent count with a large (10 KB) payload. Measures each transport&#39;s behavior as the central relay is pushed toward its saturation point.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>0</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>0</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>5894</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>10690</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>249894</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>0 / 5</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>false</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  <h2>hypothesis-convergence-20agents-lat100</h2>
+  <p class="plandesc">Distant-region case: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures how each transport&#39;s routing (central relay vs native multicast) absorbs per-hop latency for a subset of members.</p>
+  <table>
+    <tr><th>Metric</th><th>A2A</th><th>SLIM</th><th>Improvement vs SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>4405</td><td>—</td><td>—</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>5762</td><td>—</td><td>—</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>2367</td><td>—</td><td>—</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>3672</td><td>—</td><td>—</td></tr>
+    <tr><td>Stream RPC count</td><td>187897</td><td>—</td><td>—</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>—</td><td>—</td></tr>
+    <tr><td>Success</td><td>true</td><td>—</td><td>—</td></tr>
+  </table>
+  
+  
+
+  <h2 id="defs">Metric definitions</h2>
+  <dl class="defs">
+    <dt>Consensus wall (ms)</dt>
+    <dd>Headline metric: wall-clock time from the runner's single <em>start</em> broadcast until every agent
+      has reached identical local consensus. Excludes process/library startup and teardown.</dd>
+    <dt>Last agent converge (ms)</dt>
+    <dd>Time until the slowest agent converged, taken from each agent's own convergence timestamp relative to
+      start. Highlights stragglers behind the headline number.</dd>
+    <dt>Avg / P95 propagation (ms)</dt>
+    <dd>Per-finding delivery latency, from the moment a finding is emitted to when a peer applies it
+      (average and 95th percentile). SLIM is one multicast hop; A2A adds the extra relay hop, so it grows
+      with agent count, message rate, and payload size.</dd>
+    <dt>Stream RPC count</dt>
+    <dd>Number of finding-carrying messages on the data path. For SLIM this equals findings emitted (one
+      native multicast each). For A2A it is the relay deliveries, ≈ <code>findings × (N−1)</code>, because the
+      hub re-sends every finding to all other agents.</dd>
+    <dt>Epochs (ok / failed)</dt>
+    <dd>Each run repeats the same consensus attempt over several <em>epochs</em>. An epoch succeeds if every
+      agent reaches global consensus within <code>spec.maxEpochTimeMs</code> (each attempt runs up to
+      <code>maxRounds</code>); otherwise it is counted as failed. This surfaces reliability differences: under
+      load A2A may miss the per-epoch budget while SLIM still converges. Overall <em>Success</em> is true only
+      when no epoch failed.</dd>
+    <dt>Coord fanout (ms)</dt>
+    <dd>Cumulative time the A2A relay hub spent fanning findings out to peers. <code>0</code> for SLIM because
+      there is no relay — the dataplane does the fan-out.</dd>
+    <dt>Payload B</dt>
+    <dd>Fixed-size padding (<code>spec.payloadBytes</code>) added to every finding to stress transport
+      bandwidth. Semantically inert; it does not change the consensus math or round count.</dd>
+    <dt>Improvement vs SLIM</dt>
+    <dd><code>(A2A − SLIM) / SLIM × 100</code>. Unbounded measure of how much more time/work A2A costs than
+      SLIM; e.g. <code>+4100%</code> ≈ 42× slower. Positive favors SLIM. (Note: a2a-go's streaming task store
+      also appends each relayed finding to task history and deep-copies per update, which amplifies A2A cost
+      super-linearly at large payloads — a property of the A2A streaming/task model.)</dd>
+  </dl>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
+  </script>
+</body>
+</html>

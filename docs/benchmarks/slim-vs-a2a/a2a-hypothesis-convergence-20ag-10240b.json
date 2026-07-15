@@ -1,0 +1,22 @@
+{
+  "scenario_name": "hypothesis-convergence-20agents-10240b",
+  "domain": "hypothesis-convergence",
+  "implementation": "a2a-relay-stream",
+  "agents": 20,
+  "think_time_ms": 20,
+  "payload_bytes": 10240,
+  "consensus_wall_ms": 0,
+  "consensus_round": 200,
+  "findings_emitted": 17960,
+  "findings_received_total": 5703,
+  "avg_propagation_ms": 4314,
+  "p95_propagation_ms": 8329,
+  "last_agent_converge_ms": 0,
+  "coord_fanout_ms": 4080556,
+  "stream_rpc_count": 156359,
+  "epochs": 5,
+  "epochs_succeeded": 0,
+  "epochs_failed": 5,
+  "success": false,
+  "error": "consensus not reached in any epoch"
+}

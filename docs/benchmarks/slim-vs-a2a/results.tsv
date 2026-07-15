@@ -1,0 +1,8 @@
+scenario_name	domain	implementation	agents	think_time_ms	payload_bytes	consensus_wall_ms	consensus_round	findings_emitted	findings_received_total	avg_propagation_ms	p95_propagation_ms	last_agent_converge_ms	coord_fanout_ms	stream_rpc_count	epochs	epochs_succeeded	epochs_failed	success	error
+hypothesis-convergence-3agents	hypothesis-convergence	a2a-relay-stream	3	20	0	57	3	36	72	1	1	71	0	72	5	5	0	true	
+hypothesis-convergence-5agents	hypothesis-convergence	a2a-relay-stream	5	20	0	73	3	70	280	1	2	80	0	280	5	5	0	true	
+hypothesis-convergence-10agents-10240b	hypothesis-convergence	a2a-relay-stream	10	20	10240	210	6	191	1224	54	86	273	49	1719	5	5	0	true	
+hypothesis-convergence-20agents	hypothesis-convergence	a2a-relay-stream	20	20	0	1790	145	2698	10456	837	1800	2875	5632	51206	5	5	0	true	
+hypothesis-convergence-20agents-10240b	hypothesis-convergence	a2a-relay-stream	20	20	10240	0	200	17960	5703	4314	8329	0	4080556	156359	5	0	5	false	consensus not reached in any epoch
+hypothesis-convergence-30agents-10240b	hypothesis-convergence	a2a-relay-stream	30	20	10240	0	200	28529	11543	5894	10690	0	12896804	249894	5	0	5	false	consensus not reached in any epoch
+hypothesis-convergence-20agents-lat100	hypothesis-convergence	a2a-relay-stream	20	20	0	4405	153	9905	7274	2367	3672	5762	8542720	187897	5	5	0	true	
