@@ -76,6 +76,17 @@ cat > "$defaults" <<'JSON'
       "published_report_updated_at": ""
     },
     {
+      "id": "test-slim-vs-a2a",
+      "name": "SLIM vs A2A consensus",
+      "workflow_file": "test-slim-vs-a2a.yaml",
+      "report_path": "benchmarks/slim-vs-a2a/",
+      "last_run_id": "",
+      "last_run_conclusion": "",
+      "last_run_updated_at": "",
+      "published_report_run_id": "",
+      "published_report_updated_at": ""
+    },
+    {
       "id": "test-slim-multicluster-private",
       "name": "Slim multicluster private",
       "workflow_file": "test-slim-multicluster-private.yaml",
