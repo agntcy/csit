@@ -1,0 +1,105 @@
+apiVersion: bench.agntcy.io/v2
+kind: ConsensusScenario
+metadata:
+    name: hypothesis-convergence-20agents-lat100
+    domain: hypothesis-convergence
+    description: "Distant-region case: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures how each transport's routing (central relay vs native multicast) absorbs per-hop latency for a subset of members."
+    order: 7
+spec:
+    agents: 20
+    thinkTimeMs: 20
+    findingEmitDelayMs: 1
+    maxRounds: 200
+    targetMode: majority
+    seed: 42
+    valueSpace: 3
+    epochs: 5
+    maxEpochTimeMs: 5000
+agents:
+    - id: agent-0
+      slimName: agntcy/bench-v2/agent-0
+      p2pPort: 9700
+      role: coordinator
+    - id: agent-1
+      slimName: agntcy/bench-v2/agent-1
+      p2pPort: 9711
+      role: worker
+    - id: agent-2
+      slimName: agntcy/bench-v2/agent-2
+      p2pPort: 9722
+      role: worker
+    - id: agent-3
+      slimName: agntcy/bench-v2/agent-3
+      p2pPort: 9733
+      role: worker
+    - id: agent-4
+      slimName: agntcy/bench-v2/agent-4
+      p2pPort: 9744
+      role: worker
+    - id: agent-5
+      slimName: agntcy/bench-v2/agent-5
+      p2pPort: 9755
+      role: worker
+    - id: agent-6
+      slimName: agntcy/bench-v2/agent-6
+      p2pPort: 9766
+      role: worker
+    - id: agent-7
+      slimName: agntcy/bench-v2/agent-7
+      p2pPort: 9777
+      role: worker
+    - id: agent-8
+      slimName: agntcy/bench-v2/agent-8
+      p2pPort: 9788
+      role: worker
+    - id: agent-9
+      slimName: agntcy/bench-v2/agent-9
+      p2pPort: 9799
+      role: worker
+    - id: agent-10
+      slimName: agntcy/bench-v2/agent-10
+      p2pPort: 9810
+      role: worker
+    - id: agent-11
+      slimName: agntcy/bench-v2/agent-11
+      p2pPort: 9821
+      role: worker
+    - id: agent-12
+      slimName: agntcy/bench-v2/agent-12
+      p2pPort: 9832
+      role: worker
+    - id: agent-13
+      slimName: agntcy/bench-v2/agent-13
+      p2pPort: 9843
+      role: worker
+      latencyMs: 100
+    - id: agent-14
+      slimName: agntcy/bench-v2/agent-14
+      p2pPort: 9854
+      role: worker
+      latencyMs: 100
+    - id: agent-15
+      slimName: agntcy/bench-v2/agent-15
+      p2pPort: 9865
+      role: worker
+      latencyMs: 100
+    - id: agent-16
+      slimName: agntcy/bench-v2/agent-16
+      p2pPort: 9876
+      role: worker
+      latencyMs: 100
+    - id: agent-17
+      slimName: agntcy/bench-v2/agent-17
+      p2pPort: 9887
+      role: worker
+      latencyMs: 100
+    - id: agent-18
+      slimName: agntcy/bench-v2/agent-18
+      p2pPort: 9898
+      role: worker
+      latencyMs: 100
+    - id: agent-19
+      slimName: agntcy/bench-v2/agent-19
+      p2pPort: 9909
+      role: worker
+      latencyMs: 100

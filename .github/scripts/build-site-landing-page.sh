@@ -261,8 +261,8 @@ HTML
       test-slim-benchmarks)
         blurb="Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts."
         ;;
-      test-slim-vs-a2a)
-        blurb="SLIM native group-session multicast vs A2A relay-hub streaming: consensus latency, propagation, and RPC counts."
+      test-slim-agent-consensus)
+        blurb="SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts."
         ;;
       test-slim-multicluster-private)
         blurb="Two-cluster SPIRE federation verification with private cluster B constraints."

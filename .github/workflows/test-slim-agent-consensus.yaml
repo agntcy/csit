@@ -1,0 +1,97 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+name: test-slim-agent-consensus
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/test-slim-agent-consensus.yaml'
+      - 'integrations/agntcy-slim/agent-consensus-test/**'
+  pull_request:
+    paths:
+      - '.github/workflows/test-slim-agent-consensus.yaml'
+      - 'integrations/agntcy-slim/agent-consensus-test/**'
+  workflow_dispatch:
+
+jobs:
+  slim-agent-consensus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Run Agent Consensus Convergence comparison suite
+        shell: bash
+        working-directory: integrations/agntcy-slim/agent-consensus-test
+        run: |
+          set -o pipefail
+          task compare:suite
+
+      - name: Build comparison report
+        if: always()
+        shell: bash
+        working-directory: integrations/agntcy-slim/agent-consensus-test
+        run: task compare:report
+
+      - name: Publish step summary
+        if: always()
+        shell: bash
+        run: |
+          REPORT_DIR="integrations/agntcy-slim/agent-consensus-test/reports"
+          {
+            echo "# Agent Consensus Convergence — SLIM Group Streaming vs P2P Streaming"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo
+            if [ -f "$REPORT_DIR/results.tsv" ]; then
+              echo "## results.tsv"
+              echo
+              echo '```'
+              cat "$REPORT_DIR/results.tsv"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-agent-consensus-report
+          path: integrations/agntcy-slim/agent-consensus-test/reports/
+          retention-days: 30
+          if-no-files-found: warn
+
+  publish-pages:
+    needs: [slim-agent-consensus]
+    if: always() && github.ref == 'refs/heads/main' && needs.slim-agent-consensus.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: test-report-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/publish-test-reports-pages
+        with:
+          suite: slim-agent-consensus
+          source-run-id: ${{ github.run_id }}
+          source-run-conclusion: ${{ needs.slim-agent-consensus.result }}

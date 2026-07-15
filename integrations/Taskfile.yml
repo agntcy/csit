@@ -40,6 +40,11 @@ includes:
       MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG }}'
       SLIM_MCP_RUST_REF: '{{ .SLIM_MCP_RUST_REF }}'
 
+  slim-agent-consensus:
+    taskfile: ./agntcy-slim/agent-consensus-test/Taskfile.yml
+    dir: ./agntcy-slim/agent-consensus-test
+    excludes: [ default ]
+
   directory:
     taskfile: ./agntcy-dir/Taskfile.yml
     dir: ./agntcy-dir

@@ -8,7 +8,7 @@ description: Download suite artifacts, update gh-pages report dirs and docs/inde
 
 inputs:
   suite:
-    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-vs-a2a, slim-multicluster-private, directory-conformance, agentic-evidence)"
+    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-agent-consensus, slim-multicluster-private, directory-conformance, agentic-evidence)"
     required: true
   source-run-id:
     description: "Workflow run ID containing uploaded artifacts"
@@ -74,9 +74,9 @@ runs:
             ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging/basic \
               --name slim-benchmark-basic-report
             ;;
-          slim-vs-a2a)
+          slim-agent-consensus)
             ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
-              --name slim-vs-a2a-report
+              --name slim-agent-consensus-report
             ;;
           slim-multicluster-private)
             ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
@@ -124,7 +124,7 @@ runs:
           slim-integration) WORKFLOW_ID=test-slim-integration ;;
           slim-mcp) WORKFLOW_ID=test-slim-mcp ;;
           slim-benchmarks) WORKFLOW_ID=test-slim-benchmarks ;;
-          slim-vs-a2a) WORKFLOW_ID=test-slim-vs-a2a ;;
+          slim-agent-consensus) WORKFLOW_ID=test-slim-agent-consensus ;;
           slim-multicluster-private) WORKFLOW_ID=test-slim-multicluster-private ;;
           directory-conformance) WORKFLOW_ID=test-directory-conformance ;;
           agentic-evidence) WORKFLOW_ID=test-agentic-evidence ;;
