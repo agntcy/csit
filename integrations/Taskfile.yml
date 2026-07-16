@@ -23,10 +23,6 @@ includes:
     excludes: [ default ]
     vars:
       KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
-      SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
-      SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
-      SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG }}'
-      SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG }}'
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
       SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
