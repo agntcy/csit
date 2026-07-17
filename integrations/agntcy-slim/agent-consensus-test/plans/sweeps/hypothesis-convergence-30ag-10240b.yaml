@@ -1,0 +1,139 @@
+apiVersion: bench.agntcy.io/v2
+kind: ConsensusScenario
+metadata:
+    name: hypothesis-convergence-30agents-10240b
+    domain: hypothesis-convergence
+    description: "Stress case: highest agent count with a large (10 KB) payload. Measures each transport's behavior as the central relay is pushed toward its saturation point."
+    order: 6
+spec:
+    agents: 30
+    thinkTimeMs: 20
+    findingEmitDelayMs: 1
+    maxRounds: 200
+    targetMode: majority
+    seed: 42
+    valueSpace: 3
+    payloadBytes: 10240
+    epochs: 5
+    maxEpochTimeMs: 5000
+agents:
+    - id: agent-0
+      slimName: agntcy/bench-v2/agent-0
+      p2pPort: 9700
+      role: coordinator
+    - id: agent-1
+      slimName: agntcy/bench-v2/agent-1
+      p2pPort: 9711
+      role: worker
+    - id: agent-2
+      slimName: agntcy/bench-v2/agent-2
+      p2pPort: 9722
+      role: worker
+    - id: agent-3
+      slimName: agntcy/bench-v2/agent-3
+      p2pPort: 9733
+      role: worker
+    - id: agent-4
+      slimName: agntcy/bench-v2/agent-4
+      p2pPort: 9744
+      role: worker
+    - id: agent-5
+      slimName: agntcy/bench-v2/agent-5
+      p2pPort: 9755
+      role: worker
+    - id: agent-6
+      slimName: agntcy/bench-v2/agent-6
+      p2pPort: 9766
+      role: worker
+    - id: agent-7
+      slimName: agntcy/bench-v2/agent-7
+      p2pPort: 9777
+      role: worker
+    - id: agent-8
+      slimName: agntcy/bench-v2/agent-8
+      p2pPort: 9788
+      role: worker
+    - id: agent-9
+      slimName: agntcy/bench-v2/agent-9
+      p2pPort: 9799
+      role: worker
+    - id: agent-10
+      slimName: agntcy/bench-v2/agent-10
+      p2pPort: 9810
+      role: worker
+    - id: agent-11
+      slimName: agntcy/bench-v2/agent-11
+      p2pPort: 9821
+      role: worker
+    - id: agent-12
+      slimName: agntcy/bench-v2/agent-12
+      p2pPort: 9832
+      role: worker
+    - id: agent-13
+      slimName: agntcy/bench-v2/agent-13
+      p2pPort: 9843
+      role: worker
+    - id: agent-14
+      slimName: agntcy/bench-v2/agent-14
+      p2pPort: 9854
+      role: worker
+    - id: agent-15
+      slimName: agntcy/bench-v2/agent-15
+      p2pPort: 9865
+      role: worker
+    - id: agent-16
+      slimName: agntcy/bench-v2/agent-16
+      p2pPort: 9876
+      role: worker
+    - id: agent-17
+      slimName: agntcy/bench-v2/agent-17
+      p2pPort: 9887
+      role: worker
+    - id: agent-18
+      slimName: agntcy/bench-v2/agent-18
+      p2pPort: 9898
+      role: worker
+    - id: agent-19
+      slimName: agntcy/bench-v2/agent-19
+      p2pPort: 9909
+      role: worker
+    - id: agent-20
+      slimName: agntcy/bench-v2/agent-20
+      p2pPort: 9920
+      role: worker
+    - id: agent-21
+      slimName: agntcy/bench-v2/agent-21
+      p2pPort: 9931
+      role: worker
+    - id: agent-22
+      slimName: agntcy/bench-v2/agent-22
+      p2pPort: 9942
+      role: worker
+    - id: agent-23
+      slimName: agntcy/bench-v2/agent-23
+      p2pPort: 9953
+      role: worker
+    - id: agent-24
+      slimName: agntcy/bench-v2/agent-24
+      p2pPort: 9964
+      role: worker
+    - id: agent-25
+      slimName: agntcy/bench-v2/agent-25
+      p2pPort: 9975
+      role: worker
+    - id: agent-26
+      slimName: agntcy/bench-v2/agent-26
+      p2pPort: 9986
+      role: worker
+    - id: agent-27
+      slimName: agntcy/bench-v2/agent-27
+      p2pPort: 9997
+      role: worker
+    - id: agent-28
+      slimName: agntcy/bench-v2/agent-28
+      p2pPort: 10008
+      role: worker
+    - id: agent-29
+      slimName: agntcy/bench-v2/agent-29
+      p2pPort: 10019
+      role: worker

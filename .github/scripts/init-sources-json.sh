@@ -76,10 +76,10 @@ cat > "$defaults" <<'JSON'
       "published_report_updated_at": ""
     },
     {
-      "id": "test-slim-vs-a2a",
-      "name": "SLIM vs A2A consensus",
-      "workflow_file": "test-slim-vs-a2a.yaml",
-      "report_path": "benchmarks/slim-vs-a2a/",
+      "id": "test-slim-agent-consensus",
+      "name": "Agent Consensus Convergence",
+      "workflow_file": "test-slim-agent-consensus.yaml",
+      "report_path": "slim-agent-consensus/",
       "last_run_id": "",
       "last_run_conclusion": "",
       "last_run_updated_at": "",
