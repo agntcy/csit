@@ -1,9 +1,9 @@
 warning: `VIRTUAL_ENV=/opt/hostedtoolcache/ct/3.11.0/amd64/venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 INFO:slim_mcp.helpers:config: ClientConfig(endpoint=http://127.0.0.1:46357, origin=None, server_name=None, compression=None, rate_limit=None, tls=TlsClientConfig(insecure=True, insecure_skip_verify=False, source=TlsSource.NONE(), ca_source=CaSource.NONE(), include_system_ca_certs_pool=True, tls_version=tls1.3), keepalive=None, proxy=ProxyConfig(url=None, tls=TlsClientConfig(insecure=False, insecure_skip_verify=False, source=TlsSource.NONE(), ca_source=CaSource.NONE(), include_system_ca_certs_pool=True, tls_version=tls1.3), username=None, password=None, headers={}), connect_timeout=0:00:00, request_timeout=0:00:00, buffer_size=None, headers={}, auth=ClientAuthenticationConfig.NONE(), backoff=BackoffConfig.EXPONENTIAL(config=ExponentialBackoff(base=0:00:00.100000, factor=1, max_delay=0:00:01, max_attempts=18446744073709551615, jitter=True)), metadata=None)
-[2m2026-07-15T08:14:07.068281Z[0m [32m INFO[0m slim [2mslim_service::service[0m[2m:[0m [2m402:[0m client connected [3mendpoint[0m[2m=[0mhttp://127.0.0.1:46357 [3mconn_id[0m[2m=[0m0
+[2m2026-07-17T08:56:30.732810Z[0m [32m INFO[0m slim [2mslim_service::service[0m[2m:[0m [2m402:[0m client connected [3mendpoint[0m[2m=[0mhttp://127.0.0.1:46357 [3mconn_id[0m[2m=[0m0
 INFO:slim_mcp.helpers:Connected to http://127.0.0.1:46357 with connection_id: 0
 INFO:slim_mcp.helpers:Using shared-secret authentication
-INFO:slim_mcp.helpers:7413759343607425740 Created app
+INFO:slim_mcp.helpers:15063459366512515215 Created app
 INFO:slim_mcp.mcp_client:SLIM session established with destination org/mcp/k8s-proxy/ffffffffffffffff
 INFO:slim_mcp.mcp_client:MCP streams created over SLIM session
 Available tools: 20
@@ -35,9 +35,9 @@ Available tools: 20
 Pods in mcp-system:
 ------------------------------------------------------------
 NAMESPACE    APIVERSION   KIND   NAME                                     READY   STATUS    RESTARTS   AGE   IP           NODE                     NOMINATED NODE   READINESS GATES   LABELS
-mcp-system   v1           Pod    kubernetes-mcp-server-545c448554-7cxpc   1/1     Running   0          26s   10.244.0.5   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=kubernetes-mcp-server,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kubernetes-mcp-server,app.kubernetes.io/version=0.0.65,helm.sh/chart=kubernetes-mcp-server-0.1.0,pod-template-hash=545c448554
-mcp-system   v1           Pod    mcp-proxy-59fd5bc6f4-xmvd8               1/1     Running   0          19s   10.244.0.7   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=mcp-proxy,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=mcp-proxy,app.kubernetes.io/version=0.2.5,helm.sh/chart=mcp-proxy-0.1.4,pod-template-hash=59fd5bc6f4
-mcp-system   v1           Pod    slim-0                                   1/1     Running   0          19s   10.244.0.6   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=mcp-proxy,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=slim,app.kubernetes.io/version=1.4.0,apps.kubernetes.io/pod-index=0,controller-revision-hash=slim-656fb7d697,helm.sh/chart=slim-v1.4.0,statefulset.kubernetes.io/pod-name=slim-0
+mcp-system   v1           Pod    kubernetes-mcp-server-545c448554-67wrg   1/1     Running   0          23s   10.244.0.5   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=kubernetes-mcp-server,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kubernetes-mcp-server,app.kubernetes.io/version=0.0.65,helm.sh/chart=kubernetes-mcp-server-0.1.0,pod-template-hash=545c448554
+mcp-system   v1           Pod    mcp-proxy-59fd5bc6f4-pl82t               1/1     Running   0          16s   10.244.0.6   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=mcp-proxy,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=mcp-proxy,app.kubernetes.io/version=0.2.5,helm.sh/chart=mcp-proxy-0.1.4,pod-template-hash=59fd5bc6f4
+mcp-system   v1           Pod    slim-0                                   1/1     Running   0          16s   10.244.0.7   mcp-test-control-plane   <none>           <none>            app.kubernetes.io/instance=mcp-proxy,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=slim,app.kubernetes.io/version=1.4.0,apps.kubernetes.io/pod-index=0,controller-revision-hash=slim-656fb7d697,helm.sh/chart=slim-v1.4.0,statefulset.kubernetes.io/pod-name=slim-0
 
 ------------------------------------------------------------
 
