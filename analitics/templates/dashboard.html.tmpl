@@ -65,8 +65,36 @@
 
     <section>
       <h1>SLIM evidence by agentic system class</h1>
-      <p class="hero-lead"><strong>SLIM</strong> is the messaging layer for agent systems. This page maps CSIT test evidence to the agentic-system taxonomy: each <strong>class</strong> section lists related <strong>use cases</strong>, and each use case links to test-derived <strong>evidence</strong>.</p>
+      <p class="hero-lead"><strong>SLIM</strong> is the messaging layer for agent systems. This page maps CSIT test evidence to the agentic-system taxonomy: each <strong>class</strong> section lists related <strong>use cases</strong>, and each use case links to test-derived <strong>evidence</strong> where it is available.</p>
       <p class="meta">Last updated: {{GENERATED_AT}} · Contract: <a href="../docs/plans/slim-c1-evidence-contract-v1.md">C1 evidence v1</a> · <a href="https://github.com/agntcy/csit/discussions/195">Discussion #195</a></p>
+    </section>
+
+    <!-- Taxonomy explainer -->
+    <section id="taxonomy">
+      <h2>The agentic-system taxonomy</h2>
+      <p class="class-def">Agentic systems are grouped into three classes by <strong>who controls message flow and agent coordination</strong> — not by model vendor, language, or agent count.</p>
+      <table class="use-grid">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="class-tag">C1 · Centralized</span></td>
+            <td>A single authority — runtime, broker, or control plane — owns routing and invocation. Agents connect <em>through</em> it rather than negotiating peers or paths themselves.</td>
+          </tr>
+          <tr>
+            <td><span class="class-tag">C2 · Decentralized</span></td>
+            <td>No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order.</td>
+          </tr>
+          <tr>
+            <td><span class="class-tag">C3 · Distributed</span></td>
+            <td>Agents and dataplanes act as peers across hosts and clusters. Paths are established through control-plane links and policy, not a fixed workflow script.</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <!-- C1 — Centralized -->
@@ -91,8 +119,8 @@
         <tbody>
           <tr id="c1-request-reply">
             <td>
-              <div class="use-name">Agent A calls B and waits for a reply</div>
-              <div class="use-meta">Named endpoints with synchronous round-trip on one node</div>
+              <div class="use-name">Agent calls another and waits for a reply</div>
+              <div class="use-meta">Synchronous round-trip between named endpoints on a single SLIM node</div>
             </td>
             <td><code>request-reply</code></td>
             <td>{{C1_RR_STATUS_SPAN}}<div class="use-meta">{{C1_RR_ROWS}} C1 evidence case(s)</div></td>
@@ -107,8 +135,8 @@
           </tr>
           <tr id="c1-fire-and-forget">
             <td>
-              <div class="use-name">Agent fires event; consumer handles async</div>
-              <div class="use-meta">One-way delivery through a single SLIM authority with sink observation</div>
+              <div class="use-name">Agent emits an event; a consumer handles it asynchronously</div>
+              <div class="use-meta">One-way delivery through a single SLIM node, observed at the sink</div>
             </td>
             <td><code>fire-and-forget</code></td>
             <td>{{C1_FF_STATUS_SPAN}}<div class="use-meta">{{C1_FF_ROWS}} C1 evidence case(s)</div></td>
@@ -123,8 +151,8 @@
           </tr>
           <tr id="c1-write">
             <td>
-              <div class="use-name">Publish into mesh without paired responder</div>
-              <div class="use-meta">Ingress/write path without a bound responder process</div>
+              <div class="use-name">Publish into the mesh without a paired responder</div>
+              <div class="use-meta">Write/ingress path with no bound responder process</div>
             </td>
             <td><code>write</code></td>
             <td>{{C1_W_STATUS_SPAN}}<div class="use-meta">{{C1_W_ROWS}} C1 evidence case(s)</div></td>
@@ -153,59 +181,35 @@
       <p class="class-tag">C2 · Decentralized</p>
       <div class="class-head">
         <h2>Workflow or route graph coordinates agents</h2>
-        <span class="status status-partial">Partial</span>
+        <span class="status status-planned">Evidence pending</span>
       </div>
-      <p class="class-def">No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order.</p>
+      <p class="class-def">No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order. Agents follow the graph; autonomy is bounded by it.</p>
+      <p class="use-meta">The use cases below define the target scenarios. Test-derived evidence is not yet available.</p>
 
       <table class="use-grid">
         <thead>
           <tr>
             <th>Use case</th>
             <th>SLIM mechanism</th>
-            <th>Status</th>
-            <th>Test / scenario</th>
-            <th>Evidence</th>
           </tr>
         </thead>
         <tbody>
           <tr id="c2-topology-routing">
             <td>
-              <div class="use-name">Multi-agent scenario with fixed routes (Alice/Bob)</div>
-              <div class="use-meta">Named multi-hop delivery across SLIM servers</div>
+              <div class="use-name">Multi-agent flow over fixed, named routes</div>
+              <div class="use-meta">Messages traverse several SLIM servers by name (e.g. one agent waits while another sends through intermediate nodes)</div>
             </td>
             <td><code>declarative routes</code></td>
-            <td><span class="status status-partial">Partial</span></td>
-            <td>Topology test<br><span class="use-meta">integrations/agntcy-slim</span></td>
-            <td>
-              <ul class="evidence-links">
-                <li><a href="../../integrations/agntcy-slim/TopologyTest.md">TopologyTest.md</a></li>
-                <li><span class="use-meta">Dashboard row: August</span></li>
-              </ul>
-            </td>
           </tr>
           <tr id="c2-workflow-app">
             <td>
-              <div class="use-name">Multi-step app driven by workflow manager</div>
-              <div class="use-meta">SLIM under external workflow steps</div>
+              <div class="use-name">Multi-step application driven by a workflow manager</div>
+              <div class="use-meta">An external workflow engine sequences the steps while SLIM carries messages between them</div>
             </td>
             <td><code>workflow + SLIM</code></td>
-            <td><span class="status status-planned">Planned</span></td>
-            <td>agntcy-apps campaigns<br><span class="use-meta">integrations/agntcy-apps</span></td>
-            <td>
-              <ul class="evidence-links">
-                <li><span class="use-meta">Narrative only — evidence TBD</span></li>
-              </ul>
-            </td>
           </tr>
         </tbody>
       </table>
-
-      <article class="scenario-card" id="c2-scenario-topology">
-        <h3>Test evidence: topology routing (planned integration)</h3>
-        <p class="scenario-meta">Multi-node · integrations/agntcy-slim topology Ginkgo suite</p>
-        <p>Will link topology test reports when wired into the analitics publish flow.</p>
-        <div class="rerun"><strong>Rerun (dev):</strong><br><code>task integrations:slim:test:topology</code></div>
-      </article>
     </section>
 
     <!-- C3 — Distributed -->
@@ -213,75 +217,42 @@
       <p class="class-tag">C3 · Distributed</p>
       <div class="class-head">
         <h2>Peers across clusters; control plane establishes links</h2>
-        <span class="status status-verified">Verified</span>
+        <span class="status status-planned">Evidence pending</span>
       </div>
-      <p class="class-def">Dataplanes operate as peers across hosts or clusters. Paths are established via control-plane links and policy, not a fixed workflow script.</p>
+      <p class="class-def">Agents and dataplanes act as peers across hosts, clusters, or org boundaries with no standing workflow script. Paths are established through control-plane links and policy, and the emphasis is on mesh membership and durability.</p>
+      <p class="use-meta">The use cases below define the target scenarios. Test-derived evidence is not yet available.</p>
 
       <table class="use-grid">
         <thead>
           <tr>
             <th>Use case</th>
             <th>SLIM mechanism</th>
-            <th>Status</th>
-            <th>Test / scenario</th>
-            <th>Evidence</th>
           </tr>
         </thead>
         <tbody>
           <tr id="c3-mesh-join">
             <td>
-              <div class="use-name">Downstream cluster joins controller mesh</div>
-              <div class="use-meta">Node Connected, link APPLIED B → A</div>
+              <div class="use-name">Downstream cluster joins the controller mesh</div>
+              <div class="use-meta">A dataplane on one cluster registers with the controller on another and the cross-cluster link is applied</div>
             </td>
             <td><code>controller link</code></td>
-            <td><span class="status status-verified">Verified</span></td>
-            <td>Multicluster controller link<br><span class="use-meta">kind-slim-multicluster</span></td>
-            <td>
-              <ul class="evidence-links">
-                <li><a href="../../integrations/kind-slim-multicluster/">Integration suite</a></li>
-                <li><a href="../../kind-slim-multi-host/README.md">KinD stack README</a></li>
-              </ul>
-            </td>
           </tr>
           <tr id="c3-link-persistence">
             <td>
-              <div class="use-name">Control plane survives rollout; same link ID</div>
-              <div class="use-meta">Link persistence after controller restart</div>
+              <div class="use-name">Control plane survives a rollout</div>
+              <div class="use-meta">The cross-cluster link keeps the same identity after the controller restarts</div>
             </td>
             <td><code>link persistence</code></td>
-            <td><span class="status status-verified">Verified</span></td>
-            <td>Same multicluster suite</td>
-            <td>
-              <ul class="evidence-links">
-                <li><a href="../../integrations/kind-slim-multicluster/">Integration suite</a></li>
-              </ul>
-            </td>
           </tr>
           <tr id="c3-autonomous-peers">
             <td>
-              <div class="use-name">Autonomous peers across hosts (no fixed WFSM)</div>
-              <div class="use-meta">Federation + optional routes</div>
+              <div class="use-name">Autonomous peers across hosts</div>
+              <div class="use-meta">Peers exchange messages across hosts or clusters without a fixed workflow, via federation and optional routes</div>
             </td>
             <td><code>federation</code></td>
-            <td><span class="status status-partial">Refine</span></td>
-            <td>Multicluster / peer-to-peer config</td>
-            <td>
-              <ul class="evidence-links">
-                <li><span class="use-meta">Evidence contract TBD</span></li>
-              </ul>
-            </td>
           </tr>
         </tbody>
       </table>
-
-      <article class="scenario-card" id="c3-scenario-multicluster">
-        <h3>Test evidence: multicluster controller link</h3>
-        <p class="scenario-meta">kind-slim-multi-host + integrations/kind-slim-multicluster</p>
-        <pre class="topology">cluster A: controller + root node
-cluster B: downstream node
-Link B → A: APPLIED · node B: Connected</pre>
-        <div class="rerun"><strong>Rerun:</strong><br><code>CSIT_KIND_SLIM_MULTICLUSTER=1 go test ./integrations/kind-slim-multicluster/... -ginkgo.label-filter=kind-slim-multicluster</code></div>
-      </article>
     </section>
 
     <footer>
