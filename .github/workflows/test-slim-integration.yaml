@@ -186,4 +186,3 @@ jobs:
         with:
           suite: slim-integration
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.run-tests-slim-integration.result }}

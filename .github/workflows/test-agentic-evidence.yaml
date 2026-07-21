@@ -83,4 +83,3 @@ jobs:
         with:
           suite: agentic-evidence
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.run-tests-agentic-evidence.result }}

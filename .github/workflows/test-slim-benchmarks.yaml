@@ -486,4 +486,3 @@ jobs:
         with:
           suite: slim-benchmarks
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ (needs.slim-benchmark-smoke.result == 'failure' || needs.slim-benchmark-basic.result == 'failure' || needs.slim-benchmark-capacity.result == 'failure') && 'failure' || needs.slim-benchmark-smoke.result }}
