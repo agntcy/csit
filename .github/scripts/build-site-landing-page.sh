@@ -87,7 +87,7 @@ integrations|Directory conformance|directory/|Client/server conformance results 
 integrations|Slim integration|slim-integration/|KinD multicluster Slim topology integration tests with bindings examples.
 integrations|Slim MCP integration|slim-mcp/|MCP proxy and kubernetes-mcp-server over SLIM in KinD, with client test output.
 integrations|Slim multicluster private|slim-multicluster-private/|Two-cluster SPIRE federation verification with private cluster B constraints.
-benchmarks|Agent Consensus Convergence|benchmarks/slim-vs-a2a/|SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts.
+benchmarks|Agent Consensus Convergence|slim-agent-consensus/|SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts.
 benchmarks|Slim benchmarks|benchmarks/slim/|Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.
 CATALOG
 
