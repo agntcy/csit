@@ -12,11 +12,11 @@
       "TotalSpecs": 1,
       "SpecsThatWillRun": 1
     },
-    "StartTime": "2026-07-17T08:58:24.538213596Z",
-    "EndTime": "2026-07-17T08:59:26.589773808Z",
-    "RunTime": 62051560222,
+    "StartTime": "2026-07-22T08:57:52.745779989Z",
+    "EndTime": "2026-07-22T08:58:55.312453921Z",
+    "RunTime": 62566673942,
     "SuiteConfig": {
-      "RandomSeed": 1784278704,
+      "RandomSeed": 1784710672,
       "RandomizeAllSpecs": false,
       "FocusStrings": [
         "Slim topology test"
@@ -80,9 +80,9 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "Create SLIM client Pods",
         "State": "passed",
-        "StartTime": "2026-07-17T08:58:24.538334823Z",
-        "EndTime": "2026-07-17T08:59:26.589677999Z",
-        "RunTime": 62051343166,
+        "StartTime": "2026-07-22T08:57:52.745899945Z",
+        "EndTime": "2026-07-22T08:58:55.312025732Z",
+        "RunTime": 62566125787,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
@@ -96,7 +96,7 @@
             },
             "TimelineLocation": {
               "Order": 1,
-              "Time": "2026-07-17T08:58:24.53836004Z"
+              "Time": "2026-07-22T08:57:52.74592371Z"
             },
             "Message": "Agntcy slim topology test",
             "NodeType": "BeforeEach"
@@ -109,10 +109,10 @@
             },
             "TimelineLocation": {
               "Order": 3,
-              "Time": "2026-07-17T08:58:24.540159031Z"
+              "Time": "2026-07-22T08:57:52.747412251Z"
             },
             "Message": "Agntcy slim topology test",
-            "Duration": 1799001,
+            "Duration": 1488551,
             "NodeType": "BeforeEach"
           },
           {
@@ -123,7 +123,7 @@
             },
             "TimelineLocation": {
               "Order": 4,
-              "Time": "2026-07-17T08:58:24.540160513Z"
+              "Time": "2026-07-22T08:57:52.747414075Z"
             },
             "Message": "Create SLIM client Pods",
             "NodeType": "It"
@@ -136,9 +136,9 @@
             },
             "TimelineLocation": {
               "Order": 5,
-              "Time": "2026-07-17T08:59:26.564225447Z"
+              "Time": "2026-07-22T08:58:55.284250336Z"
             },
-            "Message": "Waiting for bob to show Sent message hello - 10/10 message"
+            "Message": "Waiting for alice to show received: hello message"
           },
           {
             "SpecEventType": "By",
@@ -148,9 +148,9 @@
             },
             "TimelineLocation": {
               "Order": 6,
-              "Time": "2026-07-17T08:59:26.569564572Z"
+              "Time": "2026-07-22T08:58:55.284323173Z"
             },
-            "Message": "Waiting for alice to show received: hello message"
+            "Message": "Waiting for bob to show Sent message hello - 10/10 message"
           },
           {
             "SpecEventType": "Node (End)",
@@ -160,10 +160,10 @@
             },
             "TimelineLocation": {
               "Order": 8,
-              "Time": "2026-07-17T08:59:26.569614365Z"
+              "Time": "2026-07-22T08:58:55.289665146Z"
             },
             "Message": "Create SLIM client Pods",
-            "Duration": 62029453852,
+            "Duration": 62542251061,
             "NodeType": "It"
           },
           {
@@ -174,7 +174,7 @@
             },
             "TimelineLocation": {
               "Order": 9,
-              "Time": "2026-07-17T08:59:26.569626277Z"
+              "Time": "2026-07-22T08:58:55.289680335Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -187,10 +187,10 @@
             },
             "TimelineLocation": {
               "Order": 11,
-              "Time": "2026-07-17T08:59:26.575251973Z"
+              "Time": "2026-07-22T08:58:55.29697375Z"
             },
             "Message": "Slim topology test",
-            "Duration": 5625685,
+            "Duration": 7293415,
             "NodeType": "DeferCleanup (Each)"
           },
           {
@@ -201,7 +201,7 @@
             },
             "TimelineLocation": {
               "Order": 12,
-              "Time": "2026-07-17T08:59:26.575256701Z"
+              "Time": "2026-07-22T08:58:55.296980933Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -214,10 +214,10 @@
             },
             "TimelineLocation": {
               "Order": 14,
-              "Time": "2026-07-17T08:59:26.575288371Z"
+              "Time": "2026-07-22T08:58:55.297022732Z"
             },
             "Message": "Slim topology test",
-            "Duration": 31669,
+            "Duration": 41798,
             "NodeType": "DeferCleanup (Each)"
           },
           {
@@ -228,7 +228,7 @@
             },
             "TimelineLocation": {
               "Order": 15,
-              "Time": "2026-07-17T08:59:26.575291236Z"
+              "Time": "2026-07-22T08:58:55.297043782Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -241,10 +241,10 @@
             },
             "TimelineLocation": {
               "Order": 17,
-              "Time": "2026-07-17T08:59:26.579395382Z"
+              "Time": "2026-07-22T08:58:55.300301673Z"
             },
             "Message": "Slim topology test",
-            "Duration": 4104146,
+            "Duration": 3257891,
             "NodeType": "DeferCleanup (Each)"
           },
           {
@@ -255,7 +255,7 @@
             },
             "TimelineLocation": {
               "Order": 18,
-              "Time": "2026-07-17T08:59:26.579400191Z"
+              "Time": "2026-07-22T08:58:55.300306933Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -268,10 +268,10 @@
             },
             "TimelineLocation": {
               "Order": 20,
-              "Time": "2026-07-17T08:59:26.584048917Z"
+              "Time": "2026-07-22T08:58:55.304781084Z"
             },
             "Message": "Slim topology test",
-            "Duration": 4648726,
+            "Duration": 4474151,
             "NodeType": "DeferCleanup (Each)"
           },
           {
@@ -282,7 +282,7 @@
             },
             "TimelineLocation": {
               "Order": 21,
-              "Time": "2026-07-17T08:59:26.584052834Z"
+              "Time": "2026-07-22T08:58:55.304786043Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -295,10 +295,10 @@
             },
             "TimelineLocation": {
               "Order": 23,
-              "Time": "2026-07-17T08:59:26.584073834Z"
+              "Time": "2026-07-22T08:58:55.304861876Z"
             },
             "Message": "Slim topology test",
-            "Duration": 20989,
+            "Duration": 75823,
             "NodeType": "DeferCleanup (Each)"
           },
           {
@@ -309,7 +309,7 @@
             },
             "TimelineLocation": {
               "Order": 24,
-              "Time": "2026-07-17T08:59:26.584075056Z"
+              "Time": "2026-07-22T08:58:55.304863729Z"
             },
             "Message": "Slim topology test",
             "NodeType": "DeferCleanup (Each)"
@@ -322,10 +322,10 @@
             },
             "TimelineLocation": {
               "Order": 26,
-              "Time": "2026-07-17T08:59:26.58967329Z"
+              "Time": "2026-07-22T08:58:55.312021174Z"
             },
             "Message": "Slim topology test",
-            "Duration": 5598224,
+            "Duration": 7157445,
             "NodeType": "DeferCleanup (Each)"
           }
         ]
