@@ -15,11 +15,6 @@
       --accent-strong: #134e4a;
       --border: rgba(15, 118, 110, 0.18);
       --shadow: 0 24px 60px rgba(31, 41, 51, 0.12);
-      --success: #166534;
-      --failure: #b91c1c;
-      --cancelled: #92400e;
-      --skipped: #64748b;
-      --unknown: #475569;
     }
     * { box-sizing: border-box; }
     body {
@@ -48,7 +43,12 @@
       line-height: 0.95;
       letter-spacing: -0.04em;
     }
-    p { margin: 0 0 16px; font-size: 1.05rem; line-height: 1.7; color: var(--muted); }
+    .intro {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
     .eyebrow {
       display: inline-block;
       font-size: 0.78rem;
@@ -57,53 +57,75 @@
       color: var(--accent);
       margin-bottom: 14px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 24px 0 32px;
-      font-size: 0.98rem;
+    .report-sections { margin-top: 28px; }
+    .report-section + .report-section {
+      margin-top: 28px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
     }
-    th, td {
-      text-align: left;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
+    .report-section h2 {
+      margin: 0 0 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
-    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
-    .status { font-weight: 600; }
-    .status-success { color: var(--success); }
-    .status-failure { color: var(--failure); }
-    .status-cancelled { color: var(--cancelled); }
-    .status-skipped { color: var(--skipped); }
-    .status-unknown { color: var(--unknown); }
-    .note { display: block; margin-top: 4px; font-size: 0.88rem; color: var(--muted); }
-    .card-grid { display: grid; gap: 18px; margin-top: 12px; }
-    .report-card, .report-card-disabled {
-      display: block;
+    .report-list { list-style: none; margin: 0; padding: 0; }
+    .report-entry { padding: 14px 0; }
+    .report-entry + .report-entry { border-top: 1px solid var(--border); }
+    .report-entry-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 16px;
+    }
+    .report-entry-header a.title {
+      font-size: 1.08rem;
+      font-weight: 600;
+      color: var(--accent-strong);
       text-decoration: none;
-      color: inherit;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
     }
-    .report-card {
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    .report-entry-header a.title:hover { text-decoration: underline; }
+    .report-entry-header .title-disabled {
+      font-size: 1.08rem;
+      font-weight: 600;
+      color: var(--text);
     }
-    .report-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(15, 118, 110, 0.34);
-      box-shadow: 0 20px 40px rgba(15, 118, 110, 0.12);
+    .report-entry-header .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-left: auto;
+      font-size: 0.88rem;
+      color: var(--muted);
     }
-    .report-card-disabled { opacity: 0.62; }
-    .report-card h2, .report-card-disabled h2 { margin: 0 0 10px; font-size: 1.55rem; }
-    .report-card span { color: var(--accent-strong); font-weight: 600; }
-    .report-card-disabled span { color: var(--muted); font-weight: 600; }
+    .report-entry-header .meta time { white-space: nowrap; }
+    .report-entry-header .meta a.open {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .report-entry-header .meta a.open:hover { text-decoration: underline; }
+    .report-blurb {
+      margin: 6px 0 0;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 72ch;
+    }
+    .report-entry-disabled { opacity: 0.62; }
+    .report-entry-disabled .report-blurb::after {
+      content: " · Not published yet";
+      font-style: italic;
+    }
     footer { margin-top: 32px; font-size: 0.95rem; color: var(--muted); }
     @media (max-width: 640px) {
       body { padding: 20px 14px; }
       main { padding: 28px 20px; border-radius: 22px; }
-      table { font-size: 0.9rem; }
+      .report-entry-header { flex-direction: column; align-items: flex-start; }
+      .report-entry-header .meta { margin-left: 0; }
     }
   </style>
 </head>
@@ -111,149 +133,121 @@
   <main>
     <div class="eyebrow">GitHub Pages</div>
     <h1>CSIT Test Reports</h1>
-    <p>Static report outputs from CI. The dashboard lists the latest workflow run separately from the report currently published on this site.</p>
-    <table>
-      <thead>
-        <tr>
-          <th>Workflow</th>
-          <th>Last run</th>
-          <th>Last run status</th>
-          <th>Published report</th>
-          <th>Report from run</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>A2A interoperability</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052449">#29568052449</a>
-<span class="note">2026-07-17T08:57:31Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./a2a/">Open</a>
-<span class="note">Updated 2026-07-17T08:57:31Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052449">#29568052449</a></td>
-        </tr>
-        <tr>
-          <td>A2A SlimRPC interoperability</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29833710618">#29833710618</a>
-<span class="note">2026-07-21T13:20:19Z</span></td>
-          <td class="status status-failure">Failure</td>
-          <td><a href="./a2a-slimrpc/">Open</a>
-<span class="note">Updated 2026-07-21T13:20:19Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29833710618">#29833710618</a></td>
-        </tr>
-        <tr>
-          <td>Slim integration</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052400">#29568052400</a>
-<span class="note">2026-07-17T08:59:53Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./slim-integration/">Open</a>
-<span class="note">Updated 2026-07-17T08:59:53Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052400">#29568052400</a></td>
-        </tr>
-        <tr>
-          <td>Slim MCP integration</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052474">#29568052474</a>
-<span class="note">2026-07-17T08:57:04Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./slim-mcp/">Open</a>
-<span class="note">Updated 2026-07-17T08:57:04Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052474">#29568052474</a></td>
-        </tr>
-        <tr>
-          <td>Slim benchmarks</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052394">#29568052394</a>
-<span class="note">2026-07-17T09:50:38Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./benchmarks/slim/">Open</a>
-<span class="note">Updated 2026-07-17T09:50:38Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052394">#29568052394</a></td>
-        </tr>
-        <tr>
-          <td>Agent Consensus Convergence</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052377">#29568052377</a>
-<span class="note">2026-07-17T09:23:46Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./slim-agent-consensus/">Open</a>
-<span class="note">Updated 2026-07-17T09:23:46Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052377">#29568052377</a></td>
-        </tr>
-        <tr>
-          <td>Slim multicluster private</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052493">#29568052493</a>
-<span class="note">2026-07-17T09:01:30Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./slim-multicluster-private/">Open</a>
-<span class="note">Updated 2026-07-17T09:01:30Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052493">#29568052493</a></td>
-        </tr>
-        <tr>
-          <td>Directory conformance</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052419">#29568052419</a>
-<span class="note">2026-07-17T09:02:08Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./directory/">Open</a>
-<span class="note">Updated 2026-07-17T09:02:08Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052419">#29568052419</a></td>
-        </tr>
-        <tr>
-          <td>Agentic evidence dashboard</td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052440">#29568052440</a>
-<span class="note">2026-07-17T08:56:17Z</span></td>
-          <td class="status status-success">Success</td>
-          <td><a href="./agentic-evidence/">Open</a>
-<span class="note">Updated 2026-07-17T08:56:17Z</span></td>
-          <td><a href="https://github.com/agntcy/csit/actions/runs/29568052440">#29568052440</a></td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="card-grid">
-      <a class="report-card" href="./a2a/">
-        <h2>A2A interoperability</h2>
-        <p>Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./a2a-slimrpc/">
-        <h2>A2A SlimRPC interoperability</h2>
-        <p>Cross-language A2A-over-SlimRPC interoperability results with merged JSON, XML, and HTML dashboard output.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./slim-integration/">
-        <h2>Slim integration</h2>
-        <p>KinD multicluster Slim topology integration tests with bindings examples.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./slim-mcp/">
-        <h2>Slim MCP integration</h2>
-        <p>Published CI report output.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./benchmarks/slim/">
-        <h2>Slim benchmarks</h2>
-        <p>Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./slim-agent-consensus/">
-        <h2>Agent Consensus Convergence</h2>
-        <p>SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./slim-multicluster-private/">
-        <h2>Slim multicluster private</h2>
-        <p>Two-cluster SPIRE federation verification with private cluster B constraints.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./directory/">
-        <h2>Directory conformance</h2>
-        <p>Client/server conformance results across supported Directory client and server versions.</p>
-        <span>Open report</span>
-      </a>
-      <a class="report-card" href="./agentic-evidence/">
-        <h2>Agentic evidence dashboard</h2>
-        <p>Agentic systems taxonomy evidence dashboard (C1 live today) with assertion-based Ginkgo proof per use case.</p>
-        <span>Open report</span>
-      </a>
+    <p class="intro">
+      Static test reports from CI on <code>main</code>.
+      Pass/fail details live inside each report — this page is just the index.
+    </p>
+
+    <div class="report-sections">
+            <section class="report-section">
+                <h2>Integrations</h2>
+                <ul class="report-list">
+                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./a2a/">A2A interoperability</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./a2a/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./a2a-slimrpc/">A2A SlimRPC interoperability</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./a2a-slimrpc/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Cross-language A2A-over-SlimRPC interoperability results with merged JSON, XML, and HTML dashboard output.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./agentic-evidence/">Agentic evidence dashboard</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./agentic-evidence/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Agentic systems taxonomy evidence dashboard (C1 live today) with assertion-based Ginkgo proof per use case.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./directory/">Directory conformance</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./directory/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Client/server conformance results across supported Directory client and server versions.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./slim-integration/">Slim integration</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./slim-integration/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">KinD multicluster Slim topology integration tests with bindings examples.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./slim-mcp/">Slim MCP integration</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./slim-mcp/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">MCP proxy and kubernetes-mcp-server over SLIM in KinD, with client test output.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./slim-multicluster-private/">Slim multicluster private</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./slim-multicluster-private/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Two-cluster SPIRE federation verification with private cluster B constraints.</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="report-section">
+                <h2>Benchmarks</h2>
+                <ul class="report-list">
+                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./slim-agent-consensus/">Agent Consensus Convergence</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./slim-agent-consensus/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts.</p>
+                    </li>                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./benchmarks/slim/">Slim benchmarks</a>
+                            <div class="meta">
+                                <time datetime="2026-07-22">Updated 2026-07-22</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./benchmarks/slim/">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.</p>
+                    </li>
+                </ul>
+            </section>
+
     </div>
-    <footer>Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>. When a run produces no artifact, the previous published report remains available.</footer>
+
+    <footer>
+      Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>.
+    </footer>
   </main>
 </body>
 </html>
