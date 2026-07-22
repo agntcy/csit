@@ -2,67 +2,108 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds docs/index.html from docs/sources.json.
+# Builds docs/index.html for the CSIT GitHub Pages landing page.
 # GitHub Pages serves from the gh-pages branch /docs folder; all paths below
 # are relative to that docs root.
 #
-# Required env:
-#   GITHUB_REPOSITORY   e.g. agntcy/csit
-#
 # Optional env:
-#   SOURCES_JSON        path to sources.json (default: site/docs/sources.json)
-#   OUTPUT              landing page path (default: site/docs/index.html)
-#
-# New report paths (under docs/, from sources.json):
-#   a2a/, slim-integration/, benchmarks/slim/, slim-multicluster-private/, directory/, agentic-evidence/
+#   OUTPUT   landing page path (default: site/docs/index.html)
 
 set -euo pipefail
 
-SOURCES_JSON="${SOURCES_JSON:-site/docs/sources.json}"
 OUTPUT="${OUTPUT:-site/docs/index.html}"
-GITHUB_REPOSITORY="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY required}"
 DOCS_ROOT="$(dirname "$OUTPUT")"
-
-if [[ ! -f "$SOURCES_JSON" ]]; then
-  "$(dirname "$0")/init-sources-json.sh" "$SOURCES_JSON"
-fi
 
 mkdir -p "$DOCS_ROOT"
 touch "$DOCS_ROOT/.nojekyll"
 
-status_class() {
-  case "$1" in
-    success) echo "status-success" ;;
-    failure) echo "status-failure" ;;
-    cancelled) echo "status-cancelled" ;;
-    skipped) echo "status-skipped" ;;
-    *) echo "status-unknown" ;;
-  esac
-}
-
-status_label() {
-  case "$1" in
-    success) echo "Success" ;;
-    failure) echo "Failure" ;;
-    cancelled) echo "Cancelled" ;;
-    skipped) echo "Skipped" ;;
-    "") echo "Unknown" ;;
-    *) echo "$1" ;;
-  esac
-}
-
-run_link() {
-  local run_id="$1"
-  if [[ -n "$run_id" ]]; then
-    printf '<a href="https://github.com/%s/actions/runs/%s">#%s</a>' "$GITHUB_REPOSITORY" "$run_id" "$run_id"
-  else
-    printf '—'
-  fi
+report_index_file() {
+  local report_path="$1"
+  echo "${DOCS_ROOT}/${report_path%/}/index.html"
 }
 
 report_index_exists() {
   local report_path="$1"
-  [[ -n "$report_path" && -f "${DOCS_ROOT}/${report_path%/}/index.html" ]]
+  [[ -n "$report_path" && -f "$(report_index_file "$report_path")" ]]
+}
+
+report_updated_at() {
+  local index_file
+  index_file="$(report_index_file "$1")"
+  if [[ -f "$index_file" ]]; then
+    date -u -r "$index_file" +"%Y-%m-%d"
+  fi
+}
+
+render_entry() {
+  local name="$1"
+  local report_path="$2"
+  local blurb="$3"
+
+  if report_index_exists "$report_path"; then
+    local updated
+    updated="$(report_updated_at "$report_path")"
+    cat <<HTML
+                    <li class="report-entry">
+                        <div class="report-entry-header">
+                            <a class="title" href="./${report_path}">${name}</a>
+                            <div class="meta">
+                                <time datetime="${updated}">Updated ${updated}</time>
+                                <span aria-hidden="true">·</span>
+                                <a class="open" href="./${report_path}">Open</a>
+                            </div>
+                        </div>
+                        <p class="report-blurb">${blurb}</p>
+                    </li>
+HTML
+  else
+    cat <<HTML
+                    <li class="report-entry report-entry-disabled">
+                        <div class="report-entry-header">
+                            <span class="title-disabled">${name}</span>
+                            <div class="meta">
+                                <span>—</span>
+                            </div>
+                        </div>
+                        <p class="report-blurb">${blurb}</p>
+                    </li>
+HTML
+  fi
+}
+
+render_section() {
+  local group="$1"
+  local title="$2"
+  local entries=""
+
+  while IFS='|' read -r entry_group name report_path blurb; do
+    [[ "$entry_group" == "$group" ]] || continue
+    entries+="$(render_entry "$name" "$report_path" "$blurb")"
+  done <<'CATALOG'
+integrations|A2A interoperability|a2a/|Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output.
+integrations|A2A SlimRPC interoperability|a2a-slimrpc/|Cross-language A2A-over-SlimRPC interoperability results with merged JSON, XML, and HTML dashboard output.
+integrations|Agentic evidence dashboard|agentic-evidence/|Agentic systems taxonomy evidence dashboard (C1 live today) with assertion-based Ginkgo proof per use case.
+integrations|Directory conformance|directory/|Client/server conformance results across supported Directory client and server versions.
+integrations|Slim integration|slim-integration/|KinD multicluster Slim topology integration tests with bindings examples.
+integrations|Slim MCP integration|slim-mcp/|MCP proxy and kubernetes-mcp-server over SLIM in KinD, with client test output.
+integrations|Slim multicluster private|slim-multicluster-private/|Two-cluster SPIRE federation verification with private cluster B constraints.
+benchmarks|Agent Consensus Convergence|slim-agent-consensus/|SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts.
+benchmarks|Slim benchmarks|benchmarks/slim/|Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts.
+CATALOG
+
+  if [[ -z "$entries" ]]; then
+    return
+  fi
+
+  cat <<HTML
+            <section class="report-section">
+                <h2>${title}</h2>
+                <ul class="report-list">
+${entries}
+                </ul>
+            </section>
+
+HTML
 }
 
 {
@@ -84,11 +125,6 @@ report_index_exists() {
       --accent-strong: #134e4a;
       --border: rgba(15, 118, 110, 0.18);
       --shadow: 0 24px 60px rgba(31, 41, 51, 0.12);
-      --success: #166534;
-      --failure: #b91c1c;
-      --cancelled: #92400e;
-      --skipped: #64748b;
-      --unknown: #475569;
     }
     * { box-sizing: border-box; }
     body {
@@ -117,7 +153,12 @@ report_index_exists() {
       line-height: 0.95;
       letter-spacing: -0.04em;
     }
-    p { margin: 0 0 16px; font-size: 1.05rem; line-height: 1.7; color: var(--muted); }
+    .intro {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
     .eyebrow {
       display: inline-block;
       font-size: 0.78rem;
@@ -126,53 +167,75 @@ report_index_exists() {
       color: var(--accent);
       margin-bottom: 14px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 24px 0 32px;
-      font-size: 0.98rem;
+    .report-sections { margin-top: 28px; }
+    .report-section + .report-section {
+      margin-top: 28px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
     }
-    th, td {
-      text-align: left;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
+    .report-section h2 {
+      margin: 0 0 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
-    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
-    .status { font-weight: 600; }
-    .status-success { color: var(--success); }
-    .status-failure { color: var(--failure); }
-    .status-cancelled { color: var(--cancelled); }
-    .status-skipped { color: var(--skipped); }
-    .status-unknown { color: var(--unknown); }
-    .note { display: block; margin-top: 4px; font-size: 0.88rem; color: var(--muted); }
-    .card-grid { display: grid; gap: 18px; margin-top: 12px; }
-    .report-card, .report-card-disabled {
-      display: block;
+    .report-list { list-style: none; margin: 0; padding: 0; }
+    .report-entry { padding: 14px 0; }
+    .report-entry + .report-entry { border-top: 1px solid var(--border); }
+    .report-entry-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 16px;
+    }
+    .report-entry-header a.title {
+      font-size: 1.08rem;
+      font-weight: 600;
+      color: var(--accent-strong);
       text-decoration: none;
-      color: inherit;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
     }
-    .report-card {
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    .report-entry-header a.title:hover { text-decoration: underline; }
+    .report-entry-header .title-disabled {
+      font-size: 1.08rem;
+      font-weight: 600;
+      color: var(--text);
     }
-    .report-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(15, 118, 110, 0.34);
-      box-shadow: 0 20px 40px rgba(15, 118, 110, 0.12);
+    .report-entry-header .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-left: auto;
+      font-size: 0.88rem;
+      color: var(--muted);
     }
-    .report-card-disabled { opacity: 0.62; }
-    .report-card h2, .report-card-disabled h2 { margin: 0 0 10px; font-size: 1.55rem; }
-    .report-card span { color: var(--accent-strong); font-weight: 600; }
-    .report-card-disabled span { color: var(--muted); font-weight: 600; }
+    .report-entry-header .meta time { white-space: nowrap; }
+    .report-entry-header .meta a.open {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .report-entry-header .meta a.open:hover { text-decoration: underline; }
+    .report-blurb {
+      margin: 6px 0 0;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 72ch;
+    }
+    .report-entry-disabled { opacity: 0.62; }
+    .report-entry-disabled .report-blurb::after {
+      content: " · Not published yet";
+      font-style: italic;
+    }
     footer { margin-top: 32px; font-size: 0.95rem; color: var(--muted); }
     @media (max-width: 640px) {
       body { padding: 20px 14px; }
       main { padding: 28px 20px; border-radius: 22px; }
-      table { font-size: 0.9rem; }
+      .report-entry-header { flex-direction: column; align-items: flex-start; }
+      .report-entry-header .meta { margin-left: 0; }
     }
   </style>
 </head>
@@ -180,126 +243,23 @@ report_index_exists() {
   <main>
     <div class="eyebrow">GitHub Pages</div>
     <h1>CSIT Test Reports</h1>
-    <p>Static report outputs from CI. The dashboard lists the latest workflow run separately from the report currently published on this site.</p>
-    <table>
-      <thead>
-        <tr>
-          <th>Workflow</th>
-          <th>Last run</th>
-          <th>Last run status</th>
-          <th>Published report</th>
-          <th>Report from run</th>
-        </tr>
-      </thead>
-      <tbody>
+    <p class="intro">
+      Static test reports from CI on <code>main</code>.
+      Pass/fail details live inside each report — this page is just the index.
+    </p>
+
+    <div class="report-sections">
 HTML
 
-  jq -r '.workflows[] | [
-    .name,
-    (.last_run_id // ""),
-    (.last_run_conclusion // ""),
-    (.last_run_updated_at // ""),
-    (.published_report_run_id // ""),
-    (.published_report_updated_at // ""),
-    (.report_path // ""),
-    (.id // "")
-  ] | @tsv' "$SOURCES_JSON" | while IFS=$'\t' read -r name last_run_id last_run_conclusion last_run_updated_at published_report_run_id published_report_updated_at report_path workflow_id; do
-    class="$(status_class "$last_run_conclusion")"
-    label="$(status_label "$last_run_conclusion")"
-    last_run_cell="$(run_link "$last_run_id")"
-    if [[ -n "$last_run_updated_at" ]]; then
-      last_run_cell+=$'\n'"<span class=\"note\">${last_run_updated_at}</span>"
-    fi
-
-    if report_index_exists "$report_path"; then
-      published_cell="<a href=\"./${report_path}\">Open</a>"
-      if [[ -n "$published_report_updated_at" ]]; then
-        published_cell+=$'\n'"<span class=\"note\">Updated ${published_report_updated_at}</span>"
-      fi
-    else
-      published_cell="Not published"
-    fi
-
-    report_from_run_cell="$(run_link "$published_report_run_id")"
-    if [[ -n "$published_report_run_id" && -n "$last_run_id" && "$published_report_run_id" != "$last_run_id" ]]; then
-      report_from_run_cell+=$'\n'"<span class=\"note\">Older than last run</span>"
-    fi
-
-    printf '        <tr>\n'
-    printf '          <td>%s</td>\n' "$name"
-    printf '          <td>%s</td>\n' "$last_run_cell"
-    printf '          <td class="status %s">%s</td>\n' "$class" "$label"
-    printf '          <td>%s</td>\n' "$published_cell"
-    printf '          <td>%s</td>\n' "$report_from_run_cell"
-    printf '        </tr>\n'
-  done
-
-  cat <<'HTML'
-      </tbody>
-    </table>
-    <div class="card-grid">
-HTML
-
-  jq -r '.workflows[] | [
-    .name,
-    (.report_path // ""),
-    (.published_report_run_id // ""),
-    (.last_run_id // ""),
-    (.published_report_updated_at // ""),
-    (.id // "")
-  ] | @tsv' "$SOURCES_JSON" | while IFS=$'\t' read -r name report_path published_report_run_id last_run_id published_report_updated_at workflow_id; do
-    case "$workflow_id" in
-      test-a2a)
-        blurb="Cross-SDK interoperability results with merged JSON, XML, and HTML dashboard output."
-        ;;
-      test-a2a-slimrpc)
-        blurb="Cross-language A2A-over-SlimRPC interoperability results with merged JSON, XML, and HTML dashboard output."
-        ;;
-      test-slim-integration)
-        blurb="KinD multicluster Slim topology integration tests with bindings examples."
-        ;;
-      test-slim-benchmarks)
-        blurb="Throughput and latency benchmark dashboards across modes, payload sizes, and sender counts."
-        ;;
-      test-slim-agent-consensus)
-        blurb="SLIM native group-session multicast vs P2P relay-hub streaming: consensus latency, propagation, and RPC counts."
-        ;;
-      test-slim-multicluster-private)
-        blurb="Two-cluster SPIRE federation verification with private cluster B constraints."
-        ;;
-      test-directory-conformance)
-        blurb="Client/server conformance results across supported Directory client and server versions."
-        ;;
-      test-agentic-evidence)
-        blurb="Agentic systems taxonomy evidence dashboard (C1 live today) with assertion-based Ginkgo proof per use case."
-        ;;
-      *)
-        blurb="Published CI report output."
-        ;;
-    esac
-
-    if report_index_exists "$report_path"; then
-      printf '      <a class="report-card" href="./%s">\n' "$report_path"
-      printf '        <h2>%s</h2>\n' "$name"
-      printf '        <p>%s</p>\n' "$blurb"
-      if [[ -n "$published_report_run_id" && -n "$last_run_id" && "$published_report_run_id" != "$last_run_id" ]]; then
-        printf '        <span>Open report (from run #%s)</span>\n' "$published_report_run_id"
-      else
-        printf '        <span>Open report</span>\n'
-      fi
-      printf '      </a>\n'
-    else
-      printf '      <div class="report-card-disabled">\n'
-      printf '        <h2>%s</h2>\n' "$name"
-      printf '        <p>%s</p>\n' "$blurb"
-      printf '        <span>No report published yet</span>\n'
-      printf '      </div>\n'
-    fi
-  done
+  render_section integrations Integrations
+  render_section benchmarks Benchmarks
 
   cat <<'HTML'
     </div>
-    <footer>Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>. When a run produces no artifact, the previous published report remains available.</footer>
+
+    <footer>
+      Reports are published under <code>gh-pages/docs</code> after workflow runs on <code>main</code>.
+    </footer>
   </main>
 </body>
 </html>

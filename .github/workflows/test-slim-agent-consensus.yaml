@@ -8,12 +8,12 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/test-slim-agent-consensus.yaml'
-      - 'integrations/agntcy-slim/agent-consensus-test/**'
+      - ".github/workflows/test-slim-agent-consensus.yaml"
+      - "integrations/agntcy-slim/agent-consensus-test/**"
   pull_request:
     paths:
-      - '.github/workflows/test-slim-agent-consensus.yaml'
-      - 'integrations/agntcy-slim/agent-consensus-test/**'
+      - ".github/workflows/test-slim-agent-consensus.yaml"
+      - "integrations/agntcy-slim/agent-consensus-test/**"
   workflow_dispatch:
 
 jobs:
@@ -94,4 +94,3 @@ jobs:
         with:
           suite: slim-agent-consensus
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.slim-agent-consensus.result }}

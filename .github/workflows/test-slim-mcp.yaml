@@ -151,4 +151,3 @@ jobs:
         with:
           suite: slim-mcp
           source-run-id: ${{ github.run_id }}
-          source-run-conclusion: ${{ needs.run-tests-slim-mcp.result }}

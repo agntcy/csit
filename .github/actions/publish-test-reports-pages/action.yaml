@@ -13,9 +13,6 @@ inputs:
   source-run-id:
     description: "Workflow run ID containing uploaded artifacts"
     required: true
-  source-run-conclusion:
-    description: "Conclusion of the source workflow (success, failure, cancelled, etc.)"
-    required: true
 
 runs:
   using: composite
@@ -97,7 +94,6 @@ runs:
         esac
 
     - name: Build pages section
-      id: build-section
       shell: bash
       env:
         SUITE: ${{ inputs.suite }}
@@ -107,42 +103,11 @@ runs:
       run: |
         set -euo pipefail
         chmod +x .github/scripts/build-pages-section.sh integrations/agntcy-slim/topology/scripts/render-report.sh
-        ./.github/scripts/build-pages-section.sh | tee /tmp/build-section.out
-        has_report="$(grep '^has_report=' /tmp/build-section.out | tail -1 | cut -d= -f2)"
-        echo "has_report=${has_report:-false}" >> "$GITHUB_OUTPUT"
-
-    - name: Update sources.json
-      shell: bash
-      env:
-        SUITE: ${{ inputs.suite }}
-        HAS_REPORT: ${{ steps.build-section.outputs.has_report }}
-      run: |
-        set -euo pipefail
-        case "$SUITE" in
-          a2a) WORKFLOW_ID=test-a2a ;;
-          a2a-slimrpc) WORKFLOW_ID=test-a2a-slimrpc ;;
-          slim-integration) WORKFLOW_ID=test-slim-integration ;;
-          slim-mcp) WORKFLOW_ID=test-slim-mcp ;;
-          slim-benchmarks) WORKFLOW_ID=test-slim-benchmarks ;;
-          slim-agent-consensus) WORKFLOW_ID=test-slim-agent-consensus ;;
-          slim-multicluster-private) WORKFLOW_ID=test-slim-multicluster-private ;;
-          directory-conformance) WORKFLOW_ID=test-directory-conformance ;;
-          agentic-evidence) WORKFLOW_ID=test-agentic-evidence ;;
-          *) echo "unknown suite: $SUITE" >&2; exit 1 ;;
-        esac
-        chmod +x .github/scripts/update-sources-json.sh .github/scripts/init-sources-json.sh
-        ./.github/scripts/update-sources-json.sh \
-          site/docs/sources.json \
-          "$WORKFLOW_ID" \
-          "${{ inputs.source-run-id }}" \
-          "${{ inputs.source-run-conclusion }}" \
-          "$HAS_REPORT"
+        ./.github/scripts/build-pages-section.sh
 
     - name: Build site landing page
       shell: bash
       env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        SOURCES_JSON: site/docs/sources.json
         OUTPUT: site/docs/index.html
       run: |
         set -euo pipefail
