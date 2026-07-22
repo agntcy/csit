@@ -1,6 +1,6 @@
 # SLIM Adaptive Capacity Sweep Report
 
-**Generated:** 2026-07-17 09:29:27
+**Generated:** 2026-07-22 09:31:02
 
 **Modes:** request-reply
 **Clients:** 1
@@ -37,15 +37,15 @@ Results are reported separately for each fixed `(mode, clients, payload)` case. 
 
 Best offered aggregate rate: `1000` msg/sec
 Estimated capacity offered-rate interval: `[1000, 1250]` msg/sec
-Best observed node throughput: `12.35` msg/sec with 95% CI [12.34, 12.36]
-Best sender-completed throughput: `12.12` msg/sec with 95% CI [12.11, 12.14]
-Best node CPU: `0.73` % with 95% CI [0.69, 0.78]
-Best total CPU: `5.16` % with 95% CI [5.08, 5.23]
+Best observed node throughput: `12.39` msg/sec with 95% CI [12.38, 12.39]
+Best sender-completed throughput: `12.17` msg/sec with 95% CI [12.16, 12.18]
+Best node CPU: `0.42` % with 95% CI [0.37, 0.46]
+Best total CPU: `2.90` % with 95% CI [2.78, 3.01]
 Stop reason: refinement narrowed the estimated capacity to offered rates 1000 through 1250
 
 | Step | Phase | Offered Aggregate Rate | Repeats | Sender Mean msg/sec | Sender 95% CI | Observed Node Throughput | Observed Node Throughput 95% CI | Observed Variance | Observed Gain % | Improved | Node CPU % | Node CPU 95% CI | Total CPU % | Total CPU 95% CI | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | coarse | 1000 | 25 | 12.12 | [12.11, 12.14] | 12.35 | [12.34, 12.36] | 0.00 | 0.00 | true | 0.73 | [0.69, 0.78] | 5.16 | [5.08, 5.23] | 0 |
-| 2 | coarse | 2000 | 25 | 12.13 | [12.11, 12.14] | 12.35 | [12.35, 12.36] | 0.00 | 0.03 | false | 0.72 | [0.67, 0.77] | 5.13 | [5.05, 5.20] | 0 |
-| 3 | refine | 1500 | 25 | 12.12 | [12.11, 12.13] | 12.34 | [12.34, 12.35] | 0.00 | -0.06 | false | 0.77 | [0.73, 0.82] | 5.28 | [5.20, 5.35] | 0 |
-| 4 | refine | 1250 | 25 | 12.11 | [12.09, 12.12] | 12.34 | [12.33, 12.34] | 0.00 | -0.10 | false | 0.77 | [0.72, 0.82] | 5.31 | [5.23, 5.40] | 0 |
+| 1 | coarse | 1000 | 25 | 12.17 | [12.16, 12.18] | 12.39 | [12.38, 12.39] | 0.00 | 0.00 | true | 0.42 | [0.37, 0.46] | 2.90 | [2.78, 3.01] | 0 |
+| 2 | coarse | 2000 | 25 | 12.18 | [12.17, 12.18] | 12.39 | [12.39, 12.39] | 0.00 | 0.02 | false | 0.37 | [0.32, 0.42] | 2.68 | [2.57, 2.79] | 0 |
+| 3 | refine | 1500 | 25 | 12.17 | [12.16, 12.18] | 12.39 | [12.39, 12.39] | 0.00 | 0.02 | false | 0.33 | [0.27, 0.39] | 2.56 | [2.41, 2.72] | 0 |
+| 4 | refine | 1250 | 25 | 12.18 | [12.18, 12.18] | 12.39 | [12.39, 12.39] | 0.00 | 0.03 | false | 0.31 | [0.26, 0.35] | 2.40 | [2.32, 2.49] | 0 |
