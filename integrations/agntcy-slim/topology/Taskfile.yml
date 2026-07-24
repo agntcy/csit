@@ -23,6 +23,10 @@ vars:
   # Control-plane Service name (matches fullnameOverride in controller-values.yaml).
   CONTROLLER_SERVICE: '{{ .CONTROLLER_SERVICE | default "slim-control" }}'
 
+  # helm --wait timeout for the controller/data-plane installs. Kept short so a
+  # broken deploy fails fast instead of blocking for the full default.
+  HELM_WAIT_TIMEOUT: '{{ .HELM_WAIT_TIMEOUT | default "5m" }}'
+
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
@@ -155,7 +159,7 @@ tasks:
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         else
           helm upgrade slim-controller \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
@@ -167,7 +171,7 @@ tasks:
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         fi
 
   test:topology:cleanup:controller:
@@ -198,7 +202,7 @@ tasks:
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         else
           helm upgrade agntcy-$(basename "$file" .yaml) \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim \
@@ -210,7 +214,7 @@ tasks:
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         fi
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done

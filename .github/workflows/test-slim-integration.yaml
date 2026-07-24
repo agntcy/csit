@@ -126,12 +126,23 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          kubectl get pods -A -o wide || true
-          kubectl -n admin get svc -o wide || true
-          kubectl -n admin describe pods || true
-          kubectl -n admin logs -l app.kubernetes.io/name=slim-control-plane --all-containers --tail=200 || true
-          kubectl get events -A --sort-by=.lastTimestamp | tail -60 || true
-          echo "== control-plane port-forward log =="
+          set +e
+          echo "==================== all pods ===================="
+          kubectl get pods -A -o wide
+          echo "==================== recent events ===================="
+          kubectl get events -A --sort-by=.lastTimestamp | tail -80
+          for ns in admin cluster-a cluster-b cluster-c; do
+            echo "==================== namespace: ${ns} ===================="
+            kubectl -n "${ns}" get pods,svc,statefulset,deploy -o wide
+            kubectl -n "${ns}" describe pods
+            for p in $(kubectl -n "${ns}" get pods -o name 2>/dev/null); do
+              echo "----- logs ${ns}/${p} (current) -----"
+              kubectl -n "${ns}" logs "${p}" --all-containers --tail=200
+              echo "----- logs ${ns}/${p} (previous) -----"
+              kubectl -n "${ns}" logs "${p}" --all-containers --previous --tail=200
+            done
+          done
+          echo "==================== control-plane port-forward log ===================="
           cat integrations/agntcy-slim/topology/.cache/port-forward.log 2>/dev/null || echo "no port-forward log"
 
       - name: Run slim topology test
