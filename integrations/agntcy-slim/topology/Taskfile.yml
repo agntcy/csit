@@ -24,12 +24,72 @@ vars:
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/clusters.yaml" }}'
 
   # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
+  # slimctl binary used by the test to drive the control-plane topology.
+  SLIMCTL: '{{ .SLIMCTL | default "./bin/slimctl" }}'
+  # Release tag must match the control-plane API (segment/link add commands).
+  SLIMCTL_TAG: '{{ .SLIMCTL_TAG | default "slimctl-v2.0.0-alpha.2" }}'
+
+  # p2p client image (built from examples/Dockerfile, provides slim-bindings-p2p).
+  CLIENT_IMAGE: '{{ .CLIENT_IMAGE | default "ghcr.io/agntcy/slim/bindings-examples:local" }}'
+
 tasks:
+  # LoadBalancer support for KinD — https://github.com/kubernetes-sigs/cloud-provider-kind
+  # Required so the slim-control Service (type: LoadBalancer) gets an external IP
+  # that slimctl can reach from the host. Requires Go.
+  kind:cloud-provider-kind:up:
+    desc: Start cloud-provider-kind (macOS sudo -v may prompt); wait until controller process is running
+    cmds:
+      - ./scripts/run-cloud-provider-kind.sh
+
+  kind:cloud-provider-kind:down:
+    desc: Stop any running cloud-provider-kind controller
+    cmds:
+      - sudo pkill -f 'cloud-provider-kind|provider-kind' 2>/dev/null || true
+
+  test:topology:build:client-image:
+    desc: Build the slim-bindings p2p client image and load it into the kind cluster
+    cmds:
+      - docker build -t {{ .CLIENT_IMAGE }} ./examples
+      - kind load docker-image {{ .CLIENT_IMAGE }} --name {{ .KIND_CLUSTER_NAME }}
+
+  deps:slimctl-download:
+    desc: Download slimctl used to drive the control-plane topology
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_ARCH" = "aarch64" ]; then
+          SLIMCTL_ARCH="arm64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .SLIMCTL_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        TARGET_DIR=$(dirname {{ .SLIMCTL }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        echo "Downloading slimctl from $SLIMCTL_URL"
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .SLIMCTL }}
+        chmod +x {{ .SLIMCTL }}
+        {{ .SLIMCTL }} version || true
+
   test:topology:generate:cluster-configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
     cmd: |
@@ -154,11 +214,29 @@ tasks:
       - helm delete spire -n {{ .SPIRE_NAMESPACE }}
       - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
+  test:topology:setup:
+    desc: One-shot setup (everything except test:topology:run) — slimctl, client image, LoadBalancer provider, controller and clusters
+    cmds:
+      - task: deps:slimctl-download
+      - task: test:topology:build:client-image
+      - task: kind:cloud-provider-kind:up
+      - task: test:topology:deploy:controller
+      - task: test:topology:deploy:clusters
+
   test:topology:run:
     desc: Slim topology test
     cmds:
       - mkdir -p ./reports
-      - NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
+      - |
+        set -euo pipefail
+        # The test runs with cwd = ./tests, so resolve slimctl to an absolute path.
+        SLIMCTL_BIN="{{ .SLIMCTL }}"
+        case "$SLIMCTL_BIN" in
+          /*) : ;;
+          *) SLIMCTL_BIN="$(pwd)/${SLIMCTL_BIN#./}" ;;
+        esac
+        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" \
+          go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:topology:report:
     desc: Render HTML dashboard from topology test Ginkgo JSON report

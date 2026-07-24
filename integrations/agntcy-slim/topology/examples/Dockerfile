@@ -8,4 +8,4 @@ ARG SLIM_BINDINGS_VERSION=2.0.0a2
 RUN pip install --no-cache-dir "slim-bindings[examples]==${SLIM_BINDINGS_VERSION}"
 
 # Run example CLIs directly (e.g. Kubernetes: set command/args to slim-bindings-p2p [...])
-CMD ["slim-bindings-group", "--help"]
+CMD ["slim-bindings-p2p", "--help"]

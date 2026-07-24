@@ -101,7 +101,7 @@ func main() {
 	if slimControllerEndpoint == "" {
 		log.Fatal("SLIM_CONTROLLER_ENDPOINT environment variable is not set")
 	}
-	// Parse the fire-and-forget.yaml configuration
+	// Parse the clusters topology configuration
 	topology, err := config.ParseTopology(topologyConfig)
 	if err != nil {
 		log.Fatalf("Failed to parse configuration: %v", err)

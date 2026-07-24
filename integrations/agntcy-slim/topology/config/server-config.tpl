@@ -22,6 +22,21 @@ slim:
       slim/0:
         node_id: ${env:SLIM_NODE_ID}
         group_name: "{{ .ClusterName }}"      
+        # Intra-cluster peer discovery: every replica in this cluster watches the
+        # cluster Service's EndpointSlices and forms a full mesh of peer links, so
+        # subscriptions propagate across all nodes (1 hop). This makes a client
+        # reachable regardless of which node it connects to via the Service and
+        # regardless of which node holds the control-plane inter-cluster link.
+        # NOTE: the port must be set explicitly here because the chart only
+        # auto-injects it on the non-overrideConfig path.
+        peers:
+          deployment_name: "{{ .ClusterName }}"
+          topology: full_mesh
+          discovery:
+            type: kubernetes
+            namespace: "{{ .ClusterName }}"
+            service_name: "agntcy-{{ .ClusterName }}-slim"
+            port: {{ .SlimPort }}
         dataplane:
           servers:
           - endpoint: "0.0.0.0:{{ .SlimPort }}"
