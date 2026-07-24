@@ -25,6 +25,7 @@ includes:
       KIND_CLUSTER_NAME: '{{ .KIND_CLUSTER_NAME }}'
       HELM_NAMESPACE: '{{ .HELM_NAMESPACE }}'
       SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
+      SLIM_BINDINGS_VERSION: '{{ .SLIM_BINDINGS_VERSION | default "" }}'
 
   slim-mcp:
     taskfile: ./agntcy-slim/mcp/Taskfile.yml

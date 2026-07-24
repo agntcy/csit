@@ -37,6 +37,9 @@ vars:
   # p2p client image (built from examples/Dockerfile, provides slim-bindings-p2p).
   CLIENT_IMAGE: '{{ .CLIENT_IMAGE | default "ghcr.io/agntcy/slim/bindings-examples:local" }}'
 
+  # slim-bindings version baked into the client image (empty = use examples/Dockerfile default).
+  SLIM_BINDINGS_VERSION: '{{ .SLIM_BINDINGS_VERSION | default "" }}'
+
 tasks:
   # LoadBalancer support for KinD — https://github.com/kubernetes-sigs/cloud-provider-kind
   # Required so the slim-control Service (type: LoadBalancer) gets an external IP
@@ -54,7 +57,13 @@ tasks:
   test:topology:build:client-image:
     desc: Build the slim-bindings p2p client image and load it into the kind cluster
     cmds:
-      - docker build -t {{ .CLIENT_IMAGE }} ./examples
+      - |
+        set -eu
+        BUILD_ARGS=""
+        if [ -n '{{ .SLIM_BINDINGS_VERSION }}' ]; then
+          BUILD_ARGS="--build-arg SLIM_BINDINGS_VERSION={{ .SLIM_BINDINGS_VERSION }}"
+        fi
+        docker build $BUILD_ARGS -t {{ .CLIENT_IMAGE }} ./examples
       - kind load docker-image {{ .CLIENT_IMAGE }} --name {{ .KIND_CLUSTER_NAME }}
 
   deps:slimctl-download:

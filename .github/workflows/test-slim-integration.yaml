@@ -107,40 +107,20 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Create kind cluster
+        shell: bash
+        run: task integrations:kind:create KIND_CLUSTER_NAME=agntcy-test
 
-      - name: Build slim bindings examples image (linux/amd64)
+      - name: Setup slim topology
         shell: bash
         run: |
-          set -euo pipefail
-          build_args=()
-          if [[ -n "${{ inputs.override_slim_bindings_version }}" ]]; then
-            build_args+=(--build-arg "SLIM_BINDINGS_VERSION=${{ inputs.override_slim_bindings_version }}")
-          fi
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            "${build_args[@]}" \
-            --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
-            --file integrations/agntcy-slim/topology/examples/Dockerfile \
-            integrations/agntcy-slim/topology/examples
-
-      - name: Deploy Slim with Controller
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-spire: "true"
-          deploy-slim-topology: "true"
-          slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-controller-image-tag: ${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}
-          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
-          slim-controller-chart-tag: ${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}
-
-      - name: Load slim bindings examples image into kind
-        shell: bash
-        run: |
-          set -euo pipefail
-          kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:local" --name "agntcy-test"
+          task integrations:slim:test:topology:setup \
+            SLIM_IMAGE_TAG='${{ inputs.override_slim_image_tag }}' \
+            SLIM_CHART_TAG='${{ inputs.override_slim_chart_tag }}' \
+            SLIM_CONTROLLER_IMAGE_TAG='${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}' \
+            SLIM_CONTROLLER_CHART_TAG='${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}' \
+            SLIM_BINDINGS_VERSION='${{ inputs.override_slim_bindings_version }}' \
+            KIND_CLUSTER_NAME=agntcy-test
 
       - name: Run slim topology test
         run: task integrations:slim:test:topology:run
