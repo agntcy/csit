@@ -283,7 +283,6 @@ func connectedLinksBetween(links []linkEntry, connected map[string]bool, cluster
 
 var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	const (
-		endpointTimeout = 5 * time.Minute
 		joinTimeout     = 3 * time.Minute
 		msgTimeout      = 90 * time.Second
 		absenceWindow   = 45 * time.Second
@@ -326,7 +325,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
 			gomega.Expect(parsed).NotTo(gomega.BeNil(), "topology configuration should not be nil")
 
-			ctl, err = newSlimctlClient(clientset, endpointTimeout)
+			ctl, err = newSlimctlClient()
 			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to reach the control-plane northbound endpoint")
 			ginkgo.GinkgoWriter.Printf("Using slimctl server %s\n", ctl.server)
 		})
@@ -528,7 +527,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 
 				ginkgo.By("rediscovering the northbound endpoint after restart")
 				gomega.Eventually(func(g gomega.Gomega) {
-					ctl, err = newSlimctlClient(clientset, endpointTimeout)
+					ctl, err = newSlimctlClient()
 					g.Expect(err).NotTo(gomega.HaveOccurred())
 					_, err = ctl.Nodes()
 					g.Expect(err).NotTo(gomega.HaveOccurred())

@@ -13,16 +13,16 @@ import (
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
 	// controllerServiceName matches fullnameOverride in controller-values.yaml.
-	controllerServiceName   = "slim-control"
-	controllerAdminNS       = "admin"
-	controllerNorthboundKey = "north"
+	controllerServiceName = "slim-control"
+	controllerAdminNS     = "admin"
+
+	// defaultNorthboundServer is the local address the control-plane northbound
+	// API is reached on via `kubectl port-forward` (see the topology Taskfile).
+	defaultNorthboundServer = "http://127.0.0.1:50051"
 )
 
 // slimctlClient shells out to the slimctl binary against the control-plane
@@ -50,9 +50,9 @@ type linkEntry struct {
 }
 
 // newSlimctlClient builds a client. The northbound server URL is taken from the
-// SLIMCTL_SERVER env var when set, otherwise it is discovered from the
-// LoadBalancer service in the admin namespace.
-func newSlimctlClient(clientset kubernetes.Interface, timeout time.Duration) (*slimctlClient, error) {
+// SLIMCTL_SERVER env var when set, otherwise it defaults to the local
+// port-forward address (see the topology Taskfile's port-forward tasks).
+func newSlimctlClient() (*slimctlClient, error) {
 	bin := os.Getenv("SLIMCTL")
 	if bin == "" {
 		bin = "slimctl"
@@ -60,11 +60,7 @@ func newSlimctlClient(clientset kubernetes.Interface, timeout time.Duration) (*s
 
 	server := os.Getenv("SLIMCTL_SERVER")
 	if server == "" {
-		host, port, err := discoverNorthboundEndpoint(clientset, timeout)
-		if err != nil {
-			return nil, err
-		}
-		server = fmt.Sprintf("http://%s:%d", host, port)
+		server = defaultNorthboundServer
 	}
 	// Explicit http:// makes slimctl use plaintext gRPC, matching the
 	// controller's northbound tls.insecure: true.
@@ -87,52 +83,6 @@ func newSlimctlClient(clientset kubernetes.Interface, timeout time.Duration) (*s
 	}
 
 	return &slimctlClient{bin: bin, server: server, configPath: tmp.Name()}, nil
-}
-
-// discoverNorthboundEndpoint polls the LoadBalancer service until it has an
-// external address, returning the address and the northbound port.
-func discoverNorthboundEndpoint(clientset kubernetes.Interface, timeout time.Duration) (string, int32, error) {
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	for time.Now().Before(deadline) {
-		svc, err := clientset.CoreV1().Services(controllerAdminNS).Get(context.TODO(), controllerServiceName, metav1.GetOptions{})
-		if err != nil {
-			lastErr = err
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
-		port := northboundPort(svc)
-		host := loadBalancerHost(svc)
-		if host != "" {
-			return host, port, nil
-		}
-		lastErr = fmt.Errorf("service %s/%s has no LoadBalancer ingress address yet", controllerAdminNS, controllerServiceName)
-		time.Sleep(3 * time.Second)
-	}
-	return "", 0, fmt.Errorf("timed out discovering northbound endpoint: %w", lastErr)
-}
-
-func northboundPort(svc *corev1.Service) int32 {
-	for _, p := range svc.Spec.Ports {
-		if p.Name == controllerNorthboundKey || p.Port == 50051 {
-			return p.Port
-		}
-	}
-	// Fall back to the documented northbound port.
-	return 50051
-}
-
-func loadBalancerHost(svc *corev1.Service) string {
-	for _, ing := range svc.Status.LoadBalancer.Ingress {
-		if ing.IP != "" {
-			return ing.IP
-		}
-		if ing.Hostname != "" {
-			return ing.Hostname
-		}
-	}
-	return ""
 }
 
 // run executes a slimctl controller subcommand and returns combined output.

@@ -20,6 +20,9 @@ vars:
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
 
+  # Control-plane Service name (matches fullnameOverride in controller-values.yaml).
+  CONTROLLER_SERVICE: '{{ .CONTROLLER_SERVICE | default "slim-control" }}'
+
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
@@ -41,18 +44,46 @@ vars:
   SLIM_BINDINGS_VERSION: '{{ .SLIM_BINDINGS_VERSION | default "" }}'
 
 tasks:
-  # LoadBalancer support for KinD — https://github.com/kubernetes-sigs/cloud-provider-kind
-  # Required so the slim-control Service (type: LoadBalancer) gets an external IP
-  # that slimctl can reach from the host. Requires Go.
-  kind:cloud-provider-kind:up:
-    desc: Start cloud-provider-kind (macOS sudo -v may prompt); wait until controller process is running
+  # Port-forward the control-plane northbound API to the host so slimctl can
+  # reach it. The forward runs in a restart loop because the topology test
+  # rollout-restarts the control plane; kubectl port-forward binds to a single
+  # pod and exits when that pod is deleted.
+  test:topology:port-forward:start:
+    desc: Port-forward the control-plane northbound API (50051) to 127.0.0.1
     cmds:
-      - ./scripts/run-cloud-provider-kind.sh
+      - mkdir -p ./.cache
+      - |
+        set -eu
+        # Run the restart loop as an external shell process so it survives after
+        # this task command returns (go-task's built-in shell does not keep
+        # backgrounded subshells alive across commands).
+        sh -c 'while true; do kubectl port-forward -n admin svc/{{ .CONTROLLER_SERVICE }} 50051:50051 >>./.cache/port-forward.log 2>&1 || true; sleep 1; done' &
+        echo $! > ./.cache/port-forward.pid
+        if command -v nc >/dev/null 2>&1; then
+          for _ in $(seq 1 30); do
+            if nc -z 127.0.0.1 50051 2>/dev/null; then
+              echo "port-forward ready on 127.0.0.1:50051"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "ERROR: control-plane port-forward did not become ready" >&2
+          cat ./.cache/port-forward.log >&2 || true
+          exit 1
+        else
+          sleep 5
+          echo "port-forward started (nc unavailable; skipped readiness probe)"
+        fi
 
-  kind:cloud-provider-kind:down:
-    desc: Stop any running cloud-provider-kind controller
+  test:topology:port-forward:stop:
+    desc: Stop the control-plane port-forward
     cmds:
-      - sudo pkill -f 'cloud-provider-kind|provider-kind' 2>/dev/null || true
+      - |
+        if [ -f ./.cache/port-forward.pid ]; then
+          kill "$(cat ./.cache/port-forward.pid)" 2>/dev/null || true
+          rm -f ./.cache/port-forward.pid
+        fi
+        pkill -f 'kubectl port-forward -n admin svc/{{ .CONTROLLER_SERVICE }}' 2>/dev/null || true
 
   test:topology:build:client-image:
     desc: Build the slim-bindings p2p client image and load it into the kind cluster
@@ -224,17 +255,18 @@ tasks:
       - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
   test:topology:setup:
-    desc: One-shot setup (everything except test:topology:run) — slimctl, client image, LoadBalancer provider, controller and clusters
+    desc: One-shot setup (everything except test:topology:run) — slimctl, client image, controller and clusters
     cmds:
       - task: deps:slimctl-download
       - task: test:topology:build:client-image
-      - task: kind:cloud-provider-kind:up
       - task: test:topology:deploy:controller
       - task: test:topology:deploy:clusters
 
   test:topology:run:
     desc: Slim topology test
     cmds:
+      - defer: { task: test:topology:port-forward:stop }
+      - task: test:topology:port-forward:start
       - mkdir -p ./reports
       - |
         set -euo pipefail
@@ -244,7 +276,7 @@ tasks:
           /*) : ;;
           *) SLIMCTL_BIN="$(pwd)/${SLIMCTL_BIN#./}" ;;
         esac
-        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" \
+        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" SLIMCTL_SERVER="http://127.0.0.1:50051" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" \
           go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:topology:report:
