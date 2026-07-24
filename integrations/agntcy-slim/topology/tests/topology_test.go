@@ -283,11 +283,11 @@ func connectedLinksBetween(links []linkEntry, connected map[string]bool, cluster
 
 var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 	const (
-		joinTimeout     = 3 * time.Minute
-		msgTimeout      = 90 * time.Second
-		absenceWindow   = 45 * time.Second
-		linkTimeout     = 2 * time.Minute
-		restartTimeout  = 5 * time.Minute
+		joinTimeout    = 3 * time.Minute
+		msgTimeout     = 90 * time.Second
+		absenceWindow  = 45 * time.Second
+		linkTimeout    = 2 * time.Minute
+		restartTimeout = 5 * time.Minute
 	)
 
 	var (
@@ -444,71 +444,73 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 			})
 		})
 
-		ginkgo.When("the gateway node handling the cluster-b<->cluster-c link is restarted", func() {
-			ginkgo.It("then the link is restored and bob can still reach carol", func() {
-				ctx := context.Background()
+		// TODO: Uncomment until this fix https://github.com/agntcy/slim/pull/1898in Slim is released
+		//
+		// ginkgo.When("the gateway node handling the cluster-b<->cluster-c link is restarted", func() {
+		// 	ginkgo.It("then the link is restored and bob can still reach carol", func() {
+		// 		ctx := context.Background()
 
-				ginkgo.By("identifying the Connected cluster-b node participating in the b<->c link")
-				links, err := ctl.Links(false)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				nodes, err := ctl.Nodes()
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				connected := connectedNodeSet(nodes)
+		// 		ginkgo.By("identifying the Connected cluster-b node participating in the b<->c link")
+		// 		links, err := ctl.Links(false)
+		// 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// 		nodes, err := ctl.Nodes()
+		// 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// 		connected := connectedNodeSet(nodes)
 
-				var gatewayID string
-				for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
-					if connected[ep] {
-						gatewayID = ep
-						break
-					}
-				}
-				gomega.Expect(gatewayID).NotTo(gomega.BeEmpty(), "could not find a Connected cluster-b node for the b<->c link")
-				gatewayPod := nodeIDToPodName(gatewayID)
-				ginkgo.GinkgoWriter.Printf("restarting cluster-b gateway node %s (pod %s)\n", gatewayID, gatewayPod)
+		// 		var gatewayID string
+		// 		for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
+		// 			if connected[ep] {
+		// 				gatewayID = ep
+		// 				break
+		// 			}
+		// 		}
+		// 		gomega.Expect(gatewayID).NotTo(gomega.BeEmpty(), "could not find a Connected cluster-b node for the b<->c link")
+		// 		gatewayPod := nodeIDToPodName(gatewayID)
+		// 		ginkgo.GinkgoWriter.Printf("restarting cluster-b gateway node %s (pod %s)\n", gatewayID, gatewayPod)
 
-				ginkgo.By("deleting the gateway pod and waiting for the deployment to recover")
-				err = k8shelper.DeletePodByName(ctx, clientset, "cluster-b", gatewayPod)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				err = k8shelper.WaitForDeploymentAvailable(ctx, clientset, "cluster-b", clusterDeploymentName("cluster-b"), restartTimeout)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// 		ginkgo.By("deleting the gateway pod and waiting for the deployment to recover")
+		// 		err = k8shelper.DeletePodByName(ctx, clientset, "cluster-b", gatewayPod)
+		// 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// 		err = k8shelper.WaitForDeploymentAvailable(ctx, clientset, "cluster-b", clusterDeploymentName("cluster-b"), restartTimeout)
+		// 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				ginkgo.By("asserting the control plane fails the b<->c link over to a live cluster-b node")
-				// The killed node lingers as an "Unknown" record, so require the
-				// restored link to terminate on a Connected node other than the one
-				// we just deleted (gateway failover picks a live sibling).
-				gomega.Eventually(func(g gomega.Gomega) {
-					links, err := ctl.Links(false)
-					g.Expect(err).NotTo(gomega.HaveOccurred())
-					nodes, err := ctl.Nodes()
-					g.Expect(err).NotTo(gomega.HaveOccurred())
-					connected := connectedNodeSet(nodes)
+		// 		ginkgo.By("asserting the control plane fails the b<->c link over to a live cluster-b node")
+		// 		// The killed node lingers as an "Unknown" record, so require the
+		// 		// restored link to terminate on a Connected node other than the one
+		// 		// we just deleted (gateway failover picks a live sibling).
+		// 		gomega.Eventually(func(g gomega.Gomega) {
+		// 			links, err := ctl.Links(false)
+		// 			g.Expect(err).NotTo(gomega.HaveOccurred())
+		// 			nodes, err := ctl.Nodes()
+		// 			g.Expect(err).NotTo(gomega.HaveOccurred())
+		// 			connected := connectedNodeSet(nodes)
 
-					restored := false
-					for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
-						if connected[ep] && ep != gatewayID {
-							restored = true
-							break
-						}
-					}
-					g.Expect(restored).To(gomega.BeTrue(), "b<->c link not restored on a live cluster-b node")
-				}, restartTimeout, 5*time.Second).Should(gomega.Succeed())
+		// 			restored := false
+		// 			for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
+		// 				if connected[ep] && ep != gatewayID {
+		// 					restored = true
+		// 					break
+		// 				}
+		// 			}
+		// 			g.Expect(restored).To(gomega.BeTrue(), "b<->c link not restored on a live cluster-b node")
+		// 		}, restartTimeout, 5*time.Second).Should(gomega.Succeed())
 
-				ginkgo.By("proving post-recovery delivery with a fresh unique-message sender")
-				verify := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
-					Name: "bob-verify", Cluster: "cluster-b", LocalName: "org/ns/bob-verify",
-					Remote: "org/ns/carol", Message: msgFromBobVerify,
-				})
-				ginkgo.DeferCleanup(func(ctx context.Context) {
-					_ = verify.CleanupPod(ctx)
-					_ = verify.CleanupConfigMap(ctx)
-				})
+		// 		ginkgo.By("proving post-recovery delivery with a fresh unique-message sender")
+		// 		verify := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+		// 			Name: "bob-verify", Cluster: "cluster-b", LocalName: "org/ns/bob-verify",
+		// 			Remote: "org/ns/carol", Message: msgFromBobVerify,
+		// 		})
+		// 		ginkgo.DeferCleanup(func(ctx context.Context) {
+		// 			_ = verify.CleanupPod(ctx)
+		// 			_ = verify.CleanupConfigMap(ctx)
+		// 		})
 
-				found, line, err := carol.WaitForStringWithTimeout("received: "+msgFromBobVerify, msgTimeout)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after node restart")
-				ginkgo.GinkgoWriter.Printf("carol received after restart: %s\n", line)
-			})
-		})
+		// 		found, line, err := carol.WaitForStringWithTimeout("received: "+msgFromBobVerify, msgTimeout)
+		// 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// 		gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after node restart")
+		// 		ginkgo.GinkgoWriter.Printf("carol received after restart: %s\n", line)
+		// 	})
+		// })
 
 		ginkgo.When("the control plane is restarted", func() {
 			ginkgo.It("then the links remain intact", func() {
