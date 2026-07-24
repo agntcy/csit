@@ -122,6 +122,17 @@ jobs:
             SLIM_BINDINGS_VERSION='${{ inputs.override_slim_bindings_version }}' \
             KIND_CLUSTER_NAME=agntcy-test
 
+      - name: Dump cluster diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          echo "== cloud-provider-kind =="; pgrep -af cloud-provider-kind || echo "NOT running"
+          kubectl get pods -A -o wide || true
+          kubectl -n admin get svc -o wide || true
+          kubectl -n admin describe pods || true
+          kubectl -n admin logs -l app.kubernetes.io/name=slim-control-plane --all-containers --tail=200 || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -60 || true
+
       - name: Run slim topology test
         run: task integrations:slim:test:topology:run
         shell: bash
