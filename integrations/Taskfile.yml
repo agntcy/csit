@@ -31,11 +31,13 @@ includes:
     taskfile: ./agntcy-slim/mcp/Taskfile.yml
     dir: ./agntcy-slim/mcp
     excludes: [ default ]
-    vars:
-      SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
-      SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
-      MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG }}'
-      SLIM_MCP_RUST_REF: '{{ .SLIM_MCP_RUST_REF }}'
+    # NOTE: do not map SLIM_IMAGE_TAG / SLIM_CHART_TAG / MCP_PROXY_IMAGE_TAG /
+    # SLIM_MCP_RUST_REF here. Those names collide with the topology (`slim`)
+    # include's own defaults (e.g. SLIM_CHART_TAG=v1.5.0), which leak through a
+    # `{{ .SLIM_CHART_TAG }}` mapping and override the mcp taskfile's own
+    # defaults (v1.4.0). The mcp taskfile defines these vars with defaults, and
+    # explicit CLI overrides (task ... SLIM_CHART_TAG=...) still propagate as
+    # global variables, so no mapping is needed.
 
   slim-agent-consensus:
     taskfile: ./agntcy-slim/agent-consensus-test/Taskfile.yml
