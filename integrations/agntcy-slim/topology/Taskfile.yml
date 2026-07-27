@@ -12,11 +12,11 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.5.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "2.0.0-alpha.2" }}'
+  TOPOLOGY_SLIM_CHART_TAG: '{{ .TOPOLOGY_SLIM_CHART_TAG | default "v1.5.0" }}'
+  TOPOLOGY_SLIM_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_IMAGE_TAG | default "2.0.0-alpha.2" }}'
 
-  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.5.0" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0-alpha.2" }}'
+  TOPOLOGY_SLIM_CONTROLLER_CHART_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG | default "v1.5.0" }}'
+  TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0-alpha.2" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
 
@@ -33,7 +33,7 @@ vars:
 
   TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/clusters.yaml" }}'
 
-  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
+  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + TOPOLOGY_SLIM_CHART_TAG.
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
   # slimctl binary used by the test to drive the control-plane topology.
@@ -152,7 +152,7 @@ tasks:
           fi
           helm upgrade slim-controller \
             "$REPO/charts/slim-control-plane" \
-            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            --set image.tag="{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG }}" \
             -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
@@ -163,8 +163,8 @@ tasks:
         else
           helm upgrade slim-controller \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
-            --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
-            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            --version {{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG }} \
+            --set image.tag="{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG }}" \
             -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
@@ -195,7 +195,7 @@ tasks:
         if [ -n "$REPO" ]; then
           helm upgrade agntcy-$(basename "$file" .yaml) \
             "$REPO/charts/slim" \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --set slim.image.tag="{{ .TOPOLOGY_SLIM_IMAGE_TAG }}" \
             -f "$file" \
             --namespace $(basename "$file" .yaml) \
             --create-namespace \
@@ -206,8 +206,8 @@ tasks:
         else
           helm upgrade agntcy-$(basename "$file" .yaml) \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim \
-            --version {{ .SLIM_CHART_TAG }} \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --version {{ .TOPOLOGY_SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .TOPOLOGY_SLIM_IMAGE_TAG }}" \
             -f "$file" \
             --namespace $(basename "$file" .yaml) \
             --create-namespace \

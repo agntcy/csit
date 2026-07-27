@@ -19,8 +19,8 @@ vars:
   MCP_CLIENT_DIR: '{{ .K8S_TEST_EXAMPLES_PATH }}/mcp-client'
 
   MCP_PROXY_IMAGE_TAG: '{{ .MCP_PROXY_IMAGE_TAG | default "0.2.5" }}'
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.5.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "2.0.0-alpha.2" }}'
+  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
+  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
 
   K8S_MCP_SERVER_CHART: '{{ .K8S_MCP_SERVER_CHART | default "oci://ghcr.io/containers/charts/kubernetes-mcp-server" }}'
   MCP_HELM_NAMESPACE: mcp-system

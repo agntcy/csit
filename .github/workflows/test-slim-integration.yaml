@@ -115,10 +115,10 @@ jobs:
         shell: bash
         run: |
           task integrations:slim:test:topology:setup \
-            SLIM_IMAGE_TAG='${{ inputs.override_slim_image_tag }}' \
-            SLIM_CHART_TAG='${{ inputs.override_slim_chart_tag }}' \
-            SLIM_CONTROLLER_IMAGE_TAG='${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}' \
-            SLIM_CONTROLLER_CHART_TAG='${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}' \
+            TOPOLOGY_SLIM_IMAGE_TAG='${{ inputs.override_slim_image_tag }}' \
+            TOPOLOGY_SLIM_CHART_TAG='${{ inputs.override_slim_chart_tag }}' \
+            TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG='${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}' \
+            TOPOLOGY_SLIM_CONTROLLER_CHART_TAG='${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}' \
             SLIM_BINDINGS_VERSION='${{ inputs.override_slim_bindings_version }}' \
             KIND_CLUSTER_NAME=agntcy-test
 
