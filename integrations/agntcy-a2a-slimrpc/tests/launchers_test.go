@@ -402,7 +402,36 @@ func interopLanguages() []string {
 	if os.Getenv("CSIT_SLIM_NO_JAVA") != "1" {
 		langs = append(langs, "java")
 	}
+	if os.Getenv("CSIT_SLIM_NO_NODE") != "1" {
+		langs = append(langs, "node")
+	}
 	return langs
+}
+
+// slimWireGroup is the SLIM dataplane wire generation each language's published SDK speaks.
+// go/python/dotnet/java consume slim-bindings 1.4.x (the released 1.4.0 node's wire); the
+// Node SDK (@agntcy/slim-a2a) pins slim-bindings 2.0-alpha, a wire-incompatible generation.
+// Only same-group pairs can interop, so node runs against a dedicated slim 2.0 node while the
+// other four run against slim 1.4.0.
+//
+// MIGRATION PAYOFF: when go/python/dotnet/java move their published SDKs to slim 2.0, change
+// their group here to "2.0" (or delete this map so every pair shares one group) and bump the
+// pinned node image — the 8 node↔{go,python,dotnet,java} cross pairs light up with NO fixture
+// or launcher change. The slim version lives only in Taskfile/CI config, never in fixture code.
+func slimWireGroup(lang string) string {
+	switch lang {
+	case "node":
+		return "2.0"
+	default:
+		return "1.4"
+	}
+}
+
+// pairRunnable reports whether a client↔server pair can actually interop: true iff both
+// languages speak the same SLIM dataplane wire generation. Cross-wire pairs (node vs the
+// 1.4 languages) are represented as skipped-with-reason in the matrix, not hard failures.
+func pairRunnable(cli, srv string) bool {
+	return slimWireGroup(cli) == slimWireGroup(srv)
 }
 
 // slimJavaHome returns the JDK home to use for the Java fixture (build + run).
@@ -459,6 +488,54 @@ func buildJavaFixture(ctx context.Context, root string) (string, error) {
 		return "", fmt.Errorf("java fixture jar not found after build: %w", err)
 	}
 	return jar, nil
+}
+
+// slimNodeBin resolves the `node` executable (honors CSIT_SLIM_NODE_BIN, then PATH `node`).
+func slimNodeBin() string {
+	if v := strings.TrimSpace(os.Getenv("CSIT_SLIM_NODE_BIN")); v != "" {
+		return v
+	}
+	return "node"
+}
+
+// slimNpmBin resolves the `npm` executable (honors CSIT_SLIM_NPM_BIN, then PATH `npm`).
+func slimNpmBin() string {
+	if v := strings.TrimSpace(os.Getenv("CSIT_SLIM_NPM_BIN")); v != "" {
+		return v
+	}
+	return "npm"
+}
+
+// buildNodeFixture installs deps and compiles the Node/TypeScript fixture (fixtures/node) into
+// dist/main.js and returns its path. Runs `npm ci` (falling back to `npm install` when there is
+// no package-lock.json) + `npm run build`, resolving the published @agntcy/slim-a2a from npm
+// (needs network on first run). Set CSIT_SLIM_NO_NODE=1 to drop the Node axis if no Node/npm is
+// available. The built dist/main.js is invoked as `node dist/main.js server|probe` for both modes.
+func buildNodeFixture(ctx context.Context, root string) (string, error) {
+	dir := filepath.Join(root, "fixtures", "node")
+	installArgs := "ci"
+	if _, err := os.Stat(filepath.Join(dir, "package-lock.json")); err != nil {
+		installArgs = "install"
+	}
+	install := exec.CommandContext(ctx, slimNpmBin(), installArgs)
+	install.Dir = dir
+	if out, err := install.CombinedOutput(); err != nil {
+		return "", fmt.Errorf(
+			"npm %s failed for Node fixture (needs Node >=18 + npm + network on first run): %w\n%s\n"+
+				"fix: install Node.js 18+ (set CSIT_SLIM_NODE_BIN / CSIT_SLIM_NPM_BIN), or set CSIT_SLIM_NO_NODE=1 to skip the Node axis",
+			installArgs, err, string(out),
+		)
+	}
+	build := exec.CommandContext(ctx, slimNpmBin(), "run", "build")
+	build.Dir = dir
+	if out, err := build.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("npm run build failed for Node fixture: %w\n%s", err, string(out))
+	}
+	entry := filepath.Join(dir, "dist", "main.js")
+	if _, err := os.Stat(entry); err != nil {
+		return "", fmt.Errorf("node fixture entrypoint not found after build: %w", err)
+	}
+	return entry, nil
 }
 
 // hasLang reports whether lang is part of this run's matrix.
@@ -758,7 +835,7 @@ func clientIdentity(lang string) string {
 
 func readyMarkerForServer(lang string) string {
 	switch lang {
-	case "go", "python", "dotnet", "java":
+	case "go", "python", "dotnet", "java", "node":
 		return "CSIT_SLIM_SERVER_READY"
 	default:
 		return "CSIT_SLIM_SERVER_READY"
@@ -833,6 +910,21 @@ func startServer(ctx context.Context, lang, slimURL, secret string, assets *fixt
 			return nil, err
 		}
 		return cmd, nil
+	case "node":
+		// Compiled dist/main.js, run with plain `node` (mirrors the SDK examples' tsx flow but
+		// precompiled). Speaks the slim 2.0 wire (published @agntcy/slim-a2a pins 2.0-alpha).
+		cmd := exec.CommandContext(ctx, slimNodeBin(), assets.nodeEntry,
+			"server",
+			"--slim-endpoint", slimURL,
+			"--identity", srvID,
+			"--secret", secret,
+		)
+		cmd.Stdout = outW
+		cmd.Stderr = errW
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+		return cmd, nil
 	default:
 		return nil, fmt.Errorf("unknown server language %q", lang)
 	}
@@ -892,6 +984,18 @@ func runProbe(ctx context.Context, clientLang, slimURL, secret, remoteServerID, 
 		)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
+	case "node":
+		cmd := exec.CommandContext(ctx, slimNodeBin(), assets.nodeEntry,
+			"probe",
+			"--slim-endpoint", slimURL,
+			"--local", local,
+			"--remote", remoteServerID,
+			"--secret", secret,
+			"--scenario", scenario,
+			"--text", text,
+		)
+		out, err := cmd.CombinedOutput()
+		return string(out), err
 	default:
 		return "", fmt.Errorf("unknown client language %q", clientLang)
 	}
@@ -904,6 +1008,7 @@ type fixtureAssets struct {
 	pythonFixtureDir string
 	dotnetDLL        string // built csit-slim-a2a.dll, run via `dotnet <dll> server|probe`
 	javaJar          string // shaded csit-slim-a2a-java.jar, run via `java --enable-preview -jar <jar> server|probe`
+	nodeEntry        string // compiled dist/main.js, run via `node <entry> server|probe`
 }
 
 var errStoppedEarly = errors.New("server exited before ready")

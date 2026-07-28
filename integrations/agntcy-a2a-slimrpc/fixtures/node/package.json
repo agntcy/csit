@@ -1,0 +1,23 @@
+{
+  "name": "csit-slim-a2a-node",
+  "version": "0.0.1",
+  "private": true,
+  "description": "CSIT fixture: A2A echo agent + probe over SLIMRPC (lf.a2a.v1) for cross-language interop. Mirrors fixtures/{go,python,dotnet,java}. Consumes the PUBLISHED @agntcy/slim-a2a from npm. One entrypoint, two modes: server / probe.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "1.0.0-beta.0",
+    "@agntcy/slim-a2a": "0.1.0",
+    "@agntcy/slim-bindings": "2.0.0-alpha.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.7.3"
+  }
+}

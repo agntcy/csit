@@ -34,71 +34,137 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Each row boots its OWN slim container (slim-image). The 1.4 languages
+        # (go/python/dotnet/java) pin ghcr.io/agntcy/slim:1.4.0; node-node pins the 2.0
+        # image matching @agntcy/slim-a2a's slim-bindings. The 8 node↔{1.4-lang} cross rows
+        # self-skip (wire skew) before connecting, so their image is irrelevant — kept on 1.4.0.
         include:
           - id: go-go
             display-name: Go→Go
             task: integrations:a2a-slimrpc:test:go-go
             artifact-name: a2a-slimrpc-test-result-go-go
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: go-python
             display-name: Go→Python
             task: integrations:a2a-slimrpc:test:go-python
             artifact-name: a2a-slimrpc-test-result-go-python
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: go-dotnet
             display-name: Go→.NET
             task: integrations:a2a-slimrpc:test:go-dotnet
             artifact-name: a2a-slimrpc-test-result-go-dotnet
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: python-go
             display-name: Python→Go
             task: integrations:a2a-slimrpc:test:python-go
             artifact-name: a2a-slimrpc-test-result-python-go
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: python-python
             display-name: Python→Python
             task: integrations:a2a-slimrpc:test:python-python
             artifact-name: a2a-slimrpc-test-result-python-python
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: python-dotnet
             display-name: Python→.NET
             task: integrations:a2a-slimrpc:test:python-dotnet
             artifact-name: a2a-slimrpc-test-result-python-dotnet
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: dotnet-go
             display-name: .NET→Go
             task: integrations:a2a-slimrpc:test:dotnet-go
             artifact-name: a2a-slimrpc-test-result-dotnet-go
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: dotnet-python
             display-name: .NET→Python
             task: integrations:a2a-slimrpc:test:dotnet-python
             artifact-name: a2a-slimrpc-test-result-dotnet-python
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: dotnet-dotnet
             display-name: .NET→.NET
             task: integrations:a2a-slimrpc:test:dotnet-dotnet
             artifact-name: a2a-slimrpc-test-result-dotnet-dotnet
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: go-java
             display-name: Go→Java
             task: integrations:a2a-slimrpc:test:go-java
             artifact-name: a2a-slimrpc-test-result-go-java
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: python-java
             display-name: Python→Java
             task: integrations:a2a-slimrpc:test:python-java
             artifact-name: a2a-slimrpc-test-result-python-java
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: dotnet-java
             display-name: .NET→Java
             task: integrations:a2a-slimrpc:test:dotnet-java
             artifact-name: a2a-slimrpc-test-result-dotnet-java
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: java-go
             display-name: Java→Go
             task: integrations:a2a-slimrpc:test:java-go
             artifact-name: a2a-slimrpc-test-result-java-go
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: java-python
             display-name: Java→Python
             task: integrations:a2a-slimrpc:test:java-python
             artifact-name: a2a-slimrpc-test-result-java-python
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: java-dotnet
             display-name: Java→.NET
             task: integrations:a2a-slimrpc:test:java-dotnet
             artifact-name: a2a-slimrpc-test-result-java-dotnet
+            slim-image: ghcr.io/agntcy/slim:1.4.0
           - id: java-java
             display-name: Java→Java
             task: integrations:a2a-slimrpc:test:java-java
             artifact-name: a2a-slimrpc-test-result-java-java
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          # ---- Node rows: node-node runs against a slim 2.0 node; the 8 cross rows self-skip.
+          - id: node-node
+            display-name: Node→Node
+            task: integrations:a2a-slimrpc:test:node-node
+            artifact-name: a2a-slimrpc-test-result-node-node
+            slim-image: ghcr.io/agntcy/slim:2.0.0-alpha.3
+          - id: go-node
+            display-name: Go→Node
+            task: integrations:a2a-slimrpc:test:go-node
+            artifact-name: a2a-slimrpc-test-result-go-node
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: python-node
+            display-name: Python→Node
+            task: integrations:a2a-slimrpc:test:python-node
+            artifact-name: a2a-slimrpc-test-result-python-node
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: dotnet-node
+            display-name: .NET→Node
+            task: integrations:a2a-slimrpc:test:dotnet-node
+            artifact-name: a2a-slimrpc-test-result-dotnet-node
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: java-node
+            display-name: Java→Node
+            task: integrations:a2a-slimrpc:test:java-node
+            artifact-name: a2a-slimrpc-test-result-java-node
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: node-go
+            display-name: Node→Go
+            task: integrations:a2a-slimrpc:test:node-go
+            artifact-name: a2a-slimrpc-test-result-node-go
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: node-python
+            display-name: Node→Python
+            task: integrations:a2a-slimrpc:test:node-python
+            artifact-name: a2a-slimrpc-test-result-node-python
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: node-dotnet
+            display-name: Node→.NET
+            task: integrations:a2a-slimrpc:test:node-dotnet
+            artifact-name: a2a-slimrpc-test-result-node-dotnet
+            slim-image: ghcr.io/agntcy/slim:1.4.0
+          - id: node-java
+            display-name: Node→Java
+            task: integrations:a2a-slimrpc:test:node-java
+            artifact-name: a2a-slimrpc-test-result-node-java
+            slim-image: ghcr.io/agntcy/slim:1.4.0
 
     name: A2A SLIMRPC ${{ matrix.display-name }}
 
@@ -107,8 +173,9 @@ jobs:
       packages: read
 
     env:
-      # Keep in sync with integrations/agntcy-a2a-slimrpc/Taskfile.yml (SLIM_IMAGE).
-      SLIM_IMAGE: "ghcr.io/agntcy/slim:1.4.0"
+      # The slim node image is per-row (matrix.slim-image): 1.4.0 for the 1.4 languages,
+      # 2.0.0-alpha.3 for node-node. Keep both in sync with integrations/agntcy-a2a-slimrpc/Taskfile.yml
+      # (SLIM_IMAGE / SLIM_NODE_IMAGE).
       SLIM_SERVER: "http://127.0.0.1:46357"
       SLIM_SHARED_SECRET: "my_shared_secret_for_testing_purposes_only"
 
@@ -130,7 +197,7 @@ jobs:
           docker run -d --name slim-node \
             -p 46357:46357 \
             -v "${{ github.workspace }}/integrations/agntcy-a2a-slimrpc/ci/slim-server-config.yaml:/config.yaml:ro" \
-            "$SLIM_IMAGE" /slim --config /config.yaml
+            "${{ matrix.slim-image }}" /slim --config /config.yaml
 
       - name: Wait for SLIM node to accept connections
         run: |
@@ -155,6 +222,8 @@ jobs:
           dotnet-version: "8.0.x"
           java: true
           java-version: "21"
+          node: true
+          node-version: "20"
 
       - name: Run A2A SLIMRPC ${{ matrix.display-name }} interoperability tests
         id: run-tests
