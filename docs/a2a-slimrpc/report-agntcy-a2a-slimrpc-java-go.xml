@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-  <testsuites tests="177" disabled="165" errors="0" failures="0" time="87.116127165">
-      <testsuite name="A2A SLIMRPC Interop Suite" package="/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests" tests="177" disabled="0" skipped="165" errors="0" failures="0" time="87.116127165" timestamp="2026-07-22T08:55:03">
+  <testsuites tests="276" disabled="264" errors="0" failures="0" time="87.493337144">
+      <testsuite name="A2A SLIMRPC Interop Suite" package="/home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests" tests="276" disabled="0" skipped="264" errors="0" failures="0" time="87.493337144" timestamp="2026-07-29T09:00:54">
           <properties>
               <property name="SuiteSucceeded" value="true"></property>
               <property name="SuiteHasProgrammaticFocus" value="false"></property>
@@ -8,7 +8,7 @@
               <property name="SuiteLabels" value="[]"></property>
               <property name="SuiteSemVerConstraints" value="[]"></property>
               <property name="SuiteComponentSemVerConstraints" value="[]"></property>
-              <property name="RandomSeed" value="1784710503"></property>
+              <property name="RandomSeed" value="1785315654"></property>
               <property name="RandomizeAllSpecs" value="false"></property>
               <property name="LabelFilter" value="suite-slim-a2a &amp;&amp; pair-java-go"></property>
               <property name="SemVerFilter" value=""></property>
@@ -24,8 +24,8 @@
               <property name="ParallelTotal" value="1"></property>
               <property name="OutputInterceptorMode" value=""></property>
           </properties>
-          <testcase name="[BeforeSuite]" classname="A2A SLIMRPC Interop Suite" status="passed" time="69.529491016">
-              <system-err>&gt; Enter [BeforeSuite] TOP-LEVEL - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:23 @ 07/22/26 08:55:03.995&#xA;&lt; Exit [BeforeSuite] TOP-LEVEL - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:23 @ 07/22/26 08:56:13.524 (1m9.529s)&#xA;</system-err>
+          <testcase name="[BeforeSuite]" classname="A2A SLIMRPC Interop Suite" status="passed" time="69.467797785">
+              <system-err>&gt; Enter [BeforeSuite] TOP-LEVEL - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:23 @ 07/29/26 09:00:54.037&#xA;&lt; Exit [BeforeSuite] TOP-LEVEL - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:23 @ 07/29/26 09:02:03.505 (1m9.468s)&#xA;</system-err>
           </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server go and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, go-go, pair-go-go, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
@@ -126,38 +126,71 @@
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes a completed task with an echoed artifact from server go [suite-slim-a2a, slimrpc, behavior-lifecycle, dotnet-go, pair-dotnet-go]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="passed" time="2.037645758">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:13.525&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:13.525 (1ms)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the ascii payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:13.525&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the ascii payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:15.561 (2.036s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:15.561&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:15.562 (1ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="passed" time="2.100042061">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:03.506&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:03.507 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the ascii payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:03.507&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the ascii payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:05.605 (2.098s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:05.605&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:05.606 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.524301747">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:15.563&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:15.563 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the unicode payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:15.563&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the unicode payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:17.085 (1.523s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:17.085&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:17.087 (1ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.610750541">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:05.607&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:05.607 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the unicode payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:05.607&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the unicode payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:07.216 (1.609s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:07.216&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:07.217 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.5722852999999999">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:17.087&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:17.087 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the symbols payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:17.087&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the symbols payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:18.658 (1.57s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:18.658&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:18.659 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.596299402">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:07.218&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:07.218 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the symbols payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:07.218&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the symbols payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:08.812 (1.594s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:08.812&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:08.814 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-long]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.561144905">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:18.659&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:18.66 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the long payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:18.66&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the long payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:101 @ 07/22/26 08:56:20.218 (1.559s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:20.218&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:20.221 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server go and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, java-go, pair-java-go, payload-long]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.556771367">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:08.814&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:08.814 (0s)&#xA;&gt; Enter [It] SLIMRPC client java calls server go and echoes the long payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:08.814&#xA;&lt; Exit [It] SLIMRPC client java calls server go and echoes the long payload - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:108 @ 07/29/26 09:02:10.369 (1.555s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:10.369&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:10.371 (2ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the message-only response from server go [suite-slim-a2a, slimrpc, behavior-message-only, java-go, pair-java-go, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.508902577">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:20.221&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:20.221 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the message-only response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:20.221&#xA;&lt; Exit [It] SLIMRPC client java observes the message-only response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:21.728 (1.507s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:21.728&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:21.729 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the message-only response from server go [suite-slim-a2a, slimrpc, behavior-message-only, java-go, pair-java-go, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.5878587199999998">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:10.371&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:10.371 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the message-only response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:10.371&#xA;&lt; Exit [It] SLIMRPC client java observes the message-only response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:11.957 (1.586s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:11.957&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:11.959 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-failure response from server go [suite-slim-a2a, slimrpc, behavior-task-failure, java-go, pair-java-go, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.528441887">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:21.73&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:21.73 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the task-failure response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:21.73&#xA;&lt; Exit [It] SLIMRPC client java observes the task-failure response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:23.257 (1.527s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:23.257&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:23.258 (1ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-failure response from server go [suite-slim-a2a, slimrpc, behavior-task-failure, java-go, pair-java-go, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.535659387">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:11.959&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:11.959 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the task-failure response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:11.959&#xA;&lt; Exit [It] SLIMRPC client java observes the task-failure response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:13.493 (1.534s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:13.493&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:13.495 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the input-required response from server go [suite-slim-a2a, slimrpc, behavior-input-required, java-go, pair-java-go, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.588521354">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:23.258&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:23.259 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the input-required response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:23.259&#xA;&lt; Exit [It] SLIMRPC client java observes the input-required response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:24.845 (1.587s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:24.845&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:24.847 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the input-required response from server go [suite-slim-a2a, slimrpc, behavior-input-required, java-go, pair-java-go, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.561499661">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:13.495&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:13.495 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the input-required response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:13.495&#xA;&lt; Exit [It] SLIMRPC client java observes the input-required response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:15.055 (1.56s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:15.055&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:15.056 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the streaming response from server go [suite-slim-a2a, slimrpc, behavior-streaming, java-go, pair-java-go, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.513479184">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:24.847&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:24.847 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the streaming response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:24.847&#xA;&lt; Exit [It] SLIMRPC client java observes the streaming response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:26.359 (1.512s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:26.359&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:26.361 (1ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the streaming response from server go [suite-slim-a2a, slimrpc, behavior-streaming, java-go, pair-java-go, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.587093874">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:15.057&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:15.057 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the streaming response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:15.057&#xA;&lt; Exit [It] SLIMRPC client java observes the streaming response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:16.642 (1.585s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:16.642&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:16.644 (2ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-cancel response from server go [suite-slim-a2a, slimrpc, behavior-task-cancel, java-go, pair-java-go, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.6271371700000001">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:26.361&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:26.361 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the task-cancel response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:26.361&#xA;&lt; Exit [It] SLIMRPC client java observes the task-cancel response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:27.986 (1.625s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:27.986&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:27.988 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-cancel response from server go [suite-slim-a2a, slimrpc, behavior-task-cancel, java-go, pair-java-go, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.660433861">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:16.644&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:16.644 (1ms)&#xA;&gt; Enter [It] SLIMRPC client java observes the task-cancel response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:16.644&#xA;&lt; Exit [It] SLIMRPC client java observes the task-cancel response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:18.303 (1.658s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:18.303&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:18.304 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the multi-turn response from server go [suite-slim-a2a, slimrpc, behavior-multi-turn, java-go, pair-java-go, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.600060397">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:27.988&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:27.988 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the multi-turn response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:27.988&#xA;&lt; Exit [It] SLIMRPC client java observes the multi-turn response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:116 @ 07/22/26 08:56:29.586 (1.598s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:29.586&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:29.588 (2ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the multi-turn response from server go [suite-slim-a2a, slimrpc, behavior-multi-turn, java-go, pair-java-go, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.684199042">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:18.304&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:18.305 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes the multi-turn response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:18.305&#xA;&lt; Exit [It] SLIMRPC client java observes the multi-turn response from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:123 @ 07/29/26 09:02:19.987 (1.682s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:19.987&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:19.988 (1ms)&#xA;</system-err>
           </testcase>
-          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server go [suite-slim-a2a, slimrpc, behavior-lifecycle, java-go, pair-java-go]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.521902476">
-              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:29.588&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:82 @ 07/22/26 08:56:29.588 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes a completed task with an echoed artifact from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:146 @ 07/22/26 08:56:29.588&#xA;&lt; Exit [It] SLIMRPC client java observes a completed task with an echoed artifact from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:146 @ 07/22/26 08:56:31.108 (1.52s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:31.109&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:183 @ 07/22/26 08:56:31.11 (1ms)&#xA;</system-err>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server go [suite-slim-a2a, slimrpc, behavior-lifecycle, java-go, pair-java-go]" classname="A2A SLIMRPC Interop Suite" status="passed" time="1.53820222">
+              <system-err>&gt; Enter [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:19.989&#xA;&lt; Exit [BeforeEach] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:89 @ 07/29/26 09:02:19.989 (0s)&#xA;&gt; Enter [It] SLIMRPC client java observes a completed task with an echoed artifact from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:153 @ 07/29/26 09:02:19.989&#xA;&lt; Exit [It] SLIMRPC client java observes a completed task with an echoed artifact from server go - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:153 @ 07/29/26 09:02:21.526 (1.536s)&#xA;&gt; Enter [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:21.526&#xA;&lt; Exit [DeferCleanup (Each)] A2A SLIMRPC interoperability - /home/runner/work/csit/csit/integrations/agntcy-a2a-slimrpc/tests/matrix_test.go:198 @ 07/29/26 09:02:21.527 (1ms)&#xA;</system-err>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server go and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, node-go, pair-node-go, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server go and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, node-go, pair-node-go, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server go and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, node-go, pair-node-go, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server go and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, node-go, pair-node-go, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the message-only response from server go [suite-slim-a2a, slimrpc, behavior-message-only, node-go, pair-node-go, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-failure response from server go [suite-slim-a2a, slimrpc, behavior-task-failure, node-go, pair-node-go, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the input-required response from server go [suite-slim-a2a, slimrpc, behavior-input-required, node-go, pair-node-go, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the streaming response from server go [suite-slim-a2a, slimrpc, behavior-streaming, node-go, pair-node-go, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-cancel response from server go [suite-slim-a2a, slimrpc, behavior-task-cancel, node-go, pair-node-go, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the multi-turn response from server go [suite-slim-a2a, slimrpc, behavior-multi-turn, node-go, pair-node-go, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes a completed task with an echoed artifact from server go [suite-slim-a2a, slimrpc, behavior-lifecycle, node-go, pair-node-go]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
           </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server python and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, go-python, pair-go-python, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
@@ -289,6 +322,39 @@
               <skipped message="skipped"></skipped>
           </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server python [suite-slim-a2a, slimrpc, behavior-lifecycle, java-python, pair-java-python]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server python and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, node-python, pair-node-python, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server python and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, node-python, pair-node-python, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server python and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, node-python, pair-node-python, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server python and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, node-python, pair-node-python, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the message-only response from server python [suite-slim-a2a, slimrpc, behavior-message-only, node-python, pair-node-python, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-failure response from server python [suite-slim-a2a, slimrpc, behavior-task-failure, node-python, pair-node-python, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the input-required response from server python [suite-slim-a2a, slimrpc, behavior-input-required, node-python, pair-node-python, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the streaming response from server python [suite-slim-a2a, slimrpc, behavior-streaming, node-python, pair-node-python, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-cancel response from server python [suite-slim-a2a, slimrpc, behavior-task-cancel, node-python, pair-node-python, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the multi-turn response from server python [suite-slim-a2a, slimrpc, behavior-multi-turn, node-python, pair-node-python, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes a completed task with an echoed artifact from server python [suite-slim-a2a, slimrpc, behavior-lifecycle, node-python, pair-node-python]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
           </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server dotnet and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, go-dotnet, pair-go-dotnet, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
@@ -423,6 +489,39 @@
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server dotnet [suite-slim-a2a, slimrpc, behavior-lifecycle, java-dotnet, pair-java-dotnet]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
           </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server dotnet and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, node-dotnet, pair-node-dotnet, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server dotnet and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, node-dotnet, pair-node-dotnet, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server dotnet and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, node-dotnet, pair-node-dotnet, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server dotnet and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, node-dotnet, pair-node-dotnet, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the message-only response from server dotnet [suite-slim-a2a, slimrpc, behavior-message-only, node-dotnet, pair-node-dotnet, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-failure response from server dotnet [suite-slim-a2a, slimrpc, behavior-task-failure, node-dotnet, pair-node-dotnet, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the input-required response from server dotnet [suite-slim-a2a, slimrpc, behavior-input-required, node-dotnet, pair-node-dotnet, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the streaming response from server dotnet [suite-slim-a2a, slimrpc, behavior-streaming, node-dotnet, pair-node-dotnet, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-cancel response from server dotnet [suite-slim-a2a, slimrpc, behavior-task-cancel, node-dotnet, pair-node-dotnet, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the multi-turn response from server dotnet [suite-slim-a2a, slimrpc, behavior-multi-turn, node-dotnet, pair-node-dotnet, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes a completed task with an echoed artifact from server dotnet [suite-slim-a2a, slimrpc, behavior-lifecycle, node-dotnet, pair-node-dotnet]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server java and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, go-java, pair-go-java, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
           </testcase>
@@ -553,6 +652,204 @@
               <skipped message="skipped"></skipped>
           </testcase>
           <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server java [suite-slim-a2a, slimrpc, behavior-lifecycle, java-java, pair-java-java]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server java and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, node-java, pair-node-java, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server java and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, node-java, pair-node-java, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server java and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, node-java, pair-node-java, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server java and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, node-java, pair-node-java, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the message-only response from server java [suite-slim-a2a, slimrpc, behavior-message-only, node-java, pair-node-java, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-failure response from server java [suite-slim-a2a, slimrpc, behavior-task-failure, node-java, pair-node-java, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the input-required response from server java [suite-slim-a2a, slimrpc, behavior-input-required, node-java, pair-node-java, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the streaming response from server java [suite-slim-a2a, slimrpc, behavior-streaming, node-java, pair-node-java, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-cancel response from server java [suite-slim-a2a, slimrpc, behavior-task-cancel, node-java, pair-node-java, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the multi-turn response from server java [suite-slim-a2a, slimrpc, behavior-multi-turn, node-java, pair-node-java, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes a completed task with an echoed artifact from server java [suite-slim-a2a, slimrpc, behavior-lifecycle, node-java, pair-node-java]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server node and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, go-node, pair-go-node, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server node and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, go-node, pair-go-node, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server node and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, go-node, pair-go-node, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go calls server node and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, go-node, pair-go-node, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the message-only response from server node [suite-slim-a2a, slimrpc, behavior-message-only, go-node, pair-go-node, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the task-failure response from server node [suite-slim-a2a, slimrpc, behavior-task-failure, go-node, pair-go-node, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the input-required response from server node [suite-slim-a2a, slimrpc, behavior-input-required, go-node, pair-go-node, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the streaming response from server node [suite-slim-a2a, slimrpc, behavior-streaming, go-node, pair-go-node, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the task-cancel response from server node [suite-slim-a2a, slimrpc, behavior-task-cancel, go-node, pair-go-node, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes the multi-turn response from server node [suite-slim-a2a, slimrpc, behavior-multi-turn, go-node, pair-go-node, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client go observes a completed task with an echoed artifact from server node [suite-slim-a2a, slimrpc, behavior-lifecycle, go-node, pair-go-node]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python calls server node and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, python-node, pair-python-node, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python calls server node and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, python-node, pair-python-node, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python calls server node and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, python-node, pair-python-node, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python calls server node and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, python-node, pair-python-node, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the message-only response from server node [suite-slim-a2a, slimrpc, behavior-message-only, python-node, pair-python-node, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the task-failure response from server node [suite-slim-a2a, slimrpc, behavior-task-failure, python-node, pair-python-node, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the input-required response from server node [suite-slim-a2a, slimrpc, behavior-input-required, python-node, pair-python-node, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the streaming response from server node [suite-slim-a2a, slimrpc, behavior-streaming, python-node, pair-python-node, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the task-cancel response from server node [suite-slim-a2a, slimrpc, behavior-task-cancel, python-node, pair-python-node, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes the multi-turn response from server node [suite-slim-a2a, slimrpc, behavior-multi-turn, python-node, pair-python-node, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client python observes a completed task with an echoed artifact from server node [suite-slim-a2a, slimrpc, behavior-lifecycle, python-node, pair-python-node]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet calls server node and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, dotnet-node, pair-dotnet-node, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet calls server node and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, dotnet-node, pair-dotnet-node, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet calls server node and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, dotnet-node, pair-dotnet-node, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet calls server node and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, dotnet-node, pair-dotnet-node, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the message-only response from server node [suite-slim-a2a, slimrpc, behavior-message-only, dotnet-node, pair-dotnet-node, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the task-failure response from server node [suite-slim-a2a, slimrpc, behavior-task-failure, dotnet-node, pair-dotnet-node, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the input-required response from server node [suite-slim-a2a, slimrpc, behavior-input-required, dotnet-node, pair-dotnet-node, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the streaming response from server node [suite-slim-a2a, slimrpc, behavior-streaming, dotnet-node, pair-dotnet-node, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the task-cancel response from server node [suite-slim-a2a, slimrpc, behavior-task-cancel, dotnet-node, pair-dotnet-node, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes the multi-turn response from server node [suite-slim-a2a, slimrpc, behavior-multi-turn, dotnet-node, pair-dotnet-node, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client dotnet observes a completed task with an echoed artifact from server node [suite-slim-a2a, slimrpc, behavior-lifecycle, dotnet-node, pair-dotnet-node]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server node and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, java-node, pair-java-node, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server node and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, java-node, pair-java-node, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server node and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, java-node, pair-java-node, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java calls server node and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, java-node, pair-java-node, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the message-only response from server node [suite-slim-a2a, slimrpc, behavior-message-only, java-node, pair-java-node, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-failure response from server node [suite-slim-a2a, slimrpc, behavior-task-failure, java-node, pair-java-node, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the input-required response from server node [suite-slim-a2a, slimrpc, behavior-input-required, java-node, pair-java-node, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the streaming response from server node [suite-slim-a2a, slimrpc, behavior-streaming, java-node, pair-java-node, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the task-cancel response from server node [suite-slim-a2a, slimrpc, behavior-task-cancel, java-node, pair-java-node, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes the multi-turn response from server node [suite-slim-a2a, slimrpc, behavior-multi-turn, java-node, pair-java-node, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client java observes a completed task with an echoed artifact from server node [suite-slim-a2a, slimrpc, behavior-lifecycle, java-node, pair-java-node]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server node and echoes the ascii payload [suite-slim-a2a, slimrpc, behavior-echo, node-node, pair-node-node, payload-ascii]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server node and echoes the unicode payload [suite-slim-a2a, slimrpc, behavior-echo, node-node, pair-node-node, payload-unicode]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server node and echoes the symbols payload [suite-slim-a2a, slimrpc, behavior-echo, node-node, pair-node-node, payload-symbols]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node calls server node and echoes the long payload [suite-slim-a2a, slimrpc, behavior-echo, node-node, pair-node-node, payload-long]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the message-only response from server node [suite-slim-a2a, slimrpc, behavior-message-only, node-node, pair-node-node, scenario-message-only]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-failure response from server node [suite-slim-a2a, slimrpc, behavior-task-failure, node-node, pair-node-node, scenario-task-failure]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the input-required response from server node [suite-slim-a2a, slimrpc, behavior-input-required, node-node, pair-node-node, scenario-input-required]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the streaming response from server node [suite-slim-a2a, slimrpc, behavior-streaming, node-node, pair-node-node, scenario-streaming]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the task-cancel response from server node [suite-slim-a2a, slimrpc, behavior-task-cancel, node-node, pair-node-node, scenario-task-cancel]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes the multi-turn response from server node [suite-slim-a2a, slimrpc, behavior-multi-turn, node-node, pair-node-node, scenario-multi-turn]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
+              <skipped message="skipped"></skipped>
+          </testcase>
+          <testcase name="[It] A2A SLIMRPC interoperability SLIMRPC client node observes a completed task with an echoed artifact from server node [suite-slim-a2a, slimrpc, behavior-lifecycle, node-node, pair-node-node]" classname="A2A SLIMRPC Interop Suite" status="skipped" time="0">
               <skipped message="skipped"></skipped>
           </testcase>
       </testsuite>
