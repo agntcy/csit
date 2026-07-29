@@ -53,6 +53,15 @@ inputs:
     required: false
     default: "21"
 
+  node:
+    description: "Install Node.js + npm cache"
+    required: false
+    default: "false"
+  node-version:
+    description: "Node.js version to install"
+    required: false
+    default: "20"
+
 runs:
   using: "composite"
   steps:
@@ -94,6 +103,14 @@ runs:
         distribution: temurin
         java-version: ${{ inputs.java-version }}
         cache: maven
+
+    - name: Setup Node.js
+      if: ${{ inputs.node == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: "**/package-lock.json"
 
     - name: Update GITHUB_PATH
       shell: bash

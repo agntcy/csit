@@ -279,7 +279,11 @@ func buildMatrix(specs []specReport) matrixView {
 
 	for _, spec := range specs {
 		state := normalizeState(spec.State)
-		if state == "skipped" || state == "pending" {
+		// Pending specs never ran; keep them out. Skipped specs DO render (as grey cells)
+		// so wire-skew pairs (e.g. the SLIMRPC node↔1.4-lang cross pairs) show as pending
+		// rather than vanishing — worstState keeps passed/failed ahead of skipped, so a
+		// cell that has any executed spec still shows its executed state.
+		if state == "pending" {
 			continue
 		}
 
@@ -497,7 +501,9 @@ func isSDKToken(s string) bool {
 }
 
 func worstState(a, b string) string {
-	rank := map[string]int{"": 0, "passed": 1, "skipped": 2, "failed": 3}
+	// Executed states outrank skipped: a cell mixing a skipped spec with any passed/failed
+	// spec reflects the executed result. failed > passed > skipped > empty.
+	rank := map[string]int{"": 0, "skipped": 1, "passed": 2, "failed": 3}
 	if rank[b] > rank[a] {
 		return b
 	}
@@ -726,6 +732,7 @@ var knownSDKs = []struct {
 	{"python", "Python"},
 	{"rust", "Rust"},
 	{"java", "Java"},
+	{"node", "Node"},
 	{"go", "Go"},
 }
 
@@ -852,6 +859,8 @@ func prettyToken(token string) string {
 		return "Python"
 	case "java":
 		return "Java"
+	case "node":
+		return "Node"
 	case "rest":
 		return "REST"
 	case "rust":

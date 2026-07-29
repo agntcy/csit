@@ -1,6 +1,6 @@
 # A2A SLIMRPC interoperability (CSIT)
 
-Cross-language checks that **A2A over SLIMRPC** behaves consistently across **Go** ([slim-a2a-go](https://github.com/agntcy/slim-a2a-go)), **Python** ([slim-a2a-python](https://github.com/agntcy/slim-a2a-python) / PyPI `slima2a`), and **.NET** ([slim-a2a-dotnet](https://github.com/agntcy/slim-a2a-dotnet) / NuGet `Agntcy.SlimA2A`). Every client↔server language pair is exercised (a 3×3 matrix).
+Cross-language checks that **A2A over SLIMRPC** behaves consistently across **Go** ([slim-a2a-go](https://github.com/agntcy/slim-a2a-go)), **Python** ([slim-a2a-python](https://github.com/agntcy/slim-a2a-python) / PyPI `slima2a`), **.NET** ([slim-a2a-dotnet](https://github.com/agntcy/slim-a2a-dotnet) / NuGet `Agntcy.SlimA2A`), **Java** ([slim-a2a-java](https://github.com/agntcy/slim-a2a-java) / Maven Central `slim-a2a-java`), and **Node** ([slim-a2a-node](https://github.com/agntcy/slim-a2a-node) / npm `@agntcy/slim-a2a`). Every client↔server language pair is exercised (a 5×5 matrix). The four 1.4-wire languages (Go/Python/.NET/Java) interop fully; **Node** speaks the slim 2.0 wire, so it runs `node↔node` only and its 8 cross pairs are skipped-with-reason until the other SDKs bump to 2.0 (see [Node and `slim` 2.0](#node-and-slim-20-nodenode-only)).
 
 This is separate from [`integrations/agntcy-a2a`](../agntcy-a2a) (JSON-RPC / REST / gRPC only) and from [`integrations/agntcy-slim/topology`](../agntcy-slim/topology) (Kubernetes SLIM topology).
 
@@ -19,7 +19,7 @@ This is separate from [`integrations/agntcy-a2a`](../agntcy-a2a) (JSON-RPC / RES
    - **`CSIT_SLIM_GO_ONLY=1`** — run only the **go→go** interop spec (required for **slim 2.0 / `main`** until PyPI `slima2a` supports `slim-bindings` 2.x).
 3. **Go SLIM fixtures (native library)**: `slim-bindings-go` links against `$GOPATH/.cgo-cache/slim-bindings/v1.4.1/` (that **`v1.4.1` segment is fixed in upstream `slim_bindings.go`**, not derived from a `go.mod` pseudo-version). The suite runs **`go run …/slim-bindings-setup@v1.4.1`** so the prebuilt zip exists on [slim releases](https://github.com/agntcy/slim/releases), then optionally **overwrites** that copy when `CSIT_SLIM_NATIVE_LIB` is set. Needs **network** the first time unless you skip setup and provide the override library yourself. To skip the download step: `SKIP_SLIM_BINDINGS_SETUP=1` (native override still runs if `CSIT_SLIM_NATIVE_LIB` is set).
 
-4. **Toolchains**: Go version **≥ the `go` line in [`fixtures/go/go.mod`](fixtures/go/go.mod)** (currently **1.25.2**, driven by [`slim-a2a-go`](https://github.com/agntcy/slim-a2a-go) v0.2.0); the repo root [`integrations/go.mod`](../go.mod) may differ. **Python 3.10+** on `PATH` with `venv` (macOS `/usr/bin/python3` is often 3.9 and cannot install `slima2a`; use Homebrew `python@3.12` or set `PYTHON=/path/to/python3.10`). **.NET 8 SDK** on `PATH` (`dotnet`) for the .NET fixture; the suite runs `dotnet build` in [`fixtures/dotnet`](fixtures/dotnet) and restores `Agntcy.SlimA2A` from nuget.org (needs network on first run). Set **`CSIT_SLIM_NO_DOTNET=1`** to drop the .NET axis if no SDK is available.
+4. **Toolchains**: Go version **≥ the `go` line in [`fixtures/go/go.mod`](fixtures/go/go.mod)** (currently **1.25.2**, driven by [`slim-a2a-go`](https://github.com/agntcy/slim-a2a-go) v0.2.0); the repo root [`integrations/go.mod`](../go.mod) may differ. **Python 3.10+** on `PATH` with `venv` (macOS `/usr/bin/python3` is often 3.9 and cannot install `slima2a`; use Homebrew `python@3.12` or set `PYTHON=/path/to/python3.10`). **.NET 8 SDK** on `PATH` (`dotnet`) for the .NET fixture; the suite runs `dotnet build` in [`fixtures/dotnet`](fixtures/dotnet) and restores `Agntcy.SlimA2A` from nuget.org (needs network on first run). Set **`CSIT_SLIM_NO_DOTNET=1`** to drop the .NET axis if no SDK is available. **Node.js 18+** with `npm` for the Node fixture; the suite runs `npm ci && npm run build` in [`fixtures/node`](fixtures/node) and resolves the published `@agntcy/slim-a2a` from npm (needs network on first run). Set **`CSIT_SLIM_NO_NODE=1`** to drop the Node axis (which runs `node↔node` only — see [Node and `slim` 2.0](#node-and-slim-20-nodenode-only)).
 
 ## Run
 
@@ -101,6 +101,31 @@ task integrations:a2a-slimrpc:test
 
 Keep **`fixtures/go/go.mod`** `slim-bindings-go` on a revision that matches that native build (often `go get github.com/agntcy/slim-bindings-go@main` in `fixtures/go`, then `go mod tidy`). After changing the module pin, clear **`.cache`** again.
 
+### Node and `slim` 2.0 (node↔node only)
+
+The Node fixture ([`fixtures/node`](fixtures/node)) consumes the published **`@agntcy/slim-a2a`** from npm, which pins **`@agntcy/slim-bindings@2.0.0-alpha.3`** — the **slim 2.0** dataplane wire. That is **wire-incompatible** with the 1.4.0 node the other four languages use, so:
+
+- **`node↔node` runs for real** and must be **green**, against a dedicated **slim 2.0** node (`ghcr.io/agntcy/slim:2.0.0-alpha.3`, `task versions` prints it as `SLIM_NODE_IMAGE`).
+- **`node↔{go,python,dotnet,java}`** (8 pairs, both directions) are genuinely impossible until those SDKs move to slim 2.0. They are represented as **skipped-with-reason** (`wire skew: node@2.0-alpha.3 vs 1.4 …`), never hard failures, so the dashboard shows them as pending, not red. See `slimWireGroup` / `pairRunnable` in [`tests/launchers_test.go`](tests/launchers_test.go).
+
+**Local-run wrinkle (two nodes).** `task test` uses a single `SLIM_SERVER` for the whole grid, so it cannot span both slim generations in one invocation — mirroring the existing `test:go-main` split. Run the two generations separately:
+
+```bash
+# 1) The 1.4 grid (go/python/dotnet/java, 16 pairs) against a slim 1.4.0 node on :46357.
+cargo run --bin slim -- --config data-plane/config/base/server-config.yaml   # or docker run ghcr.io/agntcy/slim:1.4.0 …
+task integrations:a2a-slimrpc:test                                            # node-node fails here (1.4 node ≠ 2.0 wire); ignore it
+
+# 2) node↔node against a slim 2.0 node (stop the 1.4 node first, or use a spare port + SLIM_SERVER).
+docker run -d --name slim-node-20 -p 46357:46357 \
+  -v "$PWD/integrations/agntcy-a2a-slimrpc/ci/slim-server-config.yaml:/config.yaml:ro" \
+  ghcr.io/agntcy/slim:2.0.0-alpha.3 /slim --config /config.yaml
+task integrations:a2a-slimrpc:test:node-node                                  # GREEN against the 2.0 node
+```
+
+CI is unaffected: each matrix row boots its own container (`matrix.slim-image`), so node-node gets a 2.0 node and every other row a 1.4.0 node. Set **`CSIT_SLIM_NO_NODE=1`** to drop the Node axis if no Node.js 18+ / npm is available (`CSIT_SLIM_NODE_BIN` / `CSIT_SLIM_NPM_BIN` override the executables).
+
+**Migration payoff:** when go/python/dotnet/java move their published SDKs to slim 2.0, change their wire group to `"2.0"` in `slimWireGroup` (or delete the map) and bump the pinned node image — the 8 cross pairs light up with **no fixture or launcher change**, because the slim version lives only in Taskfile/CI config, never in fixture code.
+
 ## What is tested
 
 - **Matrix**: each of `go` and `python` as **server** is probed by each language as **client** (four pairs).
@@ -158,6 +183,8 @@ The released baseline is the **single source of truth**, recorded as `SLIM_IMAGE
 | Component | Pin |
 |-----------|-----|
 | SLIM node (CI + recommended local) | `ghcr.io/agntcy/slim:1.4.0` (locally: `git checkout slim-v1.4.0` then `cargo run --bin slim`). There is no `slim-v1.4.1` node tag; `1.4.0` is the closest node release to the `slim-bindings` 1.4.x family and shares its dataplane wire. |
+| SLIM node for Node (`node↔node`) | `ghcr.io/agntcy/slim:2.0.0-alpha.3` (`SLIM_NODE_IMAGE`), matching the `slim-bindings` 2.0-alpha that the published `@agntcy/slim-a2a` pins. Distinct 2.0 wire; see [Node and `slim` 2.0](#node-and-slim-20-nodenode-only). |
+| Node fixture (`fixtures/node/package.json`) | `@agntcy/slim-a2a` 0.1.0 (npm) + `@a2a-js/sdk` 1.0.0-beta.0; transitively `@agntcy/slim-bindings` 2.0.0-alpha.3 |
 | Go fixtures (`fixtures/go/go.mod`) | `github.com/agntcy/slim-a2a-go` v0.2.0; `slim-bindings-go` 1.4.x (a `main` pseudo-version is only needed for the dev-only `slim main` path) |
 | Go native (CGO) | Default: prebuilt from `go run …/slim-bindings-setup@v1.4.1` → `$GOPATH/.cgo-cache/slim-bindings/v1.4.1/`. For **`slim` `main`** (dev-only): override with **`CSIT_SLIM_NATIVE_LIB`** (see below). |
 | Python (default) | `slima2a==0.5.0`, `slim-bindings` 1.4.x on PyPI (`fixtures/python/requirements.txt`) |

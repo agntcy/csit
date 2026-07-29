@@ -20,10 +20,16 @@ vars:
   SLIM_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_RELEASE}}'
   # slim-bindings release tag (slim-bindings-setup tag + CGO cache tier; PyPI slim-bindings 1.4.x).
   SLIM_BINDINGS_RELEASE: 'v1.4.1'
+  # Node baseline: the published @agntcy/slim-a2a pins slim-bindings 2.0-alpha, a distinct
+  # (wire-incompatible) dataplane generation from the 1.4 baseline above. node↔node runs against
+  # this 2.0 node; node↔{go,python,dotnet,java} self-skip inside the suite (wire skew) until the
+  # other SDKs bump to 2.0. Pin alpha.3 to match the bindings the SDK was built against exactly.
+  SLIM_NODE_RELEASE: '2.0.0-alpha.3'
+  SLIM_NODE_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_NODE_RELEASE}}'
 
 tasks:
   test:
-    desc: A2A over SLIMRPC interop (full Go+Python+.NET 3×3) — requires a running SLIM node
+    desc: A2A over SLIMRPC interop (full Go+Python+.NET+Java+Node 5×5) — requires a running SLIM node
     # Runs each client→server pair as its own report (report-agntcy-a2a-slimrpc-<client>-<server>),
     # mirroring the agntcy-a2a per-pair layout so the dashboard shows one "Saved Run" per pair.
     # ignore_error lets the remaining pairs run (and the dashboard capture them) if one fails.
@@ -59,6 +65,24 @@ tasks:
       - task: test:java-dotnet
         ignore_error: true
       - task: test:java-java
+        ignore_error: true
+      - task: test:node-node
+        ignore_error: true
+      - task: test:go-node
+        ignore_error: true
+      - task: test:python-node
+        ignore_error: true
+      - task: test:dotnet-node
+        ignore_error: true
+      - task: test:java-node
+        ignore_error: true
+      - task: test:node-go
+        ignore_error: true
+      - task: test:node-python
+        ignore_error: true
+      - task: test:node-dotnet
+        ignore_error: true
+      - task: test:node-java
         ignore_error: true
 
   test:go-go:
@@ -189,6 +213,88 @@ tasks:
           LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-dotnet'
           REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-dotnet
 
+  # ---- Node pairs -------------------------------------------------------------------
+  # node speaks the slim 2.0 wire (published @agntcy/slim-a2a pins slim-bindings 2.0-alpha),
+  # distinct from the 1.4 baseline. node-node runs for real against a slim 2.0 node
+  # (SLIM_NODE_IMAGE); the 8 node↔{go,python,dotnet,java} cross pairs self-skip inside the
+  # suite (wire skew) so the dashboard shows them as pending, not red.
+
+  test:node-node:
+    desc: >-
+      SLIMRPC interop — Node client → Node server. Requires a running slim 2.0 node
+      ({{.SLIM_NODE_IMAGE}}), NOT the 1.4 baseline. Locally this is a separate run against a
+      hand-started 2.0 node (see README "Node and slim 2.0"); `task test` uses one SLIM_SERVER
+      for the whole grid, so it cannot span both slim generations at once (like test:go-main).
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-node-node'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-node-node
+
+  test:go-node:
+    desc: SLIMRPC interop — Go client → Node server (self-skips — wire skew until Go moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-go-node'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-go-node
+
+  test:python-node:
+    desc: SLIMRPC interop — Python client → Node server (self-skips — wire skew until Python moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-python-node'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-python-node
+
+  test:dotnet-node:
+    desc: SLIMRPC interop — .NET client → Node server (self-skips — wire skew until .NET moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-dotnet-node'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-node
+
+  test:java-node:
+    desc: SLIMRPC interop — Java client → Node server (self-skips — wire skew until Java moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-java-node'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-java-node
+
+  test:node-go:
+    desc: SLIMRPC interop — Node client → Go server (self-skips — wire skew until Go moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-node-go'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-node-go
+
+  test:node-python:
+    desc: SLIMRPC interop — Node client → Python server (self-skips — wire skew until Python moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-node-python'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-node-python
+
+  test:node-dotnet:
+    desc: SLIMRPC interop — Node client → .NET server (self-skips — wire skew until .NET moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-node-dotnet'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-node-dotnet
+
+  test:node-java:
+    desc: SLIMRPC interop — Node client → Java server (self-skips — wire skew until Java moves to slim 2.0)
+    cmds:
+      - task: test:interop:run
+        vars:
+          LABEL_FILTER: 'suite-slim-a2a && pair-node-java'
+          REPORT_NAME: report-agntcy-a2a-slimrpc-node-java
+
   versions:
     desc: Print the pinned released SLIM baseline (node image + bindings) used locally and in CI
     cmds:
@@ -196,6 +302,7 @@ tasks:
         echo "slim node image  : {{.SLIM_IMAGE}}"
         echo "slim release tag  : slim-v{{.SLIM_RELEASE}} (git checkout for a local 'cargo run --bin slim')"
         echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-setup tag + CGO tier; PyPI slim-bindings 1.4.x)"
+        echo "slim node (node)  : {{.SLIM_NODE_IMAGE}} (2.0 wire for the Node fixture; node↔node only)"
 
   reports:dashboard:
     desc: Render HTML dashboard from reports (reuses agntcy-a2a tool)
