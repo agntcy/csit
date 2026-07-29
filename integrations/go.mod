@@ -3,7 +3,7 @@ module github.com/agntcy/csit/integrations
 go 1.25.0
 
 require (
-	github.com/a2aproject/a2a-go/v2 v2.3.1
+	github.com/a2aproject/a2a-go/v2 v2.4.0
 	github.com/onsi/ginkgo/v2 v2.28.0
 	github.com/onsi/gomega v1.38.2
 	github.com/stretchr/testify v1.10.0
@@ -65,3 +65,11 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+// crypto11 was moved from github.com/ThalesIgnite to github.com/ThalesGroup.
+// Post-rename tags (>= v1.6.0) declare the new module path, which breaks the
+// old ThalesIgnite import path still used by sigstore/cosign's pkcs11key
+// (pulled in transitively via the agntcy-dir conformance suite -> agntcy/dir).
+// Pin to v1.2.5 — the version cosign v3 targets, published under the original
+// path — so the import path resolves and no rename mismatch occurs.
+replace github.com/ThalesIgnite/crypto11 => github.com/ThalesIgnite/crypto11 v1.2.5
