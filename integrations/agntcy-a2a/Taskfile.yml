@@ -23,6 +23,13 @@ tasks:
     desc: Update Go SDK to latest version
     cmds:
       - go get github.com/a2aproject/a2a-go/v2@latest
+      # Bumping the SDK can pull in new transitive deps (e.g. golang.org/x/mod);
+      # `go get` only records their go.mod hashes, so download the full build
+      # list to write the missing module content (h1:) hashes into go.sum.
+      # NOTE: use `go mod download all` (build-list scoped), NOT `go mod tidy`.
+      # This is a shared multi-suite module; tidy would try to resolve packages
+      # from other suites (e.g. agntcy-dir) whose deps are wired up at test time.
+      - go mod download all
     status:
       - '! command -v go'
 
