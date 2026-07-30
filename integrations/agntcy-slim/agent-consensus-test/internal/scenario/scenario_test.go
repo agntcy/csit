@@ -21,3 +21,29 @@ func TestGenerateAndValidate(t *testing.T) {
 		t.Fatalf("coordinator=%s", s.Coordinator().ID)
 	}
 }
+
+func TestMatrixScenarioFilename(t *testing.T) {
+	if got := scenario.MatrixScenarioFilename(0, 10, 0); got != "matrix-lat0-10ag" {
+		t.Fatalf("name=%q", got)
+	}
+	if got := scenario.MatrixScenarioFilename(100, 20, 10240); got != "matrix-lat100-20ag-10240b" {
+		t.Fatalf("name=%q", got)
+	}
+	s, err := scenario.Generate(scenario.GenerateOptions{
+		Agents:       10,
+		ThinkTimeMs:  20,
+		PayloadBytes: 4096,
+		LatencyMs:    50,
+		MatrixNaming: true,
+		Family:       "matrix",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Metadata.Name != "matrix-lat50-10ag-4096b" {
+		t.Fatalf("metadata.name=%q", s.Metadata.Name)
+	}
+	if s.RepresentativeLatencyMs() != 50 {
+		t.Fatalf("latency=%d", s.RepresentativeLatencyMs())
+	}
+}

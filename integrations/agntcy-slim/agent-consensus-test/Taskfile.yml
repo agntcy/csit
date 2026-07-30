@@ -11,6 +11,8 @@ vars:
   REPORTS_DIR: '{{ .REPORTS_DIR | default "./reports" }}'
   RESULTS_TSV: '{{ .RESULTS_TSV | default "./reports/results.tsv" }}'
   SWEEP_TSV: '{{ .SWEEP_TSV | default "./reports/sweep.tsv" }}'
+  MATRIX_DIR: '{{ .MATRIX_DIR | default "./plans/matrix" }}'
+  MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
   BIN_DIR: '{{ .BIN_DIR | default "./bin" }}'
   SLIM_ENDPOINT: '{{ .SLIM_ENDPOINT | default "http://127.0.0.1:46357" }}'
   COMPARE_SLIMCTL: '{{ .COMPARE_SLIMCTL | default "./bin/slimctl" }}'
@@ -229,7 +231,12 @@ tasks:
   compare:report:
     desc: Build HTML dashboard from comparison TSV results
     cmds:
-      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --scenario-dir {{ .SCENARIO_DIR }} --output {{ .REPORTS_DIR }}/index.html
+      - go run ./tools/report --tsv {{ .RESULTS_TSV }} --sweep-tsv {{ .SWEEP_TSV }} --matrix-tsv {{ .MATRIX_TSV }} --scenario-dir {{ .SCENARIO_DIR }} --output {{ .REPORTS_DIR }}/index.html
+
+  compare:matrix:report:
+    desc: Build HTML dashboard from matrix sweep TSV only
+    cmds:
+      - go run ./tools/report --matrix-only --matrix-tsv {{ .MATRIX_TSV }} --matrix-dir {{ .MATRIX_DIR }} --output {{ .REPORTS_DIR }}/matrix.html
 
   compare:sweep:
     desc: Run agent/think-time/payload sweep (SWEEP_AGENTS, SWEEP_THINK_MS, SWEEP_PAYLOAD_BYTES env lists)
@@ -393,6 +400,153 @@ tasks:
                 --quiet \
                 --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
                 --output-tsv {{ .SWEEP_TSV }} || true
+            done
+          done
+        done
+
+  compare:sweep:matrix:
+    desc: Run agents×payload matrix at fixed latency slices (MATRIX_LATENCY_MS, MATRIX_AGENTS, MATRIX_PAYLOAD_BYTES)
+    deps:
+      - build
+    vars:
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
+      MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .MATRIX_TSV }}
+      - task: compare:sweep:matrix:run
+        vars:
+          MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS }}'
+          MATRIX_AGENTS: '{{ .MATRIX_AGENTS }}'
+          MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES }}'
+          MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS }}'
+          MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS }}'
+          MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS }}'
+      - task: compare:matrix:report
+
+  compare:sweep:matrix:run:
+    internal: true
+    vars:
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
+      MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p {{ .REPORTS_DIR }} {{ .MATRIX_DIR }}
+        IFS=',' read -r -a LATENCY_LIST <<< "{{ .MATRIX_LATENCY_MS }}"
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .MATRIX_AGENTS }}"
+        IFS=',' read -r -a PAYLOAD_LIST <<< "{{ .MATRIX_PAYLOAD_BYTES }}"
+        for lat in "${LATENCY_LIST[@]}"; do
+          for agents in "${AGENT_LIST[@]}"; do
+            for payload in "${PAYLOAD_LIST[@]}"; do
+              scenario_path="{{ .MATRIX_DIR }}/matrix-lat${lat}-${agents}ag"
+              if [ "$payload" != "0" ]; then
+                scenario_path="${scenario_path}-${payload}b"
+              fi
+              scenario_path="${scenario_path}.yaml"
+              go run ./tools/gen_scenario \
+                -matrix-naming \
+                -family matrix \
+                -agents "$agents" \
+                -think-ms {{ .MATRIX_THINK_MS }} \
+                -payload-bytes "$payload" \
+                -latency-ms "$lat" \
+                -epochs {{ .MATRIX_EPOCHS }} \
+                -max-epoch-ms {{ .MATRIX_MAX_EPOCH_MS }} \
+                -output "$scenario_path"
+              base=$(basename "$scenario_path" .yaml)
+              echo "==> matrix P2P $base (latency=${lat}ms)"
+              {{ .BIN_DIR }}/p2p-runner \
+                --scenario "$scenario_path" \
+                --agent-bin {{ .BIN_DIR }}/p2p-agent \
+                --quiet \
+                --output-json {{ .REPORTS_DIR }}/p2p-${base}.json \
+                --output-tsv {{ .MATRIX_TSV }} || true
+            done
+          done
+        done
+      - task: compare:sweep:matrix:slim
+        vars:
+          MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS }}'
+          MATRIX_AGENTS: '{{ .MATRIX_AGENTS }}'
+          MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES }}'
+          MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS }}'
+          MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS }}'
+          MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS }}'
+
+  compare:sweep:matrix:slim:
+    internal: true
+    deps:
+      - deps:slimctl-download
+    vars:
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        IFS=',' read -r -a LATENCY_LIST <<< "{{ .MATRIX_LATENCY_MS }}"
+        IFS=',' read -r -a AGENT_LIST <<< "{{ .MATRIX_AGENTS }}"
+        IFS=',' read -r -a PAYLOAD_LIST <<< "{{ .MATRIX_PAYLOAD_BYTES }}"
+        DATAPLANE_PORT=46357
+        CONTROLLER_PORT=46358
+        CONFIG=$(mktemp)
+        trap 'kill ${SLIM_PID:-} 2>/dev/null || true; rm -f "$CONFIG"; {{ .COMPARE_SLIMCTL }} slim stop 2>/dev/null || true' EXIT
+        cat > "$CONFIG" <<EOF
+        services:
+          slim/0:
+            node_id: "slim-bench-v2"
+            group_name: "bench-v2"
+            dataplane:
+              servers:
+                - endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                  metadata:
+                    local_endpoint: "127.0.0.1"
+                    external_endpoint: "127.0.0.1:${DATAPLANE_PORT}"
+                    trust_domain: "example.org"
+                  tls:
+                    insecure: true
+            controller:
+              servers:
+                - endpoint: "127.0.0.1:${CONTROLLER_PORT}"
+                  tls:
+                    insecure: true
+        EOF
+        {{ .COMPARE_SLIMCTL }} slim start -c "$CONFIG" >>{{ .REPORTS_DIR }}/slimctl.log 2>&1 &
+        SLIM_PID=$!
+        for i in $(seq 1 50); do
+          if nc -z 127.0.0.1 "${DATAPLANE_PORT}" 2>/dev/null; then
+            break
+          fi
+          sleep 0.2
+        done
+        for lat in "${LATENCY_LIST[@]}"; do
+          for agents in "${AGENT_LIST[@]}"; do
+            for payload in "${PAYLOAD_LIST[@]}"; do
+              scenario_path="{{ .MATRIX_DIR }}/matrix-lat${lat}-${agents}ag"
+              if [ "$payload" != "0" ]; then
+                scenario_path="${scenario_path}-${payload}b"
+              fi
+              scenario_path="${scenario_path}.yaml"
+              [ -f "$scenario_path" ] || continue
+              base=$(basename "$scenario_path" .yaml)
+              echo "==> matrix SLIM $base (latency=${lat}ms)"
+              {{ .BIN_DIR }}/slim-runner \
+                --scenario "$scenario_path" \
+                --endpoint {{ .SLIM_ENDPOINT }} \
+                --agent-bin {{ .BIN_DIR }}/slim-agent \
+                --quiet \
+                --output-json {{ .REPORTS_DIR }}/slim-${base}.json \
+                --output-tsv {{ .MATRIX_TSV }} || true
             done
           done
         done

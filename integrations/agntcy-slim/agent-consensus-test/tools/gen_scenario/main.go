@@ -23,6 +23,7 @@ func main() {
 	maxEpochMS := flag.Int64("max-epoch-ms", 0, "per-epoch consensus time budget in ms (default 120000)")
 	latencyMS := flag.Int64("latency-ms", 0, "one-way delay applied to a subset of agents in ms (distant-region simulation)")
 	latencyCount := flag.Int("latency-count", 0, "how many trailing agents get latency-ms (default round(agents/3) when latency-ms>0)")
+	matrixNaming := flag.Bool("matrix-naming", false, "use matrix-lat{L}-{N}ag[-{B}b] filename stem")
 	output := flag.String("output", "", "output yaml path")
 	flag.Parse()
 
@@ -30,8 +31,13 @@ func main() {
 		log.Fatal("-output is required")
 	}
 
+	familyName := *family
+	if *matrixNaming && familyName == "hypothesis-convergence" {
+		familyName = "matrix"
+	}
+
 	s, err := scenario.Generate(scenario.GenerateOptions{
-		Family:         *family,
+		Family:         familyName,
 		Agents:         *agents,
 		ThinkTimeMs:    *thinkMS,
 		Seed:           *seed,
@@ -40,6 +46,7 @@ func main() {
 		MaxEpochTimeMs: *maxEpochMS,
 		LatencyMs:      *latencyMS,
 		LatencyCount:   *latencyCount,
+		MatrixNaming:   *matrixNaming,
 	})
 	if err != nil {
 		log.Fatalf("generate: %v", err)

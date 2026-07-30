@@ -18,6 +18,7 @@ type RunResult struct {
 	Agents                int    `json:"agents"`
 	ThinkTimeMs           int64  `json:"think_time_ms"`
 	PayloadBytes          int    `json:"payload_bytes"`
+	LatencyMs             int64  `json:"latency_ms"`
 	ConsensusWallMS       int64  `json:"consensus_wall_ms"`
 	ConsensusRound        int    `json:"consensus_round"`
 	FindingsEmitted       int    `json:"findings_emitted"`
@@ -67,7 +68,7 @@ func AppendTSV(path string, result RunResult) error {
 	if writeHeader {
 		if err := w.Write([]string{
 			"scenario_name", "domain", "implementation", "agents", "think_time_ms",
-			"payload_bytes",
+			"payload_bytes", "latency_ms",
 			"consensus_wall_ms", "consensus_round", "findings_emitted", "findings_received_total",
 			"avg_propagation_ms", "p95_propagation_ms", "last_agent_converge_ms",
 			"coord_fanout_ms", "stream_rpc_count",
@@ -84,6 +85,7 @@ func AppendTSV(path string, result RunResult) error {
 		strconv.Itoa(result.Agents),
 		strconv.FormatInt(result.ThinkTimeMs, 10),
 		strconv.Itoa(result.PayloadBytes),
+		strconv.FormatInt(result.LatencyMs, 10),
 		strconv.FormatInt(result.ConsensusWallMS, 10),
 		strconv.Itoa(result.ConsensusRound),
 		strconv.Itoa(result.FindingsEmitted),
