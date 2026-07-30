@@ -428,10 +428,68 @@ tasks:
           MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS }}'
       - task: compare:matrix:report
 
+  compare:sweep:matrix:slice:
+    desc: Run one latency slice of the agents×payload matrix (CI parallel job)
+    deps:
+      - build
+    vars:
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0" }}'
+      MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
+      MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
+      MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+    cmds:
+      - task: compare:cleanup
+      - rm -f {{ .MATRIX_TSV }}
+      - task: compare:sweep:matrix:run
+        vars:
+          MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS }}'
+          MATRIX_TSV: '{{ .MATRIX_TSV }}'
+          MATRIX_AGENTS: '{{ .MATRIX_AGENTS }}'
+          MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES }}'
+          MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS }}'
+          MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS }}'
+          MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS }}'
+
+  compare:sweep:matrix:merge:
+    desc: Merge per-latency matrix TSV slices and render dashboard (MATRIX_SLICE_TSVS comma-separated)
+    deps:
+      - build
+    vars:
+      MATRIX_SLICE_TSVS: '{{ .MATRIX_SLICE_TSVS | default "./reports/matrix-lat0.tsv,./reports/matrix-lat50.tsv,./reports/matrix-lat100.tsv" }}'
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p {{ .REPORTS_DIR }}
+        rm -f {{ .MATRIX_TSV }}
+        first=true
+        IFS=',' read -r -a SLICES <<< "{{ .MATRIX_SLICE_TSVS }}"
+        for f in "${SLICES[@]}"; do
+          if [ ! -f "$f" ]; then
+            echo "warning: missing slice $f" >&2
+            continue
+          fi
+          if [ "$first" = true ]; then
+            cat "$f" > {{ .MATRIX_TSV }}
+            first=false
+          else
+            tail -n +2 "$f" >> {{ .MATRIX_TSV }}
+          fi
+        done
+        if [ ! -s {{ .MATRIX_TSV }} ]; then
+          echo "no matrix data to merge" >&2
+          exit 1
+        fi
+      - task: compare:matrix:report
+      - cp {{ .REPORTS_DIR }}/matrix.html {{ .REPORTS_DIR }}/index.html
+
   compare:sweep:matrix:run:
     internal: true
     vars:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
@@ -476,6 +534,7 @@ tasks:
       - task: compare:sweep:matrix:slim
         vars:
           MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS }}'
+          MATRIX_TSV: '{{ .MATRIX_TSV }}'
           MATRIX_AGENTS: '{{ .MATRIX_AGENTS }}'
           MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES }}'
           MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS }}'
@@ -488,6 +547,7 @@ tasks:
       - deps:slimctl-download
     vars:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30,50" }}'
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'

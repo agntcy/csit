@@ -17,9 +17,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  slim-agent-consensus:
+  matrix-slice:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        latency_ms: [0, 50, 100]
 
     permissions:
       contents: read
@@ -33,18 +37,53 @@ jobs:
         with:
           go: true
 
-      - name: Run Agent Consensus Convergence comparison suite
+      - name: Run matrix slice (latency=${{ matrix.latency_ms }} ms)
         shell: bash
         working-directory: integrations/agntcy-slim/agent-consensus-test
         run: |
           set -o pipefail
-          task compare:suite
+          task compare:sweep:matrix:slice \
+            MATRIX_LATENCY_MS=${{ matrix.latency_ms }} \
+            MATRIX_TSV=reports/matrix-lat${{ matrix.latency_ms }}.tsv
 
-      - name: Build comparison report
+      - name: Upload latency slice TSV
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-agent-consensus-matrix-lat${{ matrix.latency_ms }}
+          path: integrations/agntcy-slim/agent-consensus-test/reports/matrix-lat${{ matrix.latency_ms }}.tsv
+          retention-days: 30
+          if-no-files-found: warn
+
+  matrix-report:
+    needs: [matrix-slice]
+    if: always() && !cancelled() && needs.matrix-slice.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          go: true
+
+      - name: Download matrix slice artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: slim-agent-consensus-matrix-lat*
+          path: integrations/agntcy-slim/agent-consensus-test/reports
+          merge-multiple: true
+
+      - name: Merge slices and build matrix dashboard
         shell: bash
         working-directory: integrations/agntcy-slim/agent-consensus-test
-        run: task compare:report
+        run: task compare:sweep:matrix:merge
 
       - name: Publish step summary
         if: always()
@@ -52,17 +91,17 @@ jobs:
         run: |
           REPORT_DIR="integrations/agntcy-slim/agent-consensus-test/reports"
           {
-            echo "# Agent Consensus Convergence — SLIM Group Streaming vs P2P Streaming"
+            echo "# Agent Consensus Convergence — matrix benchmark"
             echo
             echo "- Workflow: ${GITHUB_WORKFLOW}"
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
             echo
-            if [ -f "$REPORT_DIR/results.tsv" ]; then
-              echo "## results.tsv"
+            if [ -f "$REPORT_DIR/matrix.tsv" ]; then
+              echo "## matrix.tsv (first 20 lines)"
               echo
               echo '```'
-              cat "$REPORT_DIR/results.tsv"
+              head -n 20 "$REPORT_DIR/matrix.tsv"
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
@@ -77,8 +116,8 @@ jobs:
           if-no-files-found: warn
 
   publish-pages:
-    needs: [slim-agent-consensus]
-    if: always() && github.ref == 'refs/heads/main' && needs.slim-agent-consensus.result != 'skipped'
+    needs: [matrix-report]
+    if: always() && github.ref == 'refs/heads/main' && needs.matrix-report.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
