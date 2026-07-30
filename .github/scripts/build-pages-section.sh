@@ -119,8 +119,8 @@ case "$SUITE" in
     ;;
 
   slim-agent-consensus)
-    # compare:report already produced a self-contained index.html (plus TSVs);
-    # publish it verbatim under slim-agent-consensus/.
+    # compare:matrix:report produces index.html (intro, architecture, matrix tables, metric defs).
+    # Publish the reports directory verbatim under slim-agent-consensus/.
     if [[ -f "$STAGING_DIR/index.html" ]]; then
       mkdir -p "$SITE_DIR/slim-agent-consensus"
       cp -a "$STAGING_DIR/." "$SITE_DIR/slim-agent-consensus/"

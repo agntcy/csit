@@ -301,7 +301,12 @@ func buildMatrixTables(results []metrics.RunResult) []matrixTable {
 		for _, agents := range tbl.AgentRows {
 			tbl.Cells[agents] = map[int]matrixCell{}
 			for _, payload := range tbl.PayloadCols {
-				k := cellKey{LatencyMs: lat, Agents: agents, PayloadBytes: payload}
+				k := cellKey{
+					LatencyMs:    lat,
+					Agents:       agents,
+					PayloadBytes: payload,
+					ThinkTimeMs:  tbl.ThinkTimeMs,
+				}
 				p := byKey[k]
 				tbl.Cells[agents][payload] = mergeMatrixCell(p)
 			}
@@ -481,12 +486,7 @@ const matrixSection = `
   {{end}}
   {{end}}`
 
-const htmlTemplate = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Agent Consensus Convergence</title>
-  <style>
+const reportStyles = `
     body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1100px; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
     th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: right; }
@@ -502,10 +502,9 @@ const htmlTemplate = `<!DOCTYPE html>
     dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
     dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
     .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
-    p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }
-  </style>
-</head>
-<body>
+    p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }`
+
+const reportIntroSection = `
   <h1>Agent Consensus Convergence</h1>
   <div class="intro">
     <p>This test runs the same distributed <strong>hypothesis-convergence</strong> workload on two
@@ -527,8 +526,9 @@ const htmlTemplate = `<!DOCTYPE html>
     runs is <em>how findings travel</em> between agents — shown in the architecture below.</p>
     <p><em>Note: absolute timings depend on the CPU and load of the machine that produced this report, so the
     raw numbers vary run to run. Compare the two transports within the same run rather than across machines.</em></p>
-  </div>
+  </div>`
 
+const reportArchSection = `
   <h2 id="arch">Architecture</h2>
   <p>Both runs use the same agents and consensus logic; only the message path differs. <strong>SLIM group multicast</strong>
     agents publish each finding once to a native group session and the dataplane fans it out to all peers (the
@@ -562,34 +562,9 @@ flowchart TB
     R2 --> AA2
   end
     </pre>
-  </div>
-  {{range .Comparisons}}
-  <h2>{{.ScenarioName}}</h2>
-  {{if .Description}}<p class="plandesc">{{.Description}}</p>{{end}}
-  <table>
-    <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>{{if .HasP2P}}{{.P2P.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ConsensusWallMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>{{if .HasP2P}}{{.P2P.LastAgentConvergeMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.LastAgentConvergeMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>{{if .HasP2P}}{{.P2P.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.AvgPropagationMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>{{if .HasP2P}}{{.P2P.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.P95PropagationMS}}{{else}}—{{end}}</td></tr>
-    <tr><td>Stream RPC count</td><td>{{if .HasP2P}}{{.P2P.StreamRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.StreamRPCCount}}{{else}}—{{end}}</td></tr>
-    <tr><td>Epochs (ok / failed)</td><td>{{if .HasP2P}}{{.P2P.EpochsSucceeded}} / {{.P2P.EpochsFailed}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.EpochsSucceeded}} / {{.SLIM.EpochsFailed}}{{else}}—{{end}}</td></tr>
-    <tr><td>Success</td><td>{{if .HasP2P}}{{.P2P.Success}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.Success}}{{else}}—{{end}}</td></tr>
-  </table>
-  {{end}}
-  {{if .Sweep}}
-  <h2>Sweep results</h2>
-  <table>
-    <tr><th>Scenario</th><th>Impl</th><th>Agents</th><th>Think ms</th><th>Payload B</th><th>Latency ms</th><th>Consensus wall</th><th>Avg propagation</th><th>P95 propagation</th><th>Stream RPCs</th><th>Epochs ok/failed</th></tr>
-    {{range .Sweep}}
-    <tr>
-      <td>{{.ScenarioName}}</td><td>{{.Implementation}}</td><td>{{.Agents}}</td><td>{{.ThinkTimeMs}}</td><td>{{.PayloadBytes}}</td><td>{{.LatencyMs}}</td>
-      <td>{{.ConsensusWallMS}}</td><td>{{.AvgPropagationMS}}</td><td>{{.P95PropagationMS}}</td><td>{{.StreamRPCCount}}</td><td>{{.EpochsSucceeded}}/{{.EpochsFailed}}</td>
-    </tr>
-    {{end}}
-  </table>
-  {{end}}` + matrixSection + `
+  </div>`
 
+const reportMetricDefsSection = `
   <h2 id="defs">Metric definitions</h2>
   <dl class="defs">
     <dt>Consensus wall (ms)</dt>
@@ -618,12 +593,49 @@ flowchart TB
     <dt>Payload B</dt>
     <dd>Fixed-size padding (<code>spec.payloadBytes</code>) added to every finding to stress transport
       bandwidth. Semantically inert; it does not change the consensus math or round count.</dd>
-  </dl>
+  </dl>`
 
+const reportMermaidScript = `
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
-  </script>
+  </script>`
+
+const htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Agent Consensus Convergence</title>
+  <style>` + reportStyles + `
+  </style>
+</head>
+<body>` + reportIntroSection + reportArchSection + `
+  {{range .Comparisons}}
+  <h2>{{.ScenarioName}}</h2>
+  {{if .Description}}<p class="plandesc">{{.Description}}</p>{{end}}
+  <table>
+    <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
+    <tr><td>Consensus wall (ms)</td><td>{{if .HasP2P}}{{.P2P.ConsensusWallMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.ConsensusWallMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>{{if .HasP2P}}{{.P2P.LastAgentConvergeMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.LastAgentConvergeMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>{{if .HasP2P}}{{.P2P.AvgPropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.AvgPropagationMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>{{if .HasP2P}}{{.P2P.P95PropagationMS}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.P95PropagationMS}}{{else}}—{{end}}</td></tr>
+    <tr><td>Stream RPC count</td><td>{{if .HasP2P}}{{.P2P.StreamRPCCount}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.StreamRPCCount}}{{else}}—{{end}}</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>{{if .HasP2P}}{{.P2P.EpochsSucceeded}} / {{.P2P.EpochsFailed}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.EpochsSucceeded}} / {{.SLIM.EpochsFailed}}{{else}}—{{end}}</td></tr>
+    <tr><td>Success</td><td>{{if .HasP2P}}{{.P2P.Success}}{{else}}—{{end}}</td><td>{{if .HasSLIM}}{{.SLIM.Success}}{{else}}—{{end}}</td></tr>
+  </table>
+  {{end}}
+  {{if .Sweep}}
+  <h2>Sweep results</h2>
+  <table>
+    <tr><th>Scenario</th><th>Impl</th><th>Agents</th><th>Think ms</th><th>Payload B</th><th>Latency ms</th><th>Consensus wall</th><th>Avg propagation</th><th>P95 propagation</th><th>Stream RPCs</th><th>Epochs ok/failed</th></tr>
+    {{range .Sweep}}
+    <tr>
+      <td>{{.ScenarioName}}</td><td>{{.Implementation}}</td><td>{{.Agents}}</td><td>{{.ThinkTimeMs}}</td><td>{{.PayloadBytes}}</td><td>{{.LatencyMs}}</td>
+      <td>{{.ConsensusWallMS}}</td><td>{{.AvgPropagationMS}}</td><td>{{.P95PropagationMS}}</td><td>{{.StreamRPCCount}}</td><td>{{.EpochsSucceeded}}/{{.EpochsFailed}}</td>
+    </tr>
+    {{end}}
+  </table>
+  {{end}}` + matrixSection + reportMetricDefsSection + reportMermaidScript + `
 </body>
 </html>
 `
@@ -632,29 +644,14 @@ const matrixHTMLTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Agent Consensus Matrix Sweep</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1200px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: right; }
-    th:first-child, td:first-child { text-align: left; }
-    table.matrix td { min-width: 6rem; vertical-align: top; }
-    .walls { font-weight: 600; }
-    .ratio { color: #555; }
-    .warn { color: #a33; }
-    .intro { background: #f5f7fa; border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 2rem; }` + matrixStyles + `
+  <title>Agent Consensus Convergence</title>
+  <style>` + reportStyles + `
   </style>
 </head>
-<body>
-  <h1>Agent Consensus Matrix Sweep</h1>
-  <div class="intro">
-    <p>Three tables fix <strong>latency</strong> (shown once above each grid) and sweep
-    <strong>agents</strong> (rows) × <strong>payload</strong> (columns). Think time is fixed at 20 ms.
-    Each cell: <strong>P2P / SLIM</strong> consensus wall (ms); ratio shown when both runs succeeded.</p>
-  </div>
-  {{if .Matrices}}` + matrixSection + `{{else}}
+<body>` + reportIntroSection + reportArchSection + matrixSection + `
+  {{if not .Matrices}}
   <p>No matrix results found. Run <code>task compare:sweep:matrix</code> first.</p>
-  {{end}}
+  {{end}}` + reportMetricDefsSection + reportMermaidScript + `
 </body>
 </html>
 `

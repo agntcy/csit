@@ -455,18 +455,15 @@ tasks:
 
   compare:sweep:matrix:merge:
     desc: Merge per-latency matrix TSV slices and render dashboard (MATRIX_SLICE_TSVS comma-separated)
-    deps:
-      - build
     vars:
       MATRIX_SLICE_TSVS: '{{ .MATRIX_SLICE_TSVS | default "./reports/matrix-lat0.tsv,./reports/matrix-lat50.tsv,./reports/matrix-lat100.tsv" }}'
     cmds:
       - |
-        set -euo pipefail
+        set -eu
         mkdir -p {{ .REPORTS_DIR }}
         rm -f {{ .MATRIX_TSV }}
         first=true
-        IFS=',' read -r -a SLICES <<< "{{ .MATRIX_SLICE_TSVS }}"
-        for f in "${SLICES[@]}"; do
+        for f in $(echo "{{ .MATRIX_SLICE_TSVS }}" | tr ',' ' '); do
           if [ ! -f "$f" ]; then
             echo "warning: missing slice $f" >&2
             continue
@@ -484,6 +481,12 @@ tasks:
         fi
       - task: compare:matrix:report
       - cp {{ .REPORTS_DIR }}/matrix.html {{ .REPORTS_DIR }}/index.html
+
+  compare:sweep:matrix:dummy:
+    desc: Smoke-test matrix merge + report with dummy TSV slices (no benchmark runs)
+    cmds:
+      - go run ./tools/gen_dummy_matrix_tsv -out-dir {{ .REPORTS_DIR }}
+      - task: compare:sweep:matrix:merge
 
   compare:sweep:matrix:run:
     internal: true
