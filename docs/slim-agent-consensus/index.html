@@ -80,11 +80,11 @@ flowchart TB
   <p class="plandesc">Baseline at small scale with no payload. Measures the floor cost of each transport when fan-out is trivial.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>66</td><td>153</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>72</td><td>248</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>1</td><td>29</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>1</td><td>49</td></tr>
-    <tr><td>Stream RPC count</td><td>84</td><td>30</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>61</td><td>158</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>71</td><td>209</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>1</td><td>33</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>1</td><td>66</td></tr>
+    <tr><td>Stream RPC count</td><td>78</td><td>33</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
@@ -93,11 +93,11 @@ flowchart TB
   <p class="plandesc">Small scale, no payload, slightly more agents. Measures whether a few extra peers change the relay cost.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>74</td><td>205</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>76</td><td>232</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>1</td><td>35</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>2</td><td>59</td></tr>
-    <tr><td>Stream RPC count</td><td>300</td><td>65</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>76</td><td>229</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>79</td><td>270</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>1</td><td>36</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>2</td><td>53</td></tr>
+    <tr><td>Stream RPC count</td><td>300</td><td>67</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
@@ -106,11 +106,11 @@ flowchart TB
   <p class="plandesc">Introduces a large (10 KB) payload at a moderate agent count. Isolates the effect of payload size alone on each transport.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>171</td><td>262</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>190</td><td>377</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>40</td><td>55</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>57</td><td>165</td></tr>
-    <tr><td>Stream RPC count</td><td>1665</td><td>119</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>262</td><td>268</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>338</td><td>344</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>73</td><td>54</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>111</td><td>122</td></tr>
+    <tr><td>Stream RPC count</td><td>2223</td><td>126</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
@@ -119,25 +119,25 @@ flowchart TB
   <p class="plandesc">Raises the agent count but keeps messages tiny (no payload). Isolates the effect of agent count alone on fan-out cost.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>3165</td><td>337</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>4720</td><td>421</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>1632</td><td>63</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>4174</td><td>147</td></tr>
-    <tr><td>Stream RPC count</td><td>154437</td><td>261</td></tr>
-    <tr><td>Epochs (ok / failed)</td><td>3 / 2</td><td>5 / 0</td></tr>
-    <tr><td>Success</td><td>false</td><td>true</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>1940</td><td>327</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>3545</td><td>376</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>966</td><td>57</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>2223</td><td>113</td></tr>
+    <tr><td>Stream RPC count</td><td>64269</td><td>270</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
+    <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
   
   <h2>hypothesis-convergence-20agents-10240b</h2>
   <p class="plandesc">Combines a high agent count with a large (10 KB) payload. Measures where agents x payload begin to compound.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>5157</td><td>289</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>5157</td><td>390</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>3023</td><td>42</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>5927</td><td>72</td></tr>
-    <tr><td>Stream RPC count</td><td>147367</td><td>249</td></tr>
-    <tr><td>Epochs (ok / failed)</td><td>1 / 4</td><td>5 / 0</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>0</td><td>254</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>0</td><td>345</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>3225</td><td>48</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>7720</td><td>95</td></tr>
+    <tr><td>Stream RPC count</td><td>149882</td><td>226</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>0 / 5</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>false</td><td>true</td></tr>
   </table>
   
@@ -145,11 +145,11 @@ flowchart TB
   <p class="plandesc">Stress case: highest agent count with a large (10 KB) payload. Measures each transport&#39;s behavior as the central relay is pushed toward its saturation point.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>0</td><td>443</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>0</td><td>643</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>6025</td><td>78</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>12324</td><td>157</td></tr>
-    <tr><td>Stream RPC count</td><td>247165</td><td>430</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>0</td><td>382</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>0</td><td>503</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>4760</td><td>80</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>8129</td><td>153</td></tr>
+    <tr><td>Stream RPC count</td><td>248166</td><td>439</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>0 / 5</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>false</td><td>true</td></tr>
   </table>
@@ -158,11 +158,11 @@ flowchart TB
   <p class="plandesc">Distant-region case: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures how each transport&#39;s routing (central relay vs native multicast) absorbs per-hop latency for a subset of members.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>3470</td><td>367</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>5677</td><td>471</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>1994</td><td>109</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>3560</td><td>169</td></tr>
-    <tr><td>Stream RPC count</td><td>151244</td><td>212</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>3565</td><td>334</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>5700</td><td>376</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>2367</td><td>102</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>3922</td><td>151</td></tr>
+    <tr><td>Stream RPC count</td><td>178179</td><td>214</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
@@ -171,11 +171,11 @@ flowchart TB
   <p class="plandesc">Distant-region case with a large (10 KB) payload: one third of the 20 agents carry an added network delay, as if hosted in a remote region. Measures the combined effect of remote-region latency and payload size on each transport&#39;s fan-out.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>2236</td><td>317</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>2525</td><td>509</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>1468</td><td>102</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>1892</td><td>156</td></tr>
-    <tr><td>Stream RPC count</td><td>15377</td><td>222</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>3444</td><td>304</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>4116</td><td>423</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>2288</td><td>96</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>3291</td><td>150</td></tr>
+    <tr><td>Stream RPC count</td><td>20873</td><td>219</td></tr>
     <tr><td>Epochs (ok / failed)</td><td>5 / 0</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>true</td><td>true</td></tr>
   </table>
@@ -184,12 +184,12 @@ flowchart TB
   <p class="plandesc">Distant-region stress case: one third of the 30 agents carry an added network delay while every finding also carries a large (10 KB) payload. Measures each transport&#39;s behavior when high agent count, large payloads, and a remote-region subset compound.</p>
   <table>
     <tr><th>Metric</th><th>P2P</th><th>SLIM</th></tr>
-    <tr><td>Consensus wall (ms)</td><td>4692</td><td>366</td></tr>
-    <tr><td>Last agent converge (ms)</td><td>4692</td><td>419</td></tr>
-    <tr><td>Avg propagation (ms)</td><td>4784</td><td>96</td></tr>
-    <tr><td>P95 propagation (ms)</td><td>8518</td><td>146</td></tr>
-    <tr><td>Stream RPC count</td><td>64898</td><td>347</td></tr>
-    <tr><td>Epochs (ok / failed)</td><td>1 / 4</td><td>5 / 0</td></tr>
+    <tr><td>Consensus wall (ms)</td><td>7050</td><td>331</td></tr>
+    <tr><td>Last agent converge (ms)</td><td>9136</td><td>429</td></tr>
+    <tr><td>Avg propagation (ms)</td><td>5679</td><td>111</td></tr>
+    <tr><td>P95 propagation (ms)</td><td>9826</td><td>155</td></tr>
+    <tr><td>Stream RPC count</td><td>68665</td><td>307</td></tr>
+    <tr><td>Epochs (ok / failed)</td><td>3 / 2</td><td>5 / 0</td></tr>
     <tr><td>Success</td><td>false</td><td>true</td></tr>
   </table>
   

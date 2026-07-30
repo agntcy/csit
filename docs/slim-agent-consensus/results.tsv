@@ -1,19 +1,19 @@
 scenario_name	domain	implementation	agents	think_time_ms	payload_bytes	consensus_wall_ms	consensus_round	findings_emitted	findings_received_total	avg_propagation_ms	p95_propagation_ms	last_agent_converge_ms	coord_fanout_ms	stream_rpc_count	epochs	epochs_succeeded	epochs_failed	success	error
-hypothesis-convergence-3agents	hypothesis-convergence	p2p-relay-stream	3	20	0	66	3	42	84	1	1	72	0	84	5	5	0	true	
-hypothesis-convergence-5agents	hypothesis-convergence	p2p-relay-stream	5	20	0	74	3	75	300	1	2	76	0	300	5	5	0	true	
-hypothesis-convergence-10agents-10240b	hypothesis-convergence	p2p-relay-stream	10	20	10240	171	5	184	1022	40	57	190	71	1665	5	5	0	true	
-hypothesis-convergence-20agents	hypothesis-convergence	p2p-relay-stream	20	20	0	3165	200	8138	12667	1632	4174	4720	3884227	154437	5	3	2	false	
-hypothesis-convergence-20agents-10240b	hypothesis-convergence	p2p-relay-stream	20	20	10240	5157	200	14625	4506	3023	5927	5157	2440891	147367	5	1	4	false	
-hypothesis-convergence-30agents-10240b	hypothesis-convergence	p2p-relay-stream	30	20	10240	0	200	29045	10524	6025	12324	0	11443553	247165	5	0	5	false	consensus not reached in any epoch
-hypothesis-convergence-20agents-lat100	hypothesis-convergence	p2p-relay-stream	20	20	0	3470	147	7974	6324	1994	3560	5677	6598934	151244	5	5	0	true	
-hypothesis-convergence-20agents-10240b-lat100	hypothesis-convergence	p2p-relay-stream	20	20	10240	2236	102	7713	4152	1468	1892	2525	717967	15377	5	5	0	true	
-hypothesis-convergence-30agents-10240b-lat100	hypothesis-convergence	p2p-relay-stream	30	20	10240	4692	200	25536	9005	4784	8518	4692	3444374	64898	5	1	4	false	
-hypothesis-convergence-3agents	hypothesis-convergence	slim-group-session	3	20	0	153	3	30	57	29	49	248	0	30	5	5	0	true	
-hypothesis-convergence-5agents	hypothesis-convergence	slim-group-session	5	20	0	205	3	65	225	35	59	232	0	65	5	5	0	true	
-hypothesis-convergence-10agents-10240b	hypothesis-convergence	slim-group-session	10	20	10240	262	5	119	966	55	165	377	0	119	5	5	0	true	
-hypothesis-convergence-20agents	hypothesis-convergence	slim-group-session	20	20	0	337	4	261	4552	63	147	421	0	261	5	5	0	true	
-hypothesis-convergence-20agents-10240b	hypothesis-convergence	slim-group-session	20	20	10240	289	3	249	4324	42	72	390	0	249	5	5	0	true	
-hypothesis-convergence-30agents-10240b	hypothesis-convergence	slim-group-session	30	20	10240	443	6	430	11654	78	157	643	0	430	5	5	0	true	
-hypothesis-convergence-20agents-lat100	hypothesis-convergence	slim-group-session	20	20	0	367	4	212	3636	109	169	471	0	212	5	5	0	true	
-hypothesis-convergence-20agents-10240b-lat100	hypothesis-convergence	slim-group-session	20	20	10240	317	5	222	3699	102	156	509	0	222	5	5	0	true	
-hypothesis-convergence-30agents-10240b-lat100	hypothesis-convergence	slim-group-session	30	20	10240	366	5	347	9236	96	146	419	0	347	5	5	0	true	
+hypothesis-convergence-3agents	hypothesis-convergence	p2p-relay-stream	3	20	0	61	3	39	78	1	1	71	0	78	5	5	0	true	
+hypothesis-convergence-5agents	hypothesis-convergence	p2p-relay-stream	5	20	0	76	3	75	300	1	2	79	0	300	5	5	0	true	
+hypothesis-convergence-10agents-10240b	hypothesis-convergence	p2p-relay-stream	10	20	10240	262	9	247	1300	73	111	338	1	2223	5	5	0	true	
+hypothesis-convergence-20agents	hypothesis-convergence	p2p-relay-stream	20	20	0	1940	153	3386	7359	966	2223	3545	480	64269	5	5	0	true	
+hypothesis-convergence-20agents-10240b	hypothesis-convergence	p2p-relay-stream	20	20	10240	0	200	14965	4355	3225	7720	0	3231679	149882	5	0	5	false	consensus not reached in any epoch
+hypothesis-convergence-30agents-10240b	hypothesis-convergence	p2p-relay-stream	30	20	10240	0	200	27643	6930	4760	8129	0	12521312	248166	5	0	5	false	consensus not reached in any epoch
+hypothesis-convergence-20agents-lat100	hypothesis-convergence	p2p-relay-stream	20	20	0	3565	170	9391	7170	2367	3922	5700	7970158	178179	5	5	0	true	
+hypothesis-convergence-20agents-10240b-lat100	hypothesis-convergence	p2p-relay-stream	20	20	10240	3444	167	9794	5503	2288	3291	4116	1023203	20873	5	5	0	true	
+hypothesis-convergence-30agents-10240b-lat100	hypothesis-convergence	p2p-relay-stream	30	20	10240	7050	200	24930	11577	5679	9826	9136	3531000	68665	5	3	2	false	
+hypothesis-convergence-3agents	hypothesis-convergence	slim-group-session	3	20	0	158	3	33	59	33	66	209	0	33	5	5	0	true	
+hypothesis-convergence-5agents	hypothesis-convergence	slim-group-session	5	20	0	229	3	67	235	36	53	270	0	67	5	5	0	true	
+hypothesis-convergence-10agents-10240b	hypothesis-convergence	slim-group-session	10	20	10240	268	4	126	979	54	122	344	0	126	5	5	0	true	
+hypothesis-convergence-20agents	hypothesis-convergence	slim-group-session	20	20	0	327	4	270	4762	57	113	376	0	270	5	5	0	true	
+hypothesis-convergence-20agents-10240b	hypothesis-convergence	slim-group-session	20	20	10240	254	3	226	4082	48	95	345	0	226	5	5	0	true	
+hypothesis-convergence-30agents-10240b	hypothesis-convergence	slim-group-session	30	20	10240	382	4	439	12147	80	153	503	0	439	5	5	0	true	
+hypothesis-convergence-20agents-lat100	hypothesis-convergence	slim-group-session	20	20	0	334	4	214	3434	102	151	376	0	214	5	5	0	true	
+hypothesis-convergence-20agents-10240b-lat100	hypothesis-convergence	slim-group-session	20	20	10240	304	4	219	3552	96	150	423	0	219	5	5	0	true	
+hypothesis-convergence-30agents-10240b-lat100	hypothesis-convergence	slim-group-session	30	20	10240	331	4	307	7972	111	155	429	0	307	5	5	0	true	
