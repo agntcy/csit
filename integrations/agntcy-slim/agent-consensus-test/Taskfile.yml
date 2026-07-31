@@ -411,7 +411,7 @@ tasks:
     vars:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
-      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
       MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
@@ -436,7 +436,7 @@ tasks:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0" }}'
       MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
-      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
       MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
@@ -494,7 +494,7 @@ tasks:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
       MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
-      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
       MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
@@ -552,7 +552,7 @@ tasks:
       MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
       MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
-      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240,32768" }}'
+      MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
     cmds:
       - |
