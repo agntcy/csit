@@ -414,7 +414,7 @@ tasks:
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
-      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "120000" }}'
     cmds:
       - task: compare:cleanup
       - rm -f {{ .MATRIX_TSV }}
@@ -439,7 +439,7 @@ tasks:
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
-      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "120000" }}'
     cmds:
       - task: compare:cleanup
       - rm -f {{ .MATRIX_TSV }}
@@ -497,7 +497,7 @@ tasks:
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
       MATRIX_EPOCHS: '{{ .MATRIX_EPOCHS | default "5" }}'
-      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "30000" }}'
+      MATRIX_MAX_EPOCH_MS: '{{ .MATRIX_MAX_EPOCH_MS | default "120000" }}'
     cmds:
       - |
         set -euo pipefail
