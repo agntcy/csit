@@ -448,6 +448,31 @@ const matrixStyles = `
       margin-top: 0;
       border-top: none;
     }
+    .matrix-slice table.matrix thead th {
+      background: #2d4a6f;
+      color: #f8fafc;
+      font-weight: 650;
+      font-size: 0.875rem;
+      letter-spacing: 0.02em;
+      border-color: #243d5c;
+    }
+    .matrix-slice table.matrix thead th.matrix-corner {
+      background: #1e334d;
+      font-weight: 700;
+    }
+    .matrix-slice table.matrix tbody th {
+      background: #e8eef5;
+      color: #1a2a3a;
+      font-weight: 650;
+      border-color: #c5d4e8;
+      white-space: nowrap;
+    }
+    .matrix-slice table.matrix tbody td {
+      background: #fff;
+    }
+    .matrix-slice table.matrix tbody tr:nth-child(even) td {
+      background: #fafbfc;
+    }
     .matrix-slice table.matrix tr:first-child th { border-top: none; }
     .matrix-legend { color: #555; font-size: 0.875rem; margin: 0 0 1rem; }`
 
@@ -464,10 +489,13 @@ const matrixSection = `
       Fixed think time: <strong>{{$tbl.ThinkTimeMs}} ms</strong> · Swept axes: agents (rows) × payload (columns)
     </p>
     <table class="matrix">
-      <tr><th>Agents \ Payload</th>{{range $tbl.PayloadCols}}<th>{{formatPayload .}}</th>{{end}}</tr>
+      <thead>
+        <tr><th class="matrix-corner">Number of Agents \ Payload size</th>{{range $tbl.PayloadCols}}<th>{{formatPayload .}}</th>{{end}}</tr>
+      </thead>
+      <tbody>
       {{range $agents := $tbl.AgentRows}}
       <tr>
-        <th>{{$agents}}</th>
+        <th scope="row">{{$agents}}</th>
         {{range $payload := $tbl.PayloadCols}}
         {{with index (index $tbl.Cells $agents) $payload}}
         <td>
@@ -481,6 +509,7 @@ const matrixSection = `
         {{end}}
       </tr>
       {{end}}
+      </tbody>
     </table>
   </div>
   {{end}}
