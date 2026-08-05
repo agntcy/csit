@@ -88,6 +88,7 @@ func main() {
 		Agents:         len(s.Agents),
 		ThinkTimeMs:    s.Spec.ThinkTimeMs,
 		PayloadBytes:   s.Spec.PayloadBytes,
+		LatencyMs:      s.RepresentativeLatencyMs(),
 		Epochs:         s.Spec.Epochs,
 	}
 

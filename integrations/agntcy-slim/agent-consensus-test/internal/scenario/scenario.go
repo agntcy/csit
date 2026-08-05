@@ -206,6 +206,30 @@ type GenerateOptions struct {
 	// LatencyCount is how many (trailing) agents get LatencyMs. When 0 and
 	// LatencyMs > 0, it defaults to round(Agents/3).
 	LatencyCount int
+	// MatrixNaming selects compact matrix filenames: matrix-lat{L}-{N}ag[-{B}b].
+	MatrixNaming bool
+}
+
+// MatrixScenarioFilename returns the canonical filename stem for an agents×payload
+// matrix cell at a fixed latency slice (think time is fixed globally, not encoded).
+func MatrixScenarioFilename(latencyMs int64, agents, payloadBytes int) string {
+	name := fmt.Sprintf("matrix-lat%d-%dag", latencyMs, agents)
+	if payloadBytes > 0 {
+		name = fmt.Sprintf("%s-%db", name, payloadBytes)
+	}
+	return name
+}
+
+// RepresentativeLatencyMs returns the configured one-way delay stamped on laggy
+// agents (0 when every agent is local).
+func (s *ConsensusScenario) RepresentativeLatencyMs() int64 {
+	var max int64
+	for _, a := range s.Agents {
+		if a.LatencyMs > max {
+			max = a.LatencyMs
+		}
+	}
+	return max
 }
 
 func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
@@ -248,12 +272,17 @@ func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
 		}
 	}
 
-	name := fmt.Sprintf("%s-%dagents-%dms", opts.Family, opts.Agents, opts.ThinkTimeMs)
-	if opts.PayloadBytes > 0 {
-		name = fmt.Sprintf("%s-%db", name, opts.PayloadBytes)
-	}
-	if latencyCount > 0 {
-		name = fmt.Sprintf("%s-lat%d", name, opts.LatencyMs)
+	var name string
+	if opts.MatrixNaming {
+		name = MatrixScenarioFilename(opts.LatencyMs, opts.Agents, opts.PayloadBytes)
+	} else {
+		name = fmt.Sprintf("%s-%dagents-%dms", opts.Family, opts.Agents, opts.ThinkTimeMs)
+		if opts.PayloadBytes > 0 {
+			name = fmt.Sprintf("%s-%db", name, opts.PayloadBytes)
+		}
+		if latencyCount > 0 {
+			name = fmt.Sprintf("%s-lat%d", name, opts.LatencyMs)
+		}
 	}
 	agents := make([]Agent, opts.Agents)
 	// Stamp latency on the trailing latencyCount agents so the coordinator
@@ -283,7 +312,7 @@ func Generate(opts GenerateOptions) (*ConsensusScenario, error) {
 		Metadata: Metadata{
 			Name:        name,
 			Domain:      opts.Family,
-			Description: "Generated consensus scenario for transport sweeps",
+			Description: matrixDescription(opts, latencyCount),
 		},
 		Spec: Spec{
 			Agents:             opts.Agents,
@@ -319,6 +348,21 @@ func maxInt64(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func matrixDescription(opts GenerateOptions, latencyCount int) string {
+	if !opts.MatrixNaming {
+		return "Generated consensus scenario for transport sweeps"
+	}
+	desc := fmt.Sprintf("Matrix cell: %d agents, %d B payload, think %d ms",
+		opts.Agents, opts.PayloadBytes, opts.ThinkTimeMs)
+	if opts.LatencyMs > 0 {
+		desc += fmt.Sprintf("; %d ms one-way on %d distant-region agents (~⅓ of group)",
+			opts.LatencyMs, latencyCount)
+	} else {
+		desc += "; all agents local (0 ms latency)"
+	}
+	return desc
 }
 
 func NormalizeFamily(input string) string {
