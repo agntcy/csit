@@ -55,6 +55,8 @@
     .rerun { font-size: .8125rem; background: var(--panel); border: 1px solid var(--border);
       border-radius: 6px; padding: .5rem .65rem; margin-top: .75rem; }
     .rerun code { font-size: .8rem; word-break: break-all; }
+    .related-suites { border-style: dashed; background: transparent; }
+    .related-suites h3 { color: var(--muted); font-size: .95rem; }
     footer { margin-top: 2rem; font-size: .8125rem; color: var(--muted); text-align: center; }
     footer a { color: var(--accent); }
   </style>
@@ -210,6 +212,15 @@
           </tr>
         </tbody>
       </table>
+
+      <article class="scenario-card related-suites" id="c2-related-suites">
+        <h3>Related suites — not yet wired into the evidence flow</h3>
+        <p class="scenario-meta">These suites exist today; the status above is not derived from them.</p>
+        <ul class="evidence-links">
+          <li><a href="../../integrations/agntcy-slim/TopologyTest.md">TopologyTest.md</a> — topology routing (agntcy-slim)</li>
+        </ul>
+        <div class="rerun"><strong>Rerun (dev):</strong><br><code>task integrations:slim:test:topology</code></div>
+      </article>
     </section>
 
     <!-- C3 — Distributed -->
@@ -253,6 +264,19 @@
           </tr>
         </tbody>
       </table>
+
+      <article class="scenario-card related-suites" id="c3-related-suites">
+        <h3>Related suites — not yet wired into the evidence flow</h3>
+        <p class="scenario-meta">kind-slim-multi-host + integrations/kind-slim-multicluster — status above is not derived from these.</p>
+        <pre class="topology">cluster A: controller + root node
+cluster B: downstream node
+Link B → A: APPLIED · node B: Connected</pre>
+        <ul class="evidence-links">
+          <li><a href="../../integrations/kind-slim-multicluster/">Integration suite</a></li>
+          <li><a href="../../kind-slim-multi-host/README.md">KinD stack README</a></li>
+        </ul>
+        <div class="rerun"><strong>Rerun:</strong><br><code>CSIT_KIND_SLIM_MULTICLUSTER=1 go test ./integrations/kind-slim-multicluster/... -ginkgo.label-filter=kind-slim-multicluster</code></div>
+      </article>
     </section>
 
     <footer>
