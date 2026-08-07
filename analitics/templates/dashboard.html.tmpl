@@ -57,6 +57,10 @@
     .rerun code { font-size: .8rem; word-break: break-all; }
     .related-suites { border-style: dashed; background: transparent; }
     .related-suites h3 { color: var(--muted); font-size: .95rem; }
+    .planned-note { font-size: .9375rem; color: var(--partial); background: var(--partial-bg);
+      border: 1px solid #f0e0c0; border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1.25rem; max-width: 72ch; }
+    .planned-note strong { color: var(--partial); }
+    .planned-note a { color: var(--accent); }
     footer { margin-top: 2rem; font-size: .8125rem; color: var(--muted); text-align: center; }
     footer a { color: var(--accent); }
   </style>
@@ -97,6 +101,11 @@
           </tr>
         </tbody>
       </table>
+      <p class="use-meta" style="margin-bottom:0">
+        <strong>Status legend:</strong>
+        <span class="status status-verified">Verified</span> assertion-backed test evidence exists ·
+        <span class="status status-planned">Evidence pending</span> use case defined; evidence not yet wired into the build.
+      </p>
     </section>
 
     <!-- C1 — Centralized -->
@@ -186,13 +195,15 @@
         <span class="status status-planned">Evidence pending</span>
       </div>
       <p class="class-def">No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order. Agents follow the graph; autonomy is bounded by it.</p>
-      <p class="use-meta">The use cases below define the target scenarios. Test-derived evidence is not yet available.</p>
+      <p class="planned-note"><strong>Forthcoming.</strong> The use cases below define the target scenarios and the evidence each will produce once wired into the automated build. Status is <em>Evidence pending</em> until the related suites feed <code>c2-evidence.json</code>. Tracked in the <a href="../docs/plans/slim-dashboard-epic.md">SLIM dashboard epic</a> (post-July phase).</p>
 
       <table class="use-grid">
         <thead>
           <tr>
             <th>Use case</th>
             <th>SLIM mechanism</th>
+            <th>Status</th>
+            <th>Expected evidence</th>
           </tr>
         </thead>
         <tbody>
@@ -202,6 +213,8 @@
               <div class="use-meta">Messages traverse several SLIM servers by name (e.g. one agent waits while another sends through intermediate nodes)</div>
             </td>
             <td><code>declarative routes</code></td>
+            <td><span class="status status-planned">Evidence pending</span></td>
+            <td class="use-meta">Per-hop delivery assertions: each message reaches the named SLIM servers in the declared order; success rate and observed hop path captured from topology-test logs.</td>
           </tr>
           <tr id="c2-workflow-app">
             <td>
@@ -209,6 +222,8 @@
               <div class="use-meta">An external workflow engine sequences the steps while SLIM carries messages between them</div>
             </td>
             <td><code>workflow + SLIM</code></td>
+            <td><span class="status status-planned">Evidence pending</span></td>
+            <td class="use-meta">Step-completion proof: every workflow step's message is delivered and acknowledged; end-to-end run reported as successful by the workflow manager.</td>
           </tr>
         </tbody>
       </table>
@@ -231,13 +246,15 @@
         <span class="status status-planned">Evidence pending</span>
       </div>
       <p class="class-def">Agents and dataplanes act as peers across hosts, clusters, or org boundaries with no standing workflow script. Paths are established through control-plane links and policy, and the emphasis is on mesh membership and durability.</p>
-      <p class="use-meta">The use cases below define the target scenarios. Test-derived evidence is not yet available.</p>
+      <p class="planned-note"><strong>Forthcoming.</strong> The use cases below define the target scenarios and the evidence each will produce once wired into the automated build. Status is <em>Evidence pending</em> until the related suites feed <code>c3-evidence.json</code>. Tracked in the <a href="../docs/plans/slim-dashboard-epic.md">SLIM dashboard epic</a> (post-July phase).</p>
 
       <table class="use-grid">
         <thead>
           <tr>
             <th>Use case</th>
             <th>SLIM mechanism</th>
+            <th>Status</th>
+            <th>Expected evidence</th>
           </tr>
         </thead>
         <tbody>
@@ -247,6 +264,8 @@
               <div class="use-meta">A dataplane on one cluster registers with the controller on another and the cross-cluster link is applied</div>
             </td>
             <td><code>controller link</code></td>
+            <td><span class="status status-planned">Evidence pending</span></td>
+            <td class="use-meta">Node reported <code>Connected</code> and the cross-cluster link reported <code>APPLIED</code>, captured from controller / <code>slimctl</code> state.</td>
           </tr>
           <tr id="c3-link-persistence">
             <td>
@@ -254,6 +273,8 @@
               <div class="use-meta">The cross-cluster link keeps the same identity after the controller restarts</div>
             </td>
             <td><code>link persistence</code></td>
+            <td><span class="status status-planned">Evidence pending</span></td>
+            <td class="use-meta">Same link ID observed before and after a controller restart; link remains <code>APPLIED</code> with no manual re-registration.</td>
           </tr>
           <tr id="c3-autonomous-peers">
             <td>
@@ -261,6 +282,8 @@
               <div class="use-meta">Peers exchange messages across hosts or clusters without a fixed workflow, via federation and optional routes</div>
             </td>
             <td><code>federation</code></td>
+            <td><span class="status status-planned">Evidence pending</span></td>
+            <td class="use-meta">Cross-host message exchange succeeds via federation without a fixed workflow script; delivery success recorded across peers.</td>
           </tr>
         </tbody>
       </table>
