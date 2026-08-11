@@ -409,7 +409,7 @@ tasks:
     deps:
       - build
     vars:
-      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,25,50,100" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
       MATRIX_THINK_MS: '{{ .MATRIX_THINK_MS | default "20" }}'
@@ -456,7 +456,7 @@ tasks:
   compare:sweep:matrix:merge:
     desc: Merge per-latency matrix TSV slices and render dashboard (MATRIX_SLICE_TSVS comma-separated)
     vars:
-      MATRIX_SLICE_TSVS: '{{ .MATRIX_SLICE_TSVS | default "./reports/matrix-lat0.tsv,./reports/matrix-lat50.tsv,./reports/matrix-lat100.tsv" }}'
+      MATRIX_SLICE_TSVS: '{{ .MATRIX_SLICE_TSVS | default "./reports/matrix-lat0.tsv,./reports/matrix-lat25.tsv,./reports/matrix-lat50.tsv,./reports/matrix-lat100.tsv" }}'
     cmds:
       - |
         set -eu
@@ -491,7 +491,7 @@ tasks:
   compare:sweep:matrix:run:
     internal: true
     vars:
-      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,25,50,100" }}'
       MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
@@ -549,7 +549,7 @@ tasks:
     deps:
       - deps:slimctl-download
     vars:
-      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,50,100" }}'
+      MATRIX_LATENCY_MS: '{{ .MATRIX_LATENCY_MS | default "0,25,50,100" }}'
       MATRIX_TSV: '{{ .MATRIX_TSV | default "./reports/matrix.tsv" }}'
       MATRIX_AGENTS: '{{ .MATRIX_AGENTS | default "3,5,10,20,30" }}'
       MATRIX_PAYLOAD_BYTES: '{{ .MATRIX_PAYLOAD_BYTES | default "0,1024,4096,10240" }}'
