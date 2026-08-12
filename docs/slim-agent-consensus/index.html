@@ -57,11 +57,50 @@
     }
     .matrix-slice table.matrix tr:first-child th { border-top: none; }
     .matrix-legend { color: #555; font-size: 0.875rem; margin: 0 0 1rem; }
+    .matrix-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1rem 0 0.5rem;
+      padding: 0.65rem 0.9rem;
+      background: #f5f7fa;
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+    }
+    .matrix-toolbar label { font-size: 0.9rem; color: #333; }
+    .matrix-toolbar select {
+      font: inherit;
+      font-size: 0.9rem;
+      padding: 0.35rem 0.6rem;
+      border: 1px solid #c5ccd6;
+      border-radius: 4px;
+      background: #fff;
+      min-width: 14rem;
+    }
+    .metric-view[hidden] { display: none; }
     .intro { background: #f5f7fa; border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem 1.25rem; }
     .intro code { background: #eceff3; padding: 0.05rem 0.3rem; border-radius: 3px; }
     dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
     dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
-    .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
+    .arch-diagrams { display: flex; flex-direction: column; gap: 1.25rem; margin: 1rem 0 1.5rem; }
+    .diagram {
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+      padding: 1rem 1.25rem 1.25rem;
+      background: #fff;
+      overflow-x: auto;
+    }
+    .diagram h3 {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 650;
+      color: #1a2a3a;
+      line-height: 1.35;
+    }
+    .diagram h3 small { display: block; font-weight: 450; color: #555; margin-top: 0.2rem; }
+    .diagram pre.mermaid { margin: 0; background: transparent; }
+    .diagram svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+    .diagram .nodeLabel, .diagram .edgeLabel { font-size: 13px !important; }
     p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }
   </style>
 </head>
@@ -93,39 +132,57 @@
     agents publish each finding once to a native group session and the dataplane fans it out to all peers (the
     runner only observes). <strong>P2P streaming</strong> streams every finding to the runner acting as a
     <em>relay hub</em>, which re-streams it to every other agent — two hops per finding, all through one point.</p>
-  <div class="diagram">
-    <pre class="mermaid">
-flowchart TB
-  subgraph slim["SLIM group multicast — native group session, no relay"]
-    R1["runner (passive observer: start signal + consumes pushed metrics)"]
-    SA0["agent-0"]
-    SA1["agent-1"]
-    SA2["agent-2"]
-    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
-    SA1 --- SA2
-    SA0 --- SA2
-    SA0 -.->|"push snapshot on convergence"| R1
-    SA1 -.-> R1
-    SA2 -.-> R1
-  end
-  subgraph p2p["P2P streaming — runner is the relay hub"]
-    R2["runner = RELAY (hosts streaming server)"]
-    AA0["agent-0"]
-    AA1["agent-1"]
-    AA2["agent-2"]
-    AA0 -->|"stream findings → runner"| R2
-    AA1 --> R2
-    AA2 --> R2
-    R2 -->|"stream relayed findings → agent"| AA0
-    R2 --> AA1
-    R2 --> AA2
-  end
-    </pre>
+  <div class="arch-diagrams">
+    <div class="diagram">
+      <h3>SLIM group multicast<small>Native group session — one publish, dataplane fan-out, no relay</small></h3>
+      <pre class="mermaid">
+flowchart TD
+  R["Runner<br/>start signal + metrics"]
+  G["Group session<br/>dataplane fan-out"]
+  A0["Agent 0"]
+  A1["Agent 1"]
+  A2["Agent 2"]
+  A0 -->|"publish finding"| G
+  A1 -->|"publish finding"| G
+  A2 -->|"publish finding"| G
+  G -->|"deliver to peers"| A0
+  G --> A1
+  G --> A2
+  A0 -.->|"snapshot on converge"| R
+  A1 -.-> R
+  A2 -.-> R
+      </pre>
+    </div>
+    <div class="diagram">
+      <h3>P2P streaming<small>Runner is the relay hub — two hops per finding through one point</small></h3>
+      <pre class="mermaid">
+flowchart TD
+  A0["Agent 0"]
+  A1["Agent 1"]
+  A2["Agent 2"]
+  H["Runner<br/>RELAY hub"]
+  A0 -->|"stream finding"| H
+  A1 --> H
+  A2 --> H
+  H -->|"relay to each peer"| A0
+  H --> A1
+  H --> A2
+      </pre>
+    </div>
   </div>
   
   <h2 id="matrices">Matrix sweep (agents × payload at fixed latency)</h2>
-  <p class="matrix-legend">Each block below fixes latency for every cell in its table. Rows vary agent count;
-  columns vary payload size. Cells show <strong>P2P / SLIM</strong> consensus wall (ms) and P2P÷SLIM ratio when both succeeded.</p>
+  <div class="matrix-toolbar">
+    <label for="matrix-metric-select"><strong>Metric</strong></label>
+    <select id="matrix-metric-select" aria-label="Matrix metric">
+      <option value="consensus_wall_ms" selected>Consensus wall (ms)</option>
+      <option value="findings_emitted">Findings emitted</option>
+      <option value="findings_received_total">Findings received (total)</option>
+      <option value="avg_propagation_ms">Avg propagation (ms)</option>
+      <option value="p95_propagation_ms">P95 propagation (ms)</option>
+    </select>
+  </div>
+  <p class="matrix-legend" id="matrix-legend">Each block fixes latency for every cell. Rows vary agent count; columns vary payload size. Cells show <strong>P2P / SLIM</strong> consensus wall (ms) and P2P÷SLIM ratio when both succeeded.</p>
   
   
   <div class="matrix-slice">
@@ -143,34 +200,126 @@ flowchart TB
         <th scope="row">3</th>
         
         
+        
         <td>
-          <span class="walls">60 / 192</span>
-          <br><small class="ratio">0.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">61 / 155</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">39 / 30</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">77 / 53</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1 / 34</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">1 / 55</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">70 / 158</span>
-          <br><small class="ratio">0.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">70 / 145</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">45 / 31</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">88 / 57</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1 / 31</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">1 / 41</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">65 / 149</span>
-          <br><small class="ratio">0.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">66 / 164</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">41 / 33</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">79 / 61</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1 / 31</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">2 / 58</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">66 / 170</span>
-          <br><small class="ratio">0.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">66 / 172</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">41 / 31</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">78 / 55</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">2 / 29</span>
+            <br><small class="ratio">0.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">3 / 58</span>
+            <br><small class="ratio">0.1×</small>
+            
+          </span>
         </td>
         
         
@@ -180,34 +329,126 @@ flowchart TB
         <th scope="row">5</th>
         
         
+        
         <td>
-          <span class="walls">77 / 230</span>
-          <br><small class="ratio">0.3×</small>
-          <br><small class="warn">SLIM fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">76 / 231</span>
+            <br><small class="ratio">0.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">75 / 62</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">300 / 227</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1 / 50</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">2 / 76</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">75 / 222</span>
-          <br><small class="ratio">0.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">76 / 198</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">75 / 63</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">297 / 222</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">2 / 49</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">3 / 82</span>
+            <br><small class="ratio">0.0×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">77 / 227</span>
-          <br><small class="ratio">0.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">77 / 206</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">75 / 57</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">300 / 191</span>
+            <br><small class="ratio">1.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">3 / 49</span>
+            <br><small class="ratio">0.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">6 / 86</span>
+            <br><small class="ratio">0.1×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">74 / 236</span>
-          <br><small class="ratio">0.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">80 / 203</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">75 / 64</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">295 / 216</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">5 / 33</span>
+            <br><small class="ratio">0.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">7 / 46</span>
+            <br><small class="ratio">0.2×</small>
+            
+          </span>
         </td>
         
         
@@ -217,34 +458,126 @@ flowchart TB
         <th scope="row">10</th>
         
         
+        
         <td>
-          <span class="walls">94 / 224</span>
-          <br><small class="ratio">0.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">89 / 224</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">120 / 99</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1066 / 749</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">9 / 50</span>
+            <br><small class="ratio">0.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">14 / 89</span>
+            <br><small class="ratio">0.2×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">116 / 292</span>
-          <br><small class="ratio">0.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">120 / 244</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">150 / 119</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1300 / 958</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">21 / 49</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">29 / 88</span>
+            <br><small class="ratio">0.3×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">148 / 230</span>
-          <br><small class="ratio">0.6×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">154 / 252</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">155 / 112</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1320 / 908</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">33 / 55</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">46 / 130</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">329 / 282</span>
-          <br><small class="ratio">1.2×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">204 / 328</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">185 / 138</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1178 / 1148</span>
+            <br><small class="ratio">1.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">50 / 66</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">83 / 178</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
         </td>
         
         
@@ -254,34 +587,126 @@ flowchart TB
         <th scope="row">20</th>
         
         
+        
         <td>
-          <span class="walls">1500 / 314</span>
-          <br><small class="ratio">4.8×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">4817 / 319</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">5189 / 243</span>
+            <br><small class="ratio">21.4×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">18904 / 4232</span>
+            <br><small class="ratio">4.5×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1612 / 60</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">4047 / 120</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">2668 / 298</span>
-          <br><small class="ratio">9.0×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">8746 / 323</span>
+            <br><small class="ratio">27.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">11874 / 258</span>
+            <br><small class="ratio">46.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">17025 / 4425</span>
+            <br><small class="ratio">3.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">4694 / 71</span>
+            <br><small class="ratio">66.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">8835 / 141</span>
+            <br><small class="ratio">62.7×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">10848 / 359</span>
-          <br><small class="ratio">30.2×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">10099 / 354</span>
+            <br><small class="ratio">28.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">13997 / 241</span>
+            <br><small class="ratio">58.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">11979 / 4243</span>
+            <br><small class="ratio">2.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">5137 / 75</span>
+            <br><small class="ratio">68.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">9531 / 214</span>
+            <br><small class="ratio">44.5×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">17033 / 198</span>
-          <br><small class="ratio">86.0×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">15174 / 309</span>
+            <br><small class="ratio">49.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">17180 / 244</span>
+            <br><small class="ratio">70.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">11525 / 4382</span>
+            <br><small class="ratio">2.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">7550 / 39</span>
+            <br><small class="ratio">193.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">11043 / 80</span>
+            <br><small class="ratio">138.0×</small>
+            
+          </span>
         </td>
         
         
@@ -291,34 +716,787 @@ flowchart TB
         <th scope="row">30</th>
         
         
+        
         <td>
-          <span class="walls">33622 / 343</span>
-          
-          <br><small class="warn">P2P fail · SLIM fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">13886 / 281</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">9952 / 308</span>
+            <br><small class="ratio">32.3×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">20319 / 8007</span>
+            <br><small class="ratio">2.5×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">6240 / 66</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">13478 / 129</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">46571 / 277</span>
-          
-          <br><small class="warn">P2P fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">31272 / 296</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">24476 / 327</span>
+            <br><small class="ratio">74.9×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">51772 / 8502</span>
+            <br><small class="ratio">6.1×</small>
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">21506 / 64</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">55370 / 98</span>
+            
+            <br><small class="warn">P2P fail</small>
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">32145 / 338</span>
-          <br><small class="ratio">95.1×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">26999 / 320</span>
+            <br><small class="ratio">84.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">26628 / 312</span>
+            <br><small class="ratio">85.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">37417 / 8420</span>
+            <br><small class="ratio">4.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">12892 / 64</span>
+            <br><small class="ratio">201.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">19875 / 203</span>
+            <br><small class="ratio">97.9×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">31644 / 438</span>
-          <br><small class="ratio">72.2×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">28168 / 424</span>
+            <br><small class="ratio">66.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">29536 / 449</span>
+            <br><small class="ratio">65.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">25661 / 12518</span>
+            <br><small class="ratio">2.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">14918 / 97</span>
+            <br><small class="ratio">153.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">21627 / 195</span>
+            <br><small class="ratio">110.9×</small>
+            
+          </span>
+        </td>
+        
+        
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+  
+  
+  <div class="matrix-slice">
+    <p class="matrix-fixed">
+      Fixed latency: <strong>25 ms</strong> — 25 ms one-way on ~⅓ of agents (trailing workers; coordinator stays local)<br>
+      Fixed think time: <strong>20 ms</strong> · Swept axes: agents (rows) × payload (columns)
+    </p>
+    <table class="matrix">
+      <thead>
+        <tr><th class="matrix-corner">Number of Agents \ Payload size</th><th>0 B</th><th>1 KB</th><th>4 KB</th><th>10 KB</th></tr>
+      </thead>
+      <tbody>
+      
+      <tr>
+        <th scope="row">3</th>
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">74 / 179</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">46 / 32</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">48 / 54</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">16 / 45</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">27 / 61</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">80 / 190</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">47 / 31</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">57 / 53</span>
+            <br><small class="ratio">1.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">18 / 53</span>
+            <br><small class="ratio">0.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">27 / 76</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">72 / 160</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">45 / 32</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">48 / 55</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">17 / 40</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">27 / 66</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">81 / 231</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">48 / 39</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">56 / 66</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">18 / 51</span>
+            <br><small class="ratio">0.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">28 / 62</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+        </td>
+        
+        
+      </tr>
+      
+      <tr>
+        <th scope="row">5</th>
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">160 / 211</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">135 / 62</span>
+            <br><small class="ratio">2.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">272 / 204</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">54 / 44</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">75 / 58</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">165 / 214</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">146 / 62</span>
+            <br><small class="ratio">2.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">283 / 216</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">57 / 42</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">77 / 57</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">145 / 229</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">128 / 64</span>
+            <br><small class="ratio">2.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">257 / 223</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">50 / 68</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">66 / 127</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">159 / 247</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">141 / 67</span>
+            <br><small class="ratio">2.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">270 / 222</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">56 / 50</span>
+            <br><small class="ratio">1.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">77 / 69</span>
+            <br><small class="ratio">1.1×</small>
+            
+          </span>
+        </td>
+        
+        
+      </tr>
+      
+      <tr>
+        <th scope="row">10</th>
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">229 / 243</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">384 / 110</span>
+            <br><small class="ratio">3.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1201 / 878</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">88 / 60</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">115 / 93</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">205 / 306</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">349 / 124</span>
+            <br><small class="ratio">2.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1052 / 993</span>
+            <br><small class="ratio">1.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">78 / 61</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">103 / 123</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">198 / 272</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">364 / 117</span>
+            <br><small class="ratio">3.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">984 / 959</span>
+            <br><small class="ratio">1.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">77 / 62</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">106 / 159</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">308 / 257</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">438 / 116</span>
+            <br><small class="ratio">3.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1138 / 917</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">123 / 50</span>
+            <br><small class="ratio">2.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">206 / 78</span>
+            <br><small class="ratio">2.6×</small>
+            
+          </span>
+        </td>
+        
+        
+      </tr>
+      
+      <tr>
+        <th scope="row">20</th>
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">941 / 308</span>
+            <br><small class="ratio">3.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">2570 / 222</span>
+            <br><small class="ratio">11.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">5788 / 3844</span>
+            <br><small class="ratio">1.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">626 / 61</span>
+            <br><small class="ratio">10.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">1582 / 93</span>
+            <br><small class="ratio">17.0×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">3198 / 274</span>
+            <br><small class="ratio">11.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">7884 / 190</span>
+            <br><small class="ratio">41.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">5870 / 3225</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1979 / 63</span>
+            <br><small class="ratio">31.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">4393 / 90</span>
+            <br><small class="ratio">48.8×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">3263 / 269</span>
+            <br><small class="ratio">12.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">8426 / 224</span>
+            <br><small class="ratio">37.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">5070 / 3917</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">2103 / 56</span>
+            <br><small class="ratio">37.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">3100 / 94</span>
+            <br><small class="ratio">33.0×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">7604 / 209</span>
+            <br><small class="ratio">36.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">11658 / 194</span>
+            <br><small class="ratio">60.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">6245 / 3392</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">3730 / 53</span>
+            <br><small class="ratio">70.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">6428 / 63</span>
+            <br><small class="ratio">102.0×</small>
+            
+          </span>
+        </td>
+        
+        
+      </tr>
+      
+      <tr>
+        <th scope="row">30</th>
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">7357 / 287</span>
+            <br><small class="ratio">25.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">16125 / 349</span>
+            <br><small class="ratio">46.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">19808 / 9046</span>
+            <br><small class="ratio">2.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">4358 / 59</span>
+            <br><small class="ratio">73.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">11970 / 84</span>
+            <br><small class="ratio">142.5×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">8028 / 309</span>
+            <br><small class="ratio">26.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">22290 / 274</span>
+            <br><small class="ratio">81.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">16325 / 7613</span>
+            <br><small class="ratio">2.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">5539 / 64</span>
+            <br><small class="ratio">86.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">10714 / 152</span>
+            <br><small class="ratio">70.5×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">10863 / 278</span>
+            <br><small class="ratio">39.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">23460 / 336</span>
+            <br><small class="ratio">69.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">16084 / 8742</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">6474 / 52</span>
+            <br><small class="ratio">124.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">9735 / 87</span>
+            <br><small class="ratio">111.9×</small>
+            
+          </span>
+        </td>
+        
+        
+        
+        
+        <td>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">15688 / 318</span>
+            <br><small class="ratio">49.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">22359 / 356</span>
+            <br><small class="ratio">62.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">18342 / 9643</span>
+            <br><small class="ratio">1.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">8487 / 67</span>
+            <br><small class="ratio">126.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">19373 / 123</span>
+            <br><small class="ratio">157.5×</small>
+            
+          </span>
         </td>
         
         
@@ -344,235 +1522,126 @@ flowchart TB
         <th scope="row">3</th>
         
         
+        
         <td>
-          <span class="walls">121 / 196</span>
-          <br><small class="ratio">0.6×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">127 / 153</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">64 / 27</span>
+            <br><small class="ratio">2.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">62 / 45</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">48 / 57</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">71 / 83</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">130 / 211</span>
-          <br><small class="ratio">0.6×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">111 / 188</span>
+            <br><small class="ratio">0.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">64 / 31</span>
+            <br><small class="ratio">2.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">50 / 54</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">43 / 53</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">64 / 87</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">113 / 221</span>
-          <br><small class="ratio">0.5×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">129 / 175</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">62 / 29</span>
+            <br><small class="ratio">2.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">61 / 49</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">49 / 54</span>
+            <br><small class="ratio">0.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">65 / 81</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
         </td>
         
         
         
-        <td>
-          <span class="walls">110 / 190</span>
-          <br><small class="ratio">0.6×</small>
-          
-        </td>
-        
-        
-      </tr>
-      
-      <tr>
-        <th scope="row">5</th>
-        
         
         <td>
-          <span class="walls">313 / 255</span>
-          <br><small class="ratio">1.2×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">307 / 269</span>
-          <br><small class="ratio">1.1×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">284 / 248</span>
-          <br><small class="ratio">1.1×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">312 / 220</span>
-          <br><small class="ratio">1.4×</small>
-          
-        </td>
-        
-        
-      </tr>
-      
-      <tr>
-        <th scope="row">10</th>
-        
-        
-        <td>
-          <span class="walls">423 / 255</span>
-          <br><small class="ratio">1.7×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">338 / 218</span>
-          <br><small class="ratio">1.6×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">293 / 321</span>
-          <br><small class="ratio">0.9×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">438 / 301</span>
-          <br><small class="ratio">1.5×</small>
-          
-        </td>
-        
-        
-      </tr>
-      
-      <tr>
-        <th scope="row">20</th>
-        
-        
-        <td>
-          <span class="walls">3387 / 288</span>
-          <br><small class="ratio">11.8×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">2601 / 341</span>
-          <br><small class="ratio">7.6×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">2786 / 296</span>
-          <br><small class="ratio">9.4×</small>
-          <br><small class="warn">SLIM fail</small>
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">5872 / 294</span>
-          <br><small class="ratio">20.0×</small>
-          
-        </td>
-        
-        
-      </tr>
-      
-      <tr>
-        <th scope="row">30</th>
-        
-        
-        <td>
-          <span class="walls">10240 / 319</span>
-          
-          <br><small class="warn">P2P fail</small>
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">8394 / 311</span>
-          <br><small class="ratio">27.0×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">13318 / 404</span>
-          <br><small class="ratio">33.0×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">14230 / 396</span>
-          <br><small class="ratio">35.9×</small>
-          
-        </td>
-        
-        
-      </tr>
-      
-      </tbody>
-    </table>
-  </div>
-  
-  
-  <div class="matrix-slice">
-    <p class="matrix-fixed">
-      Fixed latency: <strong>100 ms</strong> — 100 ms one-way on ~⅓ of agents (trailing workers; coordinator stays local)<br>
-      Fixed think time: <strong>20 ms</strong> · Swept axes: agents (rows) × payload (columns)
-    </p>
-    <table class="matrix">
-      <thead>
-        <tr><th class="matrix-corner">Number of Agents \ Payload size</th><th>0 B</th><th>1 KB</th><th>4 KB</th><th>10 KB</th></tr>
-      </thead>
-      <tbody>
-      
-      <tr>
-        <th scope="row">3</th>
-        
-        
-        <td>
-          <span class="walls">193 / 189</span>
-          <br><small class="ratio">1.0×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">177 / 154</span>
-          <br><small class="ratio">1.1×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">177 / 186</span>
-          <br><small class="ratio">1.0×</small>
-          
-        </td>
-        
-        
-        
-        <td>
-          <span class="walls">160 / 219</span>
-          <br><small class="ratio">0.7×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">102 / 193</span>
+            <br><small class="ratio">0.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">62 / 35</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">46 / 61</span>
+            <br><small class="ratio">0.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">38 / 51</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">54 / 76</span>
+            <br><small class="ratio">0.7×</small>
+            
+          </span>
         </td>
         
         
@@ -582,34 +1651,126 @@ flowchart TB
         <th scope="row">5</th>
         
         
+        
         <td>
-          <span class="walls">597 / 290</span>
-          <br><small class="ratio">2.1×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">338 / 238</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">314 / 843</span>
+            <br><small class="ratio">0.4×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">319 / 3348</span>
+            <br><small class="ratio">0.1×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">146 / 55</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">175 / 80</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">547 / 305</span>
-          <br><small class="ratio">1.8×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">337 / 281</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">309 / 64</span>
+            <br><small class="ratio">4.8×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">311 / 227</span>
+            <br><small class="ratio">1.4×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">143 / 72</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">175 / 95</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">599 / 254</span>
-          <br><small class="ratio">2.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">309 / 255</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">290 / 61</span>
+            <br><small class="ratio">4.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">283 / 214</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">133 / 75</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">171 / 104</span>
+            <br><small class="ratio">1.6×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">619 / 267</span>
-          <br><small class="ratio">2.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">285 / 259</span>
+            <br><small class="ratio">1.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">261 / 55</span>
+            <br><small class="ratio">4.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">254 / 182</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">121 / 72</span>
+            <br><small class="ratio">1.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">174 / 96</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
         </td>
         
         
@@ -619,34 +1780,126 @@ flowchart TB
         <th scope="row">10</th>
         
         
+        
         <td>
-          <span class="walls">536 / 293</span>
-          <br><small class="ratio">1.8×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">389 / 291</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">653 / 115</span>
+            <br><small class="ratio">5.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1078 / 922</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">178 / 77</span>
+            <br><small class="ratio">2.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">245 / 107</span>
+            <br><small class="ratio">2.3×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">815 / 263</span>
-          <br><small class="ratio">3.1×</small>
-          <br><small class="warn">SLIM fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">430 / 316</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">769 / 114</span>
+            <br><small class="ratio">6.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1220 / 934</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">192 / 71</span>
+            <br><small class="ratio">2.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">236 / 103</span>
+            <br><small class="ratio">2.3×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">795 / 347</span>
-          <br><small class="ratio">2.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">373 / 297</span>
+            <br><small class="ratio">1.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">655 / 110</span>
+            <br><small class="ratio">6.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1052 / 858</span>
+            <br><small class="ratio">1.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">171 / 72</span>
+            <br><small class="ratio">2.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">229 / 101</span>
+            <br><small class="ratio">2.3×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">650 / 271</span>
-          <br><small class="ratio">2.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">390 / 320</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">672 / 118</span>
+            <br><small class="ratio">5.7×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">1054 / 998</span>
+            <br><small class="ratio">1.1×</small>
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">178 / 70</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">229 / 122</span>
+            
+            <br><small class="warn">SLIM fail</small>
+          </span>
         </td>
         
         
@@ -656,34 +1909,126 @@ flowchart TB
         <th scope="row">20</th>
         
         
+        
         <td>
-          <span class="walls">3202 / 392</span>
-          <br><small class="ratio">8.2×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">1151 / 263</span>
+            <br><small class="ratio">4.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">4180 / 199</span>
+            <br><small class="ratio">21.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">4479 / 3145</span>
+            <br><small class="ratio">1.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">694 / 70</span>
+            <br><small class="ratio">9.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">1380 / 107</span>
+            <br><small class="ratio">12.9×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">3665 / 324</span>
-          <br><small class="ratio">11.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">2551 / 338</span>
+            <br><small class="ratio">7.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">7135 / 218</span>
+            <br><small class="ratio">32.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">6697 / 3741</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">1932 / 83</span>
+            <br><small class="ratio">23.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">3957 / 136</span>
+            <br><small class="ratio">29.1×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">1856 / 295</span>
-          <br><small class="ratio">6.3×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">3686 / 343</span>
+            <br><small class="ratio">10.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">7419 / 217</span>
+            <br><small class="ratio">34.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">8006 / 3857</span>
+            <br><small class="ratio">2.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">2440 / 74</span>
+            <br><small class="ratio">33.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">4417 / 114</span>
+            <br><small class="ratio">38.7×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">2710 / 357</span>
-          <br><small class="ratio">7.6×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">5263 / 267</span>
+            <br><small class="ratio">19.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">9614 / 203</span>
+            <br><small class="ratio">47.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">5986 / 3300</span>
+            <br><small class="ratio">1.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">2717 / 66</span>
+            <br><small class="ratio">41.2×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">5081 / 98</span>
+            <br><small class="ratio">51.8×</small>
+            
+          </span>
         </td>
         
         
@@ -693,34 +2038,126 @@ flowchart TB
         <th scope="row">30</th>
         
         
+        
         <td>
-          <span class="walls">3938 / 433</span>
-          
-          <br><small class="warn">P2P fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">8167 / 321</span>
+            <br><small class="ratio">25.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">13957 / 341</span>
+            <br><small class="ratio">40.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">25281 / 8987</span>
+            <br><small class="ratio">2.8×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">3878 / 68</span>
+            <br><small class="ratio">57.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">8614 / 110</span>
+            <br><small class="ratio">78.3×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">7072 / 478</span>
-          <br><small class="ratio">14.8×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">6949 / 321</span>
+            <br><small class="ratio">21.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">22736 / 286</span>
+            <br><small class="ratio">79.5×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">14443 / 7738</span>
+            <br><small class="ratio">1.9×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">4334 / 76</span>
+            <br><small class="ratio">57.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">7486 / 114</span>
+            <br><small class="ratio">65.7×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">7247 / 450</span>
-          <br><small class="ratio">16.1×</small>
-          <br><small class="warn">SLIM fail</small>
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">11003 / 279</span>
+            <br><small class="ratio">39.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">21953 / 306</span>
+            <br><small class="ratio">71.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">13467 / 8261</span>
+            <br><small class="ratio">1.6×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">5567 / 64</span>
+            <br><small class="ratio">87.0×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">11178 / 91</span>
+            <br><small class="ratio">122.8×</small>
+            
+          </span>
         </td>
         
         
         
+        
         <td>
-          <span class="walls">17339 / 344</span>
-          <br><small class="ratio">50.4×</small>
-          
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">15046 / 289</span>
+            <br><small class="ratio">52.1×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">23250 / 335</span>
+            <br><small class="ratio">69.4×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">15138 / 8991</span>
+            <br><small class="ratio">1.7×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">8275 / 65</span>
+            <br><small class="ratio">127.3×</small>
+            
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">15769 / 87</span>
+            <br><small class="ratio">181.3×</small>
+            
+          </span>
         </td>
         
         
@@ -761,9 +2198,48 @@ flowchart TB
     <dd>Fixed-size padding (<code>spec.payloadBytes</code>) added to every finding to stress transport
       bandwidth. Semantically inert; it does not change the consensus math or round count.</dd>
   </dl>
+  <script>
+    (function () {
+      var legends = {
+        consensus_wall_ms: 'Each block fixes latency for every cell. Cells show P2P / SLIM consensus wall (ms) and P2P÷SLIM ratio when both succeeded.',
+        findings_emitted: 'Total findings emitted by all agents during the run (summed across epochs). Cells show P2P / SLIM and ratio when both sides reported data.',
+        findings_received_total: 'Total findings applied by all agents (each peer apply counts). Cells show P2P / SLIM and ratio when both sides reported data.',
+        avg_propagation_ms: 'Average per-finding delivery latency (emit → apply). Cells show P2P / SLIM avg propagation (ms) and P2P÷SLIM ratio when both succeeded.',
+        p95_propagation_ms: '95th percentile per-finding delivery latency. Cells show P2P / SLIM P95 propagation (ms) and P2P÷SLIM ratio when both succeeded.'
+      };
+      var select = document.getElementById('matrix-metric-select');
+      var legend = document.getElementById('matrix-legend');
+      if (!select || !legend) return;
+      function applyMetric(metric) {
+        document.querySelectorAll('.metric-view').forEach(function (el) {
+          el.hidden = el.getAttribute('data-metric') !== metric;
+        });
+        legend.textContent = legends[metric] || '';
+      }
+      select.addEventListener('change', function () { applyMetric(select.value); });
+    })();
+  </script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'strict',
+      theme: 'base',
+      flowchart: { htmlLabels: true, curve: 'basis', padding: 16, nodeSpacing: 28, rankSpacing: 40 },
+      themeVariables: {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        primaryColor: '#eef3fa',
+        primaryTextColor: '#1a2a3a',
+        primaryBorderColor: '#2d4a6f',
+        lineColor: '#5a6a7e',
+        secondaryColor: '#f5f7fa',
+        tertiaryColor: '#fff',
+        clusterBkg: '#f5f7fa',
+        clusterBorder: '#c5d4e8',
+        edgeLabelBackground: '#fff'
+      }
+    });
   </script>
 </body>
 </html>
