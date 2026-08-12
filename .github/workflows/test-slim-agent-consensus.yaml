@@ -15,18 +15,29 @@ on:
       - ".github/workflows/test-slim-agent-consensus.yaml"
       - "integrations/agntcy-slim/agent-consensus-test/**"
   workflow_dispatch:
+    inputs:
+      repeats:
+        description: "Independent runs per matrix cell"
+        required: false
+        default: "25"
+        type: string
 
 jobs:
-  matrix-slice:
+  matrix-cell:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
         latency_ms: [0, 25, 50, 100]
+        agents: [3, 5, 10, 20, 30]
+        payload_bytes: [0, 1024, 4096, 10240]
 
     permissions:
       contents: read
+
+    env:
+      REPEATS: ${{ github.event_name == 'workflow_dispatch' && inputs.repeats || '1' }}
 
     steps:
       - name: Checkout code
@@ -37,27 +48,39 @@ jobs:
         with:
           go: true
 
-      - name: Run matrix slice (latency=${{ matrix.latency_ms }} ms)
+      - name: Install slimctl
+        shell: bash
+        run: |
+          task -d integrations/agntcy-slim/agent-consensus-test deps:slimctl-download COMPARE_SLIMCTL="$PWD/integrations/agntcy-slim/agent-consensus-test/bin/slimctl"
+
+      - name: Build binaries
+        shell: bash
+        working-directory: integrations/agntcy-slim/agent-consensus-test
+        run: task build
+
+      - name: Run matrix cell (latency=${{ matrix.latency_ms }} agents=${{ matrix.agents }} payload=${{ matrix.payload_bytes }} repeats=${{ env.REPEATS }})
         shell: bash
         working-directory: integrations/agntcy-slim/agent-consensus-test
         run: |
           set -o pipefail
-          task compare:sweep:matrix:slice \
+          task compare:sweep:matrix:cell \
             MATRIX_LATENCY_MS=${{ matrix.latency_ms }} \
-            MATRIX_TSV=reports/matrix-lat${{ matrix.latency_ms }}.tsv
+            MATRIX_AGENTS=${{ matrix.agents }} \
+            MATRIX_PAYLOAD_BYTES=${{ matrix.payload_bytes }} \
+            CONSENSUS_REPEATS=${{ env.REPEATS }}
 
-      - name: Upload latency slice TSV
+      - name: Upload matrix cell TSV
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: slim-agent-consensus-matrix-lat${{ matrix.latency_ms }}
-          path: integrations/agntcy-slim/agent-consensus-test/reports/matrix-lat${{ matrix.latency_ms }}.tsv
+          name: slim-agent-consensus-matrix-lat${{ matrix.latency_ms }}-${{ matrix.agents }}ag-${{ matrix.payload_bytes }}b
+          path: integrations/agntcy-slim/agent-consensus-test/reports/raw/matrix-lat${{ matrix.latency_ms }}-${{ matrix.agents }}ag*.tsv
           retention-days: 30
           if-no-files-found: warn
 
   matrix-report:
-    needs: [matrix-slice]
-    if: always() && !cancelled() && needs.matrix-slice.result != 'skipped'
+    needs: [matrix-cell]
+    if: always() && !cancelled() && needs.matrix-cell.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -73,14 +96,14 @@ jobs:
         with:
           go: true
 
-      - name: Download matrix slice artifacts
+      - name: Download matrix cell artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: slim-agent-consensus-matrix-lat*
-          path: integrations/agntcy-slim/agent-consensus-test/reports
+          path: integrations/agntcy-slim/agent-consensus-test/reports/raw
           merge-multiple: true
 
-      - name: Merge slices and build matrix dashboard
+      - name: Merge slices, aggregate stats, and build matrix dashboard
         shell: bash
         working-directory: integrations/agntcy-slim/agent-consensus-test
         run: task compare:sweep:matrix:merge
@@ -97,11 +120,11 @@ jobs:
             echo "- Ref: ${GITHUB_REF}"
             echo "- SHA: ${GITHUB_SHA}"
             echo
-            if [ -f "$REPORT_DIR/matrix.tsv" ]; then
-              echo "## matrix.tsv (first 20 lines)"
+            if [ -f "$REPORT_DIR/matrix-stats.tsv" ]; then
+              echo "## matrix-stats.tsv (first 20 lines)"
               echo
               echo '```'
-              head -n 20 "$REPORT_DIR/matrix.tsv"
+              head -n 20 "$REPORT_DIR/matrix-stats.tsv"
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"

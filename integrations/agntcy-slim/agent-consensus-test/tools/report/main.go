@@ -33,7 +33,17 @@ type scenarioComparison struct {
 	HasSLIM      bool
 }
 
+type metricStat struct {
+	Mean   float64
+	StdDev float64
+	CILow  float64
+	CIHigh float64
+	N      int
+}
+
 type matrixCell struct {
+	HasStats bool
+
 	HasP2P      bool
 	HasSLIM     bool
 	P2PSuccess  bool
@@ -41,22 +51,32 @@ type matrixCell struct {
 
 	P2PWall  int64
 	SLIMWall int64
+	P2PWallStat metricStat
+	SLIMWallStat metricStat
 	WallRatio string
 
 	P2PEmitted  int
 	SLIMEmitted int
+	P2PEmittedStat metricStat
+	SLIMEmittedStat metricStat
 	EmittedRatio string
 
 	P2PReceived  int
 	SLIMReceived int
+	P2PReceivedStat metricStat
+	SLIMReceivedStat metricStat
 	ReceivedRatio string
 
 	P2PAvgProp  int64
 	SLIMAvgProp int64
+	P2PAvgPropStat metricStat
+	SLIMAvgPropStat metricStat
 	AvgPropRatio string
 
 	P2PP95Prop  int64
 	SLIMP95Prop int64
+	P2PP95PropStat metricStat
+	SLIMP95PropStat metricStat
 	P95PropRatio string
 }
 
@@ -79,12 +99,11 @@ func main() {
 	flag.Parse()
 
 	if *matrixOnly {
-		matrixResults, err := readTSV(*matrixTSV)
+		matrices, err := loadMatrixTables(*matrixTSV)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "read matrix tsv: %v\n", err)
 			os.Exit(1)
 		}
-		matrices := buildMatrixTables(matrixResults)
 		if err := writeMatrixHTML(*output, matrices); err != nil {
 			fmt.Fprintf(os.Stderr, "write html: %v\n", err)
 			os.Exit(1)
@@ -110,8 +129,8 @@ func main() {
 
 	var matrices []matrixTable
 	if *matrixTSV != "" {
-		if mr, err := readTSV(*matrixTSV); err == nil {
-			matrices = buildMatrixTables(mr)
+		if m, err := loadMatrixTables(*matrixTSV); err == nil {
+			matrices = m
 		}
 	}
 	_ = matrixDir // reserved for future per-cell descriptions from yaml
@@ -147,6 +166,7 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 			continue
 		}
 		r := metrics.RunResult{
+			RunID:                 atoi(field(row, col, "run_id")),
 			ScenarioName:          field(row, col, "scenario_name"),
 			Domain:                field(row, col, "domain"),
 			Implementation:        field(row, col, "implementation"),
@@ -172,6 +192,206 @@ func readTSV(path string) ([]metrics.RunResult, error) {
 		out = append(out, r)
 	}
 	return out, nil
+}
+
+func loadMatrixTables(path string) ([]matrixTable, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	reader.Comma = '\t'
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	if len(records) <= 1 {
+		return nil, fmt.Errorf("no data rows in %s", path)
+	}
+	if _, ok := columnMap(records[0])["consensus_wall_mean"]; ok {
+		return buildMatrixTablesFromStats(records)
+	}
+	raw, err := readTSV(path)
+	if err != nil {
+		return nil, err
+	}
+	return buildMatrixTables(raw), nil
+}
+
+type statsRow struct {
+	LatencyMs      int64
+	Agents         int
+	PayloadBytes   int
+	ThinkTimeMs    int64
+	Implementation string
+	SuccessCount   int
+	Wall           metricStat
+	Emitted        metricStat
+	Received       metricStat
+	AvgProp        metricStat
+	P95Prop        metricStat
+}
+
+func buildMatrixTablesFromStats(records [][]string) ([]matrixTable, error) {
+	col := columnMap(records[0])
+	byKey := map[cellKey]cellPairStats{}
+	latencyThink := map[int64]int64{}
+
+	for _, row := range records[1:] {
+		sr := parseStatsRow(row, col)
+		k := cellKey{
+			LatencyMs:    sr.LatencyMs,
+			Agents:       sr.Agents,
+			PayloadBytes: sr.PayloadBytes,
+			ThinkTimeMs:  sr.ThinkTimeMs,
+		}
+		p := byKey[k]
+		is := implStats{
+			Has:          true,
+			Success:      sr.SuccessCount > 0,
+			Wall:         sr.Wall,
+			Emitted:      sr.Emitted,
+			Received:     sr.Received,
+			AvgProp:      sr.AvgProp,
+			P95Prop:      sr.P95Prop,
+		}
+		switch sr.Implementation {
+		case "p2p-relay-stream":
+			p.P2P = is
+		case "slim-group-session":
+			p.SLIM = is
+		}
+		byKey[k] = p
+		latencyThink[sr.LatencyMs] = sr.ThinkTimeMs
+	}
+
+	latencies := sortedInt64Keys(latencyThink)
+	var tables []matrixTable
+	for _, lat := range latencies {
+		agentSet := map[int]struct{}{}
+		payloadSet := map[int]struct{}{}
+		for k := range byKey {
+			if k.LatencyMs != lat {
+				continue
+			}
+			agentSet[k.Agents] = struct{}{}
+			payloadSet[k.PayloadBytes] = struct{}{}
+		}
+		tbl := matrixTable{
+			LatencyMs:   lat,
+			ThinkTimeMs: latencyThink[lat],
+			AgentRows:   sortedIntKeys(agentSet),
+			PayloadCols: sortedIntKeys(payloadSet),
+			Cells:       map[int]map[int]matrixCell{},
+		}
+		for _, agents := range tbl.AgentRows {
+			tbl.Cells[agents] = map[int]matrixCell{}
+			for _, payload := range tbl.PayloadCols {
+				k := cellKey{
+					LatencyMs:    lat,
+					Agents:       agents,
+					PayloadBytes: payload,
+					ThinkTimeMs:  tbl.ThinkTimeMs,
+				}
+				tbl.Cells[agents][payload] = mergeMatrixCellStats(byKey[k])
+			}
+		}
+		tables = append(tables, tbl)
+	}
+	return tables, nil
+}
+
+type implStats struct {
+	Has     bool
+	Success bool
+	Wall    metricStat
+	Emitted metricStat
+	Received metricStat
+	AvgProp metricStat
+	P95Prop metricStat
+}
+
+type cellPairStats struct {
+	P2P  implStats
+	SLIM implStats
+}
+
+func parseStatsRow(row []string, col map[string]int) statsRow {
+	return statsRow{
+		LatencyMs:      atoi64(field(row, col, "latency_ms")),
+		Agents:         atoi(field(row, col, "agents")),
+		PayloadBytes:   atoi(field(row, col, "payload_bytes")),
+		ThinkTimeMs:    atoi64(field(row, col, "think_time_ms")),
+		Implementation: field(row, col, "implementation"),
+		SuccessCount:   atoi(field(row, col, "success_count")),
+		Wall:           parseMetricStat(row, col, "consensus_wall"),
+		Emitted:        parseMetricStat(row, col, "findings_emitted"),
+		Received:       parseMetricStat(row, col, "findings_received"),
+		AvgProp:        parseMetricStat(row, col, "avg_propagation"),
+		P95Prop:        parseMetricStat(row, col, "p95_propagation"),
+	}
+}
+
+func parseMetricStat(row []string, col map[string]int, prefix string) metricStat {
+	return metricStat{
+		Mean:   atof(field(row, col, prefix+"_mean")),
+		StdDev: atof(field(row, col, prefix+"_stddev")),
+		CILow:  atof(field(row, col, prefix+"_ci_low")),
+		CIHigh: atof(field(row, col, prefix+"_ci_high")),
+		N:      atoi(field(row, col, prefix+"_n")),
+	}
+}
+
+func mergeMatrixCellStats(p cellPairStats) matrixCell {
+	c := matrixCell{HasStats: true}
+	if p.P2P.Has {
+		c.HasP2P = true
+		c.P2PSuccess = p.P2P.Success
+		c.P2PWallStat = p.P2P.Wall
+		c.P2PWall = int64(p.P2P.Wall.Mean)
+		c.P2PEmittedStat = p.P2P.Emitted
+		c.P2PEmitted = int(p.P2P.Emitted.Mean)
+		c.P2PReceivedStat = p.P2P.Received
+		c.P2PReceived = int(p.P2P.Received.Mean)
+		c.P2PAvgPropStat = p.P2P.AvgProp
+		c.P2PAvgProp = int64(p.P2P.AvgProp.Mean)
+		c.P2PP95PropStat = p.P2P.P95Prop
+		c.P2PP95Prop = int64(p.P2P.P95Prop.Mean)
+	}
+	if p.SLIM.Has {
+		c.HasSLIM = true
+		c.SLIMSuccess = p.SLIM.Success
+		c.SLIMWallStat = p.SLIM.Wall
+		c.SLIMWall = int64(p.SLIM.Wall.Mean)
+		c.SLIMEmittedStat = p.SLIM.Emitted
+		c.SLIMEmitted = int(p.SLIM.Emitted.Mean)
+		c.SLIMReceivedStat = p.SLIM.Received
+		c.SLIMReceived = int(p.SLIM.Received.Mean)
+		c.SLIMAvgPropStat = p.SLIM.AvgProp
+		c.SLIMAvgProp = int64(p.SLIM.AvgProp.Mean)
+		c.SLIMP95PropStat = p.SLIM.P95Prop
+		c.SLIMP95Prop = int64(p.SLIM.P95Prop.Mean)
+	}
+	c.WallRatio = ratioFloat(c.P2PWallStat.Mean, c.SLIMWallStat.Mean, c.P2PSuccess, c.SLIMSuccess)
+	c.EmittedRatio = ratioFloat(c.P2PEmittedStat.Mean, c.SLIMEmittedStat.Mean, c.HasP2P, c.HasSLIM)
+	c.ReceivedRatio = ratioFloat(c.P2PReceivedStat.Mean, c.SLIMReceivedStat.Mean, c.HasP2P, c.HasSLIM)
+	c.AvgPropRatio = ratioFloat(c.P2PAvgPropStat.Mean, c.SLIMAvgPropStat.Mean, c.P2PSuccess, c.SLIMSuccess)
+	c.P95PropRatio = ratioFloat(c.P2PP95PropStat.Mean, c.SLIMP95PropStat.Mean, c.P2PSuccess, c.SLIMSuccess)
+	return c
+}
+
+func ratioFloat(p2p, slim float64, p2pOk, slimOk bool) string {
+	if !p2pOk || !slimOk || p2p <= 0 || slim <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f×", p2p/slim)
+}
+
+func atof(v string) float64 {
+	f, _ := strconv.ParseFloat(v, 64)
+	return f
 }
 
 func columnMap(header []string) map[string]int {
@@ -413,6 +633,101 @@ func formatWall(success bool, wall int64) string {
 	return strconv.FormatInt(wall, 10)
 }
 
+func formatStatInt64(p2pOk, slimOk, hasStats bool, p2pStat, slimStat metricStat, p2pFallback, slimFallback int64) string {
+	if hasStats {
+		return formatStatPair(p2pOk, slimOk, p2pStat, slimStat, formatWall(p2pOk, p2pFallback), formatWall(slimOk, slimFallback))
+	}
+	return fmt.Sprintf("%s / %s", formatWall(p2pOk, p2pFallback), formatWall(slimOk, slimFallback))
+}
+
+func formatStatInt(hasP2P, hasSLIM, hasStats bool, p2pStat, slimStat metricStat, p2pFallback, slimFallback int) string {
+	if hasStats {
+		return formatStatPair(hasP2P, hasSLIM, p2pStat, slimStat, formatCount(hasP2P, p2pFallback), formatCount(hasSLIM, slimFallback))
+	}
+	return fmt.Sprintf("%s / %s", formatCount(hasP2P, p2pFallback), formatCount(hasSLIM, slimFallback))
+}
+
+func formatStatPair(leftOk, rightOk bool, leftStat, rightStat metricStat, leftFallback, rightFallback string) string {
+	return fmt.Sprintf("%s / %s", formatStatValue(leftOk, leftStat, leftFallback), formatStatValue(rightOk, rightStat, rightFallback))
+}
+
+func formatStatDispersionInt64(hasStats, p2pOk, slimOk bool, p2pStat, slimStat metricStat) string {
+	if !hasStats {
+		return ""
+	}
+	return formatStatDispersionPair(p2pOk, slimOk, p2pStat, slimStat)
+}
+
+func formatStatDispersionInt(hasStats, hasP2P, hasSLIM bool, p2pStat, slimStat metricStat) string {
+	if !hasStats {
+		return ""
+	}
+	return formatStatDispersionPair(hasP2P, hasSLIM, p2pStat, slimStat)
+}
+
+func formatStatDispersionPair(leftOk, rightOk bool, leftStat, rightStat metricStat) string {
+	if leftStat.N <= 1 && rightStat.N <= 1 {
+		return ""
+	}
+	return fmt.Sprintf("%s / %s", formatStatDispersionSide(leftOk, leftStat), formatStatDispersionSide(rightOk, rightStat))
+}
+
+func formatStatDispersionSide(ok bool, stat metricStat) string {
+	if stat.N > 1 {
+		return fmt.Sprintf("σ=%.0f · n=%d", stat.StdDev, stat.N)
+	}
+	if stat.N == 1 {
+		return "n=1"
+	}
+	if !ok {
+		return "—"
+	}
+	return "—"
+}
+
+func formatStatSideInt64(ok bool, hasStats bool, stat metricStat, fallback int64) string {
+	if hasStats {
+		return formatStatValue(ok, stat, formatWall(ok, fallback))
+	}
+	return formatWall(ok, fallback)
+}
+
+func formatStatSideInt(has bool, hasStats bool, stat metricStat, fallback int) string {
+	if hasStats {
+		return formatStatValue(has, stat, formatCount(has, fallback))
+	}
+	return formatCount(has, fallback)
+}
+
+func formatStatDispersionSideInt64(ok bool, hasStats bool, stat metricStat) string {
+	if !hasStats || stat.N <= 1 {
+		return ""
+	}
+	return formatStatDispersionSide(ok, stat)
+}
+
+func formatStatDispersionSideInt(has bool, hasStats bool, stat metricStat) string {
+	if !hasStats || stat.N <= 1 {
+		return ""
+	}
+	return formatStatDispersionSide(has, stat)
+}
+
+func formatStatValue(ok bool, stat metricStat, fallback string) string {
+	if !ok && stat.N == 0 {
+		if fallback == "0" || fallback == "—" {
+			return "FAIL"
+		}
+	}
+	if stat.N > 1 {
+		return fmt.Sprintf("%.0f [%.0f, %.0f]", stat.Mean, stat.CILow, stat.CIHigh)
+	}
+	if stat.N == 1 {
+		return fmt.Sprintf("%.0f", stat.Mean)
+	}
+	return fallback
+}
+
 func formatCount(has bool, v int) string {
 	if !has {
 		return "—"
@@ -439,10 +754,18 @@ func writeHTML(path string, comparisons []scenarioComparison, sweep []metrics.Ru
 		return err
 	}
 	tmpl := template.Must(template.New("report").Funcs(template.FuncMap{
-		"formatPayload":      formatPayloadLabel,
-		"formatWall":         formatWall,
-		"formatCount":        formatCount,
-		"formatLatencyFixed": formatLatencyFixed,
+		"formatPayload":            formatPayloadLabel,
+		"formatWall":               formatWall,
+		"formatCount":              formatCount,
+		"formatStatInt64":            formatStatInt64,
+		"formatStatInt":              formatStatInt,
+		"formatStatSideInt64":        formatStatSideInt64,
+		"formatStatSideInt":          formatStatSideInt,
+		"formatStatDispersionInt64":       formatStatDispersionInt64,
+		"formatStatDispersionInt":         formatStatDispersionInt,
+		"formatStatDispersionSideInt64":   formatStatDispersionSideInt64,
+		"formatStatDispersionSideInt":     formatStatDispersionSideInt,
+		"formatLatencyFixed":              formatLatencyFixed,
 	}).Parse(htmlTemplate))
 	file, err := os.Create(path)
 	if err != nil {
@@ -457,10 +780,18 @@ func writeMatrixHTML(path string, matrices []matrixTable) error {
 		return err
 	}
 	tmpl := template.Must(template.New("matrix").Funcs(template.FuncMap{
-		"formatPayload":      formatPayloadLabel,
-		"formatWall":         formatWall,
-		"formatCount":        formatCount,
-		"formatLatencyFixed": formatLatencyFixed,
+		"formatPayload":            formatPayloadLabel,
+		"formatWall":               formatWall,
+		"formatCount":              formatCount,
+		"formatStatInt64":            formatStatInt64,
+		"formatStatInt":              formatStatInt,
+		"formatStatSideInt64":        formatStatSideInt64,
+		"formatStatSideInt":          formatStatSideInt,
+		"formatStatDispersionInt64":       formatStatDispersionInt64,
+		"formatStatDispersionInt":         formatStatDispersionInt,
+		"formatStatDispersionSideInt64":   formatStatDispersionSideInt64,
+		"formatStatDispersionSideInt":     formatStatDispersionSideInt,
+		"formatLatencyFixed":              formatLatencyFixed,
 	}).Parse(matrixHTMLTemplate))
 	file, err := os.Create(path)
 	if err != nil {
@@ -481,7 +812,7 @@ func atoi64(v string) int64 {
 }
 
 const matrixStyles = `
-    .matrix-slice { margin: 2rem 0 2.5rem; }
+    .matrix-slice { margin: 2rem 0 2.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .matrix-fixed {
       background: #eef3fa;
       border: 1px solid #c5d4e8;
@@ -496,6 +827,8 @@ const matrixStyles = `
     .matrix-slice table.matrix {
       margin-top: 0;
       border-top: none;
+      width: max-content;
+      min-width: 100%;
     }
     .matrix-slice table.matrix thead th {
       background: #2d4a6f;
@@ -509,6 +842,49 @@ const matrixStyles = `
       background: #1e334d;
       font-weight: 700;
     }
+    .matrix-slice table.matrix thead th.matrix-corner-split {
+      width: 8rem;
+      min-width: 8rem;
+      max-width: 8rem;
+      height: 4.25rem;
+      padding: 0;
+      vertical-align: middle;
+      position: relative;
+      overflow: hidden;
+    }
+    .matrix-corner-split .corner-payload {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.5rem;
+      left: 2.75rem;
+      font-size: 0.62rem;
+      font-weight: 650;
+      line-height: 1.2;
+      text-align: right;
+    }
+    .matrix-corner-split .corner-agents {
+      position: absolute;
+      bottom: 0.4rem;
+      left: 0.5rem;
+      right: 2.75rem;
+      font-size: 0.62rem;
+      font-weight: 650;
+      line-height: 1.2;
+      text-align: left;
+    }
+    .matrix-corner-split::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top right,
+        transparent calc(50% - 0.5px),
+        rgba(248, 250, 252, 0.45) calc(50% - 0.5px),
+        rgba(248, 250, 252, 0.45) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      );
+      pointer-events: none;
+    }
     .matrix-slice table.matrix tbody th {
       background: #e8eef5;
       color: #1a2a3a;
@@ -518,6 +894,9 @@ const matrixStyles = `
     }
     .matrix-slice table.matrix tbody td {
       background: #fff;
+      padding: 0.4rem 0.45rem;
+      vertical-align: top;
+      min-width: 22rem;
     }
     .matrix-slice table.matrix tbody tr:nth-child(even) td {
       background: #fafbfc;
@@ -544,9 +923,140 @@ const matrixStyles = `
       background: #fff;
       min-width: 14rem;
     }
+    .matrix-toolbar .matrix-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      color: #333;
+      margin-left: auto;
+      cursor: pointer;
+      user-select: none;
+    }
+    .matrix-toolbar .matrix-toggle input {
+      margin: 0;
+      cursor: pointer;
+    }
+    .stat-dispersion {
+      display: none;
+      color: #666;
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+    body.show-dispersion .stat-dispersion:not(:empty) {
+      display: block;
+    }
+    .matrix-cell-split {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .matrix-subcells {
+      display: grid;
+      grid-template-columns: minmax(10.5rem, 1fr) minmax(10.5rem, 1fr);
+      grid-template-rows: auto auto;
+      gap: 0.2rem 0.35rem;
+      position: relative;
+    }
+    body.show-dispersion .matrix-subcells:has(.stat-dispersion:not(:empty)) {
+      grid-template-rows: auto auto auto;
+    }
+    .matrix-subcell-bg {
+      grid-row: 1 / 3;
+      border-radius: 4px;
+      z-index: 0;
+    }
+    body.show-dispersion .matrix-subcells:has(.stat-dispersion:not(:empty)) .matrix-subcell-bg {
+      grid-row: 1 / 4;
+    }
+    .matrix-subcell-bg.matrix-subcell-p2p {
+      grid-column: 1;
+      background: #f3f6fb;
+      border: 1px solid #d4deec;
+    }
+    .matrix-subcell-bg.matrix-subcell-slim {
+      grid-column: 2;
+      background: #eef8f4;
+      border: 1px solid #c8e6d6;
+    }
+    .matrix-col-p2p { grid-column: 1; }
+    .matrix-col-slim { grid-column: 2; }
+    .subcell-label {
+      grid-row: 1;
+      position: relative;
+      z-index: 1;
+      font-size: 0.65rem;
+      font-weight: 650;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #5a6a7a;
+      text-align: center;
+      padding: 0.35rem 0.4rem 0;
+    }
+    .subcell-value {
+      grid-row: 2;
+      position: relative;
+      z-index: 1;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      text-align: center;
+      padding: 0.1rem 0.4rem 0.35rem;
+    }
+    .matrix-subcells .stat-dispersion {
+      grid-row: 3;
+      position: relative;
+      z-index: 1;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      text-align: center;
+      padding: 0 0.4rem 0.35rem;
+      white-space: nowrap;
+    }
+    .matrix-cell-ratio {
+      text-align: center;
+      border-top: 1px solid #e8ecf0;
+      padding-top: 0.25rem;
+    }
+    .matrix-cell-warn {
+      text-align: center;
+    }
     .metric-view[hidden] { display: none; }`
 
-const matrixCellWarn = `{{if or (not .P2PSuccess) (not .SLIMSuccess)}}<br><small class="warn">{{if not .P2PSuccess}}P2P fail{{end}}{{if and (not .P2PSuccess) (not .SLIMSuccess)}} · {{end}}{{if not .SLIMSuccess}}SLIM fail{{end}}</small>{{end}}`
+const matrixCellWarn = `{{if or (not .P2PSuccess) (not .SLIMSuccess)}}<div class="matrix-cell-warn"><small class="warn">{{if not .P2PSuccess}}P2P fail{{end}}{{if and (not .P2PSuccess) (not .SLIMSuccess)}} · {{end}}{{if not .SLIMSuccess}}SLIM fail{{end}}</small></div>{{end}}`
+
+const matrixCellSplitInt64 = `
+            <div class="matrix-cell-split">
+              <div class="matrix-subcells">
+                <div class="matrix-subcell-bg matrix-subcell-p2p" aria-hidden="true"></div>
+                <div class="matrix-subcell-bg matrix-subcell-slim" aria-hidden="true"></div>
+                <span class="subcell-label matrix-col-p2p">P2P</span>
+                <span class="subcell-label matrix-col-slim">SLIM</span>
+                <span class="subcell-value matrix-col-p2p">{{formatStatSideInt64 $p2pOk $hasStats $p2pStat $p2pFallback}}</span>
+                <span class="subcell-value matrix-col-slim">{{formatStatSideInt64 $slimOk $hasStats $slimStat $slimFallback}}</span>
+                <span class="stat-dispersion matrix-col-p2p">{{formatStatDispersionSideInt64 $p2pOk $hasStats $p2pStat}}</span>
+                <span class="stat-dispersion matrix-col-slim">{{formatStatDispersionSideInt64 $slimOk $hasStats $slimStat}}</span>
+              </div>
+              {{if $ratio}}<div class="matrix-cell-ratio"><small class="ratio">{{$ratio}}</small></div>{{end}}
+              ` + matrixCellWarn + `
+            </div>`
+
+const matrixCellSplitInt = `
+            <div class="matrix-cell-split">
+              <div class="matrix-subcells">
+                <div class="matrix-subcell-bg matrix-subcell-p2p" aria-hidden="true"></div>
+                <div class="matrix-subcell-bg matrix-subcell-slim" aria-hidden="true"></div>
+                <span class="subcell-label matrix-col-p2p">P2P</span>
+                <span class="subcell-label matrix-col-slim">SLIM</span>
+                <span class="subcell-value matrix-col-p2p">{{formatStatSideInt $p2pOk $hasStats $p2pStat $p2pFallback}}</span>
+                <span class="subcell-value matrix-col-slim">{{formatStatSideInt $slimOk $hasStats $slimStat $slimFallback}}</span>
+                <span class="stat-dispersion matrix-col-p2p">{{formatStatDispersionSideInt $p2pOk $hasStats $p2pStat}}</span>
+                <span class="stat-dispersion matrix-col-slim">{{formatStatDispersionSideInt $slimOk $hasStats $slimStat}}</span>
+              </div>
+              {{if $ratio}}<div class="matrix-cell-ratio"><small class="ratio">{{$ratio}}</small></div>{{end}}
+              ` + matrixCellWarn + `
+            </div>`
 
 const matrixSection = `
   {{if .Matrices}}
@@ -560,8 +1070,12 @@ const matrixSection = `
       <option value="avg_propagation_ms">Avg propagation (ms)</option>
       <option value="p95_propagation_ms">P95 propagation (ms)</option>
     </select>
+    <label class="matrix-toggle" for="matrix-dispersion-toggle">
+      <input type="checkbox" id="matrix-dispersion-toggle" aria-label="Show standard deviation and sample size">
+      Show σ
+    </label>
   </div>
-  <p class="matrix-legend" id="matrix-legend">Each block fixes latency for every cell. Rows vary agent count; columns vary payload size. Cells show <strong>P2P / SLIM</strong> consensus wall (ms) and P2P÷SLIM ratio when both succeeded.</p>
+  <p class="matrix-legend" id="matrix-legend">Each block fixes latency for every cell. Rows vary agent count; columns vary payload size. Each cell splits into <strong>P2P</strong> and <strong>SLIM</strong> columns with mean and 95% CI when aggregated over multiple runs; toggle <strong>Show σ</strong> for standard deviation and sample size.</p>
   {{range .Matrices}}
   {{$tbl := .}}
   <div class="matrix-slice">
@@ -571,7 +1085,7 @@ const matrixSection = `
     </p>
     <table class="matrix">
       <thead>
-        <tr><th class="matrix-corner">Number of Agents \ Payload size</th>{{range $tbl.PayloadCols}}<th>{{formatPayload .}}</th>{{end}}</tr>
+        <tr><th class="matrix-corner matrix-corner-split" scope="col"><span class="corner-payload">Payload size</span><span class="corner-agents">Number of Agents</span></th>{{range $tbl.PayloadCols}}<th>{{formatPayload .}}</th>{{end}}</tr>
       </thead>
       <tbody>
       {{range $agents := $tbl.AgentRows}}
@@ -582,29 +1096,34 @@ const matrixSection = `
         {{$c := .}}
         <td>
           <span class="metric-view" data-metric="consensus_wall_ms">
-            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PWall}} / {{formatWall $c.SLIMSuccess $c.SLIMWall}}</span>
-            {{if $c.WallRatio}}<br><small class="ratio">{{$c.WallRatio}}</small>{{end}}
-            ` + matrixCellWarn + `
+            {{$hasStats := $c.HasStats}}{{$p2pOk := $c.P2PSuccess}}{{$slimOk := $c.SLIMSuccess}}
+            {{$p2pStat := $c.P2PWallStat}}{{$slimStat := $c.SLIMWallStat}}
+            {{$p2pFallback := $c.P2PWall}}{{$slimFallback := $c.SLIMWall}}{{$ratio := $c.WallRatio}}
+            ` + matrixCellSplitInt64 + `
           </span>
           <span class="metric-view" data-metric="findings_emitted" hidden>
-            <span class="walls">{{formatCount $c.HasP2P $c.P2PEmitted}} / {{formatCount $c.HasSLIM $c.SLIMEmitted}}</span>
-            {{if $c.EmittedRatio}}<br><small class="ratio">{{$c.EmittedRatio}}</small>{{end}}
-            ` + matrixCellWarn + `
+            {{$hasStats := $c.HasStats}}{{$p2pOk := $c.HasP2P}}{{$slimOk := $c.HasSLIM}}
+            {{$p2pStat := $c.P2PEmittedStat}}{{$slimStat := $c.SLIMEmittedStat}}
+            {{$p2pFallback := $c.P2PEmitted}}{{$slimFallback := $c.SLIMEmitted}}{{$ratio := $c.EmittedRatio}}
+            ` + matrixCellSplitInt + `
           </span>
           <span class="metric-view" data-metric="findings_received_total" hidden>
-            <span class="walls">{{formatCount $c.HasP2P $c.P2PReceived}} / {{formatCount $c.HasSLIM $c.SLIMReceived}}</span>
-            {{if $c.ReceivedRatio}}<br><small class="ratio">{{$c.ReceivedRatio}}</small>{{end}}
-            ` + matrixCellWarn + `
+            {{$hasStats := $c.HasStats}}{{$p2pOk := $c.HasP2P}}{{$slimOk := $c.HasSLIM}}
+            {{$p2pStat := $c.P2PReceivedStat}}{{$slimStat := $c.SLIMReceivedStat}}
+            {{$p2pFallback := $c.P2PReceived}}{{$slimFallback := $c.SLIMReceived}}{{$ratio := $c.ReceivedRatio}}
+            ` + matrixCellSplitInt + `
           </span>
           <span class="metric-view" data-metric="avg_propagation_ms" hidden>
-            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PAvgProp}} / {{formatWall $c.SLIMSuccess $c.SLIMAvgProp}}</span>
-            {{if $c.AvgPropRatio}}<br><small class="ratio">{{$c.AvgPropRatio}}</small>{{end}}
-            ` + matrixCellWarn + `
+            {{$hasStats := $c.HasStats}}{{$p2pOk := $c.P2PSuccess}}{{$slimOk := $c.SLIMSuccess}}
+            {{$p2pStat := $c.P2PAvgPropStat}}{{$slimStat := $c.SLIMAvgPropStat}}
+            {{$p2pFallback := $c.P2PAvgProp}}{{$slimFallback := $c.SLIMAvgProp}}{{$ratio := $c.AvgPropRatio}}
+            ` + matrixCellSplitInt64 + `
           </span>
           <span class="metric-view" data-metric="p95_propagation_ms" hidden>
-            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PP95Prop}} / {{formatWall $c.SLIMSuccess $c.SLIMP95Prop}}</span>
-            {{if $c.P95PropRatio}}<br><small class="ratio">{{$c.P95PropRatio}}</small>{{end}}
-            ` + matrixCellWarn + `
+            {{$hasStats := $c.HasStats}}{{$p2pOk := $c.P2PSuccess}}{{$slimOk := $c.SLIMSuccess}}
+            {{$p2pStat := $c.P2PP95PropStat}}{{$slimStat := $c.SLIMP95PropStat}}
+            {{$p2pFallback := $c.P2PP95Prop}}{{$slimFallback := $c.SLIMP95Prop}}{{$ratio := $c.P95PropRatio}}
+            ` + matrixCellSplitInt64 + `
           </span>
         </td>
         {{else}}
@@ -623,14 +1142,15 @@ const matrixSwitcherScript = `
   <script>
     (function () {
       var legends = {
-        consensus_wall_ms: 'Each block fixes latency for every cell. Cells show P2P / SLIM consensus wall (ms) and P2P÷SLIM ratio when both succeeded.',
-        findings_emitted: 'Total findings emitted by all agents during the run (summed across epochs). Cells show P2P / SLIM and ratio when both sides reported data.',
-        findings_received_total: 'Total findings applied by all agents (each peer apply counts). Cells show P2P / SLIM and ratio when both sides reported data.',
-        avg_propagation_ms: 'Average per-finding delivery latency (emit → apply). Cells show P2P / SLIM avg propagation (ms) and P2P÷SLIM ratio when both succeeded.',
-        p95_propagation_ms: '95th percentile per-finding delivery latency. Cells show P2P / SLIM P95 propagation (ms) and P2P÷SLIM ratio when both succeeded.'
+        consensus_wall_ms: 'Each block fixes latency for every cell. Cells split into P2P and SLIM columns for consensus wall (ms), with P2P÷SLIM ratio below when both succeeded.',
+        findings_emitted: 'Total findings emitted by all agents during the run. P2P and SLIM columns show counts per side; ratio when both reported data.',
+        findings_received_total: 'Total findings applied by all agents. P2P and SLIM columns show counts per side; ratio when both reported data.',
+        avg_propagation_ms: 'Average per-finding delivery latency (emit → apply). P2P and SLIM columns show avg propagation (ms); ratio when both succeeded.',
+        p95_propagation_ms: '95th percentile per-finding delivery latency. P2P and SLIM columns show P95 propagation (ms); ratio when both succeeded.'
       };
       var select = document.getElementById('matrix-metric-select');
       var legend = document.getElementById('matrix-legend');
+      var dispToggle = document.getElementById('matrix-dispersion-toggle');
       if (!select || !legend) return;
       function applyMetric(metric) {
         document.querySelectorAll('.metric-view').forEach(function (el) {
@@ -639,6 +1159,11 @@ const matrixSwitcherScript = `
         legend.textContent = legends[metric] || '';
       }
       select.addEventListener('change', function () { applyMetric(select.value); });
+      if (dispToggle) {
+        dispToggle.addEventListener('change', function () {
+          document.body.classList.toggle('show-dispersion', dispToggle.checked);
+        });
+      }
     })();
   </script>`
 
@@ -847,9 +1372,10 @@ const matrixHTMLTemplate = `<!DOCTYPE html>
   <meta charset="utf-8">
   <title>Agent Consensus Convergence</title>
   <style>` + reportStyles + `
+    body.matrix-report { max-width: none; }
   </style>
 </head>
-<body>` + reportIntroSection + reportArchSection + matrixSection + `
+<body class="matrix-report">` + reportIntroSection + reportArchSection + matrixSection + `
   {{if not .Matrices}}
   <p>No matrix results found. Run <code>task compare:sweep:matrix</code> first.</p>
   {{end}}` + reportMetricDefsSection + matrixSwitcherScript + reportMermaidScript + `

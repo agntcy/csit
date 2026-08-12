@@ -12,6 +12,7 @@ import (
 )
 
 type RunResult struct {
+	RunID                 int    `json:"run_id,omitempty"`
 	ScenarioName          string `json:"scenario_name"`
 	Domain                string `json:"domain"`
 	Implementation        string `json:"implementation"`
@@ -67,7 +68,7 @@ func AppendTSV(path string, result RunResult) error {
 	w.Comma = '\t'
 	if writeHeader {
 		if err := w.Write([]string{
-			"scenario_name", "domain", "implementation", "agents", "think_time_ms",
+			"scenario_name", "domain", "implementation", "run_id", "agents", "think_time_ms",
 			"payload_bytes", "latency_ms",
 			"consensus_wall_ms", "consensus_round", "findings_emitted", "findings_received_total",
 			"avg_propagation_ms", "p95_propagation_ms", "last_agent_converge_ms",
@@ -82,6 +83,7 @@ func AppendTSV(path string, result RunResult) error {
 		result.ScenarioName,
 		result.Domain,
 		result.Implementation,
+		strconv.Itoa(result.RunID),
 		strconv.Itoa(result.Agents),
 		strconv.FormatInt(result.ThinkTimeMs, 10),
 		strconv.Itoa(result.PayloadBytes),

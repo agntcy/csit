@@ -5,6 +5,9 @@ go 1.25.0
 require (
 	github.com/a2aproject/a2a-go/v2 v2.3.0
 	github.com/agntcy/slim-bindings-go v1.4.0
+	github.com/onsi/ginkgo/v2 v2.28.0
+	github.com/onsi/gomega v1.38.2
+	gonum.org/v1/gonum v0.17.0
 	google.golang.org/grpc v1.82.1
 	gopkg.in/yaml.v3 v3.0.1
 )
