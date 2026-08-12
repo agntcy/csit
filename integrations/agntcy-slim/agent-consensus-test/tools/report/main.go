@@ -36,11 +36,28 @@ type scenarioComparison struct {
 type matrixCell struct {
 	HasP2P      bool
 	HasSLIM     bool
-	P2PWall     int64
-	SLIMWall    int64
 	P2PSuccess  bool
 	SLIMSuccess bool
-	P2PRatio    string
+
+	P2PWall  int64
+	SLIMWall int64
+	WallRatio string
+
+	P2PEmitted  int
+	SLIMEmitted int
+	EmittedRatio string
+
+	P2PReceived  int
+	SLIMReceived int
+	ReceivedRatio string
+
+	P2PAvgProp  int64
+	SLIMAvgProp int64
+	AvgPropRatio string
+
+	P2PP95Prop  int64
+	SLIMP95Prop int64
+	P95PropRatio string
 }
 
 type matrixTable struct {
@@ -320,19 +337,42 @@ func mergeMatrixCell(p cellPair) matrixCell {
 	c := matrixCell{}
 	if p.P2P != nil {
 		c.HasP2P = true
-		c.P2PWall = p.P2P.ConsensusWallMS
 		c.P2PSuccess = p.P2P.Success
+		c.P2PWall = p.P2P.ConsensusWallMS
+		c.P2PEmitted = p.P2P.FindingsEmitted
+		c.P2PReceived = p.P2P.FindingsReceivedTotal
+		c.P2PAvgProp = p.P2P.AvgPropagationMS
+		c.P2PP95Prop = p.P2P.P95PropagationMS
 	}
 	if p.SLIM != nil {
 		c.HasSLIM = true
-		c.SLIMWall = p.SLIM.ConsensusWallMS
 		c.SLIMSuccess = p.SLIM.Success
+		c.SLIMWall = p.SLIM.ConsensusWallMS
+		c.SLIMEmitted = p.SLIM.FindingsEmitted
+		c.SLIMReceived = p.SLIM.FindingsReceivedTotal
+		c.SLIMAvgProp = p.SLIM.AvgPropagationMS
+		c.SLIMP95Prop = p.SLIM.P95PropagationMS
 	}
-	if c.HasP2P && c.HasSLIM && c.SLIMWall > 0 && c.P2PSuccess && c.P2PWall > 0 {
-		ratio := float64(c.P2PWall) / float64(c.SLIMWall)
-		c.P2PRatio = fmt.Sprintf("%.1f×", ratio)
-	}
+	c.WallRatio = ratioInt64(c.P2PWall, c.SLIMWall, c.P2PSuccess, c.SLIMSuccess)
+	c.EmittedRatio = ratioInt(c.P2PEmitted, c.SLIMEmitted, c.HasP2P, c.HasSLIM)
+	c.ReceivedRatio = ratioInt(c.P2PReceived, c.SLIMReceived, c.HasP2P, c.HasSLIM)
+	c.AvgPropRatio = ratioInt64(c.P2PAvgProp, c.SLIMAvgProp, c.P2PSuccess, c.SLIMSuccess)
+	c.P95PropRatio = ratioInt64(c.P2PP95Prop, c.SLIMP95Prop, c.P2PSuccess, c.SLIMSuccess)
 	return c
+}
+
+func ratioInt64(p2p, slim int64, p2pOk, slimOk bool) string {
+	if !p2pOk || !slimOk || p2p <= 0 || slim <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f×", float64(p2p)/float64(slim))
+}
+
+func ratioInt(p2p, slim int, hasP2P, hasSLIM bool) string {
+	if !hasP2P || !hasSLIM || p2p <= 0 || slim <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f×", float64(p2p)/float64(slim))
 }
 
 func sortedIntKeys(set map[int]struct{}) []int {
@@ -373,6 +413,13 @@ func formatWall(success bool, wall int64) string {
 	return strconv.FormatInt(wall, 10)
 }
 
+func formatCount(has bool, v int) string {
+	if !has {
+		return "—"
+	}
+	return strconv.Itoa(v)
+}
+
 func formatLatencyFixed(latencyMs int64) string {
 	if latencyMs == 0 {
 		return "All agents local (0 ms one-way latency)"
@@ -392,8 +439,9 @@ func writeHTML(path string, comparisons []scenarioComparison, sweep []metrics.Ru
 		return err
 	}
 	tmpl := template.Must(template.New("report").Funcs(template.FuncMap{
-		"formatPayload": formatPayloadLabel,
-		"formatWall":    formatWall,
+		"formatPayload":      formatPayloadLabel,
+		"formatWall":         formatWall,
+		"formatCount":        formatCount,
 		"formatLatencyFixed": formatLatencyFixed,
 	}).Parse(htmlTemplate))
 	file, err := os.Create(path)
@@ -409,8 +457,9 @@ func writeMatrixHTML(path string, matrices []matrixTable) error {
 		return err
 	}
 	tmpl := template.Must(template.New("matrix").Funcs(template.FuncMap{
-		"formatPayload": formatPayloadLabel,
-		"formatWall":    formatWall,
+		"formatPayload":      formatPayloadLabel,
+		"formatWall":         formatWall,
+		"formatCount":        formatCount,
 		"formatLatencyFixed": formatLatencyFixed,
 	}).Parse(matrixHTMLTemplate))
 	file, err := os.Create(path)
@@ -474,13 +523,45 @@ const matrixStyles = `
       background: #fafbfc;
     }
     .matrix-slice table.matrix tr:first-child th { border-top: none; }
-    .matrix-legend { color: #555; font-size: 0.875rem; margin: 0 0 1rem; }`
+    .matrix-legend { color: #555; font-size: 0.875rem; margin: 0 0 1rem; }
+    .matrix-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1rem 0 0.5rem;
+      padding: 0.65rem 0.9rem;
+      background: #f5f7fa;
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+    }
+    .matrix-toolbar label { font-size: 0.9rem; color: #333; }
+    .matrix-toolbar select {
+      font: inherit;
+      font-size: 0.9rem;
+      padding: 0.35rem 0.6rem;
+      border: 1px solid #c5ccd6;
+      border-radius: 4px;
+      background: #fff;
+      min-width: 14rem;
+    }
+    .metric-view[hidden] { display: none; }`
+
+const matrixCellWarn = `{{if or (not .P2PSuccess) (not .SLIMSuccess)}}<br><small class="warn">{{if not .P2PSuccess}}P2P fail{{end}}{{if and (not .P2PSuccess) (not .SLIMSuccess)}} · {{end}}{{if not .SLIMSuccess}}SLIM fail{{end}}</small>{{end}}`
 
 const matrixSection = `
   {{if .Matrices}}
   <h2 id="matrices">Matrix sweep (agents × payload at fixed latency)</h2>
-  <p class="matrix-legend">Each block below fixes latency for every cell in its table. Rows vary agent count;
-  columns vary payload size. Cells show <strong>P2P / SLIM</strong> consensus wall (ms) and P2P÷SLIM ratio when both succeeded.</p>
+  <div class="matrix-toolbar">
+    <label for="matrix-metric-select"><strong>Metric</strong></label>
+    <select id="matrix-metric-select" aria-label="Matrix metric">
+      <option value="consensus_wall_ms" selected>Consensus wall (ms)</option>
+      <option value="findings_emitted">Findings emitted</option>
+      <option value="findings_received_total">Findings received (total)</option>
+      <option value="avg_propagation_ms">Avg propagation (ms)</option>
+      <option value="p95_propagation_ms">P95 propagation (ms)</option>
+    </select>
+  </div>
+  <p class="matrix-legend" id="matrix-legend">Each block fixes latency for every cell. Rows vary agent count; columns vary payload size. Cells show <strong>P2P / SLIM</strong> consensus wall (ms) and P2P÷SLIM ratio when both succeeded.</p>
   {{range .Matrices}}
   {{$tbl := .}}
   <div class="matrix-slice">
@@ -498,10 +579,33 @@ const matrixSection = `
         <th scope="row">{{$agents}}</th>
         {{range $payload := $tbl.PayloadCols}}
         {{with index (index $tbl.Cells $agents) $payload}}
+        {{$c := .}}
         <td>
-          <span class="walls">{{formatWall .P2PSuccess .P2PWall}} / {{formatWall .SLIMSuccess .SLIMWall}}</span>
-          {{if .P2PRatio}}<br><small class="ratio">{{.P2PRatio}}</small>{{end}}
-          {{if or (not .P2PSuccess) (not .SLIMSuccess)}}<br><small class="warn">{{if not .P2PSuccess}}P2P fail{{end}}{{if and (not .P2PSuccess) (not .SLIMSuccess)}} · {{end}}{{if not .SLIMSuccess}}SLIM fail{{end}}</small>{{end}}
+          <span class="metric-view" data-metric="consensus_wall_ms">
+            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PWall}} / {{formatWall $c.SLIMSuccess $c.SLIMWall}}</span>
+            {{if $c.WallRatio}}<br><small class="ratio">{{$c.WallRatio}}</small>{{end}}
+            ` + matrixCellWarn + `
+          </span>
+          <span class="metric-view" data-metric="findings_emitted" hidden>
+            <span class="walls">{{formatCount $c.HasP2P $c.P2PEmitted}} / {{formatCount $c.HasSLIM $c.SLIMEmitted}}</span>
+            {{if $c.EmittedRatio}}<br><small class="ratio">{{$c.EmittedRatio}}</small>{{end}}
+            ` + matrixCellWarn + `
+          </span>
+          <span class="metric-view" data-metric="findings_received_total" hidden>
+            <span class="walls">{{formatCount $c.HasP2P $c.P2PReceived}} / {{formatCount $c.HasSLIM $c.SLIMReceived}}</span>
+            {{if $c.ReceivedRatio}}<br><small class="ratio">{{$c.ReceivedRatio}}</small>{{end}}
+            ` + matrixCellWarn + `
+          </span>
+          <span class="metric-view" data-metric="avg_propagation_ms" hidden>
+            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PAvgProp}} / {{formatWall $c.SLIMSuccess $c.SLIMAvgProp}}</span>
+            {{if $c.AvgPropRatio}}<br><small class="ratio">{{$c.AvgPropRatio}}</small>{{end}}
+            ` + matrixCellWarn + `
+          </span>
+          <span class="metric-view" data-metric="p95_propagation_ms" hidden>
+            <span class="walls">{{formatWall $c.P2PSuccess $c.P2PP95Prop}} / {{formatWall $c.SLIMSuccess $c.SLIMP95Prop}}</span>
+            {{if $c.P95PropRatio}}<br><small class="ratio">{{$c.P95PropRatio}}</small>{{end}}
+            ` + matrixCellWarn + `
+          </span>
         </td>
         {{else}}
         <td>—</td>
@@ -514,6 +618,29 @@ const matrixSection = `
   </div>
   {{end}}
   {{end}}`
+
+const matrixSwitcherScript = `
+  <script>
+    (function () {
+      var legends = {
+        consensus_wall_ms: 'Each block fixes latency for every cell. Cells show P2P / SLIM consensus wall (ms) and P2P÷SLIM ratio when both succeeded.',
+        findings_emitted: 'Total findings emitted by all agents during the run (summed across epochs). Cells show P2P / SLIM and ratio when both sides reported data.',
+        findings_received_total: 'Total findings applied by all agents (each peer apply counts). Cells show P2P / SLIM and ratio when both sides reported data.',
+        avg_propagation_ms: 'Average per-finding delivery latency (emit → apply). Cells show P2P / SLIM avg propagation (ms) and P2P÷SLIM ratio when both succeeded.',
+        p95_propagation_ms: '95th percentile per-finding delivery latency. Cells show P2P / SLIM P95 propagation (ms) and P2P÷SLIM ratio when both succeeded.'
+      };
+      var select = document.getElementById('matrix-metric-select');
+      var legend = document.getElementById('matrix-legend');
+      if (!select || !legend) return;
+      function applyMetric(metric) {
+        document.querySelectorAll('.metric-view').forEach(function (el) {
+          el.hidden = el.getAttribute('data-metric') !== metric;
+        });
+        legend.textContent = legends[metric] || '';
+      }
+      select.addEventListener('change', function () { applyMetric(select.value); });
+    })();
+  </script>`
 
 const reportStyles = `
     body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1100px; }
@@ -530,7 +657,25 @@ const reportStyles = `
     .intro code { background: #eceff3; padding: 0.05rem 0.3rem; border-radius: 3px; }
     dl.defs dt { font-weight: 600; margin-top: 0.75rem; }
     dl.defs dd { margin: 0.2rem 0 0 1.25rem; color: #333; }
-    .diagram { border: 1px solid #dde3ea; border-radius: 6px; padding: 1rem; background: #fff; overflow-x: auto; }
+    .arch-diagrams { display: flex; flex-direction: column; gap: 1.25rem; margin: 1rem 0 1.5rem; }
+    .diagram {
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+      padding: 1rem 1.25rem 1.25rem;
+      background: #fff;
+      overflow-x: auto;
+    }
+    .diagram h3 {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 650;
+      color: #1a2a3a;
+      line-height: 1.35;
+    }
+    .diagram h3 small { display: block; font-weight: 450; color: #555; margin-top: 0.2rem; }
+    .diagram pre.mermaid { margin: 0; background: transparent; }
+    .diagram svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+    .diagram .nodeLabel, .diagram .edgeLabel { font-size: 13px !important; }
     p.plandesc { background: #fbfaf3; border-left: 3px solid #d8b83f; margin: 0.25rem 0 0.75rem; padding: 0.5rem 0.9rem; color: #444; }`
 
 const reportIntroSection = `
@@ -563,34 +708,43 @@ const reportArchSection = `
     agents publish each finding once to a native group session and the dataplane fans it out to all peers (the
     runner only observes). <strong>P2P streaming</strong> streams every finding to the runner acting as a
     <em>relay hub</em>, which re-streams it to every other agent — two hops per finding, all through one point.</p>
-  <div class="diagram">
-    <pre class="mermaid">
-flowchart TB
-  subgraph slim["SLIM group multicast — native group session, no relay"]
-    R1["runner (passive observer: start signal + consumes pushed metrics)"]
-    SA0["agent-0"]
-    SA1["agent-1"]
-    SA2["agent-2"]
-    SA0 ---|"Publish finding → all (dataplane fan-out)"| SA1
-    SA1 --- SA2
-    SA0 --- SA2
-    SA0 -.->|"push snapshot on convergence"| R1
-    SA1 -.-> R1
-    SA2 -.-> R1
-  end
-  subgraph p2p["P2P streaming — runner is the relay hub"]
-    R2["runner = RELAY (hosts streaming server)"]
-    AA0["agent-0"]
-    AA1["agent-1"]
-    AA2["agent-2"]
-    AA0 -->|"stream findings → runner"| R2
-    AA1 --> R2
-    AA2 --> R2
-    R2 -->|"stream relayed findings → agent"| AA0
-    R2 --> AA1
-    R2 --> AA2
-  end
-    </pre>
+  <div class="arch-diagrams">
+    <div class="diagram">
+      <h3>SLIM group multicast<small>Native group session — one publish, dataplane fan-out, no relay</small></h3>
+      <pre class="mermaid">
+flowchart TD
+  R["Runner<br/>start signal + metrics"]
+  G["Group session<br/>dataplane fan-out"]
+  A0["Agent 0"]
+  A1["Agent 1"]
+  A2["Agent 2"]
+  A0 -->|"publish finding"| G
+  A1 -->|"publish finding"| G
+  A2 -->|"publish finding"| G
+  G -->|"deliver to peers"| A0
+  G --> A1
+  G --> A2
+  A0 -.->|"snapshot on converge"| R
+  A1 -.-> R
+  A2 -.-> R
+      </pre>
+    </div>
+    <div class="diagram">
+      <h3>P2P streaming<small>Runner is the relay hub — two hops per finding through one point</small></h3>
+      <pre class="mermaid">
+flowchart TD
+  A0["Agent 0"]
+  A1["Agent 1"]
+  A2["Agent 2"]
+  H["Runner<br/>RELAY hub"]
+  A0 -->|"stream finding"| H
+  A1 --> H
+  A2 --> H
+  H -->|"relay to each peer"| A0
+  H --> A1
+  H --> A2
+      </pre>
+    </div>
   </div>`
 
 const reportMetricDefsSection = `
@@ -627,7 +781,25 @@ const reportMetricDefsSection = `
 const reportMermaidScript = `
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'strict',
+      theme: 'base',
+      flowchart: { htmlLabels: true, curve: 'basis', padding: 16, nodeSpacing: 28, rankSpacing: 40 },
+      themeVariables: {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        primaryColor: '#eef3fa',
+        primaryTextColor: '#1a2a3a',
+        primaryBorderColor: '#2d4a6f',
+        lineColor: '#5a6a7e',
+        secondaryColor: '#f5f7fa',
+        tertiaryColor: '#fff',
+        clusterBkg: '#f5f7fa',
+        clusterBorder: '#c5d4e8',
+        edgeLabelBackground: '#fff'
+      }
+    });
   </script>`
 
 const htmlTemplate = `<!DOCTYPE html>
@@ -664,7 +836,7 @@ const htmlTemplate = `<!DOCTYPE html>
     </tr>
     {{end}}
   </table>
-  {{end}}` + matrixSection + reportMetricDefsSection + reportMermaidScript + `
+  {{end}}` + matrixSection + reportMetricDefsSection + matrixSwitcherScript + reportMermaidScript + `
 </body>
 </html>
 `
@@ -680,7 +852,7 @@ const matrixHTMLTemplate = `<!DOCTYPE html>
 <body>` + reportIntroSection + reportArchSection + matrixSection + `
   {{if not .Matrices}}
   <p>No matrix results found. Run <code>task compare:sweep:matrix</code> first.</p>
-  {{end}}` + reportMetricDefsSection + reportMermaidScript + `
+  {{end}}` + reportMetricDefsSection + matrixSwitcherScript + reportMermaidScript + `
 </body>
 </html>
 `

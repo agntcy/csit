@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        latency_ms: [0, 50, 100]
+        latency_ms: [0, 25, 50, 100]
 
     permissions:
       contents: read
@@ -91,7 +91,7 @@ jobs:
         run: |
           REPORT_DIR="integrations/agntcy-slim/agent-consensus-test/reports"
           {
-            echo "# Agent Consensus Convergence — matrix benchmark"
+            echo "# Agent Consensus Convergence — SLIM Group Streaming vs P2P Streaming"
             echo
             echo "- Workflow: ${GITHUB_WORKFLOW}"
             echo "- Ref: ${GITHUB_REF}"
