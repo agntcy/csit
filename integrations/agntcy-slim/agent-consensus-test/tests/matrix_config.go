@@ -33,15 +33,44 @@ type matrixConfig struct {
 	P2PRelayCard   int
 }
 
-func loadMatrixConfig() matrixConfig {
-	root, err := filepath.Abs(".")
+func projectRoot() string {
+	wd, err := os.Getwd()
 	if err != nil {
-		root = "."
+		return "."
 	}
-	binDir := envString("BIN_DIR", filepath.Join(root, "bin"))
-	reportsDir := envString("REPORTS_DIR", filepath.Join(root, "reports"))
-	rawDir := envString("MATRIX_RAW_DIR", filepath.Join(reportsDir, "raw"))
-	matrixDir := envString("MATRIX_DIR", filepath.Join(root, "plans", "matrix"))
+	dir := wd
+	for {
+		if _, statErr := os.Stat(filepath.Join(dir, "go.mod")); statErr == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return wd
+		}
+		dir = parent
+	}
+}
+
+func resolveProjectPath(root, path string) string {
+	if path == "" {
+		return root
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(root, filepath.Clean(path))
+}
+
+func loadMatrixConfig() matrixConfig {
+	root := projectRoot()
+	binDir := resolveProjectPath(root, envString("BIN_DIR", "bin"))
+	reportsDir := resolveProjectPath(root, envString("REPORTS_DIR", "reports"))
+	rawDirEnv := os.Getenv("MATRIX_RAW_DIR")
+	rawDir := filepath.Join(reportsDir, "raw")
+	if rawDirEnv != "" {
+		rawDir = resolveProjectPath(root, rawDirEnv)
+	}
+	matrixDir := resolveProjectPath(root, envString("MATRIX_DIR", filepath.Join("plans", "matrix")))
 
 	latency := envInt64("MATRIX_LATENCY_MS", -1)
 	agents := envInt("MATRIX_AGENTS", -1)
@@ -57,7 +86,7 @@ func loadMatrixConfig() matrixConfig {
 		ReportsDir:   reportsDir,
 		RawDir:       rawDir,
 		MatrixDir:    matrixDir,
-		SlimctlPath:  envString("COMPARE_SLIMCTL", filepath.Join(binDir, "slimctl")),
+		SlimctlPath:  resolveProjectPath(root, envString("COMPARE_SLIMCTL", filepath.Join("bin", "slimctl"))),
 		SlimEndpoint: envString("SLIM_ENDPOINT", "http://127.0.0.1:46357"),
 		LatencyMs:    latency,
 		Agents:       agents,
