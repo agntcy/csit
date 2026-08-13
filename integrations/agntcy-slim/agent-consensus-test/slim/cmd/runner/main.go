@@ -39,6 +39,7 @@ func main() {
 	agentBin := flag.String("agent-bin", "", "path to slim-agent binary")
 	outputJSON := flag.String("output-json", "", "write run metrics json")
 	outputTSV := flag.String("output-tsv", "", "append run metrics tsv")
+	runID := flag.Int("run-id", 0, "repetition index for statistical runs")
 	waitReady := flag.Duration("wait-ready", 3*time.Second, "wait for agents to start")
 	quiet := flag.Bool("quiet", false, "disable benchmark logs")
 	flag.Parse()
@@ -82,6 +83,7 @@ func main() {
 	benchlog.SetRunStart(runStart)
 
 	result := metrics.RunResult{
+		RunID:          *runID,
 		ScenarioName:   s.Metadata.Name,
 		Domain:         s.Metadata.Domain,
 		Implementation: benchlog.ImplSLIM,
