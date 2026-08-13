@@ -1,5 +1,11 @@
 scenario_name	domain	implementation	run_id	agents	think_time_ms	payload_bytes	latency_ms	consensus_wall_ms	consensus_round	findings_emitted	findings_received_total	avg_propagation_ms	p95_propagation_ms	last_agent_converge_ms	coord_fanout_ms	stream_rpc_count	epochs	epochs_succeeded	epochs_failed	success	error
-matrix-lat25-10ag	matrix	p2p-relay-stream	1	10	20	0	25	210	10	353	1108	83	116	261	26815	3177	5	5	0	true	
-matrix-lat25-10ag	matrix	slim-group-session	1	10	20	0	25	262	4	123	986	59	101	331	0	123	5	5	0	true	
-matrix-lat25-10ag	matrix	p2p-relay-stream	2	10	20	0	25	247	11	436	1281	92	113	262	33081	3924	5	5	0	true	
-matrix-lat25-10ag	matrix	slim-group-session	2	10	20	0	25	272	5	119	929	56	81	325	0	119	5	5	0	true	
+matrix-lat25-10ag	matrix	p2p-relay-stream	1	10	20	0	25	184	10	288	935	69	104	262	21842	2592	5	5	0	true	
+matrix-lat25-10ag	matrix	slim-group-session	1	10	20	0	25	235	3	111	873	56	85	286	0	111	5	5	0	true	
+matrix-lat25-10ag	matrix	p2p-relay-stream	2	10	20	0	25	234	10	403	1213	89	108	276	30607	3636	5	5	0	true	
+matrix-lat25-10ag	matrix	slim-group-session	2	10	20	0	25	271	4	116	957	65	125	304	0	116	5	5	0	true	
+matrix-lat25-10ag	matrix	p2p-relay-stream	3	10	20	0	25	200	10	341	1048	76	94	231	25835	3069	5	5	0	true	
+matrix-lat25-10ag	matrix	slim-group-session	3	10	20	0	25	243	3	112	864	51	72	293	0	112	5	5	0	true	
+matrix-lat25-10ag	matrix	p2p-relay-stream	4	10	20	0	25	159	10	282	821	66	110	270	21449	2547	5	5	0	true	
+matrix-lat25-10ag	matrix	slim-group-session	4	10	20	0	25	264	3	125	948	51	68	315	0	125	5	5	0	true	
+matrix-lat25-10ag	matrix	p2p-relay-stream	5	10	20	0	25	228	10	346	1195	86	114	278	26192	3114	5	5	0	true	
+matrix-lat25-10ag	matrix	slim-group-session	5	10	20	0	25	268	3	108	882	55	84	339	0	108	5	4	1	false	
