@@ -27,6 +27,11 @@ import (
 	"github.com/agntcy/csit/integrations/agntcy-slim/agent-consensus-test/p2p/internal/relay"
 )
 
+// subscriptionTeardownTimeout bounds how long we wait for per-epoch finding
+// subscriptions to exit after cancel. Without a cap, stuck streams can block
+// the whole run (and CI) for many minutes even though each epoch budget is 2m.
+const subscriptionTeardownTimeout = 45 * time.Second
+
 func main() {
 	scenarioPath := flag.String("scenario", "", "path to consensus scenario yaml")
 	agentBin := flag.String("agent-bin", "", "path to p2p-agent binary")
@@ -161,7 +166,7 @@ func main() {
 			// move on so the run still completes and writes results (which is
 			// itself the signal that P2P streaming breaks down at this scale).
 			epochCancel()
-			subWG.Wait()
+			waitSubscriptionGroup(&subWG, subscriptionTeardownTimeout)
 			result.EpochsFailed++
 			log.Printf("epoch %d/%d failed to start: %v", epoch+1, s.Spec.Epochs, err)
 			continue
@@ -204,7 +209,7 @@ func main() {
 		// Close this epoch's findings streams so the next epoch opens fresh
 		// tasks instead of growing one findings task across the whole run.
 		epochCancel()
-		subWG.Wait()
+		waitSubscriptionGroup(&subWG, subscriptionTeardownTimeout)
 	}
 
 	result.Success = result.EpochsFailed == 0
@@ -227,6 +232,19 @@ func main() {
 	fmt.Println(string(data))
 	if !result.Success {
 		os.Exit(1)
+	}
+}
+
+func waitSubscriptionGroup(wg *sync.WaitGroup, timeout time.Duration) {
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(timeout):
+		log.Printf("warning: epoch finding subscriptions did not finish within %s; continuing", timeout)
 	}
 }
 
