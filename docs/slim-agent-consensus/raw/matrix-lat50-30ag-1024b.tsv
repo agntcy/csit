@@ -1,3 +1,5 @@
 scenario_name	domain	implementation	run_id	agents	think_time_ms	payload_bytes	latency_ms	consensus_wall_ms	consensus_round	findings_emitted	findings_received_total	avg_propagation_ms	p95_propagation_ms	last_agent_converge_ms	coord_fanout_ms	stream_rpc_count	epochs	epochs_succeeded	epochs_failed	success	error
-matrix-lat50-30ag-1024b	matrix	p2p-relay-stream	1	30	20	1024	50	7441	200	22600	16499	4701	7159	9819	6011457	234446	5	5	0	true	
-matrix-lat50-30ag-1024b	matrix	slim-group-session	1	30	20	1024	50	324	4	308	8263	70	104	408	0	308	5	5	0	true	
+matrix-lat50-30ag-1024b	matrix	p2p-relay-stream	1	30	20	1024	50	5750	200	20510	14937	4827	8797	8062	5590650	201644	5	5	0	true	
+matrix-lat50-30ag-1024b	matrix	slim-group-session	1	30	20	1024	50	340	4	304	8216	81	142	468	0	304	5	5	0	true	
+matrix-lat50-30ag-1024b	matrix	p2p-relay-stream	2	30	20	1024	50	10008	200	24042	18761	6579	10801	17962	7491113	233077	5	5	0	true	
+matrix-lat50-30ag-1024b	matrix	slim-group-session	2	30	20	1024	50	286	4	292	7644	83	141	359	0	292	5	5	0	true	
