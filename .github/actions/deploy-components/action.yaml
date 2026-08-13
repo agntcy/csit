@@ -112,7 +112,7 @@ runs:
       if: ${{ inputs.install-taskfile-depedency != 'false' }}
       uses: go-task/setup-task@v2
       with:
-        version: 3.41.0
+        version: 3.42.0
         repo-token: ${{ github.token }}
 
     - name: Create kind cluster
