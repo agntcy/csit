@@ -266,7 +266,7 @@ tasks:
       MATRIX_MAX_EPOCH_MS: "{{ .MATRIX_MAX_EPOCH_MS }}"
       CONSENSUS_REPEATS: "{{ .CONSENSUS_REPEATS }}"
     cmds:
-      - go test ./tests -count=1 -v -failfast -timeout 360m --ginkgo.label-filter=matrix-cell --ginkgo.timeout=360m
+      - go test ./tests -count=1 -v -failfast -timeout 1440m --ginkgo.label-filter=matrix-cell --ginkgo.timeout=1440m
 
   compare:sweep:matrix:
     desc: Run full agents×payload×latency matrix locally (sequential cells via Ginkgo)

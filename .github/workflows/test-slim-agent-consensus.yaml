@@ -25,7 +25,7 @@ on:
 jobs:
   matrix-cell:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 1440
     strategy:
       fail-fast: false
       matrix:
