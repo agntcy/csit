@@ -23,7 +23,9 @@ vars:
   # Control-plane Service name (matches fullnameOverride in controller-values.yaml).
   CONTROLLER_SERVICE: '{{ .CONTROLLER_SERVICE | default "slim-control" }}'
 
-  HELM_WAIT_TIMEOUT: '{{ .HELM_WAIT_TIMEOUT | default "15m" }}'
+  # helm --wait timeout for the controller/data-plane installs. Kept short so a
+  # broken deploy fails fast instead of blocking for the full default.
+  HELM_WAIT_TIMEOUT: '{{ .HELM_WAIT_TIMEOUT | default "5m" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
