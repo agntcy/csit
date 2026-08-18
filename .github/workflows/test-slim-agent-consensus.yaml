@@ -4,16 +4,6 @@
 name: test-slim-agent-consensus
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/test-slim-agent-consensus.yaml"
-      - "integrations/agntcy-slim/agent-consensus-test/**"
-  pull_request:
-    paths:
-      - ".github/workflows/test-slim-agent-consensus.yaml"
-      - "integrations/agntcy-slim/agent-consensus-test/**"
   workflow_dispatch:
     inputs:
       repeats:
