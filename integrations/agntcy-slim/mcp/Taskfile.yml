@@ -114,7 +114,7 @@ tasks:
           kubectl wait --for=condition=available "deployment/${dep}" \
             -n "$NS" --timeout=15m
         done
-        kubectl rollout status "deployment/slim" -n "$NS" --timeout=15m
+        kubectl rollout status "statefulset/slim" -n "$NS" --timeout=15m
 
   cleanup:stack:
     desc: Uninstall Helm releases from the MCP test namespace
