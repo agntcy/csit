@@ -12,11 +12,11 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  TOPOLOGY_SLIM_CHART_TAG: '{{ .TOPOLOGY_SLIM_CHART_TAG | default "v1.5.0" }}'
-  TOPOLOGY_SLIM_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_IMAGE_TAG | default "2.0.0-alpha.2" }}'
+  TOPOLOGY_SLIM_CHART_TAG: '{{ .TOPOLOGY_SLIM_CHART_TAG | default "v2.0.0" }}'
+  TOPOLOGY_SLIM_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_IMAGE_TAG | default "2.0.0" }}'
 
-  TOPOLOGY_SLIM_CONTROLLER_CHART_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG | default "v1.5.0" }}'
-  TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0-alpha.2" }}'
+  TOPOLOGY_SLIM_CONTROLLER_CHART_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG | default "v2.0.0" }}'
+  TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
 
@@ -39,7 +39,7 @@ vars:
   # slimctl binary used by the test to drive the control-plane topology.
   SLIMCTL: '{{ .SLIMCTL | default "./bin/slimctl" }}'
   # Release tag must match the control-plane API (segment/link add commands).
-  SLIMCTL_TAG: '{{ .SLIMCTL_TAG | default "slimctl-v2.0.0-alpha.2" }}'
+  SLIMCTL_TAG: '{{ .SLIMCTL_TAG | default "slimctl-v2.0.0" }}'
 
   # p2p client image (built from examples/Dockerfile, provides slim-bindings-p2p).
   CLIENT_IMAGE: '{{ .CLIENT_IMAGE | default "ghcr.io/agntcy/slim/bindings-examples:local" }}'
