@@ -122,9 +122,9 @@ func (c *slimctlClient) Nodes() ([]nodeEntry, error) {
 	return entries, nil
 }
 
-// GroupNames returns the group names from `controller group list`.
-func (c *slimctlClient) GroupNames() ([]string, error) {
-	out, err := c.run("group", "list")
+// DomainNames returns the domain names from `controller domain list`.
+func (c *slimctlClient) DomainNames() ([]string, error) {
+	out, err := c.run("domain", "list")
 	if err != nil {
 		return nil, err
 	}

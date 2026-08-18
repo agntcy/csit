@@ -355,10 +355,10 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 					}
 				}, joinTimeout, 5*time.Second).Should(gomega.Succeed())
 
-				ginkgo.By("checking all three groups are registered")
-				groups, err := ctl.GroupNames()
+				ginkgo.By("checking all three domains are registered")
+				domains, err := ctl.DomainNames()
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(groups).To(gomega.ContainElements("cluster-a", "cluster-b", "cluster-c"))
+				gomega.Expect(domains).To(gomega.ContainElements("cluster-a", "cluster-b", "cluster-c"))
 			})
 		})
 
