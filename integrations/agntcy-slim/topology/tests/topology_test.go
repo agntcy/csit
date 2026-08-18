@@ -261,6 +261,23 @@ func interClusterLinkEndpoints(links []linkEntry, clusterA, clusterB, targetClus
 	return out
 }
 
+// interClusterLinkApplied reports whether at least one link connecting clusterA
+// and clusterB is in APPLIED status.
+func interClusterLinkApplied(links []linkEntry, clusterA, clusterB string) bool {
+	for _, l := range links {
+		srcA := strings.Contains(l.Source, clusterA)
+		dstA := strings.Contains(l.DestNode, clusterA)
+		srcB := strings.Contains(l.Source, clusterB)
+		dstB := strings.Contains(l.DestNode, clusterB)
+		if (srcA && dstB) || (srcB && dstA) {
+			if strings.EqualFold(l.Status, "APPLIED") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // connectedLinksBetween counts links connecting clusterA and clusterB whose
 // endpoints are both currently Connected. This ignores stale links left behind
 // on Unknown nodes after a restart, unlike linksBetween.
@@ -374,7 +391,15 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				_, err = ctl.AddLink("cluster-a", "cluster-c", segC)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				ginkgo.By("deploying alice senders, bob/carol receivers and the bob->carol probe")
+				ginkgo.By("waiting for inter-cluster links to become APPLIED")
+				gomega.Eventually(func(g gomega.Gomega) {
+					links, err := ctl.Links(false)
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					g.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-b")).To(gomega.BeTrue())
+					g.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-c")).To(gomega.BeTrue())
+				}, linkTimeout, 5*time.Second).Should(gomega.Succeed())
+
+				ginkgo.By("deploying bob/carol receivers, then alice senders and the bob->carol probe")
 				bob = deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
 					Name: "bob", Cluster: "cluster-b", LocalName: "org/ns/bob",
 				})
