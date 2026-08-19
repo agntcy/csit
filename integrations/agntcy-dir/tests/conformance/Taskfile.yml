@@ -4,8 +4,15 @@
 version: "3"
 
 vars:
+  # Cross-version conformance: run the pinned client suite against multiple released server images.
   CONFORMANCE_SERVER_VERSIONS: ["v1.3.0", "v1.2.0"]
   CONFORMANCE_CLIENT_VERSIONS: ["v1.3.0"]
+  # Configuration matrix: run one client version against many DEPLOYMENT CONFIGURATIONS of dir.
+  # Each entry is a folder under ./server/<name>/ that stands up a differently-configured daemon
+  # (storage backend, OCI store mode, signing, authN, ...). See ./server/<name>/README or the
+  # plan for what each profile exercises.
+  CONFORMANCE_SERVER_CONFIGS: ["v1.6.1", "sqlite-zot", "postgres-oci", "postgres-zot", "x509-spire"]
+  CONFORMANCE_CONFIG_CLIENT_VERSION: "v1.6.1"
   CONFORMANCE_CLIENT_TEST_PKG: 'github.com/agntcy/dir/tests/e2e/client'
 
 includes:
@@ -15,6 +22,17 @@ includes:
     taskfile: "./server/v1.3.0/Taskfile.yml"
   server:v1.3.0-spire:
     taskfile: "./server/v1.3.0-spire/Taskfile.yml"
+  # Configuration-matrix profiles (base version v1.6.1)
+  server:v1.6.1:
+    taskfile: "./server/v1.6.1/Taskfile.yml"
+  server:sqlite-zot:
+    taskfile: "./server/sqlite-zot/Taskfile.yml"
+  server:postgres-oci:
+    taskfile: "./server/postgres-oci/Taskfile.yml"
+  server:postgres-zot:
+    taskfile: "./server/postgres-zot/Taskfile.yml"
+  server:x509-spire:
+    taskfile: "./server/x509-spire/Taskfile.yml"
 
 tasks:
   up:
@@ -31,11 +49,14 @@ tasks:
         mkdir -p {{.TMP_PATH}}
         cd {{.TMP_PATH}}
 
-        echo -e "module testing\ngo 1.26.2\n" > go.mod
+        echo -e "module testing\ngo 1.26.5\n" > go.mod
         go mod tidy
         go get -t {{.CONFORMANCE_CLIENT_TEST_PKG}}@{{.CLIENT_VERSION}}
 
-        if echo "{{.SERVER_VERSION}}" | grep -q spire; then
+        # Apply a source overlay only for profiles that ship a `needs-overlay` marker.
+        # (Older profiles patch the tests module's common.go; newer versions support SPIFFE
+        # natively via client-config and must NOT be overlaid.)
+        if [ -f "{{.TASKFILE_DIR}}/server/{{.SERVER_VERSION}}/needs-overlay" ]; then
           OVERLAY="{{.TMP_PATH}}/dir-tests-overlay"
           TESTS_MOD="$(go env GOMODCACHE)/github.com/agntcy/dir/tests@{{.CLIENT_VERSION}}"
           rm -rf "$OVERLAY"
@@ -68,7 +89,15 @@ tasks:
       SERVER_VERSION: '{{.SERVER_VERSION | default "v1.3.0" }}'
       CLIENT_VERSION: '{{.CLIENT_VERSION | default "v1.3.0" }}'
 
-      CLIENT_CONFIG: '{{.TASKFILE_DIR}}/client/{{.CLIENT_VERSION}}/test-config.yaml'
+      # Prefer a profile-local client config (co-located with the server profile) so signing/authN
+      # profiles can ship their client-side knobs; otherwise fall back to the version-keyed config.
+      CLIENT_CONFIG:
+        sh: |
+          if [ -f "{{.TASKFILE_DIR}}/server/{{.SERVER_VERSION}}/client-config.yaml" ]; then
+            echo "{{.TASKFILE_DIR}}/server/{{.SERVER_VERSION}}/client-config.yaml"
+          else
+            echo "{{.TASKFILE_DIR}}/client/{{.CLIENT_VERSION}}/test-config.yaml"
+          fi
       REPORTS_PATH: '{{.TASKFILE_DIR}}/reports'
 
       REPORTS_NAME: 'Server-{{.SERVER_VERSION}}-Client-{{.CLIENT_VERSION}}'
@@ -100,7 +129,9 @@ tasks:
           . "$ENV_FILE"
         fi
 
-        if echo "{{.SERVER_VERSION}}" | grep -q spire; then
+        # Legacy overlaid profiles read the SPIFFE socket from the environment; native-SPIFFE
+        # profiles (v1.6.1+) pass it via client-config instead, so only export it for overlays.
+        if [ -f "{{.TASKFILE_DIR}}/server/{{.SERVER_VERSION}}/needs-overlay" ]; then
           export SPIFFE_SOCKET_PATH="${SPIFFE_SOCKET_PATH:-unix:///tmp/spire-agent-host/public/api.sock}"
         fi
 
@@ -117,6 +148,7 @@ tasks:
       SUMMARY_HTML: '{{.ROOT_DIR}}/summary.html'
 
     cmds:
+      # Cross-version cells: pinned client suite against released server images.
       - for:
           matrix:
             SERVER_VERSION: { ref: '.CONFORMANCE_SERVER_VERSIONS' }
@@ -128,8 +160,73 @@ tasks:
           CLIENT_VERSION: '{{.ITEM.CLIENT_VERSION}}'
           REPORTS_PATH: '{{.REPORTS_PATH}}'
 
+      # Configuration-matrix cells: one client version against many deployment configurations.
+      - for:
+          matrix:
+            SERVER_VERSION: { ref: '.CONFORMANCE_SERVER_CONFIGS' }
+        task: test
+        ignore_error: true
+        vars:
+          SERVER_VERSION: '{{.ITEM.SERVER_VERSION}}'
+          CLIENT_VERSION: '{{.CONFORMANCE_CONFIG_CLIENT_VERSION}}'
+          REPORTS_PATH: '{{.REPORTS_PATH}}'
+
       - |
         go run {{.ROOT_DIR}}/integrations/agntcy-a2a/tools/report_dashboard.go \
           --reports-dir {{.REPORTS_PATH}} \
           --output {{.SUMMARY_HTML}} \
           --title "DIR Conformance"
+
+  # Emit every matrix cell as a JSON array of {server, client} objects — the single source of
+  # truth for the CI job matrix (cross-version cells + configuration cells). Consumed by
+  # `.github/workflows/test-directory-conformance.yaml`.
+  matrix:list:
+    silent: true
+    vars:
+      CONFIGS: '{{ .CONFORMANCE_SERVER_CONFIGS | join " " }}'
+      SERVERS: '{{ .CONFORMANCE_SERVER_VERSIONS | join " " }}'
+      CLIENTS: '{{ .CONFORMANCE_CLIENT_VERSIONS | join " " }}'
+    cmd: |
+      items=""
+      add() { items="${items:+$items,}{\"server\":\"$1\",\"client\":\"$2\"}"; }
+      # Cross-version cells (released server images x pinned client).
+      for s in {{.SERVERS}}; do for c in {{.CLIENTS}}; do add "$s" "$c"; done; done
+      # Configuration cells (deployment configurations x config client version).
+      for s in {{.CONFIGS}}; do add "$s" "{{.CONFORMANCE_CONFIG_CLIENT_VERSION}}"; done
+      printf '[%s]\n' "$items"
+
+  # Build the dashboard from whatever reports already exist under ./reports (no test run).
+  # Used by the CI "collect" job after per-cell report artifacts have been merged in.
+  report:
+    vars:
+      REPORTS_PATH: '{{.REPORTS_PATH | default (printf "%s/reports" .TASKFILE_DIR)}}'
+      SUMMARY_HTML: '{{.SUMMARY_HTML | default (printf "%s/summary.html" .ROOT_DIR)}}'
+      TITLE: '{{.TITLE | default "DIR Conformance"}}'
+    cmd: |
+      go run {{.ROOT_DIR}}/integrations/agntcy-a2a/tools/report_dashboard.go \
+        --reports-dir {{.REPORTS_PATH}} \
+        --output {{.SUMMARY_HTML}} \
+        --title "{{.TITLE}}"
+
+  # Run ONLY the configuration matrix (deployment configurations of dir), then build the dashboard.
+  # Useful for local iteration and for a CI job that owns just the config profiles.
+  configs:all:
+    vars:
+      REPORTS_PATH: '{{.ROOT_DIR}}/integrations/agntcy-dir/tests/conformance/reports'
+      SUMMARY_HTML: '{{.ROOT_DIR}}/summary.html'
+    cmds:
+      - for:
+          matrix:
+            SERVER_VERSION: { ref: '.CONFORMANCE_SERVER_CONFIGS' }
+        task: test
+        ignore_error: true
+        vars:
+          SERVER_VERSION: '{{.ITEM.SERVER_VERSION}}'
+          CLIENT_VERSION: '{{.CONFORMANCE_CONFIG_CLIENT_VERSION}}'
+          REPORTS_PATH: '{{.REPORTS_PATH}}'
+
+      - |
+        go run {{.ROOT_DIR}}/integrations/agntcy-a2a/tools/report_dashboard.go \
+          --reports-dir {{.REPORTS_PATH}} \
+          --output {{.SUMMARY_HTML}} \
+          --title "DIR Configuration Matrix"
