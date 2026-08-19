@@ -303,7 +303,7 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 		joinTimeout    = 3 * time.Minute
 		msgTimeout     = 90 * time.Second
 		absenceWindow  = 45 * time.Second
-		linkTimeout    = 2 * time.Minute
+		linkTimeout    = 30 * time.Second
 		restartTimeout = 5 * time.Minute
 	)
 
@@ -440,9 +440,9 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				ginkgo.By("asserting link topology via slimctl")
 				links, err := ctl.Links(false)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(linksBetween(links, "cluster-a", "cluster-b")).To(gomega.BeNumerically(">", 0), "missing cluster-a<->cluster-b link")
-				gomega.Expect(linksBetween(links, "cluster-a", "cluster-c")).To(gomega.BeNumerically(">", 0), "missing cluster-a<->cluster-c link")
-				gomega.Expect(linksBetween(links, "cluster-b", "cluster-c")).To(gomega.Equal(0), "unexpected cluster-b<->cluster-c link")
+				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-b")).To(gomega.BeTrue(), "cluster-a<->cluster-b link not applied")
+				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-c")).To(gomega.BeTrue(), "cluster-a<->cluster-c link not applied")
+				gomega.Expect(interClusterLinkApplied(links, "cluster-b", "cluster-c")).To(gomega.BeFalse(), "unexpected cluster-b<->cluster-c link")
 			})
 		})
 
@@ -454,11 +454,11 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				_, err = ctl.AddLink("cluster-b", "cluster-c", segBC)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				ginkgo.By("asserting the cluster-b<->cluster-c link becomes applied")
+				ginkgo.By("waiting for the cluster-b<->cluster-c link to become APPLIED")
 				gomega.Eventually(func(g gomega.Gomega) {
 					links, err := ctl.Links(false)
 					g.Expect(err).NotTo(gomega.HaveOccurred())
-					g.Expect(linksBetween(links, "cluster-b", "cluster-c")).To(gomega.BeNumerically(">", 0))
+					g.Expect(interClusterLinkApplied(links, "cluster-b", "cluster-c")).To(gomega.BeTrue())
 				}, linkTimeout, 5*time.Second).Should(gomega.Succeed())
 
 				ginkgo.By("asserting carol now receives bob's messages")
