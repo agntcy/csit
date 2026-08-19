@@ -41,8 +41,10 @@ slim:
           - endpoint: "0.0.0.0:{{ .SlimPort }}"
             metadata:
               local_endpoint: ${env:MY_POD_IP}
-              external_endpoint: "{{ .ServiceName }}:{{ .SlimPort }}"    
-              trust_domain: "example.org" 
+              external_endpoint: "{{ .ServiceName }}:{{ .SlimPort }}"
+    {{- if .Spire.Enabled }}
+              trust_domain: "example.org"
+    {{- end }}
             tls:
     {{- if .Spire.Enabled }}
               source:
