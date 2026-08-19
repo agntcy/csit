@@ -62,7 +62,7 @@ tasks:
         # this task command returns (go-task's built-in shell does not keep
         # backgrounded subshells alive across commands).
         sh -c 'while true; do kubectl port-forward -n admin svc/{{ .CONTROLLER_SERVICE }} 50051:50051 >>./.cache/port-forward.log 2>&1 || true; sleep 1; done' &
-        echo $! > ./.cache/port-forward.pid
+        echo $$! > ./.cache/port-forward.pid
         if command -v nc >/dev/null 2>&1; then
           for _ in $(seq 1 30); do
             if nc -z 127.0.0.1 50051 2>/dev/null; then
