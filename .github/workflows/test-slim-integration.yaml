@@ -107,40 +107,43 @@ jobs:
         with:
           kind-version: ${{ needs.set-kind-version.outputs.kind-version }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Create kind cluster
+        shell: bash
+        run: task integrations:kind:create KIND_CLUSTER_NAME=agntcy-test
 
-      - name: Build slim bindings examples image (linux/amd64)
+      - name: Setup slim topology
         shell: bash
         run: |
-          set -euo pipefail
-          build_args=()
-          if [[ -n "${{ inputs.override_slim_bindings_version }}" ]]; then
-            build_args+=(--build-arg "SLIM_BINDINGS_VERSION=${{ inputs.override_slim_bindings_version }}")
-          fi
-          docker buildx build \
-            --platform linux/amd64 \
-            --load \
-            "${build_args[@]}" \
-            --tag "ghcr.io/agntcy/slim/bindings-examples:local" \
-            --file integrations/agntcy-slim/topology/examples/Dockerfile \
-            integrations/agntcy-slim/topology/examples
+          task integrations:slim:test:topology:setup \
+            TOPOLOGY_SLIM_IMAGE_TAG='${{ inputs.override_slim_image_tag }}' \
+            TOPOLOGY_SLIM_CHART_TAG='${{ inputs.override_slim_chart_tag }}' \
+            TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG='${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}' \
+            TOPOLOGY_SLIM_CONTROLLER_CHART_TAG='${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}' \
+            SLIM_BINDINGS_VERSION='${{ inputs.override_slim_bindings_version }}' \
+            KIND_CLUSTER_NAME=agntcy-test
 
-      - name: Deploy Slim with Controller
-        uses: ./.github/actions/deploy-components
-        with:
-          deploy-spire: "true"
-          deploy-slim-topology: "true"
-          slim-image-tag: ${{ inputs.override_slim_image_tag }}
-          slim-controller-image-tag: ${{ inputs.override_slim_controller_image_tag != '' && inputs.override_slim_controller_image_tag || inputs.override_slim_image_tag }}
-          slim-chart-tag: ${{ inputs.override_slim_chart_tag }}
-          slim-controller-chart-tag: ${{ inputs.override_slim_controller_chart_tag != '' && inputs.override_slim_controller_chart_tag || inputs.override_slim_chart_tag }}
-
-      - name: Load slim bindings examples image into kind
+      - name: Dump cluster diagnostics
+        if: failure()
         shell: bash
         run: |
-          set -euo pipefail
-          kind load docker-image "ghcr.io/agntcy/slim/bindings-examples:local" --name "agntcy-test"
+          set +e
+          echo "==================== all pods ===================="
+          kubectl get pods -A -o wide
+          echo "==================== recent events ===================="
+          kubectl get events -A --sort-by=.lastTimestamp | tail -80
+          for ns in admin cluster-a cluster-b cluster-c; do
+            echo "==================== namespace: ${ns} ===================="
+            kubectl -n "${ns}" get pods,svc,statefulset,deploy -o wide
+            kubectl -n "${ns}" describe pods
+            for p in $(kubectl -n "${ns}" get pods -o name 2>/dev/null); do
+              echo "----- logs ${ns}/${p} (current) -----"
+              kubectl -n "${ns}" logs "${p}" --all-containers --tail=200
+              echo "----- logs ${ns}/${p} (previous) -----"
+              kubectl -n "${ns}" logs "${p}" --all-containers --previous --tail=200
+            done
+          done
+          echo "==================== control-plane port-forward log ===================="
+          cat integrations/agntcy-slim/topology/.cache/port-forward.log 2>/dev/null || echo "no port-forward log"
 
       - name: Run slim topology test
         run: task integrations:slim:test:topology:run

@@ -7,11 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"sort"
-	"time"
-
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -80,14 +79,30 @@ func boolPtr(b bool) *bool {
 	return &b
 }
 
-func strPtr(s string) *string {
-	return &s
-}
-
 const (
 	slimClientConfigVolumeName = "slim-client-config"
 	slimClientConfigMapKey     = "slim-config.json"
 	slimClientConfigMountDir   = "/etc/slim"
+
+	// p2pSharedSecret is a non-sensitive test fixture required by the
+	// slim-bindings-p2p example CLI (not a credential to any real service).
+	p2pSharedSecret = "secret1234secret1234secret123412"
+
+	// Distinct per-sender payloads let a receiver's log reveal the source.
+	msgFromAlice     = "hi-from-alice"
+	msgFromBob       = "hi-from-bob"
+	msgFromBobVerify = "hi-bob-restart"
+
+	// Segments (routing domains) created at runtime with slimctl.
+	segB  = "seg-b"
+	segC  = "seg-c"
+	segBC = "seg-bc"
+
+	// Continuous sender pacing: each batch sends this many messages, then the
+	// shell loop sleeps and starts another batch, so traffic continues across
+	// node / control-plane restarts.
+	p2pIterationsPerBatch = 20
+	p2pBatchSleepSeconds  = 3
 )
 
 func slimClientConfigFilePath() string {
@@ -108,198 +123,456 @@ func slimClientConfigVolumes(configMapName string) ([]corev1.Volume, []corev1.Vo
 		}}
 }
 
-// ...
+// clientPod captures the subset of k8shelper methods the scenarios need after a
+// client pod has been deployed.
+type clientPod interface {
+	WaitForStringWithTimeout(searchString string, timeout time.Duration) (bool, string, error)
+	CleanupPod(ctx context.Context) error
+	CleanupConfigMap(ctx context.Context) error
+}
+
+// p2pClientSpec describes a single slim-bindings-p2p client. When Remote is set
+// the client is a (continuous) sender; otherwise it is a passive receiver.
+type p2pClientSpec struct {
+	Name      string // pod + configmap name
+	Cluster   string // target cluster whose slim node this client connects to
+	LocalName string // this client's SLIM name (org/ns/<name>)
+	Remote    string // destination SLIM name (senders only)
+	Message   string // payload (senders only)
+}
+
+func clusterEndpoint(cluster string) string {
+	return fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", cluster, cluster)
+}
+
+func clusterDeploymentName(cluster string) string {
+	return fmt.Sprintf("agntcy-%s-slim", cluster)
+}
+
+// deployP2PClient creates the config map + pod for a p2p client and waits for it
+// to be running. Senders run under a shell retry loop so they keep producing
+// traffic across restarts.
+func deployP2PClient(clientset kubernetes.Interface, dynamicClient dynamic.Interface, namespace, image string, spec p2pClientSpec) clientPod {
+	h := k8shelper.NewK8sHelper(spec.Name, namespace, image, clientset, dynamicClient).
+		WithEnvVars(map[string]string{"PYTHONUNBUFFERED": "1"})
+
+	cfg := ClientConfig{
+		Endpoint: clusterEndpoint(spec.Cluster),
+		TLS:      TLSConfig{Insecure: boolPtr(true)},
+	}
+	cfgJSON, err := json.Marshal(cfg)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
+
+	_, err = h.CreateConfigMap(slimClientConfigMapKey, string(cfgJSON))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create slim config map for %s", spec.Name)
+
+	vols, mounts := slimClientConfigVolumes(spec.Name)
+	h = h.WithVolumes(vols).WithWithVolumeMounts(mounts)
+
+	cliArgs := []string{
+		"slim-bindings-p2p",
+		"--local", spec.LocalName,
+		"--shared-secret", p2pSharedSecret,
+		"--slim-config", slimClientConfigFilePath(),
+	}
+	if spec.Remote != "" {
+		cliArgs = append(cliArgs,
+			"--remote", spec.Remote,
+			"--message", spec.Message,
+			"--iterations", strconv.Itoa(p2pIterationsPerBatch),
+		)
+		// Wrap in a shell loop so the sender keeps sending across restarts.
+		script := fmt.Sprintf("while true; do %s; sleep %d; done",
+			strings.Join(cliArgs, " "), p2pBatchSleepSeconds)
+		h = h.WithCommand([]string{"/bin/sh", "-c"}).WithArgs([]string{script})
+	} else {
+		h = h.WithArgs(cliArgs)
+	}
+
+	_, err = h.CreatePod()
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create pod %s", spec.Name)
+
+	err = h.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "pod %s did not become ready", spec.Name)
+
+	return h
+}
+
+// linksBetween counts links whose endpoints connect clusterA and clusterB. Node
+// IDs equal pod names, which contain the cluster name.
+func linksBetween(links []linkEntry, clusterA, clusterB string) int {
+	n := 0
+	for _, l := range links {
+		srcA := strings.Contains(l.Source, clusterA)
+		dstA := strings.Contains(l.DestNode, clusterA)
+		srcB := strings.Contains(l.Source, clusterB)
+		dstB := strings.Contains(l.DestNode, clusterB)
+		if (srcA && dstB) || (srcB && dstA) {
+			n++
+		}
+	}
+	return n
+}
+
+// nodeIDToPodName strips the control-plane group prefix from a node ID.
+// slimctl reports node IDs as "<group>/<pod-name>" (e.g.
+// "cluster-b/agntcy-cluster-b-slim-abc123"); the pod name is the part after
+// the last "/". Kubernetes pod names never contain "/", so this is safe.
+func nodeIDToPodName(nodeID string) string {
+	if idx := strings.LastIndex(nodeID, "/"); idx >= 0 {
+		return nodeID[idx+1:]
+	}
+	return nodeID
+}
+
+// connectedNodeSet returns the set of node IDs currently reported as Connected.
+// Node/control-plane restarts leave stale "Unknown" node records behind, so
+// callers must filter against this set to reason about the live topology.
+func connectedNodeSet(nodes []nodeEntry) map[string]bool {
+	set := make(map[string]bool, len(nodes))
+	for _, n := range nodes {
+		if strings.EqualFold(n.Status, "Connected") {
+			set[n.ID] = true
+		}
+	}
+	return set
+}
+
+// interClusterLinkEndpoints returns the full node IDs in targetCluster that
+// terminate a link connecting clusterA and clusterB. The returned IDs are in
+// slimctl "<group>/<pod-name>" form (use nodeIDToPodName for the pod name).
+func interClusterLinkEndpoints(links []linkEntry, clusterA, clusterB, targetCluster string) []string {
+	var out []string
+	for _, l := range links {
+		srcA := strings.Contains(l.Source, clusterA)
+		dstA := strings.Contains(l.DestNode, clusterA)
+		srcB := strings.Contains(l.Source, clusterB)
+		dstB := strings.Contains(l.DestNode, clusterB)
+		if !((srcA && dstB) || (srcB && dstA)) {
+			continue
+		}
+		if strings.Contains(l.Source, targetCluster) {
+			out = append(out, l.Source)
+		}
+		if strings.Contains(l.DestNode, targetCluster) {
+			out = append(out, l.DestNode)
+		}
+	}
+	return out
+}
+
+// interClusterLinkApplied reports whether at least one link connecting clusterA
+// and clusterB is in APPLIED status.
+func interClusterLinkApplied(links []linkEntry, clusterA, clusterB string) bool {
+	for _, l := range links {
+		srcA := strings.Contains(l.Source, clusterA)
+		dstA := strings.Contains(l.DestNode, clusterA)
+		srcB := strings.Contains(l.Source, clusterB)
+		dstB := strings.Contains(l.DestNode, clusterB)
+		if (srcA && dstB) || (srcB && dstA) {
+			if strings.EqualFold(l.Status, "APPLIED") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// connectedLinksBetween counts links connecting clusterA and clusterB whose
+// endpoints are both currently Connected. This ignores stale links left behind
+// on Unknown nodes after a restart, unlike linksBetween.
+func connectedLinksBetween(links []linkEntry, connected map[string]bool, clusterA, clusterB string) int {
+	n := 0
+	for _, l := range links {
+		if !connected[l.Source] || !connected[l.DestNode] {
+			continue
+		}
+		srcA := strings.Contains(l.Source, clusterA)
+		dstA := strings.Contains(l.DestNode, clusterA)
+		srcB := strings.Contains(l.Source, clusterB)
+		dstB := strings.Contains(l.DestNode, clusterB)
+		if (srcA && dstB) || (srcB && dstA) {
+			n++
+		}
+	}
+	return n
+}
 
 var _ = ginkgo.Describe("Agntcy slim topology test", func() {
-	var (
-		namespace      string
-		topologyConfig string
-		topology       *config.Topology
-		clientset      kubernetes.Interface
-		dynamicClient  dynamic.Interface
+	const (
+		joinTimeout    = 3 * time.Minute
+		msgTimeout     = 90 * time.Second
+		absenceWindow  = 45 * time.Second
+		linkTimeout    = 30 * time.Second
+		restartTimeout = 5 * time.Minute
 	)
 
-	ginkgo.BeforeEach(func() {
+	var (
+		namespace     string
+		clientImage   string
+		clientset     kubernetes.Interface
+		dynamicClient dynamic.Interface
+		ctl           *slimctlClient
 
-		// Create Kubernetes client
-		var err error
-		clientset, err = k8shelper.CreateK8sClientSet()
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
-
-		dynamicClient, err = k8shelper.CreateDynamicK8sClient()
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
-
-		namespace = os.Getenv("NAMESPACE")
-		topologyConfig = os.Getenv("TOPOLOGY_CONFIG")
-		// Parse the topology configuration
-		config, err := config.ParseTopology(topologyConfig)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
-
-		gomega.Expect(config).NotTo(gomega.BeNil(), "topology configuration should not be nil")
-		topology = &config.Topology
-	})
+		bob, carol     clientPod
+		createdClients []clientPod
+	)
 
 	ginkgo.Context("Slim topology test", ginkgo.Ordered, func() {
-		ginkgo.It("Create SLIM client Pods", func() {
-			// alphanumerically order topology.Clients by key
-			clientNames := make([]string, 0, len(topology.Clients))
-			for name := range topology.Clients {
-				clientNames = append(clientNames, name)
+		ginkgo.BeforeAll(func() {
+			var err error
+			clientset, err = k8shelper.CreateK8sClientSet()
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a client")
+
+			dynamicClient, err = k8shelper.CreateDynamicK8sClient()
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to create a dynamic client")
+
+			namespace = os.Getenv("NAMESPACE")
+			if namespace == "" {
+				namespace = "default"
 			}
-			sort.Strings(clientNames)
 
-			logWatchers := make(map[string]*k8shelper.LogWatcher)
+			clientImage = os.Getenv("CLIENT_IMAGE")
+			if clientImage == "" {
+				clientImage = "ghcr.io/agntcy/slim/bindings-examples:local"
+			}
 
-			for _, clientName := range clientNames {
-				client := topology.Clients[clientName]
+			topologyConfig := os.Getenv("TOPOLOGY_CONFIG")
+			parsed, err := config.ParseTopology(topologyConfig)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to parse topology configuration")
+			gomega.Expect(parsed).NotTo(gomega.BeNil(), "topology configuration should not be nil")
 
-				jobName := clientName
-				imageName := client.Image
-				envVars := map[string]string{
-					"PYTHONUNBUFFERED": "1",
-				}
-				args := client.Args
-				k8sHelper := k8shelper.NewK8sHelper(jobName, namespace, imageName, clientset, dynamicClient).WithEnvVars(envVars)
+			ctl, err = newSlimctlClient()
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "unable to reach the control-plane northbound endpoint")
+			ginkgo.GinkgoWriter.Printf("Using slimctl server %s\n", ctl.server)
+		})
 
-				// expect client.ConnectedTo is not empty
-				gomega.Expect(len(client.ConnectedTo)).NotTo(gomega.BeZero(), "client %s must be connected to at least one server", clientName)
+		ginkgo.AfterAll(func() {
+			ctx := context.Background()
+			for _, c := range createdClients {
+				_ = c.CleanupPod(ctx)
+				_ = c.CleanupConfigMap(ctx)
+			}
+			if ctl != nil {
+				_, _ = ctl.RemoveLink("cluster-a", "cluster-b", segB)
+				_, _ = ctl.RemoveLink("cluster-a", "cluster-c", segC)
+				_, _ = ctl.RemoveLink("cluster-b", "cluster-c", segBC)
+			}
+		})
 
-				if client.SpireMtls {
-
-					err := k8sHelper.CreateServiceAccount()
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create service account")
-					// Register cleanup to run after all the spec is done
-					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupServiceAccount()
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete service account")
-					})
-
-					err = k8sHelper.CreateClusterSPIFFEID()
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create spiffee ID")
-					// Register cleanup to run after all the spec is done
-					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupClusterSPIFFEID()
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete spiffee ID")
-					})
-
-					cfg := ClientConfig{
-						Endpoint: fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0]),
-						TLS: TLSConfig{
-							Source: &TLSSource{
-								Type:       "spire",
-								SocketPath: strPtr("unix:/tmp/spire-agent/public/api.sock"),
-							},
-							CaSource: &CaSource{
-								Type:         "spire",
-								SocketPath:   strPtr("unix:/tmp/spire-agent/public/api.sock"),
-								TrustDomains: &[]string{"example.org"},
-							},
-						},
+		ginkgo.When("the control plane and clusters are deployed", func() {
+			ginkgo.It("then all clusters and nodes are joined", func() {
+				ginkgo.By("waiting for all 5 nodes to report Connected via slimctl")
+				gomega.Eventually(func(g gomega.Gomega) {
+					nodes, err := ctl.Nodes()
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					g.Expect(nodes).To(gomega.HaveLen(5), "expected 1+2+2 nodes registered")
+					for _, n := range nodes {
+						g.Expect(n.Status).To(gomega.Equal("Connected"), "node %s not connected", n.ID)
 					}
-					cfgJSON, err := json.Marshal(cfg)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
+				}, joinTimeout, 5*time.Second).Should(gomega.Succeed())
 
-					_, err = k8sHelper.CreateConfigMap(slimClientConfigMapKey, string(cfgJSON))
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create slim config map")
-					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupConfigMap(ctx)
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete slim config map")
-					})
-					vols, mounts := slimClientConfigVolumes(jobName)
-					k8sHelper = k8sHelper.WithVolumes(vols).WithWithVolumeMounts(mounts)
-					args = append(args, "--slim-config", slimClientConfigFilePath())
-					k8sHelper = k8sHelper.WithArgs(args).WithSpire()
+				ginkgo.By("checking all three domains are registered")
+				domains, err := ctl.DomainNames()
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(domains).To(gomega.ContainElements("cluster-a", "cluster-b", "cluster-c"))
+			})
+		})
 
-				} else {
-					endpoint := fmt.Sprintf("https://agntcy-%s-slim.%s.svc.cluster.local:46357", client.ConnectedTo[0], client.ConnectedTo[0])
-					cfg := ClientConfig{
-						Endpoint: endpoint,
-						TLS: TLSConfig{
-							Insecure: boolPtr(true),
-						},
+		ginkgo.When("cluster-a links to cluster-b and cluster-c in separate segments and the p2p clients are deployed", func() {
+			ginkgo.It("then alice reaches bob and carol, but bob cannot reach carol", func() {
+				ginkgo.By("creating isolated segments and links via slimctl")
+				_, err := ctl.AddSegment(segB)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				_, err = ctl.AddSegment(segC)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				_, err = ctl.AddLink("cluster-a", "cluster-b", segB)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				_, err = ctl.AddLink("cluster-a", "cluster-c", segC)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+				ginkgo.By("waiting for inter-cluster links to become APPLIED")
+				gomega.Eventually(func(g gomega.Gomega) {
+					links, err := ctl.Links(false)
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					g.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-b")).To(gomega.BeTrue())
+					g.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-c")).To(gomega.BeTrue())
+				}, linkTimeout, 5*time.Second).Should(gomega.Succeed())
+
+				ginkgo.By("deploying bob/carol receivers, then alice senders and the bob->carol probe")
+				bob = deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "bob", Cluster: "cluster-b", LocalName: "org/ns/bob",
+				})
+				carol = deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "carol", Cluster: "cluster-c", LocalName: "org/ns/carol",
+				})
+				aliceToBob := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "alice-to-bob", Cluster: "cluster-a", LocalName: "org/ns/alice-to-bob",
+					Remote: "org/ns/bob", Message: msgFromAlice,
+				})
+				aliceToCarol := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "alice-to-carol", Cluster: "cluster-a", LocalName: "org/ns/alice-to-carol",
+					Remote: "org/ns/carol", Message: msgFromAlice,
+				})
+				bobToCarol := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "bob-to-carol", Cluster: "cluster-b", LocalName: "org/ns/bob-to-carol",
+					Remote: "org/ns/carol", Message: msgFromBob,
+				})
+				createdClients = append(createdClients, bob, carol, aliceToBob, aliceToCarol, bobToCarol)
+
+				ginkgo.By("asserting alice reaches bob")
+				found, line, err := bob.WaitForStringWithTimeout("received: "+msgFromAlice, msgTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(found).To(gomega.BeTrue(), "bob never received alice's message")
+				ginkgo.GinkgoWriter.Printf("bob received: %s\n", line)
+
+				ginkgo.By("asserting alice reaches carol")
+				found, line, err = carol.WaitForStringWithTimeout("received: "+msgFromAlice, msgTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(found).To(gomega.BeTrue(), "carol never received alice's message")
+				ginkgo.GinkgoWriter.Printf("carol received: %s\n", line)
+
+				ginkgo.By("asserting bob cannot reach carol (segment isolation)")
+				found, _, err = carol.WaitForStringWithTimeout("received: "+msgFromBob, absenceWindow)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(found).To(gomega.BeFalse(), "carol unexpectedly received bob's message across isolated segments")
+
+				ginkgo.By("asserting link topology via slimctl")
+				links, err := ctl.Links(false)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-b")).To(gomega.BeTrue(), "cluster-a<->cluster-b link not applied")
+				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-c")).To(gomega.BeTrue(), "cluster-a<->cluster-c link not applied")
+				gomega.Expect(interClusterLinkApplied(links, "cluster-b", "cluster-c")).To(gomega.BeFalse(), "unexpected cluster-b<->cluster-c link")
+			})
+		})
+
+		ginkgo.When("the topology is modified so cluster-b and cluster-c are linked", func() {
+			ginkgo.It("then bob can now reach carol and the link is applied", func() {
+				ginkgo.By("linking cluster-b and cluster-c via slimctl")
+				_, err := ctl.AddSegment(segBC)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				_, err = ctl.AddLink("cluster-b", "cluster-c", segBC)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+				ginkgo.By("waiting for the cluster-b<->cluster-c link to become APPLIED")
+				gomega.Eventually(func(g gomega.Gomega) {
+					links, err := ctl.Links(false)
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					g.Expect(interClusterLinkApplied(links, "cluster-b", "cluster-c")).To(gomega.BeTrue())
+				}, linkTimeout, 5*time.Second).Should(gomega.Succeed())
+
+				ginkgo.By("asserting carol now receives bob's messages")
+				found, line, err := carol.WaitForStringWithTimeout("received: "+msgFromBob, msgTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after linking")
+				ginkgo.GinkgoWriter.Printf("carol received: %s\n", line)
+			})
+		})
+
+		ginkgo.When("the gateway node handling the cluster-b<->cluster-c link is restarted", func() {
+			ginkgo.It("then the link is restored and bob can still reach carol", func() {
+				ctx := context.Background()
+
+				ginkgo.By("identifying the Connected cluster-b node participating in the b<->c link")
+				links, err := ctl.Links(false)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				nodes, err := ctl.Nodes()
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				connected := connectedNodeSet(nodes)
+
+				var gatewayID string
+				for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
+					if connected[ep] {
+						gatewayID = ep
+						break
 					}
-					cfgJSON, err := json.Marshal(cfg)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to marshal client config")
-
-					_, err = k8sHelper.CreateConfigMap(slimClientConfigMapKey, string(cfgJSON))
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create slim config map")
-					ginkgo.DeferCleanup(func(ctx context.Context) {
-						err := k8sHelper.CleanupConfigMap(ctx)
-						gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to delete slim config map")
-					})
-					vols, mounts := slimClientConfigVolumes(jobName)
-					k8sHelper = k8sHelper.WithVolumes(vols).WithWithVolumeMounts(mounts)
-					args = append(args, "--slim-config", slimClientConfigFilePath())
-					k8sHelper = k8sHelper.WithArgs(args)
 				}
+				gomega.Expect(gatewayID).NotTo(gomega.BeEmpty(), "could not find a Connected cluster-b node for the b<->c link")
+				gatewayPod := nodeIDToPodName(gatewayID)
+				ginkgo.GinkgoWriter.Printf("restarting cluster-b gateway node %s (pod %s)\n", gatewayID, gatewayPod)
 
-				createdPod, err := k8sHelper.CreatePod()
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to create %s job", clientName))
+				ginkgo.By("deleting the gateway pod and waiting for the deployment to recover")
+				err = k8shelper.DeletePodByName(ctx, clientset, "cluster-b", gatewayPod)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				err = k8shelper.WaitForDeploymentAvailable(ctx, clientset, "cluster-b", clusterDeploymentName("cluster-b"), restartTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				// Wait for pod to be running
-				err = k8sHelper.WaitForPodRunning(k8sTimeOutSeconds * time.Second)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), createdPod)
+				ginkgo.By("asserting the control plane fails the b<->c link over to a live cluster-b node")
+				// The killed node lingers as an "Unknown" record, so require the
+				// restored link to terminate on a Connected node other than the one
+				// we just deleted (gateway failover picks a live sibling).
+				gomega.Eventually(func(g gomega.Gomega) {
+					links, err := ctl.Links(false)
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					nodes, err := ctl.Nodes()
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					connected := connectedNodeSet(nodes)
 
-				time.Sleep(30 * time.Second) // wait for pod to be ready
+					restored := false
+					for _, ep := range interClusterLinkEndpoints(links, "cluster-b", "cluster-c", "cluster-b") {
+						if connected[ep] && ep != gatewayID {
+							restored = true
+							break
+						}
+					}
+					g.Expect(restored).To(gomega.BeTrue(), "b<->c link not restored on a live cluster-b node")
+				}, restartTimeout, 5*time.Second).Should(gomega.Succeed())
 
-				if client.AssertFor != "" {
-					log.Printf("Starting log watcher for client %s with assertFor: %s", clientName, client.AssertFor)
-					// Start watching logs for a specific assertString
-					logWatcher, err := k8sHelper.WatchLogsForString(client.AssertFor)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to start log watcher")
-					logWatchers[clientName] = logWatcher
-					// Register cleanup for log watcher
-					ginkgo.DeferCleanup(func() {
-						logWatcher.Stop()
-					})
-
-				} else {
-					log.Printf("No assertFor defined for client %s, skipping log watcher", clientName)
-				}
-
-				// Register cleanup to run after this spec completes
+				ginkgo.By("proving post-recovery delivery with a fresh unique-message sender")
+				verify := deployP2PClient(clientset, dynamicClient, namespace, clientImage, p2pClientSpec{
+					Name: "bob-verify", Cluster: "cluster-b", LocalName: "org/ns/bob-verify",
+					Remote: "org/ns/carol", Message: msgFromBobVerify,
+				})
 				ginkgo.DeferCleanup(func(ctx context.Context) {
-					err := k8sHelper.CleanupPod(ctx)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to delete pod %s", clientName))
+					_ = verify.CleanupPod(ctx)
+					_ = verify.CleanupConfigMap(ctx)
 				})
 
-			}
+				found, line, err := carol.WaitForStringWithTimeout("received: "+msgFromBobVerify, msgTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after node restart")
+				ginkgo.GinkgoWriter.Printf("carol received after restart: %s\n", line)
+			})
+		})
 
-			// Wait for all pods to show the expected log message
-			for clientName, logWatcher := range logWatchers {
-				ginkgo.By(fmt.Sprintf("Waiting for %s to show %s message", clientName, logWatcher.GetSearchString()))
+		ginkgo.When("the control plane is restarted", func() {
+			ginkgo.It("then the links remain intact", func() {
+				ctx := context.Background()
 
-				// Wait for the search string with a timeout
-				done := make(chan bool, 1)
-				var foundLine string
-				var waitErr error
+				ginkgo.By("recording the applied link count before restart")
+				before, err := ctl.AppliedLinkCount()
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(before).To(gomega.BeNumerically(">", 0))
 
-				go func() {
-					foundLine, waitErr = logWatcher.Wait()
-					done <- true
-				}()
+				ginkgo.By("rollout-restarting the control plane and waiting for it to recover")
+				err = k8shelper.RestartDeployment(ctx, clientset, controllerAdminNS, controllerServiceName)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				err = k8shelper.WaitForDeploymentAvailable(ctx, clientset, controllerAdminNS, controllerServiceName, restartTimeout)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				select {
-				case <-done:
-					if waitErr != nil {
-						// Print collected logs for debugging
-						logs := logWatcher.GetLogs()
-						fmt.Printf("Collected logs for %s:\n", clientName)
-						for _, log := range logs {
-							fmt.Printf("  %s\n", log)
-						}
-						gomega.Expect(waitErr).NotTo(gomega.HaveOccurred(), fmt.Sprintf("failed to find search string in %s logs", clientName))
-					}
-					fmt.Printf("Found expected message in %s: %s\n", clientName, foundLine)
-				case <-time.After(30 * time.Second): // 30 second timeout
-					logs := logWatcher.GetLogs()
-					fmt.Printf("Timeout waiting for search string in %s. Collected logs:\n", clientName)
-					for _, log := range logs {
-						fmt.Printf("  %s\n", log)
-					}
-					gomega.Expect(false).To(gomega.BeTrue(), fmt.Sprintf("Timeout waiting for search string '%s' in %s logs", logWatcher.GetSearchString(), clientName))
-				}
-			}
+				ginkgo.By("rediscovering the northbound endpoint after restart")
+				gomega.Eventually(func(g gomega.Gomega) {
+					ctl, err = newSlimctlClient()
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					_, err = ctl.Nodes()
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+				}, restartTimeout, 5*time.Second).Should(gomega.Succeed())
+
+				ginkgo.By("asserting all three inter-cluster links persist on reconnected nodes")
+				// After the restart the nodes re-register; persisted links must be
+				// re-applied on Connected endpoints. Checking against the Connected
+				// set ignores any stale "Unknown" nodes from earlier specs.
+				gomega.Eventually(func(g gomega.Gomega) {
+					links, err := ctl.Links(false)
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					nodes, err := ctl.Nodes()
+					g.Expect(err).NotTo(gomega.HaveOccurred())
+					connected := connectedNodeSet(nodes)
+					g.Expect(connectedLinksBetween(links, connected, "cluster-a", "cluster-b")).To(gomega.BeNumerically(">", 0))
+					g.Expect(connectedLinksBetween(links, connected, "cluster-a", "cluster-c")).To(gomega.BeNumerically(">", 0))
+					g.Expect(connectedLinksBetween(links, connected, "cluster-b", "cluster-c")).To(gomega.BeNumerically(">", 0))
+				}, restartTimeout, 5*time.Second).Should(gomega.Succeed())
+			})
 		})
 	})
 })

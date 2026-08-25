@@ -12,18 +12,7 @@ type Auth struct {
 	SpireJwt bool `yaml:"spireJwt,omitempty"`
 }
 
-// Client represents a client configuration in the topology
-type Client struct {
-	Auth        Auth     `yaml:"auth"`
-	SpireMtls   bool     `yaml:"spireMtls,omitempty"`
-	ConnectedTo []string `yaml:"connectedTo"`
-	Image       string   `yaml:"image"`
-	Cmd         string   `yaml:"cmd"`
-	Args        []string `yaml:"args"`
-	AssertFor   string   `yaml:"assertFor"`
-}
-
-// Server represents a server configuration in the topology
+// Server represents a server (cluster) configuration in the topology
 type Server struct {
 	Auth              Auth `yaml:"auth"`
 	SpireMtls         bool `yaml:"spireMtls,omitempty"`
@@ -33,7 +22,6 @@ type Server struct {
 
 // Topology represents the topology configuration
 type Topology struct {
-	Clients  map[string]Client `yaml:"clients"`
 	Clusters map[string]Server `yaml:"clusters"`
 }
 
@@ -72,25 +60,10 @@ func (c *Config) ToYAML() ([]byte, error) {
 	return data, nil
 }
 
-// GetClient returns a client by name
-func (c *Config) GetClient(name string) (Client, bool) {
-	client, exists := c.Topology.Clients[name]
-	return client, exists
-}
-
 // GetCluster returns a cluster by name
 func (c *Config) GetCluster(name string) (Server, bool) {
 	cluster, exists := c.Topology.Clusters[name]
 	return cluster, exists
-}
-
-// ListClients returns a slice of all client names
-func (c *Config) ListClients() []string {
-	clients := make([]string, 0, len(c.Topology.Clients))
-	for name := range c.Topology.Clients {
-		clients = append(clients, name)
-	}
-	return clients
 }
 
 // ListClusters returns a slice of all cluster names

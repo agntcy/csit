@@ -14,8 +14,6 @@ includes:
     vars:
       DIRECTORY_IMAGE_TAG: '{{ .DIRECTORY_IMAGE_TAG }}'
       DIRECTORY_CHART_TAG: '{{ .DIRECTORY_CHART_TAG }}'
-      SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG }}'
-      SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG }}'
       SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
   benchmarks:

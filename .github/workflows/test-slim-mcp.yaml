@@ -105,27 +105,31 @@ jobs:
 
       - name: Run Slim MCP integration test
         shell: bash
-        env:
-          MCP_PROXY_IMAGE_TAG: ${{ inputs.override_mcp_proxy_image_tag }}
-          SLIM_IMAGE_TAG: ${{ inputs.override_slim_image_tag }}
-          SLIM_CHART_TAG: ${{ inputs.override_slim_chart_tag }}
-          SLIM_MCP_RUST_REF: ${{ inputs.override_slim_mcp_rust_ref }}
         run: |
           set -euo pipefail
+          # Only pass overrides that are actually set, so blank inputs (e.g. on
+          # pull_request events) don't clobber the taskfile defaults. Use local
+          # shell vars (not `env:`/exported vars): go-task also reads overrides
+          # from the environment, so an empty exported var would override the
+          # taskfile default just like an empty CLI arg would.
+          mcp_proxy_image_tag='${{ inputs.override_mcp_proxy_image_tag }}'
+          slim_image_tag='${{ inputs.override_slim_image_tag }}'
+          slim_chart_tag='${{ inputs.override_slim_chart_tag }}'
+          slim_mcp_rust_ref='${{ inputs.override_slim_mcp_rust_ref }}'
           args=()
-          if [[ -n "${MCP_PROXY_IMAGE_TAG}" ]]; then
-            args+=(MCP_PROXY_IMAGE_TAG="${MCP_PROXY_IMAGE_TAG}")
+          if [[ -n "${mcp_proxy_image_tag}" ]]; then
+            args+=(MCP_PROXY_IMAGE_TAG="${mcp_proxy_image_tag}")
           fi
-          if [[ -n "${SLIM_IMAGE_TAG}" ]]; then
-            args+=(SLIM_IMAGE_TAG="${SLIM_IMAGE_TAG}")
+          if [[ -n "${slim_image_tag}" ]]; then
+            args+=(SLIM_IMAGE_TAG="${slim_image_tag}")
           fi
-          if [[ -n "${SLIM_CHART_TAG}" ]]; then
-            args+=(SLIM_CHART_TAG="${SLIM_CHART_TAG}")
+          if [[ -n "${slim_chart_tag}" ]]; then
+            args+=(SLIM_CHART_TAG="${slim_chart_tag}")
           fi
-          if [[ -n "${SLIM_MCP_RUST_REF}" ]]; then
-            args+=(SLIM_MCP_RUST_REF="${SLIM_MCP_RUST_REF}")
+          if [[ -n "${slim_mcp_rust_ref}" ]]; then
+            args+=(SLIM_MCP_RUST_REF="${slim_mcp_rust_ref}")
           fi
-          env "${args[@]}" task integrations:slim-mcp:test
+          task integrations:slim-mcp:test "${args[@]}"
 
       - name: Create artifact from MCP test reports
         if: always()

@@ -12,24 +12,128 @@ vars:
   ## Image config
   IMAGE_REPO: '{{ .IMAGE_REPO | default "ghcr.io/agntcy" }}'
 
-  SLIM_CHART_TAG: '{{ .SLIM_CHART_TAG | default "v1.4.0" }}'
-  SLIM_IMAGE_TAG: '{{ .SLIM_IMAGE_TAG | default "1.4.0" }}'
+  TOPOLOGY_SLIM_CHART_TAG: '{{ .TOPOLOGY_SLIM_CHART_TAG | default "v2.0.0" }}'
+  TOPOLOGY_SLIM_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_IMAGE_TAG | default "2.0.0" }}'
 
-  SLIM_CONTROLLER_CHART_TAG: '{{ .SLIM_CONTROLLER_CHART_TAG | default "v1.4.0" }}'
-  SLIM_CONTROLLER_IMAGE_TAG: '{{ .SLIM_CONTROLLER_IMAGE_TAG | default "1.4.0" }}'
+  TOPOLOGY_SLIM_CONTROLLER_CHART_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG | default "v2.0.0" }}'
+  TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG: '{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG | default "2.0.0" }}'
 
   SLIM_CONTROLLER_ENDPOINT: '{{ .SLIM_CONTROLLER_ENDPOINT | default "https://slim-control.admin.svc.cluster.local:50052" }}'
+
+  # Control-plane Service name (matches fullnameOverride in controller-values.yaml).
+  CONTROLLER_SERVICE: '{{ .CONTROLLER_SERVICE | default "slim-control" }}'
+
+  # helm --wait timeout for the controller/data-plane installs. Kept short so a
+  # broken deploy fails fast instead of blocking for the full default.
+  HELM_WAIT_TIMEOUT: '{{ .HELM_WAIT_TIMEOUT | default "5m" }}'
 
   HELM_NAMESPACE: '{{ .HELM_NAMESPACE | default "default" }}'
 
   SPIRE_NAMESPACE: '{{ .SPIRE_NAMESPACE | default "spire" }}'
 
-  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/peer-to-peer.yaml" }}'
+  TOPOLOGY_CONFIG: '{{ .TOPOLOGY_CONFIG | default "config/clusters.yaml" }}'
 
-  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + SLIM_CHART_TAG.
+  # Absolute path to agntcy/slim repo root (contains charts/). Empty = use OCI charts + TOPOLOGY_SLIM_CHART_TAG.
   SLIM_REPO_PATH: '{{ .SLIM_REPO_PATH | default "" }}'
 
+  # slimctl binary used by the test to drive the control-plane topology.
+  SLIMCTL: '{{ .SLIMCTL | default "./bin/slimctl" }}'
+  # Release tag must match the control-plane API (segment/link add commands).
+  SLIMCTL_TAG: '{{ .SLIMCTL_TAG | default "slimctl-v2.0.0" }}'
+
+  # p2p client image (built from examples/Dockerfile, provides slim-bindings-p2p).
+  CLIENT_IMAGE: '{{ .CLIENT_IMAGE | default "ghcr.io/agntcy/slim/bindings-examples:local" }}'
+
+  # slim-bindings version baked into the client image (empty = use examples/Dockerfile default).
+  SLIM_BINDINGS_VERSION: '{{ .SLIM_BINDINGS_VERSION | default "" }}'
+
 tasks:
+  # Port-forward the control-plane northbound API to the host so slimctl can
+  # reach it. The forward runs in a restart loop because the topology test
+  # rollout-restarts the control plane; kubectl port-forward binds to a single
+  # pod and exits when that pod is deleted.
+  test:topology:port-forward:start:
+    desc: Port-forward the control-plane northbound API (50051) to 127.0.0.1
+    cmds:
+      - mkdir -p ./.cache
+      - |
+        set -eu
+        # Run the restart loop as an external shell process so it survives after
+        # this task command returns (go-task's built-in shell does not keep
+        # backgrounded subshells alive across commands).
+        sh -c 'while true; do kubectl port-forward -n admin svc/{{ .CONTROLLER_SERVICE }} 50051:50051 >>./.cache/port-forward.log 2>&1 || true; sleep 1; done' &
+        echo $$! > ./.cache/port-forward.pid
+        if command -v nc >/dev/null 2>&1; then
+          for _ in $(seq 1 30); do
+            if nc -z 127.0.0.1 50051 2>/dev/null; then
+              echo "port-forward ready on 127.0.0.1:50051"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "ERROR: control-plane port-forward did not become ready" >&2
+          cat ./.cache/port-forward.log >&2 || true
+          exit 1
+        else
+          sleep 5
+          echo "port-forward started (nc unavailable; skipped readiness probe)"
+        fi
+
+  test:topology:port-forward:stop:
+    desc: Stop the control-plane port-forward
+    cmds:
+      - |
+        if [ -f ./.cache/port-forward.pid ]; then
+          kill "$(cat ./.cache/port-forward.pid)" 2>/dev/null || true
+          rm -f ./.cache/port-forward.pid
+        fi
+        pkill -f 'kubectl port-forward -n admin svc/{{ .CONTROLLER_SERVICE }}' 2>/dev/null || true
+
+  test:topology:build:client-image:
+    desc: Build the slim-bindings p2p client image and load it into the kind cluster
+    cmds:
+      - |
+        set -eu
+        BUILD_ARGS=""
+        if [ -n '{{ .SLIM_BINDINGS_VERSION }}' ]; then
+          BUILD_ARGS="--build-arg SLIM_BINDINGS_VERSION={{ .SLIM_BINDINGS_VERSION }}"
+        fi
+        docker build $BUILD_ARGS -t {{ .CLIENT_IMAGE }} ./examples
+      - kind load docker-image {{ .CLIENT_IMAGE }} --name {{ .KIND_CLUSTER_NAME }}
+
+  deps:slimctl-download:
+    desc: Download slimctl used to drive the control-plane topology
+    cmds:
+      - |
+        set -e
+        SLIMCTL_ARCH=$(arch)
+        SLIMCTL_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        SLIMCTL_ABI=""
+        if [ "$SLIMCTL_ARCH" = "x86_64" ]; then
+          SLIMCTL_ARCH="amd64"
+        fi
+        if [ "$SLIMCTL_ARCH" = "aarch64" ]; then
+          SLIMCTL_ARCH="arm64"
+        fi
+        if [ "$SLIMCTL_OS" = "linux" ]; then
+          if ldd --version 2>&1 | grep -qi musl; then
+            SLIMCTL_ABI="-musl"
+          else
+            SLIMCTL_ABI="-gnu"
+          fi
+        fi
+        SLIMCTL_URL="https://github.com/agntcy/slim/releases/download/{{ .SLIMCTL_TAG }}/slimctl-$SLIMCTL_OS-$SLIMCTL_ARCH${SLIMCTL_ABI}.tar.gz"
+        TARGET_DIR=$(dirname {{ .SLIMCTL }})
+        mkdir -p "$TARGET_DIR"
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        echo "Downloading slimctl from $SLIMCTL_URL"
+        curl --fail --show-error --location -o "$TMP_DIR/slimctl.tar.gz" "$SLIMCTL_URL"
+        tar -xzf "$TMP_DIR/slimctl.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/slimctl" {{ .SLIMCTL }}
+        chmod +x {{ .SLIMCTL }}
+        {{ .SLIMCTL }} version || true
+
   test:topology:generate:cluster-configs:
     desc: Generates test environment configuration(s) for agntcy slim based on the provided test-setup descriptor
     cmd: |
@@ -48,26 +152,26 @@ tasks:
           fi
           helm upgrade slim-controller \
             "$REPO/charts/slim-control-plane" \
-            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            --set image.tag="{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG }}" \
             -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         else
           helm upgrade slim-controller \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim-control-plane \
-            --version {{ .SLIM_CONTROLLER_CHART_TAG }} \
-            --set image.tag="{{ .SLIM_CONTROLLER_IMAGE_TAG }}" \
+            --version {{ .TOPOLOGY_SLIM_CONTROLLER_CHART_TAG }} \
+            --set image.tag="{{ .TOPOLOGY_SLIM_CONTROLLER_IMAGE_TAG }}" \
             -f ./config/controller-values.yaml \
             --namespace "admin" \
             --create-namespace \
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         fi
 
   test:topology:cleanup:controller:
@@ -91,26 +195,26 @@ tasks:
         if [ -n "$REPO" ]; then
           helm upgrade agntcy-$(basename "$file" .yaml) \
             "$REPO/charts/slim" \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --set slim.image.tag="{{ .TOPOLOGY_SLIM_IMAGE_TAG }}" \
             -f "$file" \
             --namespace $(basename "$file" .yaml) \
             --create-namespace \
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         else
           helm upgrade agntcy-$(basename "$file" .yaml) \
             oci://{{ .IMAGE_REPO }}/slim/helm/slim \
-            --version {{ .SLIM_CHART_TAG }} \
-            --set slim.image.tag="{{ .SLIM_IMAGE_TAG }}" \
+            --version {{ .TOPOLOGY_SLIM_CHART_TAG }} \
+            --set slim.image.tag="{{ .TOPOLOGY_SLIM_IMAGE_TAG }}" \
             -f "$file" \
             --namespace $(basename "$file" .yaml) \
             --create-namespace \
             --install \
             --wait \
             --wait-for-jobs \
-            --timeout "15m"
+            --timeout "{{ .HELM_WAIT_TIMEOUT }}"
         fi
       echo "Deployed agntcy-slim-$(basename "$file" .yaml) with config $(basename "$file")"
       done
@@ -154,11 +258,30 @@ tasks:
       - helm delete spire -n {{ .SPIRE_NAMESPACE }}
       - helm delete spire-crds -n {{ .SPIRE_NAMESPACE }}
 
+  test:topology:setup:
+    desc: One-shot setup (everything except test:topology:run) — slimctl, client image, controller and clusters
+    cmds:
+      - task: deps:slimctl-download
+      - task: test:topology:build:client-image
+      - task: test:topology:deploy:controller
+      - task: test:topology:deploy:clusters
+
   test:topology:run:
     desc: Slim topology test
     cmds:
+      - defer: { task: test:topology:port-forward:stop }
+      - task: test:topology:port-forward:start
       - mkdir -p ./reports
-      - NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
+      - |
+        set -euo pipefail
+        # The test runs with cwd = ./tests, so resolve slimctl to an absolute path.
+        SLIMCTL_BIN="{{ .SLIMCTL }}"
+        case "$SLIMCTL_BIN" in
+          /*) : ;;
+          *) SLIMCTL_BIN="$(pwd)/${SLIMCTL_BIN#./}" ;;
+        esac
+        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" SLIMCTL_SERVER="http://127.0.0.1:50051" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" \
+          go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:topology:report:
     desc: Render HTML dashboard from topology test Ginkgo JSON report

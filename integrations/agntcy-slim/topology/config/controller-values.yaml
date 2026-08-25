@@ -1,19 +1,16 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
-# Default values for slim-control-plane.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Values for the SLIM control plane used by the topology test.
+# The control plane runs in API mode: it is the source of truth for the
+# topology, but links/segments are created at runtime with slimctl instead of
+# being baked into these values.
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: "ghcr.io/agntcy/slim/control-plane"
-  # This sets the pull policy for images.
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 fullnameOverride: "slim-control"
@@ -21,25 +18,41 @@ fullnameOverride: "slim-control"
 config:
   northbound:
     endpoint: "0.0.0.0:{{ .Values.service.north.port }}"
+    tls:
+      insecure: true
 
   southbound:
     endpoint: "0.0.0.0:{{ .Values.service.south.port }}"
-    # tls:
-    #   insecure: false
-    #   useSpiffe: true
-    # auth:
-    #   type: spire
-    #   socketPath: "unix:///run/spire/agent-sockets/api.sock"
+    tls:
+      insecure: true
+
+  # SQLite persistence so the managed topology survives control-plane restarts.
+  database:
+    type: sqlite
+    path: /db/controlplane.db
 
   tracing:
     log_level: debug
+
+  # API mode: no pre-wired links. The test drives segments/links via slimctl.
+  topology: {}
 
 spire:
   enabled: false
 
 service:
+  # ClusterIP: the northbound (50051) API is reached from the host running the
+  # test via `kubectl port-forward` (see the topology Taskfile), and the
+  # southbound (50052) API is reached in-cluster via the service DNS name.
   type: ClusterIP
   south:
     port: 50052
   north:
     port: 50051
+
+# Persist the SQLite database across pod restarts.
+persistence:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi

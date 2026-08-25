@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -90,6 +91,38 @@ func (k *k8sHelper) WatchLogsForString(searchString string) (*LogWatcher, error)
 	}()
 
 	return watcher, nil
+}
+
+// WaitForStringWithTimeout watches the pod logs for searchString for up to
+// timeout. It returns (true, matchingLine) if the string appears within the
+// window, or (false, "") otherwise. Use it both for presence checks (expect
+// true) and absence checks (expect false).
+func (k *k8sHelper) WaitForStringWithTimeout(searchString string, timeout time.Duration) (bool, string, error) {
+	lw, err := k.WatchLogsForString(searchString)
+	if err != nil {
+		return false, "", err
+	}
+	defer lw.Stop()
+
+	type result struct {
+		line string
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		line, werr := lw.Wait()
+		done <- result{line: line, err: werr}
+	}()
+
+	select {
+	case r := <-done:
+		if r.err != nil {
+			return false, "", nil
+		}
+		return true, r.line, nil
+	case <-time.After(timeout):
+		return false, "", nil
+	}
 }
 
 // Wait waits for the search string to be found or context to be cancelled

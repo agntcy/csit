@@ -1,16 +1,16 @@
 # TopologyTest
 
-TopologyTest is a testing framework for validating SLIM topologies. It allows you to describe complex network topologies with clients, servers, and routing configurations in a single YAML file, then quickly deploy and test these configurations in a Kubernetes environment.
+TopologyTest is a testing framework for validating control-plane managed SLIM topologies. It deploys a SLIM control plane in API mode together with a set of SLIM data-plane clusters, then drives the inter-cluster topology at runtime with `slimctl` and validates message routing between point-to-point (p2p) clients.
 
 ## Overview
 
 The TopologyTest framework enables you to:
 
-- Define SLIM network topologies decoratively in YAML
-- Automatically deploy clients and servers to Kubernetes
-- Test message routing and communication patterns
-- Validate expected behaviors through SLIM client log assertions
-- Support both secure (SPIRE mTLS) and insecure connections (not yet implemented)
+- Define the SLIM data-plane clusters declaratively in YAML (`config/clusters.yaml`).
+- Deploy a control plane in API mode (topology is managed at runtime, not baked into the chart values) with SQLite persistence, exposed via a LoadBalancer service so `slimctl` can reach the northbound API from the host.
+- Manage the inter-cluster topology (segments and links) at runtime with `slimctl`.
+- Deploy p2p clients (alice/bob/carol) and validate reachability through SLIM client log assertions.
+- Validate recovery behavior after data-plane node restarts and control-plane restarts.
 
 ## Quick Start
 
@@ -21,27 +21,39 @@ The TopologyTest framework enables you to:
    cd integrations/agntcy-slim/topology
    ```
 
-2. **Deploy SPIRE (when using SPIRE-backed topologies):**
+2. **Download slimctl (used by the test to drive the topology):**
    ```bash
-   task spire:deploy
+   task deps:slimctl-download
    ```
 
-3. **Deploy the SLIM controller:**
+3. **Start a LoadBalancer provider (KinD only):**
+   The controller Service is `type: LoadBalancer`, which stays `<pending>` on a
+   plain KinD cluster. Start [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind)
+   so the Service gets an external IP that `slimctl` can reach from the host:
+   ```bash
+   task kind:cloud-provider-kind:up
+   ```
+   > Requires Go. On macOS you may be prompted for your password (sudo is needed
+   > for Docker access). Leave it running for the duration of the test; stop it
+   > later with `task kind:cloud-provider-kind:down`. On a real cluster with a
+   > cloud LoadBalancer, skip this step.
+
+4. **Deploy the SLIM controller (API mode + persistence + LoadBalancer):**
    ```bash
    task test:topology:deploy:controller
    ```
 
-4. **Deploy the generated topology:**
+5. **Deploy the generated cluster topology:**
    ```bash
    task test:topology:deploy:clusters
    ```
 
-5. **Run the topology test:**
+6. **Run the topology test:**
    ```bash
    task test:topology:run
    ```
 
-6. **Render the HTML report (optional):**
+7. **Render the HTML report (optional):**
    ```bash
    task test:topology:report
    ```
@@ -58,116 +70,58 @@ The TopologyTest framework enables you to:
    task test:topology:cleanup:controller
    ```
 
-3. **Remove SPIRE (optional):**
+3. **Stop the LoadBalancer provider (KinD only):**
    ```bash
-   task spire:remove
+   task kind:cloud-provider-kind:down
    ```
 
-## Topology Configuration Format
+## Cluster Configuration Format
 
-The topology is described in a YAML file with the following structure:
-
-### Basic Structure
+The clusters are described in `config/clusters.yaml`:
 
 ```yaml
 topology:
-    clients:
-        # Client configurations
-    servers:
-        # Server configurations
-```
-
-### Client Configuration
-
-Each client in the topology is defined with the following properties:
-
-```yaml
-clients:
-    "client-name":
-        # Optional: Authentication configuration (currently commented out)
-        # auth:
-        #     spireJwt: true
-        
-        # Required: List of servers this client connects to
-        connectedTo:
-            - "server-name"
-        
-        # Required: Docker image for the client
-        image: ghcr.io/agntcy/slim/bindings-examples:latest
-        
-        # Required: Command line arguments for the client
-        args: ["command", "--flag", "value"]
-        
-        # Optional: String to search for in logs to assert success
-        assertFor: "Expected log message"
-```
-
-### Server Configuration
-
-Each server in the topology is defined with:
-
-```yaml
-servers:
-    "server-name":
-        # Optional: Enable/disable SPIRE mTLS (default: true)
-        spireMtls: false
-        
-        # Required: Routing configuration
-        routes:
-            - "channelName > destination-server"
-```
-
-## Example: Fire-and-Forget Topology
-
-The `config/fire-and-forget.yaml` sets up 3 SLIM nodes connected with two clients using fire & forget session:
-
-```yaml
-topology:
-    clients:
-        "alice":
-            # auth:
-            #     spireJwt: true
-            connectedTo:
-                - "slim-1"
-            image: ghcr.io/agntcy/slim/bindings-examples:latest          
-            args: ["ff", "--local", "org/ns/alice", "--shared-secret","secret123"]  
-            assertFor: "replies: hello from"                                        
-        "bob":
-            # auth:
-            #     spireJwt: true
-            connectedTo:
-                - "slim-2"
-            image: ghcr.io/agntcy/slim/bindings-examples:latest                      
-            args: ["ff", "--message", "hello", "--iterations", "10", "--local", "org/ns/bob", "--remote", "org/ns/alice", "--shared-secret","secret123"]
-            assertFor: "Sent message hello - 10/10"
-    servers:
-        "slim-0":
+    clusters:
+        "cluster-a":
             spireMtls: false
-            routes:                
-                - "org/ns/bob > slim-2"  
-                - "org/ns/alice > slim-1"              
-        "slim-1":
-            routes:                                
-                - "org/ns/bob > slim-0"
-        "slim-2":
-            routes:                
-                - "org/ns/alice > slim-0"
+            replicaCount: 1
+        "cluster-b":
+            spireMtls: false
+            replicaCount: 2
+        "cluster-c":
+            spireMtls: false
+            replicaCount: 2
 ```
 
-This topology creates a three-server network where:
-- **Alice** connects to `slim-1` and waits to receive messages
-- **Bob** connects to `slim-2` and sends 10 "hello" messages to Alice
-- **slim-0** acts as the central router
-- Messages route through the servers: Bob → slim-2 → slim-0 → slim-1 → Alice
+Each cluster entry supports:
+
+- `spireMtls` (bool, default false): enable SPIRE mTLS for the data-plane nodes.
+- `replicaCount` (int, default 1): number of SLIM data-plane node replicas in the cluster.
+- `deployAsDaemonSet` (bool, default false): deploy nodes as a DaemonSet instead of a Deployment.
+
+The default topology uses `cluster-a` (1 node), `cluster-b` (2 nodes) and `cluster-c` (2 nodes). Each cluster registers with the control plane as a group named after the cluster.
+
+## Control plane (API mode)
+
+The controller is deployed from `config/controller-values.yaml` in API mode: `topology: {}` leaves the control plane as the source of truth but with no pre-wired links, so the test creates segments and links at runtime with `slimctl`. SQLite persistence is enabled so topology survives control-plane restarts. The controller Service is of type `LoadBalancer` so the northbound API (`50051`) is reachable from the host running the test.
+
+## Test Scenarios
+
+The Ginkgo suite runs as an ordered set of `When`/`Then` scenarios:
+
+1. **When the control plane and clusters are deployed / Then all clusters and nodes are joined:** every node reports `Connected` in `slimctl controller node list` and all three groups appear in `slimctl controller group list`.
+2. **When cluster-a is linked to cluster-b and cluster-a to cluster-c in separate segments and the p2p clients are deployed / Then alice reaches bob and carol, but bob cannot reach carol:** alice sends to bob and to carol (distinct messages), and the b->c path is isolated, so carol never receives bob's message.
+3. **When the topology is modified so cluster-b and cluster-c are linked / Then alice still reaches both and bob can now reach carol.**
+4. **When the gateway node handling the b<->c link is stopped and restarted / Then the link is restored and bob can still reach carol** (a continuous sender keeps producing traffic across the restart).
+5. **When the control plane is restarted / Then the links remain intact** (persistence via the SQLite PVC).
 
 ## Test Execution
 
 The test framework performs the following steps:
 
-1. **Parse the topology YAML** file and generate SLIM helm chart values & configs 
-2. **Deploy SLIM controller & SLIM server nodes** using helm charts with appropriate configurations
-
-3. **Deploy client pods** with connection parameters
-4. **Watch pod logs** for assertion strings
-5. **Validate** that all expected behaviors occur within timeout periods
-6. **Clean up** resources after test completion
+1. **Parse `config/clusters.yaml`** and generate SLIM helm values/configs for each cluster.
+2. **Deploy SLIM controller & SLIM cluster nodes** using the helm charts.
+3. **Discover the controller northbound endpoint** (LoadBalancer) and drive topology with `slimctl`.
+4. **Deploy p2p client pods** and watch their logs for assertion strings (presence and, for isolation, absence).
+5. **Validate** reachability, isolation, and recovery behavior within timeout periods.
+6. **Clean up** client resources after test completion.
