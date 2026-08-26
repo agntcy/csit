@@ -192,10 +192,10 @@
       <p class="class-tag">C2 · Decentralized</p>
       <div class="class-head">
         <h2>Workflow or route graph coordinates agents</h2>
-        <span class="status status-planned">Evidence pending</span>
+        {{C2_CLASS_STATUS_SPAN}}
       </div>
       <p class="class-def">No single global brain, but coordination is scripted: a workflow manager or declared route graph defines who talks to whom and in what order. Agents follow the graph; autonomy is bounded by it.</p>
-      <p class="planned-note"><strong>Forthcoming.</strong> The use cases below define the target scenarios and the evidence each will produce once wired into the automated build. Status is <em>Evidence pending</em> until the related suites feed <code>c2-evidence.json</code>. Tracked in the <a href="../docs/plans/slim-dashboard-epic.md">SLIM dashboard epic</a> (post-July phase).</p>
+      {{C2_PLANNED_NOTE}}
 
       <table class="use-grid">
         <thead>
@@ -203,18 +203,27 @@
             <th>Use case</th>
             <th>SLIM mechanism</th>
             <th>Status</th>
-            <th>Expected evidence</th>
+            <th>Test / scenario</th>
+            <th>Evidence</th>
           </tr>
         </thead>
         <tbody>
           <tr id="c2-topology-routing">
             <td>
               <div class="use-name">Multi-agent flow over fixed, named routes</div>
-              <div class="use-meta">Messages traverse several SLIM servers by name (e.g. one agent waits while another sends through intermediate nodes)</div>
+              <div class="use-meta">Named endpoints across clusters with runtime-declared segments and links (<code>slimctl</code> route graph)</div>
             </td>
             <td><code>declarative routes</code></td>
-            <td><span class="status status-planned">Evidence pending</span></td>
-            <td class="use-meta">Per-hop delivery assertions: each message reaches the named SLIM servers in the declared order; success rate and observed hop path captured from topology-test logs.</td>
+            <td>{{C2_TOPOLOGY_STATUS_SPAN}}<div class="use-meta">{{C2_TOPOLOGY_SCENARIOS}} routing scenario(s)</div></td>
+            <td>TopologyTest Ginkgo<br><span class="use-meta">integrations/agntcy-slim/topology</span></td>
+            <td>
+              <ul class="evidence-links">
+                <li><a href="evidence/c2-evidence.json">JSON</a></li>
+                <li><a href="evidence/c2-evidence.md">Markdown</a></li>
+                <li><a href="evidence/c2-evidence.html">HTML</a></li>
+                <li><a href="../slim-integration/index.html">Ginkgo report</a></li>
+              </ul>
+            </td>
           </tr>
           <tr id="c2-workflow-app">
             <td>
@@ -223,18 +232,20 @@
             </td>
             <td><code>workflow + SLIM</code></td>
             <td><span class="status status-planned">Evidence pending</span></td>
-            <td class="use-meta">Step-completion proof: every workflow step's message is delivered and acknowledged; end-to-end run reported as successful by the workflow manager.</td>
+            <td>agntcy-apps campaigns<br><span class="use-meta">integrations/agntcy-apps</span></td>
+            <td class="use-meta">Step-completion proof once a workflow suite feeds <code>c2-evidence.json</code>.</td>
           </tr>
         </tbody>
       </table>
 
-      <article class="scenario-card related-suites" id="c2-related-suites">
-        <h3>Related suites — not yet wired into the evidence flow</h3>
-        <p class="scenario-meta">These suites exist today; the status above is not derived from them.</p>
+      <article class="scenario-card" id="c2-scenario-topology">
+        <h3>Test evidence: topology routing</h3>
+        <p class="scenario-meta">Multi-cluster · task integrations:slim:test:topology</p>
+        <p>Proves scripted multi-hop routing: segment isolation, dynamic link changes, and delivery after a dataplane gateway restart. Status for <code>c2-topology-routing</code> is read from <code>reports/c2-evidence.json</code> (three scenarios: isolated routes, linked routes, route survives restart).</p>
         <ul class="evidence-links">
-          <li><a href="../../integrations/agntcy-slim/TopologyTest.md">TopologyTest.md</a> — topology routing (agntcy-slim)</li>
+          <li><a href="../../integrations/agntcy-slim/TopologyTest.md">TopologyTest.md</a></li>
         </ul>
-        <div class="rerun"><strong>Rerun (dev):</strong><br><code>task integrations:slim:test:topology</code></div>
+        <div class="rerun"><strong>Rerun:</strong><br><code>task integrations:slim:test:topology</code><br><code>cp integrations/agntcy-slim/topology/reports/c2-evidence.json analitics/reports/</code><br><code>task -t analitics/Taskfile.yml dashboard:build:only</code></div>
       </article>
     </section>
 

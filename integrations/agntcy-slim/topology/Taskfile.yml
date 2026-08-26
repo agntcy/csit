@@ -280,7 +280,7 @@ tasks:
           /*) : ;;
           *) SLIMCTL_BIN="$(pwd)/${SLIMCTL_BIN#./}" ;;
         esac
-        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" SLIMCTL_SERVER="http://127.0.0.1:50051" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" \
+        NAMESPACE={{.HELM_NAMESPACE}} TOPOLOGY_CONFIG=../{{.TOPOLOGY_CONFIG}} SLIMCTL="$SLIMCTL_BIN" SLIMCTL_SERVER="http://127.0.0.1:50051" CLIENT_IMAGE="{{ .CLIENT_IMAGE }}" C2_EVIDENCE_REPORT_DIR="$(pwd)/reports" \
           go test ./tests -v -failfast -test.v -test.paniconexit0 -ginkgo.timeout 30m -timeout 30m -ginkgo.v -ginkgo.focus "Slim topology test" --ginkgo.json-report=../reports/report-slim-topology.json --ginkgo.junit-report=../reports/report-slim-topology.xml
 
   test:topology:report:

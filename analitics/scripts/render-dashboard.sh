@@ -46,6 +46,26 @@ for s in "$c1_rr_status" "$c1_ff_status" "$c1_w_status"; do
 done
 C1_CLASS_STATUS_SPAN="$(render_status_span "$c1_class_status")"
 
+c2_topology_status="$(row_status "c2-topology-routing" 3)"
+c2_topology_scenarios="$(row_scenario_count "c2-topology-routing")"
+C2_TOPOLOGY_STATUS_SPAN="$(render_status_span "$c2_topology_status")"
+
+# C2 class: topology row drives status; workflow row remains pending.
+c2_class_status="unknown"
+case "$c2_topology_status" in
+  verified) c2_class_status="partial" ;;
+  partial) c2_class_status="partial" ;;
+  failed) c2_class_status="failed" ;;
+  *) c2_class_status="unknown" ;;
+esac
+C2_CLASS_STATUS_SPAN="$(render_status_span "$c2_class_status")"
+
+if [[ "$c2_topology_status" == "unknown" ]]; then
+  C2_PLANNED_NOTE='<p class="planned-note"><strong>Forthcoming.</strong> The workflow use case below is not yet wired. Topology routing evidence appears once <code>c2-evidence.json</code> is produced by the topology test. Tracked in the <a href="../docs/plans/slim-dashboard-epic.md">SLIM dashboard epic</a>.</p>'
+else
+  C2_PLANNED_NOTE='<p class="planned-note"><strong>Partial.</strong> Topology routing is assertion-backed below. The workflow-manager use case remains <em>Evidence pending</em>.</p>'
+fi
+
 sed \
   -e "s|{{GENERATED_AT}}|$generated_at|g" \
   -e "s|{{C1_CLASS_STATUS_SPAN}}|$C1_CLASS_STATUS_SPAN|g" \
@@ -55,6 +75,10 @@ sed \
   -e "s|{{C1_RR_ROWS}}|$c1_rr_rows|g" \
   -e "s|{{C1_FF_ROWS}}|$c1_ff_rows|g" \
   -e "s|{{C1_W_ROWS}}|$c1_w_rows|g" \
+  -e "s|{{C2_CLASS_STATUS_SPAN}}|$C2_CLASS_STATUS_SPAN|g" \
+  -e "s|{{C2_TOPOLOGY_STATUS_SPAN}}|$C2_TOPOLOGY_STATUS_SPAN|g" \
+  -e "s|{{C2_TOPOLOGY_SCENARIOS}}|$c2_topology_scenarios|g" \
+  -e "s|{{C2_PLANNED_NOTE}}|$C2_PLANNED_NOTE|g" \
   "$TEMPLATE_FILE" > "$OUTPUT_FILE"
 
 echo "Rendered $OUTPUT_FILE"

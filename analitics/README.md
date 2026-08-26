@@ -98,6 +98,7 @@ analitics/
 
 - Epic: `docs/plans/slim-dashboard-epic.md`
 - C1 contract: `docs/plans/slim-c1-evidence-contract-v1.md`
+- C2 contract: `docs/plans/slim-c2-evidence-contract-v1.md`
 
 ## Status evaluation (C1)
 
@@ -111,6 +112,11 @@ C1 use-case status is read from the `status` field of each case in
 The render step reads these values as-is; it does not re-run or re-evaluate the tests.
 
 C2/C3 rows use static status until their test evidence is wired into the build flow.
+
+**C2 (topology routing):** status for `c2-topology-routing` is read from `c2-evidence.json`
+(produced by TopologyTest in `integrations/agntcy-slim/topology/tests`). Synced into
+`analitics/reports/` automatically from `integrations/agntcy-slim/topology/reports/` during
+`dashboard:sync`. See `docs/plans/slim-c2-evidence-contract-v1.md`.
 
 ## GitHub Pages
 

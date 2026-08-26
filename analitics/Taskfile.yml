@@ -64,7 +64,7 @@ tasks:
       - mkdir -p "{{.REPORTS_DIR}}" "{{.PUBLISHED_DIR}}/evidence"
 
   dashboard:sync:
-    desc: Copy c1-evidence.json into published/evidence
+    desc: Copy C1/C2 evidence JSON into published/evidence
     deps: [dashboard:prepare]
     cmds:
       - |
@@ -73,9 +73,22 @@ tasks:
         if [ -f "$REPORTS_ABS/c1-evidence.json" ]; then
           cp "$REPORTS_ABS/c1-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
         fi
+        C2_SOURCE="${C2_EVIDENCE_SOURCE:-}"
+        if [ -z "$C2_SOURCE" ] && [ ! -f "$REPORTS_ABS/c2-evidence.json" ]; then
+          TOPOLOGY_C2="../integrations/agntcy-slim/topology/reports/c2-evidence.json"
+          if [ -f "$TOPOLOGY_C2" ]; then
+            C2_SOURCE="$TOPOLOGY_C2"
+          fi
+        fi
+        if [ -n "$C2_SOURCE" ] && [ -f "$C2_SOURCE" ]; then
+          cp "$C2_SOURCE" "$REPORTS_ABS/c2-evidence.json"
+          cp "$C2_SOURCE" "{{.PUBLISHED_DIR}}/evidence/c2-evidence.json"
+        elif [ -f "$REPORTS_ABS/c2-evidence.json" ]; then
+          cp "$REPORTS_ABS/c2-evidence.json" "{{.PUBLISHED_DIR}}/evidence/c2-evidence.json"
+        fi
 
   dashboard:render:
-    desc: Render taxonomy dashboard and C1 evidence reports from JSON
+    desc: Render taxonomy dashboard and evidence reports from JSON
     deps: [dashboard:prepare]
     cmds:
       - |
@@ -88,6 +101,9 @@ tasks:
         REPORTS_DIR="$REPORTS_ABS" \
         OUTPUT_DIR="{{.PUBLISHED_DIR}}/evidence" \
         bash ./scripts/render-evidence-report.sh
+        REPORTS_DIR="$REPORTS_ABS" \
+        OUTPUT_DIR="{{.PUBLISHED_DIR}}/evidence" \
+        bash ./scripts/render-c2-evidence-report.sh
 
   dashboard:build:only:
     desc: Sync evidence JSON and render dashboard (skip test run)
@@ -106,6 +122,9 @@ tasks:
       - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.json"
       - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.md"
       - rm -f "{{.PUBLISHED_DIR}}/evidence/c1-evidence.html"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c2-evidence.json"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c2-evidence.md"
+      - rm -f "{{.PUBLISHED_DIR}}/evidence/c2-evidence.html"
 
   test:agentic-evidence:
     desc: Run all agentic evidence class tests (currently C1 only)

@@ -281,6 +281,20 @@ func interClusterLinkApplied(links []linkEntry, clusterA, clusterB string) bool 
 // connectedLinksBetween counts links connecting clusterA and clusterB whose
 // endpoints are both currently Connected. This ignores stale links left behind
 // on Unknown nodes after a restart, unlike linksBetween.
+func recordC2TopologyEvidence(scenario string, assertions []string) {
+	row := c2EvidenceCase{
+		RowID:      "c2-topology-routing",
+		Scenario:   scenario,
+		Mechanism:  "declarative-routes",
+		UseCase:    "Multi-agent flow over fixed, named routes",
+		Status:     "verified",
+		Assertions: assertions,
+	}
+	gomega.Expect(upsertC2EvidenceCase(c2EvidenceReportPath(), row)).To(gomega.Succeed())
+	logC2EvidenceSummary(row)
+	ginkgo.AddReportEntry("C2 Evidence", row.Scenario+"="+row.Status)
+}
+
 func connectedLinksBetween(links []linkEntry, connected map[string]bool, clusterA, clusterB string) int {
 	n := 0
 	for _, l := range links {
@@ -443,6 +457,15 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-b")).To(gomega.BeTrue(), "cluster-a<->cluster-b link not applied")
 				gomega.Expect(interClusterLinkApplied(links, "cluster-a", "cluster-c")).To(gomega.BeTrue(), "cluster-a<->cluster-c link not applied")
 				gomega.Expect(interClusterLinkApplied(links, "cluster-b", "cluster-c")).To(gomega.BeFalse(), "unexpected cluster-b<->cluster-c link")
+
+				recordC2TopologyEvidence("isolated-routes", []string{
+					fmt.Sprintf("alice delivered to bob (received: %s)", msgFromAlice),
+					fmt.Sprintf("alice delivered to carol (received: %s)", msgFromAlice),
+					fmt.Sprintf("bob blocked from carol across isolated segments (no received: %s)", msgFromBob),
+					"cluster-a<->cluster-b link APPLIED",
+					"cluster-a<->cluster-c link APPLIED",
+					"no cluster-b<->cluster-c link while segments are isolated",
+				})
 			})
 		})
 
@@ -466,6 +489,11 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after linking")
 				ginkgo.GinkgoWriter.Printf("carol received: %s\n", line)
+
+				recordC2TopologyEvidence("linked-routes", []string{
+					"cluster-b<->cluster-c link APPLIED after topology change",
+					fmt.Sprintf("bob delivered to carol after link added (received: %s)", msgFromBob),
+				})
 			})
 		})
 
@@ -532,6 +560,11 @@ var _ = ginkgo.Describe("Agntcy slim topology test", func() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(found).To(gomega.BeTrue(), "carol did not receive bob's message after node restart")
 				ginkgo.GinkgoWriter.Printf("carol received after restart: %s\n", line)
+
+				recordC2TopologyEvidence("route-survives-restart", []string{
+					"gateway node restart: b<->c link restored on a live cluster-b node",
+					fmt.Sprintf("bob delivered to carol after gateway restart (received: %s)", msgFromBobVerify),
+				})
 			})
 		})
 
