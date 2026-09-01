@@ -46,6 +46,17 @@ jobs:
           go: true
           go-version: "1.24.4"
 
+      - name: Sync C2 evidence from slim-integration (optional)
+        continue-on-error: true
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: test-slim-integration.yaml
+          commit: ${{ github.sha }}
+          name: slim-integration-test-result
+          path: integrations/agntcy-slim/topology/reports
+          if_no_artifact_found: ignore
+
       - name: Run agentic evidence tests and build dashboard
         id: agentic-dashboard
         working-directory: analitics

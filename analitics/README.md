@@ -74,14 +74,17 @@ analitics/
 │   ├── echo-client/           # Responder/sink helper
 │   └── rate-client/           # Traffic generator
 ├── tests/
-│   ├── c1_evidence_test.go
-│   └── c1_evidence_report.go
+│   ├── suite_test.go              # Ginkgo bootstrap
+│   ├── c1_evidence_test.go        # C1 use-case specs + behavioral assertions
+│   ├── c1_evidence_report.go      # JSON report model + upsert helpers
+│   └── c1_evidence_report_test.go # unit tests for the report helpers
 ├── templates/
 │   └── dashboard.html.tmpl
 ├── scripts/
 │   ├── evidence-lib.sh
 │   ├── render-dashboard.sh
 │   └── render-evidence-report.sh
+├── bin/                       # generated (gitignored): downloaded slimctl
 ├── reports/                   # generated (gitignored)
 └── published/                 # generated (gitignored)
     ├── index.html
@@ -95,17 +98,25 @@ analitics/
 
 - Epic: `docs/plans/slim-dashboard-epic.md`
 - C1 contract: `docs/plans/slim-c1-evidence-contract-v1.md`
+- C2 contract: `docs/plans/slim-c2-evidence-contract-v1.md`
 
 ## Status evaluation (C1)
 
-C1 use-case status is derived from `reports/c1-evidence.json`
-(produced by Ginkgo tests in `tests/c1_evidence_test.go`):
+C1 use-case status is read from the `status` field of each case in
+`reports/c1-evidence.json` (produced by Ginkgo tests in `tests/c1_evidence_test.go`):
 
-- `verified` — assertion-based test passed for the mode
-- `failed` — test failed or case reports non-zero errors
-- `unknown` — no case entry for the mode
+- `verified` — the mode's behavioral assertions passed; the test records this case as `verified`
+- `failed` — the case is recorded with a `failed` status
+- `unknown` — no case entry exists for the mode (e.g. the report is missing or the spec did not run)
+
+The render step reads these values as-is; it does not re-run or re-evaluate the tests.
 
 C2/C3 rows use static status until their test evidence is wired into the build flow.
+
+**C2 (topology routing):** status for `c2-topology-routing` is read from `c2-evidence.json`
+(produced by TopologyTest in `integrations/agntcy-slim/topology/tests`). Synced into
+`analitics/reports/` automatically from `integrations/agntcy-slim/topology/reports/` during
+`dashboard:sync`. See `docs/plans/slim-c2-evidence-contract-v1.md`.
 
 ## GitHub Pages
 
@@ -116,7 +127,8 @@ CSIT test reports site under **`docs/agentic-evidence/`** on the `gh-pages` bran
 
 ## Prerequisites
 
-- Go 1.22+
+- Go 1.24+ (matches `go.mod`)
 - `task` in the shell
+- `jq` and `bash` on `PATH` (used by the render scripts)
 - Native SLIM bindings for CGO (`task -t analitics/Taskfile.yml deps:slim-bindings-setup`)
 - `slimctl` on `PATH`, or install via `task -t analitics/Taskfile.yml deps:slimctl-download`
