@@ -172,16 +172,16 @@
 <body>
   <main>
     <h1>Slim integration</h1>
-    <p class="meta">Generated 2026-08-25 08:51:56 UTC · Latest run 2026-08-25 08:51:14 UTC</p>
+    <p class="meta">Generated 2026-09-01 11:19:25 UTC · Latest run 2026-09-01 11:19:17 UTC</p>
 
     
     <section class="cards">
-      <div class="card"><strong>1</strong><span>report files</span></div>
+      <div class="card"><strong>2</strong><span>report files</span></div>
       <div class="card"><strong>5</strong><span>specs passed</span></div>
       <div class="card"><strong>0</strong><span>specs failed</span></div>
       <div class="card"><strong>0</strong><span>specs skipped</span></div>
       <div class="card"><strong>1</strong><span>passing reports</span></div>
-      <div class="card"><strong>0</strong><span>failing reports</span></div>
+      <div class="card"><strong>1</strong><span>failing reports</span></div>
     </section>
 
     <section class="toolbar">
@@ -193,6 +193,32 @@
       </select>
     </section>
 
+    
+    <details class="report fail" data-status="fail" data-search="c2 evidence   c2-evidence">
+      <summary>
+        <div>
+          <strong>C2 Evidence</strong>
+          <div class="subtitle"></div>
+        </div>
+        <div><span class="status-chip fail">Failing</span></div>
+        <div>
+          <div>0 passed · 0 failed</div>
+          <div class="subtitle">0 specs</div>
+        </div>
+        <div>
+          <div>—</div>
+          <div class="subtitle">c2-evidence.json</div>
+        </div>
+      </summary>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Spec</th><th>State</th><th>Duration</th><th>Details</th></tr>
+        </thead>
+        <tbody>
+          
+        </tbody>
+      </table>
+    </details>
     
     <details class="report pass" data-status="pass" data-search="topology tests suite  report-slim-topology agntcy slim topology test / slim topology test / when the control plane and clusters are deployed / then all clusters and nodes are joined  slim topology test beforeall node slim topology test beforeall node (end) then all clusters and nodes are joined it node waiting for all 5 nodes to report connected via slimctl by by checking all three domains are registered by by then all clusters and nodes are joined it node (end) agntcy slim topology test / slim topology test / when cluster-a links to cluster-b and cluster-c in separate segments and the p2p clients are deployed / then alice reaches bob and carol, but bob cannot reach carol  then alice reaches bob and carol, but bob cannot reach carol it node creating isolated segments and links via slimctl by by waiting for inter-cluster links to become applied by by deploying bob/carol receivers, then alice senders and the bob-&gt;carol probe by by asserting alice reaches bob by by asserting alice reaches carol by by asserting bob cannot reach carol (segment isolation) by by asserting link topology via slimctl by by then alice reaches bob and carol, but bob cannot reach carol it node (end) agntcy slim topology test / slim topology test / when the topology is modified so cluster-b and cluster-c are linked / then bob can now reach carol and the link is applied  then bob can now reach carol and the link is applied it node linking cluster-b and cluster-c via slimctl by by waiting for the cluster-b&lt;-&gt;cluster-c link to become applied by by asserting carol now receives bob&#39;s messages by by then bob can now reach carol and the link is applied it node (end) agntcy slim topology test / slim topology test / when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted / then the link is restored and bob can still reach carol  then the link is restored and bob can still reach carol it node identifying the connected cluster-b node participating in the b&lt;-&gt;c link by by deleting the gateway pod and waiting for the deployment to recover by by asserting the control plane fails the b&lt;-&gt;c link over to a live cluster-b node by by proving post-recovery delivery with a fresh unique-message sender by by then the link is restored and bob can still reach carol it node (end) when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted defercleanup (each) node when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted defercleanup (each) node (end) agntcy slim topology test / slim topology test / when the control plane is restarted / then the links remain intact  then the links remain intact it node recording the applied link count before restart by by rollout-restarting the control plane and waiting for it to recover by by rediscovering the northbound endpoint after restart by by asserting all three inter-cluster links persist on reconnected nodes by by then the links remain intact it node (end) slim topology test afterall node slim topology test afterall node (end)">
       <summary>
@@ -206,7 +232,7 @@
           <div class="subtitle">5 specs</div>
         </div>
         <div>
-          <div>1m24.127s</div>
+          <div>1m20.725s</div>
           <div class="subtitle">report-slim-topology.json · report-slim-topology.xml</div>
         </div>
       </summary>
@@ -235,56 +261,56 @@
                     
                     <tr class="event-node">
                       <td class="event-order">1</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">BeforeAll</span></td>
                       <td class="event-msg">Slim topology test</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:322</td>
+                      <td class="event-src">tests/topology_test.go:336</td>
                     </tr>
                     
                     <tr class="event-end">
                       <td class="event-order">3</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">BeforeAll</span></td>
                       <td class="event-msg">Slim topology test</td>
                       <td class="event-dur">1ms</td>
-                      <td class="event-src">tests/topology_test.go:322</td>
+                      <td class="event-src">tests/topology_test.go:336</td>
                     </tr>
                     
                     <tr class="event-node">
                       <td class="event-order">4</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then all clusters and nodes are joined</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:364</td>
+                      <td class="event-src">tests/topology_test.go:378</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">5</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">waiting for all 5 nodes to report Connected via slimctl</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:365</td>
+                      <td class="event-src">tests/topology_test.go:379</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">6</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">checking all three domains are registered</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:375</td>
+                      <td class="event-src">tests/topology_test.go:389</td>
                     </tr>
                     
                     <tr class="event-end">
                       <td class="event-order">8</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then all clusters and nodes are joined</td>
                       <td class="event-dur">93ms</td>
-                      <td class="event-src">tests/topology_test.go:364</td>
+                      <td class="event-src">tests/topology_test.go:378</td>
                     </tr>
                     
                   </tbody>
@@ -297,7 +323,7 @@
           <tr>
             <td>Agntcy slim topology test / Slim topology test / when cluster-a links to cluster-b and cluster-c in separate segments and the p2p clients are deployed / then alice reaches bob and carol, but bob cannot reach carol</td>
             <td class="state pass">Passed</td>
-            <td>59.581s</td>
+            <td>1m0.752s</td>
             <td>
               
               
@@ -313,83 +339,83 @@
                     
                     <tr class="event-node">
                       <td class="event-order">9</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then alice reaches bob and carol, but bob cannot reach carol</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:383</td>
+                      <td class="event-src">tests/topology_test.go:397</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">10</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">creating isolated segments and links via slimctl</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:384</td>
+                      <td class="event-src">tests/topology_test.go:398</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">11</td>
-                      <td class="event-time">2026-08-25 08:49:50 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:32 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">waiting for inter-cluster links to become APPLIED</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:394</td>
+                      <td class="event-src">tests/topology_test.go:408</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">12</td>
-                      <td class="event-time">2026-08-25 08:49:55 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:37 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">deploying bob/carol receivers, then alice senders and the bob-&gt;carol probe</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:402</td>
+                      <td class="event-src">tests/topology_test.go:416</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">13</td>
-                      <td class="event-time">2026-08-25 08:50:00 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:45 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting alice reaches bob</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:423</td>
+                      <td class="event-src">tests/topology_test.go:437</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">14</td>
-                      <td class="event-time">2026-08-25 08:50:03 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:46 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting alice reaches carol</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:429</td>
+                      <td class="event-src">tests/topology_test.go:443</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">15</td>
-                      <td class="event-time">2026-08-25 08:50:04 UTC</td>
+                      <td class="event-time">2026-09-01 11:17:48 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting bob cannot reach carol (segment isolation)</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:435</td>
+                      <td class="event-src">tests/topology_test.go:449</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">16</td>
-                      <td class="event-time">2026-08-25 08:50:49 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:33 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting link topology via slimctl</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:440</td>
+                      <td class="event-src">tests/topology_test.go:454</td>
                     </tr>
                     
                     <tr class="event-end">
-                      <td class="event-order">18</td>
-                      <td class="event-time">2026-08-25 08:50:49 UTC</td>
+                      <td class="event-order">19</td>
+                      <td class="event-time">2026-09-01 11:18:33 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then alice reaches bob and carol, but bob cannot reach carol</td>
-                      <td class="event-dur">59.581s</td>
-                      <td class="event-src">tests/topology_test.go:383</td>
+                      <td class="event-dur">1m0.752s</td>
+                      <td class="event-src">tests/topology_test.go:397</td>
                     </tr>
                     
                   </tbody>
@@ -402,7 +428,7 @@
           <tr>
             <td>Agntcy slim topology test / Slim topology test / when the topology is modified so cluster-b and cluster-c are linked / then bob can now reach carol and the link is applied</td>
             <td class="state pass">Passed</td>
-            <td>5.114s</td>
+            <td>5.118s</td>
             <td>
               
               
@@ -417,48 +443,48 @@
                   <tbody>
                     
                     <tr class="event-node">
-                      <td class="event-order">19</td>
-                      <td class="event-time">2026-08-25 08:50:49 UTC</td>
+                      <td class="event-order">20</td>
+                      <td class="event-time">2026-09-01 11:18:33 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then bob can now reach carol and the link is applied</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:450</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">20</td>
-                      <td class="event-time">2026-08-25 08:50:49 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">linking cluster-b and cluster-c via slimctl</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:451</td>
+                      <td class="event-src">tests/topology_test.go:473</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">21</td>
-                      <td class="event-time">2026-08-25 08:50:49 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:33 UTC</td>
                       <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">waiting for the cluster-b&lt;-&gt;cluster-c link to become APPLIED</td>
+                      <td class="event-msg">linking cluster-b and cluster-c via slimctl</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:457</td>
+                      <td class="event-src">tests/topology_test.go:474</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">22</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:33 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">waiting for the cluster-b&lt;-&gt;cluster-c link to become APPLIED</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:480</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">23</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting carol now receives bob&#39;s messages</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:464</td>
+                      <td class="event-src">tests/topology_test.go:487</td>
                     </tr>
                     
                     <tr class="event-end">
-                      <td class="event-order">24</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
+                      <td class="event-order">26</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then bob can now reach carol and the link is applied</td>
-                      <td class="event-dur">5.114s</td>
-                      <td class="event-src">tests/topology_test.go:450</td>
+                      <td class="event-dur">5.118s</td>
+                      <td class="event-src">tests/topology_test.go:473</td>
                     </tr>
                     
                   </tbody>
@@ -471,7 +497,7 @@
           <tr>
             <td>Agntcy slim topology test / Slim topology test / when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted / then the link is restored and bob can still reach carol</td>
             <td class="state pass">Passed</td>
-            <td>11.027s</td>
+            <td>6.398s</td>
             <td>
               
               
@@ -486,75 +512,75 @@
                   <tbody>
                     
                     <tr class="event-node">
-                      <td class="event-order">25</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
+                      <td class="event-order">27</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then the link is restored and bob can still reach carol</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:473</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">26</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">identifying the Connected cluster-b node participating in the b&lt;-&gt;c link</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:476</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">27</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">deleting the gateway pod and waiting for the deployment to recover</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:494</td>
+                      <td class="event-src">tests/topology_test.go:501</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">28</td>
-                      <td class="event-time">2026-08-25 08:50:55 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
                       <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">asserting the control plane fails the b&lt;-&gt;c link over to a live cluster-b node</td>
+                      <td class="event-msg">identifying the Connected cluster-b node participating in the b&lt;-&gt;c link</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:500</td>
+                      <td class="event-src">tests/topology_test.go:504</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">29</td>
-                      <td class="event-time">2026-08-25 08:51:00 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">deleting the gateway pod and waiting for the deployment to recover</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:522</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">30</td>
+                      <td class="event-time">2026-09-01 11:18:38 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">asserting the control plane fails the b&lt;-&gt;c link over to a live cluster-b node</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:528</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">31</td>
+                      <td class="event-time">2026-09-01 11:18:43 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">proving post-recovery delivery with a fresh unique-message sender</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:521</td>
-                    </tr>
-                    
-                    <tr class="event-end">
-                      <td class="event-order">31</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
-                      <td><span class="event-badge">It</span></td>
-                      <td class="event-msg">then the link is restored and bob can still reach carol</td>
-                      <td class="event-dur">11.02s</td>
-                      <td class="event-src">tests/topology_test.go:473</td>
-                    </tr>
-                    
-                    <tr class="event-node">
-                      <td class="event-order">32</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
-                      <td><span class="event-badge">DeferCleanup (Each)</span></td>
-                      <td class="event-msg">when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:526</td>
+                      <td class="event-src">tests/topology_test.go:549</td>
                     </tr>
                     
                     <tr class="event-end">
                       <td class="event-order">34</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
+                      <td><span class="event-badge">It</span></td>
+                      <td class="event-msg">then the link is restored and bob can still reach carol</td>
+                      <td class="event-dur">6.392s</td>
+                      <td class="event-src">tests/topology_test.go:501</td>
+                    </tr>
+                    
+                    <tr class="event-node">
+                      <td class="event-order">35</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
                       <td><span class="event-badge">DeferCleanup (Each)</span></td>
                       <td class="event-msg">when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted</td>
-                      <td class="event-dur">7ms</td>
-                      <td class="event-src">tests/topology_test.go:526</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:554</td>
+                    </tr>
+                    
+                    <tr class="event-end">
+                      <td class="event-order">37</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
+                      <td><span class="event-badge">DeferCleanup (Each)</span></td>
+                      <td class="event-msg">when the gateway node handling the cluster-b&lt;-&gt;cluster-c link is restarted</td>
+                      <td class="event-dur">6ms</td>
+                      <td class="event-src">tests/topology_test.go:554</td>
                     </tr>
                     
                   </tbody>
@@ -567,7 +593,7 @@
           <tr>
             <td>Agntcy slim topology test / Slim topology test / when the control plane is restarted / then the links remain intact</td>
             <td class="state pass">Passed</td>
-            <td>8.31s</td>
+            <td>8.361s</td>
             <td>
               
               
@@ -582,75 +608,75 @@
                   <tbody>
                     
                     <tr class="event-node">
-                      <td class="event-order">35</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
+                      <td class="event-order">38</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
                       <td><span class="event-badge">It</span></td>
                       <td class="event-msg">then the links remain intact</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:539</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">36</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">recording the applied link count before restart</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:542</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">37</td>
-                      <td class="event-time">2026-08-25 08:51:06 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">rollout-restarting the control plane and waiting for it to recover</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:547</td>
-                    </tr>
-                    
-                    <tr class="event-by">
-                      <td class="event-order">38</td>
-                      <td class="event-time">2026-08-25 08:51:09 UTC</td>
-                      <td><span class="event-badge">By</span></td>
-                      <td class="event-msg">rediscovering the northbound endpoint after restart</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:553</td>
+                      <td class="event-src">tests/topology_test.go:572</td>
                     </tr>
                     
                     <tr class="event-by">
                       <td class="event-order">39</td>
-                      <td class="event-time">2026-08-25 08:51:14 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">recording the applied link count before restart</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:575</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">40</td>
+                      <td class="event-time">2026-09-01 11:18:44 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">rollout-restarting the control plane and waiting for it to recover</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:580</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">41</td>
+                      <td class="event-time">2026-09-01 11:18:47 UTC</td>
+                      <td><span class="event-badge">By</span></td>
+                      <td class="event-msg">rediscovering the northbound endpoint after restart</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:586</td>
+                    </tr>
+                    
+                    <tr class="event-by">
+                      <td class="event-order">42</td>
+                      <td class="event-time">2026-09-01 11:18:52 UTC</td>
                       <td><span class="event-badge">By</span></td>
                       <td class="event-msg">asserting all three inter-cluster links persist on reconnected nodes</td>
                       <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:561</td>
-                    </tr>
-                    
-                    <tr class="event-end">
-                      <td class="event-order">41</td>
-                      <td class="event-time">2026-08-25 08:51:14 UTC</td>
-                      <td><span class="event-badge">It</span></td>
-                      <td class="event-msg">then the links remain intact</td>
-                      <td class="event-dur">8.211s</td>
-                      <td class="event-src">tests/topology_test.go:539</td>
-                    </tr>
-                    
-                    <tr class="event-node">
-                      <td class="event-order">42</td>
-                      <td class="event-time">2026-08-25 08:51:14 UTC</td>
-                      <td><span class="event-badge">AfterAll</span></td>
-                      <td class="event-msg">Slim topology test</td>
-                      <td class="event-dur">—</td>
-                      <td class="event-src">tests/topology_test.go:350</td>
+                      <td class="event-src">tests/topology_test.go:594</td>
                     </tr>
                     
                     <tr class="event-end">
                       <td class="event-order">44</td>
-                      <td class="event-time">2026-08-25 08:51:14 UTC</td>
+                      <td class="event-time">2026-09-01 11:18:53 UTC</td>
+                      <td><span class="event-badge">It</span></td>
+                      <td class="event-msg">then the links remain intact</td>
+                      <td class="event-dur">8.268s</td>
+                      <td class="event-src">tests/topology_test.go:572</td>
+                    </tr>
+                    
+                    <tr class="event-node">
+                      <td class="event-order">45</td>
+                      <td class="event-time">2026-09-01 11:18:53 UTC</td>
                       <td><span class="event-badge">AfterAll</span></td>
                       <td class="event-msg">Slim topology test</td>
-                      <td class="event-dur">99ms</td>
-                      <td class="event-src">tests/topology_test.go:350</td>
+                      <td class="event-dur">—</td>
+                      <td class="event-src">tests/topology_test.go:364</td>
+                    </tr>
+                    
+                    <tr class="event-end">
+                      <td class="event-order">47</td>
+                      <td class="event-time">2026-09-01 11:18:53 UTC</td>
+                      <td><span class="event-badge">AfterAll</span></td>
+                      <td class="event-msg">Slim topology test</td>
+                      <td class="event-dur">93ms</td>
+                      <td class="event-src">tests/topology_test.go:364</td>
                     </tr>
                     
                   </tbody>

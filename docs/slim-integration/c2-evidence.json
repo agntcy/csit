@@ -1,0 +1,44 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-09-01T11:18:44Z",
+  "source": "integrations/agntcy-slim/topology/tests/topology_test.go",
+  "cases": [
+    {
+      "row_id": "c2-topology-routing",
+      "scenario": "isolated-routes",
+      "mechanism": "declarative-routes",
+      "use_case": "Multi-agent flow over fixed, named routes",
+      "status": "verified",
+      "assertions": [
+        "alice delivered to bob (received: hi-from-alice)",
+        "alice delivered to carol (received: hi-from-alice)",
+        "bob blocked from carol across isolated segments (no received: hi-from-bob)",
+        "cluster-a\u003c-\u003ecluster-b link APPLIED",
+        "cluster-a\u003c-\u003ecluster-c link APPLIED",
+        "no cluster-b\u003c-\u003ecluster-c link while segments are isolated"
+      ]
+    },
+    {
+      "row_id": "c2-topology-routing",
+      "scenario": "linked-routes",
+      "mechanism": "declarative-routes",
+      "use_case": "Multi-agent flow over fixed, named routes",
+      "status": "verified",
+      "assertions": [
+        "cluster-b\u003c-\u003ecluster-c link APPLIED after topology change",
+        "bob delivered to carol after link added (received: hi-from-bob)"
+      ]
+    },
+    {
+      "row_id": "c2-topology-routing",
+      "scenario": "route-survives-restart",
+      "mechanism": "declarative-routes",
+      "use_case": "Multi-agent flow over fixed, named routes",
+      "status": "verified",
+      "assertions": [
+        "gateway node restart: b\u003c-\u003ec link restored on a live cluster-b node",
+        "bob delivered to carol after gateway restart (received: hi-bob-restart)"
+      ]
+    }
+  ]
+}
