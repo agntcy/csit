@@ -12,8 +12,9 @@ import os
 import sys
 
 import httpx
-from a2a.client import ClientFactory, create_text_message_object, minimal_agent_card
-from a2a.types.a2a_pb2 import SendMessageRequest
+from a2a.client import ClientFactory, minimal_agent_card
+from a2a.helpers import new_text_message
+from a2a.types.a2a_pb2 import Role, SendMessageRequest
 from slima2a import setup_slim_client
 from slima2a.client_transport import ClientConfig, SRPCTransport, slimrpc_channel_factory
 
@@ -95,16 +96,16 @@ async def _drain(
     last_task = None
     artifact_present = False
     events = 0
-    async for stream_response, task in client.send_message(request=request):
+    async for stream_response in client.send_message(request=request):
         events += 1
         which = stream_response.WhichOneof("payload")
         if which == "message":
             for part in stream_response.message.parts:
                 if part.WhichOneof("content") == "text":
                     out += part.text
-        if task is not None:
-            last_task = task
-            for artifact in task.artifacts:
+        elif which == "task":
+            last_task = stream_response.task
+            for artifact in stream_response.task.artifacts:
                 for part in artifact.parts:
                     if part.WhichOneof("content") == "text":
                         out += part.text
@@ -124,7 +125,7 @@ async def collect_response(
     client, text: str, break_on_echo: bool = True
 ) -> tuple[str, object, bool, int]:
     """Send a single text message and drain the response stream."""
-    message = create_text_message_object(content=text)
+    message = new_text_message(text, role=Role.ROLE_USER)
     request = SendMessageRequest(message=message)
     return await _drain(client, request, text if break_on_echo else None)
 
@@ -137,14 +138,14 @@ async def run_multi_turn(client) -> tuple[str, object, bool, int]:
     same task, which the server completes with the multi-turn artifact. Only the
     final (completed) observation is returned.
     """
-    start_msg = create_text_message_object(content=SENTINEL_MULTI_TURN)
+    start_msg = new_text_message(SENTINEL_MULTI_TURN, role=Role.ROLE_USER)
     _out1, task1, _ap1, ev1 = await _drain(
         client, SendMessageRequest(message=start_msg), None
     )
     if task1 is None or not task1.id:
         raise SystemExit("multi-turn start: no task returned")
 
-    continue_msg = create_text_message_object(content=SENTINEL_MULTI_TURN_CONTINUE)
+    continue_msg = new_text_message(SENTINEL_MULTI_TURN_CONTINUE, role=Role.ROLE_USER)
     continue_msg.task_id = task1.id
     continue_msg.context_id = task1.context_id
     out2, task2, ap2, ev2 = await _drain(
@@ -166,7 +167,7 @@ async def run_cancel(client, text: str) -> tuple[str, object, bool, int]:
     """
     from a2a.types.a2a_pb2 import CancelTaskRequest
 
-    message = create_text_message_object(content=text)
+    message = new_text_message(text, role=Role.ROLE_USER)
     request = SendMessageRequest(message=message)
     task_id = None
     events = 0

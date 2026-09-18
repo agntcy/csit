@@ -8,7 +8,6 @@
 
 package io.agntcy.csit.slim;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -16,8 +15,8 @@ import java.util.concurrent.Executors;
 import io.agntcy.slim.a2a.SlimA2AClient;
 import io.agntcy.slim.a2a.SlimA2AHandler;
 import io.agntcy.slim.a2a.SlimHelper;
-import io.agntcy.slim.bindings.Channel;
-import io.agntcy.slim.bindings.Server;
+import io.agntcy.slim.bindings.slimrpc.Channel;
+import io.agntcy.slim.bindings.slimrpc.Server;
 import org.a2aproject.sdk.grpc.A2AServiceSlimrpc;
 import org.a2aproject.sdk.server.events.InMemoryQueueManager;
 import org.a2aproject.sdk.server.events.MainEventBus;
@@ -103,7 +102,7 @@ public final class Main {
         // Ready marker on stdout (the harness waits for this line), matching the other fixtures.
         System.out.println(READY_MARKER);
         System.out.flush();
-        rpcServer.serve();
+        rpcServer.serveBlocking();
     }
 
     // ---- probe ------------------------------------------------------------------------
@@ -133,7 +132,7 @@ public final class Main {
             }
             return 0;
         } finally {
-            channel.close(Duration.ofSeconds(5));
+            channel.close();
         }
     }
 

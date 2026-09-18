@@ -4,7 +4,7 @@
 package io.agntcy.csit.slim;
 
 import io.agntcy.slim.a2a.SlimA2AClient;
-import io.agntcy.slim.bindings.ResponseStreamReader;
+import io.agntcy.slim.bindings.slimrpc.ResponseStreamReader;
 import io.agntcy.slim.bindings.slimrpc.ClientResponseStream;
 
 import org.a2aproject.sdk.spec.Artifact;

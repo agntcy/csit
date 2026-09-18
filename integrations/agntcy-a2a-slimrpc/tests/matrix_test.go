@@ -178,12 +178,11 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 // cli probe against it with the given outbound text, and returns the probe's combined output.
 // Cleanup of the server process is registered on the calling spec via ginkgo.DeferCleanup.
 func runInteropProbe(srv, cli, scenario, text string) (string, error) {
-	// Wire-skew gate: node speaks slim 2.0-alpha, the other four speak 1.4 — those pairs
-	// cannot interop until the other SDKs bump to 2.0. Skip (not fail) before starting any
-	// server so the dashboard shows them as pending, not red. See slimWireGroup/pairRunnable.
+	// Interop gate (see pairRunnable): all five languages now run on slim 2.x against a single
+	// released node, so every pair is runnable. Retained so a future incompatible axis can be
+	// re-gated here as skip-with-reason (not a hard failure) without touching the matrix loop.
 	if !pairRunnable(cli, srv) {
-		ginkgo.Skip(fmt.Sprintf(
-			"wire skew: node@2.0-alpha.3 vs 1.4 — pending other SDKs' 2.0 bump (%s→%s)", cli, srv))
+		ginkgo.Skip(fmt.Sprintf("pair not runnable in this configuration (%s→%s)", cli, srv))
 	}
 
 	ctx := context.Background()

@@ -69,6 +69,7 @@ async def main() -> None:
     agent_executor = CsitEchoExecutor()
     task_store = InMemoryTaskStore()
     handler = DefaultRequestHandler(
+        agent_card=agent_card,
         agent_executor=agent_executor,
         task_store=task_store,
     )

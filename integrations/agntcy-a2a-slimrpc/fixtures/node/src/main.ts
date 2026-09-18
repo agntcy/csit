@@ -8,19 +8,18 @@
 //
 // Consumes the PUBLISHED @agntcy/slim-a2a from npm (like the sibling fixtures consume their
 // published packages). It connects to the EXTERNAL SLIM node at --slim-endpoint (no in-process
-// broker) so the interop runs over the shared dataplane. NOTE: @agntcy/slim-a2a pins
-// slim-bindings 2.0-alpha, so this fixture speaks the slim 2.0 wire — run it against a slim
-// 2.0 node (the launcher/CI point node rows at ghcr.io/agntcy/slim:2.0.0-alpha.3).
+// broker) so the interop runs over the shared dataplane. Consumes @agntcy/slim-a2a (slim-bindings
+// 2.x); runs against the released slim 2.x node shared by all five language fixtures.
 
 import { randomUUID } from 'node:crypto';
 import { AgentCard, CancelTaskRequest, SendMessageRequest, type Task } from '@a2a-js/sdk';
 import type { Client } from '@a2a-js/sdk/client';
 import { DefaultRequestHandler, InMemoryTaskStore } from '@a2a-js/sdk/server';
-import { Server } from '@agntcy/slim-bindings';
 import {
   createSlimClient,
   registerSlimA2AHandler,
   setupSlimClient,
+  slim,
   SRPCHandler,
 } from '@agntcy/slim-a2a';
 import { CsitEchoExecutor } from './executor.js';
@@ -89,7 +88,7 @@ async function runServer(endpoint: string, secret: string, identity: string): Pr
     secret,
   });
 
-  const server = Server.newWithConnection(app, localName, connId);
+  const server = slim.Server.newWithConnection(app, localName, connId);
   registerSlimA2AHandler(server, new SRPCHandler(agentCard, requestHandler));
 
   // Ready marker on stdout (the harness waits for this line), matching the other fixtures.

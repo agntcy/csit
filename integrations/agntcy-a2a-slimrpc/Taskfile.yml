@@ -14,18 +14,15 @@ silent: true
 #   - slima2a / slim-bindings pins in fixtures/python/requirements.txt
 #   - the slim service in .github/workflows/test-integrations.yaml
 vars:
-  # Released slim node. There is no slim-v1.4.1 node tag; 1.4.0 is the closest node
-  # release to the slim-bindings 1.4.x family and shares its dataplane wire.
-  SLIM_RELEASE: '1.4.0'
+  # Single released slim 2.x node for the whole 5-language matrix. All published SDKs
+  # (go/python/dotnet/java/node) consume slim-bindings 2.x; this node bridges the 2.0↔2.1
+  # client range, so every client↔server pair interops through one dataplane. (Node images and
+  # slim-bindings version independently within 2.x — 2.1.1 is the node, bindings run 2.0.x–2.1.x.)
+  SLIM_RELEASE: '2.1.1'
   SLIM_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_RELEASE}}'
-  # slim-bindings release tag (slim-bindings-setup tag + CGO cache tier; PyPI slim-bindings 1.4.x).
-  SLIM_BINDINGS_RELEASE: 'v1.4.1'
-  # Node baseline: the published @agntcy/slim-a2a pins slim-bindings 2.0-alpha, a distinct
-  # (wire-incompatible) dataplane generation from the 1.4 baseline above. node↔node runs against
-  # this 2.0 node; node↔{go,python,dotnet,java} self-skip inside the suite (wire skew) until the
-  # other SDKs bump to 2.0. Pin alpha.3 to match the bindings the SDK was built against exactly.
-  SLIM_NODE_RELEASE: '2.0.0-alpha.3'
-  SLIM_NODE_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_NODE_RELEASE}}'
+  # slim-bindings-go release for the Go native-lib setup (slim-bindings-setup tag + CGO cache tier).
+  # Keep aligned with slimBindingsSetupModule / slimBindingsCGOCacheTier in tests/launchers_test.go.
+  SLIM_BINDINGS_RELEASE: 'v2.1.0'
 
 tasks:
   test:
@@ -214,17 +211,11 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-dotnet
 
   # ---- Node pairs -------------------------------------------------------------------
-  # node speaks the slim 2.0 wire (published @agntcy/slim-a2a pins slim-bindings 2.0-alpha),
-  # distinct from the 1.4 baseline. node-node runs for real against a slim 2.0 node
-  # (SLIM_NODE_IMAGE); the 8 node↔{go,python,dotnet,java} cross pairs self-skip inside the
-  # suite (wire skew) so the dashboard shows them as pending, not red.
+  # Node consumes slim-bindings 2.x like the other four SDKs and runs against the same released
+  # slim 2.x node (SLIM_IMAGE). All node↔{go,python,dotnet,java} pairs interop for real.
 
   test:node-node:
-    desc: >-
-      SLIMRPC interop — Node client → Node server. Requires a running slim 2.0 node
-      ({{.SLIM_NODE_IMAGE}}), NOT the 1.4 baseline. Locally this is a separate run against a
-      hand-started 2.0 node (see README "Node and slim 2.0"); `task test` uses one SLIM_SERVER
-      for the whole grid, so it cannot span both slim generations at once (like test:go-main).
+    desc: SLIMRPC interop — Node client → Node server
     cmds:
       - task: test:interop:run
         vars:
@@ -232,7 +223,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-node-node
 
   test:go-node:
-    desc: SLIMRPC interop — Go client → Node server (self-skips — wire skew until Go moves to slim 2.0)
+    desc: SLIMRPC interop — Go client → Node server
     cmds:
       - task: test:interop:run
         vars:
@@ -240,7 +231,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-go-node
 
   test:python-node:
-    desc: SLIMRPC interop — Python client → Node server (self-skips — wire skew until Python moves to slim 2.0)
+    desc: SLIMRPC interop — Python client → Node server
     cmds:
       - task: test:interop:run
         vars:
@@ -248,7 +239,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-python-node
 
   test:dotnet-node:
-    desc: SLIMRPC interop — .NET client → Node server (self-skips — wire skew until .NET moves to slim 2.0)
+    desc: SLIMRPC interop — .NET client → Node server
     cmds:
       - task: test:interop:run
         vars:
@@ -256,7 +247,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-node
 
   test:java-node:
-    desc: SLIMRPC interop — Java client → Node server (self-skips — wire skew until Java moves to slim 2.0)
+    desc: SLIMRPC interop — Java client → Node server
     cmds:
       - task: test:interop:run
         vars:
@@ -264,7 +255,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-java-node
 
   test:node-go:
-    desc: SLIMRPC interop — Node client → Go server (self-skips — wire skew until Go moves to slim 2.0)
+    desc: SLIMRPC interop — Node client → Go server
     cmds:
       - task: test:interop:run
         vars:
@@ -272,7 +263,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-node-go
 
   test:node-python:
-    desc: SLIMRPC interop — Node client → Python server (self-skips — wire skew until Python moves to slim 2.0)
+    desc: SLIMRPC interop — Node client → Python server
     cmds:
       - task: test:interop:run
         vars:
@@ -280,7 +271,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-node-python
 
   test:node-dotnet:
-    desc: SLIMRPC interop — Node client → .NET server (self-skips — wire skew until .NET moves to slim 2.0)
+    desc: SLIMRPC interop — Node client → .NET server
     cmds:
       - task: test:interop:run
         vars:
@@ -288,7 +279,7 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-node-dotnet
 
   test:node-java:
-    desc: SLIMRPC interop — Node client → Java server (self-skips — wire skew until Java moves to slim 2.0)
+    desc: SLIMRPC interop — Node client → Java server
     cmds:
       - task: test:interop:run
         vars:
@@ -301,8 +292,7 @@ tasks:
       - |
         echo "slim node image  : {{.SLIM_IMAGE}}"
         echo "slim release tag  : slim-v{{.SLIM_RELEASE}} (git checkout for a local 'cargo run --bin slim')"
-        echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-setup tag + CGO tier; PyPI slim-bindings 1.4.x)"
-        echo "slim node (node)  : {{.SLIM_NODE_IMAGE}} (2.0 wire for the Node fixture; node↔node only)"
+        echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-go setup tag + CGO tier; SDKs pin slim-bindings 2.x)"
 
   reports:dashboard:
     desc: Render HTML dashboard from reports (reuses agntcy-a2a tool)
@@ -315,11 +305,12 @@ tasks:
 
   test:go-main:
     desc: >-
-      Dev-only: go→go interop against a slim node built from `main` (2.0). Validates that the
-      slim-main override env vars are set, then runs the suite. See README "Go native and slim main".
+      Dev-only: go→go interop against a slim node built from `main` (an unreleased wire, newer
+      than the pinned released baseline). Validates that the slim-main override env vars are set,
+      then runs the suite. See README "Go native and slim main".
     preconditions:
       - sh: '[ "${CSIT_SLIM_GO_ONLY}" = "1" ]'
-        msg: 'set CSIT_SLIM_GO_ONLY=1 (PyPI slima2a is incompatible with slim-bindings 2.x on main)'
+        msg: 'set CSIT_SLIM_GO_ONLY=1 (the main-node native-lib override is Go-only; collapse to the go→go spec)'
       - sh: '[ -n "${CSIT_SLIM_BINDINGS_GO_REPLACE}" ]'
         msg: 'set CSIT_SLIM_BINDINGS_GO_REPLACE=/path/to/slim/data-plane/bindings/go/slim_bindings (run `task generate PROFILE=release` there first)'
       - sh: '[ -n "${CSIT_SLIM_NATIVE_LIB}" ]'

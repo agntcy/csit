@@ -17,7 +17,8 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	a2aslimrpcv1 "github.com/agntcy/slim-a2a-go/a2aslimrpc/v1"
-	slim_bindings "github.com/agntcy/slim-bindings-go"
+	slim_bindings "github.com/agntcy/slim-bindings-go/v2"
+	slim_rpc "github.com/agntcy/slim-bindings-go/v2/slim_rpc"
 )
 
 const readyMarker = "CSIT_SLIM_SERVER_READY"
@@ -94,13 +95,13 @@ func run(endpoint, secret, ns, group, name string) error {
 	}
 
 	requestHandler := a2asrv.NewHandler(&echoExecutor{})
-	server := slim_bindings.ServerNewWithConnection(app, slimName, &connID)
+	server := slim_rpc.ServerNewWithConnection(app, slimName, &connID)
 	a2aslimrpcv1.NewHandler(requestHandler).RegisterWith(server)
 
 	if _, err := io.WriteString(os.Stdout, readyMarker+"\n"); err != nil {
 		return err
 	}
-	return server.Serve()
+	return server.ServeBlocking()
 }
 
 type echoExecutor struct{}

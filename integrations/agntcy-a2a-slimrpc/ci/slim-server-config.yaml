@@ -3,7 +3,7 @@
 
 # Minimal SLIM data-plane node config for CI (and a reference for local runs).
 # Mirrors slim's data-plane/config/base/server-config.yaml at the pinned release
-# (slim-v1.4.0). Insecure TLS on :46357 is intentional: this is an ephemeral,
+# (slim 2.1.1). Insecure TLS on :46357 is intentional: this is an ephemeral,
 # loopback-only test node started inside the CI job, never exposed publicly.
 tracing:
   log_level: info

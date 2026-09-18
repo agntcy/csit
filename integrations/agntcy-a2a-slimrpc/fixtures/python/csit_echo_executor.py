@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 
+from a2a.helpers import new_task_from_user_message
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks.task_updater import TaskUpdater
@@ -54,14 +55,19 @@ class CsitEchoExecutor(AgentExecutor):
             )
             return
 
-        # Task-based scenarios require task/context identifiers.
-        if not context.message.task_id or not context.message.context_id:
-            raise RuntimeError("invalid message: missing task_id or context_id")
+        # Task-based scenarios. a2a-sdk 1.1.0's V2 request handler requires an initial Task
+        # to be enqueued before any status/artifact update event. Enqueue one for a new task;
+        # on the multi-turn continuation turn the task already exists (context.current_task,
+        # looked up from the client-referenced task_id), so we reuse it without re-enqueuing.
+        task = context.current_task
+        if task is None:
+            task = new_task_from_user_message(context.message)
+            await event_queue.enqueue_event(task)
 
         task_updater = TaskUpdater(
             event_queue=event_queue,
-            task_id=context.message.task_id,
-            context_id=context.message.context_id,
+            task_id=task.id,
+            context_id=task.context_id,
         )
 
         # multi-turn turn 2: the task already exists (the client references the same
@@ -72,8 +78,6 @@ class CsitEchoExecutor(AgentExecutor):
             )
             await task_updater.complete()
             return
-
-        await task_updater.submit(message=context.message)
 
         if text == SENTINEL_MULTI_TURN:
             # multi-turn turn 1: pause for more input; the probe continues this task.
