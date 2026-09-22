@@ -13,7 +13,8 @@ import (
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	a2aslimrpcv1 "github.com/agntcy/slim-a2a-go/a2aslimrpc/v1"
-	slim_bindings "github.com/agntcy/slim-bindings-go"
+	slim_bindings "github.com/agntcy/slim-bindings-go/v2"
+	slim_rpc "github.com/agntcy/slim-bindings-go/v2/slim_rpc"
 )
 
 // Scenario sentinels: outbound request text that drives a non-echo server response.
@@ -127,7 +128,7 @@ func run(endpoint, secret, localFull, remoteFull, want string, enforceEcho bool,
 	}
 
 	remoteName := slim_bindings.NewName(rns, rgr, rnm)
-	channel := slim_bindings.ChannelNewWithConnection(app, remoteName, &connID)
+	channel := slim_rpc.ChannelNewWithConnection(app, remoteName, &connID)
 	defer channel.Destroy()
 
 	req := &a2a.SendMessageRequest{

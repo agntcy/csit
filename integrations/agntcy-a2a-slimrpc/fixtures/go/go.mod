@@ -4,8 +4,8 @@ go 1.25.2
 
 require (
 	github.com/a2aproject/a2a-go/v2 v2.1.0
-	github.com/agntcy/slim-a2a-go v0.2.0
-	github.com/agntcy/slim-bindings-go v1.4.1
+	github.com/agntcy/slim-a2a-go v0.3.0
+	github.com/agntcy/slim-bindings-go/v2 v2.1.0
 )
 
 require (
