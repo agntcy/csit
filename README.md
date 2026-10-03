@@ -205,17 +205,80 @@ The suite writes Ginkgo JSON and JUnit reports under `integrations/agntcy-a2a/re
 
 ## Running tests using GitHub actions
 
-We can run integration test using Github actions using `gh` command line tool or using the GitHub web UI
+The `task` commands above run on your machine. In contrast, `gh workflow run`
+dispatches a workflow on GitHub-hosted runners using a remote branch, not your
+local checkout.
+
+Manual dispatch requires GitHub Actions to be enabled and an authenticated
+account with **write access** to the target repository. Use `agntcy/csit` only
+if you have that access; otherwise run locally or use your fork with Actions
+enabled. Replace `OWNER/csit` below with the repository where you can dispatch.
+
+Choose an existing suite-specific workflow:
+
+| Workflow | Test environment | Manual inputs |
+| --- | --- | --- |
+| [`test-a2a`](.github/workflows/test-a2a.yaml) | Host-based A2A interoperability tests; no Kind cluster | None |
+| [`test-slim-integration`](.github/workflows/test-slim-integration.yaml) | SLIM topology tests; the workflow creates a Kind cluster | `kind_version`, `override_slim_image_tag`, `override_slim_chart_tag`, `override_slim_controller_image_tag`, `override_slim_controller_chart_tag`, `override_slim_bindings_version` |
+
+Neither workflow accepts `testenv`. All SLIM inputs are optional:
+`kind_version` defaults to `0.24.0`, and the overrides default to empty strings.
+Empty controller image/chart overrides fall back to `override_slim_image_tag`
+and `override_slim_chart_tag`, respectively. Otherwise, omitted overrides leave
+the defaults in the [SLIM Taskfile](integrations/agntcy-slim/topology/Taskfile.yml)
+and [bindings example image](integrations/agntcy-slim/topology/examples/Dockerfile)
+in effect.
+
+Run A2A with no inputs on the target repository's default branch:
 
 ```bash
-gh workflow run test-integrations -f testenv=kind
+gh workflow run test-a2a.yaml --repo OWNER/csit
 ```
 
-If we want to run the tests on a specified branch
+To select another branch, replace `BRANCH` with a branch already present in that
+repository. The workflow must support `workflow_dispatch` on the repository's
+default branch and on the selected branch. `--ref` selects remote code; it does
+not upload local changes. This SLIM example explicitly sets the current
+topology image, chart, and bindings versions:
 
 ```bash
-gh workflow run test-integrations --ref feat/integration/deploy-agent-directory -f testenv=kind
+gh workflow run test-slim-integration.yaml --repo OWNER/csit --ref BRANCH \
+  -f kind_version=0.24.0 \
+  -f override_slim_image_tag=2.0.0 \
+  -f override_slim_chart_tag=v2.0.0 \
+  -f override_slim_bindings_version=2.0.0
 ```
+
+In the GitHub web UI, open **Actions**, select the suite workflow, then choose
+**Run workflow**, the branch, and any supported inputs.
+
+Find the dispatched run and inspect its logs, replacing `RUN_ID` with its run ID:
+
+```bash
+gh run list --repo OWNER/csit --workflow test-slim-integration.yaml \
+  --branch BRANCH --event workflow_dispatch
+gh run view RUN_ID --repo OWNER/csit --log
+```
+
+Open the run's summary and **Artifacts** section in the web UI to download
+reports when available:
+
+| Workflow | Artifact name | Report directory in the runner workspace |
+| --- | --- | --- |
+| `test-a2a` | `a2a-interop-test-result-<matrix-id>`, for example `a2a-interop-test-result-rust-go` | `integrations/agntcy-a2a/reports/` |
+| `test-slim-integration` | `slim-integration-test-result` | `integrations/agntcy-slim/topology/reports/` |
+
+These directories contain Ginkgo JSON, JUnit XML, and an `index.html` dashboard
+when generated. For example, download the SLIM reports with:
+
+```bash
+gh run download RUN_ID --repo OWNER/csit --name slim-integration-test-result \
+  --dir ./reports/slim-integration
+```
+
+If a job fails before generating or uploading reports, check its logs instead.
+The `publish-pages` job only publishes from `main`; use the run artifacts for
+feature-branch results.
 
 
 ## How to extend tests with your own test
@@ -256,7 +319,7 @@ Add all necessary test files, such as scripts, manifests, and configuration file
 
 5. Update Taskfile
 
-Modify the Taskfile.yaml to include tasks for deploying and running your new test.
+Modify the appropriate suite's `Taskfile.yml` to include tasks for deploying and running your new test.
 
 ```yaml
 tasks:
@@ -275,6 +338,18 @@ tasks:
     cmds:
       - # Commands to set up and run your test
 ```
+
+Reuse the existing suite workflow rather than creating a new workflow for each
+test. For example, [integrations/Taskfile.yml](integrations/Taskfile.yml) includes
+[agntcy-slim/topology/Taskfile.yml](integrations/agntcy-slim/topology/Taskfile.yml)
+as `slim`. The [SLIM workflow](.github/workflows/test-slim-integration.yaml) calls
+`integrations:slim:test:topology:setup`, `integrations:slim:test:topology:run`, and
+`integrations:slim:test:topology:report` from the repository root. Add topology
+cases and configuration to that suite and extend its tasks as needed. If a new
+test needs a separate task file, expose it through the existing Taskfile
+`includes` and add the task invocation and required configuration to the
+corresponding workflow. Keep reports in the suite's configured artifact
+directory so the existing upload step can collect them.
 
 6. Test Locally
 
