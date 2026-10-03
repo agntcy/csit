@@ -1,0 +1,85 @@
+# Copyright AGNTCY Contributors (https://github.com/agntcy)
+# SPDX-License-Identifier: Apache-2.0
+
+# Shared OASF validation composite.
+#
+# The dir daemon validates each record against {schema_url}/api/{schema_version}/...,
+# but a single oasf-server image only ships ONE schema version. The hosted
+# schema.oasf.outshift.com serves every version by running one server per version
+# behind a router. This fragment reproduces that locally: one oasf-server per schema
+# version plus an nginx router exposed as `oasf-server:8080`, so profiles keep a single
+# schema_url: "http://oasf-server:8080" and can validate 0.7.0 / 0.8.0 / 1.0.0 records.
+#
+# Include it from a profile's docker-compose.yaml:
+#   include:
+#     - ../_oasf/compose.yaml
+# and depend the daemon on `oasf-server` (condition: service_healthy).
+
+services:
+  oasf-070:
+    image: "ghcr.io/agntcy/oasf-server:v0.7.8" # schema 0.7.0
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  oasf-080:
+    image: "ghcr.io/agntcy/oasf-server:v0.8.7" # schema 0.8.0
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  oasf-100:
+    image: "ghcr.io/agntcy/oasf-server:v1.0.4" # schema 1.0.0
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  oasf-110:
+    image: "ghcr.io/agntcy/oasf-server:v1.1.1" # schema 1.1.0
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  oasf-server:
+    image: "nginx:1.27-alpine"
+    ports:
+      - 8095:8080 # exposed for debugging; daemon reaches it in-network as oasf-server:8080
+    volumes:
+      - "./nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      oasf-070:
+        condition: service_healthy
+      oasf-080:
+        condition: service_healthy
+      oasf-100:
+        condition: service_healthy
+      oasf-110:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
