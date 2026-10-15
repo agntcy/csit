@@ -22,19 +22,19 @@ import (
 
 const (
 	// CGO looks under $GOPATH/.cgo-cache/slim-bindings/<tier>/ — tier is hardcoded in slim-bindings-go
-	// slim_bindings.go #cgo LDFLAGS (currently v2.1.0), independent of go.mod pseudo-version.
-	slimBindingsCGOCacheTier = "v2.1.0"
+	// slim_bindings.go #cgo LDFLAGS (currently v3.3.2), independent of go.mod pseudo-version.
+	slimBindingsCGOCacheTier = "v3.3.2"
 
 	// Native libs must land under $GOPATH/.cgo-cache/slim-bindings/<tier>/ where <tier> is the path
-	// baked into slim-bindings-go's slim_bindings.go #cgo LDFLAGS (currently v2.1.0), NOT necessarily
+	// baked into slim-bindings-go's slim_bindings.go #cgo LDFLAGS (currently v3.3.2), NOT necessarily
 	// the full module pseudo-version in go.mod. slim-bindings-setup chooses the cache dir from its own
-	// build Version(); go run ...@v2.1.1-0.... would look for a non-existent GitHub release zip.
-	// The /v2 module path: slim-a2a-go v0.3.0 consumes slim-bindings-go/v2 (slim 2.x wire).
-	slimBindingsSetupModule = "github.com/agntcy/slim-bindings-go/v2/cmd/slim-bindings-setup@v2.1.0"
+	// build Version(); go run ...@v3.3.3-0.... would look for a non-existent GitHub release zip.
+	// The /v3 module path: slim-a2a-go v0.5.0 consumes slim-bindings-go/v3 (slim 3.x).
+	slimBindingsSetupModule = "github.com/agntcy/slim-bindings-go/v3/cmd/slim-bindings-setup@v3.3.2"
 
 	// slimBindingsCacheTag must change whenever slimBindingsSetupModule / fixtures/go go.mod pin changes,
 	// so cached probe/server binaries are not reused after a slim-bindings upgrade (stale CGO link → wire decode errors on the node).
-	slimBindingsCacheTag = "v2.1.0-0"
+	slimBindingsCacheTag = "v3.3.2-0"
 
 	// PyPI slima2a declares Python >=3.10 only; macOS /usr/bin/python3 is often 3.9.
 	pythonMinMajor = 3
@@ -192,7 +192,7 @@ func ensureSlimBindingsSetup(ctx context.Context) error {
 // installSlimNativeOverride copies a locally built libslim_bindings_*.a into the CGO cache tier
 // when CSIT_SLIM_NATIVE_LIB is set (file path, or directory containing the expected .a name).
 // Use the same slim checkout / commit as your running slim node when slim-bindings-setup's
-// v2.1.0 prebuild is too old (invalid wire type / session handshake failures against slim main).
+// v3.3.2 prebuild is too old (invalid wire type / session handshake failures against slim main).
 func installSlimNativeOverride(ctx context.Context) error {
 	raw := strings.TrimSpace(os.Getenv("CSIT_SLIM_NATIVE_LIB"))
 	if raw == "" {
@@ -266,7 +266,7 @@ func slimRustTargetTriple() string {
 }
 
 // slimBindingsCGOCacheVersion is the .cgo-cache/slim-bindings/<version>/ tier used when copying CSIT_SLIM_NATIVE_LIB.
-// slim `main` generated Go bindings default to "devel"; released slim-bindings-go/v2 uses v2.1.0.
+// slim `main` generated Go bindings default to "devel"; released slim-bindings-go/v3 uses v3.3.2.
 func slimBindingsCGOCacheVersion() string {
 	if v := strings.TrimSpace(os.Getenv("CSIT_SLIM_BINDINGS_CGO_VERSION")); v != "" {
 		return v
@@ -391,7 +391,7 @@ func slimGoOnly() bool {
 }
 
 // interopLanguages is the server/client language matrix for this run. All five languages run on
-// slim-bindings 2.x against one released slim 2.x node. CSIT_SLIM_NO_{DOTNET,JAVA,NODE}=1 drop an
+// slim-bindings 3.x against one released slim 3.x node. CSIT_SLIM_NO_{DOTNET,JAVA,NODE}=1 drop an
 // axis when that toolchain is unavailable; CSIT_SLIM_GO_ONLY=1 collapses to go→go.
 func interopLanguages() []string {
 	if slimGoOnly() {
@@ -410,11 +410,9 @@ func interopLanguages() []string {
 	return langs
 }
 
-// pairRunnable reports whether a client↔server pair can interop. All five languages now consume
-// slim-bindings 2.x published SDKs and run against a single released slim 2.1.x node (the node
-// bridges the 2.0↔2.1 client range), so every pair is runnable — the wire-group split that
-// quarantined node while the other SDKs were still on slim 1.4 has been removed. Kept as a single
-// predicate so a future incompatible axis can be re-gated in one place without touching the matrix.
+// pairRunnable reports whether a client↔server pair can interop. All five languages consume
+// slim-bindings 3.x published SDKs and run against a single released slim 3.x node, so every
+// pair is runnable. Kept as a single predicate so a future incompatible axis can be re-gated in one place without touching the matrix.
 func pairRunnable(cli, srv string) bool {
 	_ = cli
 	_ = srv
@@ -718,7 +716,7 @@ func slimFixtureGoModFile(ctx context.Context, dir string) (string, error) {
 	}
 	lines := strings.Split(strings.TrimRight(string(base), "\n"), "\n")
 	var out []string
-	const replaceLine = "replace github.com/agntcy/slim-bindings-go => "
+	const replaceLine = "replace github.com/agntcy/slim-bindings-go/v3 => "
 	hasReplace := false
 	for _, line := range lines {
 		if strings.HasPrefix(strings.TrimSpace(line), "replace github.com/agntcy/slim-bindings-go") {
@@ -758,13 +756,13 @@ func venvPipBin(venvDir string) string {
 }
 
 // venvProbeScript must stay in sync with fixtures/python/requirements*.txt (slim-a2a-python / slima2a + slim-bindings).
-// slim 2.x wire family: slima2a 0.7.0 requires slim-bindings~=2.0; the released slim 2.1.x node bridges the range.
+// slim 3.x: slima2a 0.9.0 requires slim-bindings>=3.3.2,<4 and runs against the released slim 3.x node.
 const venvProbeScript = "import importlib.metadata as m\n" +
 	"from packaging.version import Version\n" +
 	"v = Version(m.version('slim-bindings'))\n" +
-	"assert Version('2.0.0') <= v < Version('3.0.0'), m.version('slim-bindings')\n" +
+	"assert Version('3.3.2') <= v < Version('4.0.0'), m.version('slim-bindings')\n" +
 	"v2 = Version(m.version('slima2a'))\n" +
-	"assert v2 >= Version('0.7.0'), m.version('slima2a')\n" +
+	"assert v2 >= Version('0.9.0'), m.version('slima2a')\n" +
 	"import slima2a\n" +
 	"from a2a.client import ClientFactory\n"
 
@@ -902,7 +900,7 @@ func startServer(ctx context.Context, lang, slimURL, secret string, assets *fixt
 		return cmd, nil
 	case "node":
 		// Compiled dist/main.js, run with plain `node` (mirrors the SDK examples' tsx flow but
-		// precompiled). Speaks the slim 2.0 wire (published @agntcy/slim-a2a pins 2.0-alpha).
+		// precompiled). Consumes the published @agntcy/slim-a2a (slim-bindings 3.x).
 		cmd := exec.CommandContext(ctx, slimNodeBin(), assets.nodeEntry,
 			"server",
 			"--slim-endpoint", slimURL,

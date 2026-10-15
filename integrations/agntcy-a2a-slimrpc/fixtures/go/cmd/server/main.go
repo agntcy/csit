@@ -17,8 +17,8 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	a2aslimrpcv1 "github.com/agntcy/slim-a2a-go/a2aslimrpc/v1"
-	slim_bindings "github.com/agntcy/slim-bindings-go/v2"
-	slim_rpc "github.com/agntcy/slim-bindings-go/v2/slim_rpc"
+	slim_bindings "github.com/agntcy/slim-bindings-go/v3"
+	slim_rpc "github.com/agntcy/slim-bindings-go/v3/slim_rpc"
 )
 
 const readyMarker = "CSIT_SLIM_SERVER_READY"
