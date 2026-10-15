@@ -13,8 +13,8 @@ import (
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	a2aslimrpcv1 "github.com/agntcy/slim-a2a-go/a2aslimrpc/v1"
-	slim_bindings "github.com/agntcy/slim-bindings-go/v2"
-	slim_rpc "github.com/agntcy/slim-bindings-go/v2/slim_rpc"
+	slim_bindings "github.com/agntcy/slim-bindings-go/v3"
+	slim_rpc "github.com/agntcy/slim-bindings-go/v3/slim_rpc"
 )
 
 // Scenario sentinels: outbound request text that drives a non-echo server response.

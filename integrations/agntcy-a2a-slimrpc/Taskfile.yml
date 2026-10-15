@@ -12,17 +12,17 @@ silent: true
 #   - slimBindingsSetupModule / slimBindingsCacheTag / CGO tier in tests/launchers_test.go
 #   - slim-bindings-go in fixtures/go/go.mod
 #   - slima2a / slim-bindings pins in fixtures/python/requirements.txt
-#   - the slim service in .github/workflows/test-integrations.yaml
+#   - SLIM_IMAGE (and go-version) in .github/workflows/test-a2a-slimrpc.yaml
 vars:
-  # Single released slim 2.x node for the whole 5-language matrix. All published SDKs
-  # (go/python/dotnet/java/node) consume slim-bindings 2.x; this node bridges the 2.0↔2.1
-  # client range, so every client↔server pair interops through one dataplane. (Node images and
-  # slim-bindings version independently within 2.x — 2.1.1 is the node, bindings run 2.0.x–2.1.x.)
-  SLIM_RELEASE: '2.1.1'
+  # Single released slim 3.x node for the whole 5-language matrix. All published SDKs
+  # (go/python/dotnet/java/node) consume slim-bindings 3.3.x, and every client↔server pair
+  # interops through this one dataplane. (Node images and slim-bindings are versioned
+  # independently — 3.4.1 is the node, the SDKs pin bindings 3.3.2.)
+  SLIM_RELEASE: '3.4.1'
   SLIM_IMAGE: 'ghcr.io/agntcy/slim:{{.SLIM_RELEASE}}'
   # slim-bindings-go release for the Go native-lib setup (slim-bindings-setup tag + CGO cache tier).
   # Keep aligned with slimBindingsSetupModule / slimBindingsCGOCacheTier in tests/launchers_test.go.
-  SLIM_BINDINGS_RELEASE: 'v2.1.0'
+  SLIM_BINDINGS_RELEASE: 'v3.3.2'
 
 tasks:
   test:
@@ -211,8 +211,8 @@ tasks:
           REPORT_NAME: report-agntcy-a2a-slimrpc-dotnet-dotnet
 
   # ---- Node pairs -------------------------------------------------------------------
-  # Node consumes slim-bindings 2.x like the other four SDKs and runs against the same released
-  # slim 2.x node (SLIM_IMAGE). All node↔{go,python,dotnet,java} pairs interop for real.
+  # Node consumes slim-bindings 3.x like the other four SDKs and runs against the same released
+  # slim 3.x node (SLIM_IMAGE). All node↔{go,python,dotnet,java} pairs interop for real.
 
   test:node-node:
     desc: SLIMRPC interop — Node client → Node server
@@ -292,7 +292,7 @@ tasks:
       - |
         echo "slim node image  : {{.SLIM_IMAGE}}"
         echo "slim release tag  : slim-v{{.SLIM_RELEASE}} (git checkout for a local 'cargo run --bin slim')"
-        echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-go setup tag + CGO tier; SDKs pin slim-bindings 2.x)"
+        echo "slim-bindings     : {{.SLIM_BINDINGS_RELEASE}} (slim-bindings-go setup tag + CGO tier; SDKs pin slim-bindings 3.3.x)"
 
   reports:dashboard:
     desc: Render HTML dashboard from reports (reuses agntcy-a2a tool)
