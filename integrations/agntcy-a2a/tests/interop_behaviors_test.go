@@ -129,6 +129,24 @@ func registerInteropCaseContexts(cases ...interopSpecCase) {
 	}
 }
 
+func registerGoJSONRPCRecovery(server interopServerMatrixSpec) {
+	behavior := interopBehaviorSpec{
+		run: func(ctx context.Context, _ interopHarness, target interopTarget) {
+			goSDKHarness{}.AssertJSONRPCTransportRecovery(ctx, target)
+		},
+	}
+	target := interopTargetFor(server.urls[transportJSONRPC], server.serverPrefix, server.expectPushSupported)
+	ginkgo.Context(interopTransportContextName(transportJSONRPC), func() {
+		ginkgo.Context(interopCaseName(transportJSONRPC, "Go", server.displayName), func() {
+			ginkgo.It(
+				"transport-recovery",
+				ginkgo.Label("jsonrpc", "go-"+server.label, "behavior-lifecycle", "behavior-recovery"),
+				runInteropBehavior(goSDKHarness{}, target, behavior),
+			)
+		})
+	})
+}
+
 func registerInteropTransportMatrix(
 	protocols []transportProtocol,
 	clients []interopClientMatrixSpec,
