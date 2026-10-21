@@ -1,0 +1,33 @@
+name: dir-config-sqlite-oci
+
+include:
+  - ../_oasf/compose.yaml
+
+services:
+  daemon:
+    image: "ghcr.io/agntcy/dir-ctl:v1.6.1"
+    ports:
+      - 8888:8888 # API server
+      - 8890:8890 # OCI registry (embedded)
+      - 9090:9090 # DHT
+    command:
+      - daemon
+      - start
+      - --config=/config/dir-daemon-config.yaml
+      - --data-dir=/tmp
+    volumes:
+      - "./dir-daemon-config.yaml:/config/dir-daemon-config.yaml:ro"
+    healthcheck:
+      test: ["CMD", "./dirctl", "--server-addr=127.0.0.1:8888", "routing", "info"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+    depends_on:
+      oasf-server:
+        condition: service_healthy
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure

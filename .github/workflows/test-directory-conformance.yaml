@@ -35,16 +35,46 @@ jobs:
         with:
           suite: directory-conformance
 
-  run-tests-directory-conformance:
+  # Compute the matrix of cells (cross-version + configuration profiles) from the Taskfile,
+  # so the workflow and the Taskfile share a single source of truth.
+  matrix:
     needs: detect
     if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.gen.outputs.cells }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: false
+          go: false
+
+      - id: gen
+        shell: bash
+        run: |
+          cells="$(task integrations:directory:tests:client-server:matrix:list)"
+          echo "cells=${cells}" >> "$GITHUB_OUTPUT"
+          echo "Matrix cells: ${cells}"
+
+  # One job per cell: deploy that configuration, run the client suite against it, and upload
+  # this cell's Ginkgo JSON/XML report as its own artifact. Cells are independent (fail-fast off),
+  # so one failing configuration never masks the others.
+  run:
+    needs: [detect, matrix]
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
       packages: read
-
+    strategy:
+      fail-fast: false
+      matrix:
+        cell: ${{ fromJson(needs.matrix.outputs.cells) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,12 +93,66 @@ jobs:
         with:
           python: false
           go: true
-          go-version: '1.24.4'
+          # The dir v1.6.1 test module (github.com/agntcy/dir/tests) requires Go >= 1.26.5.
+          go-version: '1.26.5'
 
-      - name: Run Directory client/server conformance tests
-        continue-on-error: true
-        run: task integrations:directory:tests:client-server:test:all
+      # gomplate renders the SPIRE configs for the x509-spire configuration profile.
+      - name: Install gomplate (SPIRE profile)
         shell: bash
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/gomplate \
+            https://github.com/hairyhenderson/gomplate/releases/download/v4.3.0/gomplate_linux-amd64
+          sudo chmod +x /usr/local/bin/gomplate
+          gomplate --version
+
+      - name: "Run conformance cell: server=${{ matrix.cell.server }} client=${{ matrix.cell.client }}"
+        continue-on-error: true
+        shell: bash
+        run: |
+          task integrations:directory:tests:client-server:test \
+            SERVER_VERSION=${{ matrix.cell.server }} \
+            CLIENT_VERSION=${{ matrix.cell.client }}
+
+      # Upload just this cell's reports. For a single directory path, upload-artifact stores the
+      # files relative to that directory, so each artifact holds Server-<s>-Client-<c>.{json,xml}
+      # at its root — which merge cleanly in the collect job below.
+      - name: Upload cell report
+        if: always()
+        uses: ./.github/actions/create-artifact
+        with:
+          artifact-name: directory-conformance-report-${{ matrix.cell.server }}-${{ matrix.cell.client }}
+          path-to-archive: integrations/agntcy-dir/tests/conformance/reports/
+
+  # Collect every cell's report into one directory and render the combined dashboard.
+  collect-report:
+    needs: [detect, run]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true') && needs.run.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          python: false
+          go: true
+          go-version: '1.26.5'
+
+      - name: Download all cell reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: directory-conformance-report-*
+          path: integrations/agntcy-dir/tests/conformance/reports
+          merge-multiple: true
+
+      - name: Build combined dashboard
+        shell: bash
+        run: |
+          task integrations:directory:tests:client-server:report \
+            TITLE="DIR Conformance & Configuration Matrix"
 
       - name: Create artifact from conformance reports
         if: always()
@@ -78,8 +162,8 @@ jobs:
           path-to-archive: summary.html
 
   publish-pages:
-    needs: [run-tests-directory-conformance]
-    if: always() && github.ref == 'refs/heads/main' && needs.run-tests-directory-conformance.result != 'skipped'
+    needs: [collect-report]
+    if: always() && github.ref == 'refs/heads/main' && needs.collect-report.result == 'success'
     runs-on: ubuntu-latest
     concurrency:
       group: test-report-pages
