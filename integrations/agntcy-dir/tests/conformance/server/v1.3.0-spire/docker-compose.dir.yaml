@@ -1,8 +1,20 @@
 name: v130-spire-dir
 
 services:
+  # Docker fills the empty oasf-schema volume with the image's /schema, then the
+  # container exits. The server serves the volume as its schema.
+  oasf-schema:
+    image: "ghcr.io/agntcy/oasf-schema:1.0.0"
+    command: ["true"]
+    volumes:
+      - "oasf-schema:/schema"
   oasf-server:
-    image: "ghcr.io/agntcy/oasf-server:v1.0.3"
+    image: "ghcr.io/agntcy/oasf-server:v2.0.0"
+    depends_on:
+      oasf-schema:
+        condition: service_completed_successfully
+    volumes:
+      - "oasf-schema:/app/schema:ro"
     ports:
       - 8095:8080
     healthcheck:
@@ -53,6 +65,7 @@ services:
       oasf-server:
         condition: service_healthy
 volumes:
+  oasf-schema:
   spire-agent-public:
     driver: local
     driver_opts:
