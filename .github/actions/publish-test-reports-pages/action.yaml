@@ -8,7 +8,7 @@ description: Download suite artifacts, update gh-pages report dirs and docs/inde
 
 inputs:
   suite:
-    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-mcp, slim-benchmarks, slim-agent-consensus, slim-multicluster-private, directory-conformance, agentic-evidence)"
+    description: "Suite identifier (a2a, a2a-slimrpc, slim-integration, slim-benchmarks, slim-agent-consensus, slim-multicluster-private, directory-conformance, agentic-evidence)"
     required: true
   source-run-id:
     description: "Workflow run ID containing uploaded artifacts"
@@ -58,10 +58,6 @@ runs:
           slim-integration)
             ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
               --name slim-integration-test-result
-            ;;
-          slim-mcp)
-            ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging \
-              --name slim-mcp-test-result
             ;;
           slim-benchmarks)
             ./.github/scripts/download-workflow-artifact.sh "$RUN_ID" .pages-staging/smoke \
