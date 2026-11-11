@@ -1,0 +1,59 @@
+server:
+  listen_address: "0.0.0.0:8888"
+  metrics:
+    enabled: false
+  oasf_api_validation:
+    schema_url: "http://oasf-server:8080"
+  store:
+    provider: "oci"
+    oci:
+      # No local_dir: force the daemon to use the EXTERNAL Zot registry instead of the embedded one.
+      registry_address: "zot:5000"
+      repository_name: "dir"
+      auth_config:
+        insecure: true
+    verification:
+      enabled: true
+  routing:
+    listen_address: "/ip4/0.0.0.0/tcp/9090"
+    refresh_interval: "1s"
+    gossipsub:
+      enabled: true
+  database:
+    type: "postgres"
+    postgres:
+      username: "postgres"
+      password: "postgres"
+      host: "postgres"
+      port: 5432
+      database: "directory"
+      ssl_mode: "disable"
+  publication:
+    scheduler_interval: 1s
+    worker_count: 1
+    worker_timeout: 30m
+  naming:
+    ttl: 168h
+
+reconciler:
+  local_registry:
+    registry_address: "zot:5000"
+    repository_name: "dir"
+    auth_config:
+      insecure: true
+  regsync:
+    enabled: true
+    interval: 10s
+  indexer:
+    enabled: true
+    interval: 10s
+  signature:
+    enabled: true
+    interval: 10s
+    ttl: 168h
+    record_timeout: 30s
+  name:
+    enabled: true
+    interval: 10s
+    ttl: 168h
+    record_timeout: 30s
