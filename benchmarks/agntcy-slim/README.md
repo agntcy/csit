@@ -16,7 +16,7 @@ The suite is implemented by [tests/benchmark_suite_test.go](./tests/benchmark_su
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.25+ (matches `benchmarks/go.mod`)
 - `task` available in the shell
 - `slimctl` available in `PATH`, or install it with `task benchmarks:slim:deps:slimctl-download`
 
