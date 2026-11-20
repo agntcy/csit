@@ -127,7 +127,7 @@ CSIT test reports site under **`docs/agentic-evidence/`** on the `gh-pages` bran
 
 ## Prerequisites
 
-- Go 1.24+ (matches `go.mod`)
+- Go 1.25+ (matches `go.mod`)
 - `task` in the shell
 - `jq` and `bash` on `PATH` (used by the render scripts)
 - Native SLIM bindings for CGO (`task -t analitics/Taskfile.yml deps:slim-bindings-setup`)
