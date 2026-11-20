@@ -12,7 +12,7 @@ The Rust/.NET suite reuses the existing Rust fixture and Rust probe, adds CSIT-o
 
 The Go/.NET suite reuses the existing Go fixture with the same CSIT-owned .NET fixture and probe binaries, and covers 8 legs: 4 JSON-RPC legs (`go-go`, `go-dotnet`, `dotnet-go`, `dotnet-dotnet`) plus the same 4 legs over HTTP+JSON. This slice does not currently cover gRPC.
 
-The Python/Go suite adds a CSIT-owned Python server and probe built against the `1.0-dev` branch of `a2aproject/a2a-python`. It now covers 12 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`), the same 4 legs over HTTP+JSON, and the same 4 legs over gRPC.
+The Python/Go suite adds a CSIT-owned Python server and probe built against `a2a-sdk` 1.0.0 or later (`a2aproject/a2a-python`). It now covers 12 legs: 4 JSON-RPC legs (`go-go`, `go-python`, `python-go`, `python-python`), the same 4 legs over HTTP+JSON, and the same 4 legs over gRPC.
 
 The Rust/Python suite reuses the existing Rust fixture and probe together with the same CSIT-owned Python server and probe. It now covers 12 legs: 4 JSON-RPC legs (`rust-rust`, `rust-python`, `python-rust`, `python-python`), the same 4 legs over HTTP+JSON, and the same 4 legs over gRPC.
 
@@ -37,13 +37,13 @@ Across the matrix, the scenarios validate the same core interoperability behavio
 
 The fixtures are intentionally small and deterministic so the suite can run the same way locally and in CI without depending on sibling SDK checkouts.
 
-Each leg keeps its existing suite, transport, and pair labels for Task targets, and the shared behavior slices add dedicated Ginkgo labels (`behavior-core`, `behavior-unary-streaming`, `behavior-lifecycle`, `behavior-push-config`, and `behavior-parity`) so full legs and cross-leg behavior groups can be filtered independently.
+Each leg keeps its existing suite, transport, and pair labels for Task targets, and the shared behavior slices add dedicated Ginkgo labels (`behavior-core`, `behavior-task-streaming`, `behavior-lifecycle`, `behavior-push-config`, and `behavior-parity`) so full legs and cross-leg behavior groups can be filtered independently.
 
 The gRPC legs follow the same agent-card discovery path as the other transports: each fixture serves `/.well-known/agent-card.json` over HTTP and advertises a separate gRPC transport endpoint from that card.
 
 The .NET-backed slices currently require a local `dotnet` CLI for the .NET 8 SDK because the CSIT harness builds the fixture and probe from published `A2A` and `A2A.AspNetCore` NuGet packages at test time.
 
-The Python/Go, Rust/Python, and Python/.NET slices require Python 3.10+ and install the Python SDK fixture environment into a temporary virtualenv on first use from `fixtures/python/requirements.txt`, which pins the SDK to the `1.0-dev` branch.
+The Python/Go, Rust/Python, and Python/.NET slices require [uv](https://docs.astral.sh/uv/) and Python 3.11+. The suite runs `uv sync` in `fixtures/python`, which installs the Python SDK fixture environment from `pyproject.toml` and `uv.lock` (`a2a-sdk` 1.0.0 or later). Set `UV` to the `uv` binary if it is not on your `PATH`.
 
 ## Matrix
 
@@ -175,7 +175,7 @@ task test:python-dotnet
 
 ```sh
 task test:behavior:core
-task test:behavior:unary-streaming
+task test:behavior:task-streaming
 task test:behavior:lifecycle
 task test:behavior:push-config
 task test:behavior:parity
@@ -200,7 +200,7 @@ task test:rust-go:grpc:go-rust
 task test:rust-go:grpc:rust-go
 task test:rust-go:grpc:rust-rust
 task test:rust-go:behavior:core
-task test:rust-go:behavior:unary-streaming
+task test:rust-go:behavior:task-streaming
 task test:rust-go:behavior:lifecycle
 task test:rust-go:behavior:push-config
 task test:rust-go:behavior:parity
@@ -220,7 +220,7 @@ task test:rust-dotnet:rest:dotnet-rust
 task test:rust-dotnet:rest:rust-dotnet
 task test:rust-dotnet:rest:rust-rust-dotnet
 task test:rust-dotnet:behavior:core
-task test:rust-dotnet:behavior:unary-streaming
+task test:rust-dotnet:behavior:task-streaming
 task test:rust-dotnet:behavior:lifecycle
 task test:rust-dotnet:behavior:push-config
 task test:rust-dotnet:behavior:parity
@@ -240,7 +240,7 @@ task test:go-dotnet:rest:go-dotnet
 task test:go-dotnet:rest:dotnet-go
 task test:go-dotnet:rest:dotnet-dotnet
 task test:go-dotnet:behavior:core
-task test:go-dotnet:behavior:unary-streaming
+task test:go-dotnet:behavior:task-streaming
 task test:go-dotnet:behavior:lifecycle
 task test:go-dotnet:behavior:push-config
 task test:go-dotnet:behavior:parity
@@ -265,7 +265,7 @@ task test:python-go:grpc:go-python
 task test:python-go:grpc:python-go
 task test:python-go:grpc:python-python
 task test:python-go:behavior:core
-task test:python-go:behavior:unary-streaming
+task test:python-go:behavior:task-streaming
 task test:python-go:behavior:lifecycle
 task test:python-go:behavior:push-config
 task test:python-go:behavior:parity
@@ -290,7 +290,7 @@ task test:rust-python:grpc:rust-python
 task test:rust-python:grpc:python-rust
 task test:rust-python:grpc:python-python
 task test:rust-python:behavior:core
-task test:rust-python:behavior:unary-streaming
+task test:rust-python:behavior:task-streaming
 task test:rust-python:behavior:lifecycle
 task test:rust-python:behavior:push-config
 task test:rust-python:behavior:parity
@@ -310,7 +310,7 @@ task test:python-dotnet:rest:python-dotnet
 task test:python-dotnet:rest:dotnet-python
 task test:python-dotnet:rest:dotnet-dotnet
 task test:python-dotnet:behavior:core
-task test:python-dotnet:behavior:unary-streaming
+task test:python-dotnet:behavior:task-streaming
 task test:python-dotnet:behavior:lifecycle
 task test:python-dotnet:behavior:push-config
 task test:python-dotnet:behavior:parity

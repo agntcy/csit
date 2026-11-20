@@ -7,7 +7,7 @@ TopologyTest is a testing framework for validating control-plane managed SLIM to
 The TopologyTest framework enables you to:
 
 - Define the SLIM data-plane clusters declaratively in YAML (`config/clusters.yaml`).
-- Deploy a control plane in API mode (topology is managed at runtime, not baked into the chart values) with SQLite persistence, exposed via a LoadBalancer service so `slimctl` can reach the northbound API from the host.
+- Deploy a control plane in API mode (topology is managed at runtime, not baked into the chart values) with SQLite persistence, exposed as a `ClusterIP` service. The test reaches the northbound API from the host through a `kubectl port-forward`.
 - Manage the inter-cluster topology (segments and links) at runtime with `slimctl`.
 - Deploy p2p clients (alice/bob/carol) and validate reachability through SLIM client log assertions.
 - Validate recovery behavior after data-plane node restarts and control-plane restarts.
@@ -26,19 +26,12 @@ The TopologyTest framework enables you to:
    task deps:slimctl-download
    ```
 
-3. **Start a LoadBalancer provider (KinD only):**
-   The controller Service is `type: LoadBalancer`, which stays `<pending>` on a
-   plain KinD cluster. Start [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind)
-   so the Service gets an external IP that `slimctl` can reach from the host:
+3. **Build the p2p client image (loaded into the KinD cluster):**
    ```bash
-   task kind:cloud-provider-kind:up
+   task test:topology:build:client-image
    ```
-   > Requires Go. On macOS you may be prompted for your password (sudo is needed
-   > for Docker access). Leave it running for the duration of the test; stop it
-   > later with `task kind:cloud-provider-kind:down`. On a real cluster with a
-   > cloud LoadBalancer, skip this step.
 
-4. **Deploy the SLIM controller (API mode + persistence + LoadBalancer):**
+4. **Deploy the SLIM controller (API mode + persistence):**
    ```bash
    task test:topology:deploy:controller
    ```
@@ -48,10 +41,15 @@ The TopologyTest framework enables you to:
    task test:topology:deploy:clusters
    ```
 
+   Steps 2-5 can be run in one go with `task test:topology:setup`.
+
 6. **Run the topology test:**
    ```bash
    task test:topology:run
    ```
+   > This task port-forwards the controller northbound API (`50051`) to
+   > `127.0.0.1` for the duration of the test and stops the port-forward
+   > afterwards. No LoadBalancer provider is needed.
 
 7. **Render the HTML report (optional):**
    ```bash
@@ -68,11 +66,6 @@ The TopologyTest framework enables you to:
 2. **Clean up controller:**
    ```bash
    task test:topology:cleanup:controller
-   ```
-
-3. **Stop the LoadBalancer provider (KinD only):**
-   ```bash
-   task kind:cloud-provider-kind:down
    ```
 
 ## Cluster Configuration Format
@@ -103,7 +96,7 @@ The default topology uses `cluster-a` (1 node), `cluster-b` (2 nodes) and `clust
 
 ## Control plane (API mode)
 
-The controller is deployed from `config/controller-values.yaml` in API mode: `topology: {}` leaves the control plane as the source of truth but with no pre-wired links, so the test creates segments and links at runtime with `slimctl`. SQLite persistence is enabled so topology survives control-plane restarts. The controller Service is of type `LoadBalancer` so the northbound API (`50051`) is reachable from the host running the test.
+The controller is deployed from `config/controller-values.yaml` in API mode: `topology: {}` leaves the control plane as the source of truth but with no pre-wired links, so the test creates segments and links at runtime with `slimctl`. SQLite persistence is enabled so topology survives control-plane restarts. The controller Service is of type `ClusterIP`; the northbound API (`50051`) is reached from the host running the test through `kubectl port-forward`, and the southbound API (`50052`) is reached in-cluster.
 
 ## Test Scenarios
 
@@ -121,7 +114,7 @@ The test framework performs the following steps:
 
 1. **Parse `config/clusters.yaml`** and generate SLIM helm values/configs for each cluster.
 2. **Deploy SLIM controller & SLIM cluster nodes** using the helm charts.
-3. **Discover the controller northbound endpoint** (LoadBalancer) and drive topology with `slimctl`.
+3. **Port-forward the controller northbound endpoint** to `127.0.0.1:50051` and drive topology with `slimctl`.
 4. **Deploy p2p client pods** and watch their logs for assertion strings (presence and, for isolation, absence).
 5. **Validate** reachability, isolation, and recovery behavior within timeout periods.
 6. **Clean up** client resources after test completion.
