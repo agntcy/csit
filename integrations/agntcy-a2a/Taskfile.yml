@@ -492,8 +492,9 @@ tasks:
 
   test:interop:run:
     internal: true
-    deps:
-      - deps:update
+    # Tests run against the SDK versions pinned in the repo (go.mod, Cargo.lock,
+    # uv.lock, *.csproj). Bump them explicitly with `task deps:update` and commit
+    # the result, so upstream releases can't break CI without a code change.
     cmds:
       - mkdir -p ./reports
       - |
