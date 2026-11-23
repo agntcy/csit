@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Schema version | `1` |
-| Generated at | 2026-11-05T18:04:40Z |
+| Generated at | 2026-11-23T12:28:26Z |
 | Source | `analitics/tests/c1_evidence_test.go` |
 | Machine-readable | [c1-evidence.json](./c1-evidence.json) |
 | HTML | [c1-evidence.html](./c1-evidence.html) |
@@ -18,11 +18,11 @@
 - **Sender errors:** 0
 - **Sink received:** 20
 - **Sink replies:** 20
-- **Mean latency (ms):** 0.58106
+- **Mean latency (ms):** 0.74005
 
 **Assertions:**
 - sender completed 20 messages with 0 runtime errors
-- round-trip mean latency 0.581 ms
+- round-trip mean latency 0.740 ms
 - sink received 20 messages and replied 20 times with 0 errors
 
 ### c1-fire-and-forget — verified
@@ -32,7 +32,7 @@
 - **Sender messages:** 20
 - **Sender errors:** 0
 - **Sink received:** 20
-- **Mean latency (ms):** 0.06758
+- **Mean latency (ms):** 0.079555
 
 **Assertions:**
 - sender completed 20 messages with 0 runtime errors
@@ -44,7 +44,7 @@
 - **Use case:** Publish into the mesh without a paired responder
 - **Sender messages:** 20
 - **Sender errors:** 0
-- **Mean latency (ms):** 0.081536
+- **Mean latency (ms):** 0.072477
 
 **Assertions:**
 - sender completed 20 messages with 0 runtime errors

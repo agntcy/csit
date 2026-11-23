@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-05T18:04:40Z",
+  "generated_at": "2026-11-23T12:28:26Z",
   "source": "analitics/tests/c1_evidence_test.go",
   "cases": [
     {
@@ -12,10 +12,10 @@
       "sender_errors": 0,
       "sink_received": 20,
       "sink_replies": 20,
-      "mean_latency_ms": 0.58106,
+      "mean_latency_ms": 0.74005,
       "assertions": [
         "sender completed 20 messages with 0 runtime errors",
-        "round-trip mean latency 0.581 ms",
+        "round-trip mean latency 0.740 ms",
         "sink received 20 messages and replied 20 times with 0 errors"
       ]
     },
@@ -27,7 +27,7 @@
       "sender_messages": 20,
       "sender_errors": 0,
       "sink_received": 20,
-      "mean_latency_ms": 0.06758,
+      "mean_latency_ms": 0.079555,
       "assertions": [
         "sender completed 20 messages with 0 runtime errors",
         "sink received 20 async messages with 0 errors"
@@ -40,7 +40,7 @@
       "status": "verified",
       "sender_messages": 20,
       "sender_errors": 0,
-      "mean_latency_ms": 0.081536,
+      "mean_latency_ms": 0.072477,
       "assertions": [
         "sender completed 20 messages with 0 runtime errors",
         "sender wrote at 9.78 msg/sec without a bound responder"
