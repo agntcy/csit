@@ -1,0 +1,8 @@
+client:
+  run_rate_limit_tests: false
+  client_options:
+    server_address: "localhost:8888"
+    auth_mode: "x509"
+    # Host SPIRE agent socket stood up by this profile's Taskfile (see docker-compose.spire.yaml
+    # and the spire-agent tasks). The v1.6.1 client suite reads this natively — no source overlay.
+    spiffe_socket_path: "unix:///tmp/spire-agent-host/public/api.sock"
