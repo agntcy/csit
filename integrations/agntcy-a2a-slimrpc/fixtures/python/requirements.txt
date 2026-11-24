@@ -1,11 +1,10 @@
 # slim-a2a-python (PyPI: slima2a) — https://github.com/agntcy/slim-a2a-python
 # For a slim binary from `main` when PyPI slim-bindings is too old, use requirements-slim-main.txt via
 # CSIT_SLIM_PYTHON_REQUIREMENTS (see README) and recreate `.cache/csit-slim-venv`.
-# 0.7.0 targets the slim 2.x dataplane (slim-bindings ~=2.0); its generated SLIMRPC handlers
-# subclass the slim-bindings 2.x UniFFI traits. The matrix runs against a released slim 2.1.x node.
-slima2a==0.7.0
-# slim 2.x wire family (node ghcr.io/agntcy/slim:2.1.1). slima2a 0.7.0 requires slim-bindings~=2.0;
-# the released slim 2.1.x node bridges the 2.0↔2.1 client range, so any 2.x binding interops.
-slim-bindings>=2.0.0,<3.0.0
+# 0.9.0 targets the slim 3.x dataplane (slim-bindings >=3.3.2,<4); its generated SLIMRPC handlers
+# subclass the slim-bindings 3.x UniFFI traits. The matrix runs against a released slim 3.4.x node.
+slima2a==0.9.0
+# slim 3.x (node ghcr.io/agntcy/slim:3.4.1). Same range slima2a 0.9.0 declares.
+slim-bindings>=3.3.2,<4.0.0
 # a2a-sdk (pulled by slima2a) imports packaging
 packaging>=24.0

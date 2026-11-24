@@ -7,8 +7,6 @@
 //   csit-slim-a2a probe  --slim-endpoint <url> --local <id> --remote <id> --secret <s> --scenario <sc> --text <t>
 
 using A2A;
-using Agntcy.Slim;
-using Agntcy.Slim.SlimRpc;
 using Csit;
 using Microsoft.Extensions.Logging.Abstractions;
 using SlimA2A;
@@ -48,33 +46,28 @@ async Task RunServer(string ep, string sec, string identity)
     var store = new InMemoryTaskStore();
     var notifier = new ChannelEventNotifier();
     var a2a = new A2AServer(new CsitEchoHandler(), store, notifier, NullLogger<A2AServer>.Instance);
-    var slimHandler = new SlimA2AHandler(a2a, _ => Task.FromResult(card));
 
-    var (app, connId) = await SlimHelper.ConnectAndSubscribeAsync(identity, sec, ep).ConfigureAwait(false);
-    using (app)
+    await using var slim = await SlimA2AConnection.ConnectAsync(
+        new SlimA2AConnectionOptions { Endpoint = ep }).ConfigureAwait(false);
+    await using var server = await slim.StartServerAsync(
+        new SlimA2AServerOptions
+        {
+            Identity = identity,
+            SharedSecret = sec,
+            ResolveExtendedAgentCard = (_, _) => Task.FromResult(card),
+        },
+        a2a).ConfigureAwait(false);
+
+    // Ready marker on stdout (the harness waits for this line), matching the Go fixture.
+    Console.WriteLine(ReadyMarker);
+    Console.Out.Flush();
+
+    Console.CancelKeyPress += (_, e) =>
     {
-        using var localName = SlimName.Parse(identity);
-        using var slimServer = SlimRpcServerFactory.CreateServer(app, localName, connId);
-        SlimA2AServerRegistration.RegisterA2AService(slimServer, slimHandler);
-
-        // Ready marker on stdout (the harness waits for this line), matching the Go fixture.
-        Console.WriteLine(ReadyMarker);
-        Console.Out.Flush();
-
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            _ = slimServer.ShutdownAsync();
-        };
-        try
-        {
-            await slimServer.ServeAsync().ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // graceful shutdown
-        }
-    }
+        e.Cancel = true;
+        _ = server.StopAsync();
+    };
+    await server.Completion.ConfigureAwait(false);
 }
 
 // ---- probe --------------------------------------------------------------------------
@@ -83,13 +76,15 @@ async Task<int> RunProbe(string ep, string sec, string local, string remote, str
 {
     (string want, bool enforceEcho, string pmode) = Scenarios.Request(scenario, text);
 
-    var (app, connId) = await SlimHelper.ConnectAndSubscribeAsync(local, sec, ep).ConfigureAwait(false);
-    using (app)
+    await using var slim = await SlimA2AConnection.ConnectAsync(
+        new SlimA2AConnectionOptions { Endpoint = ep }).ConfigureAwait(false);
+    await using (var client = slim.CreateClient(new SlimA2AClientOptions
     {
-        using var remoteName = SlimName.Parse(remote);
-        using var channel = SlimRpcChannelFactory.CreateChannel(app, remoteName, connId);
-        var client = new SlimA2AClient(channel);
-
+        Identity = local,
+        SharedSecret = sec,
+        Remote = remote,
+    }))
+    {
         Observation obs = pmode switch
         {
             Scenarios.ModeStreaming => await RunStreaming(client, want).ConfigureAwait(false),

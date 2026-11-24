@@ -27,15 +27,15 @@ jobs:
           suite: a2a-slimrpc
 
   run-tests-a2a-slimrpc:
-    # A2A over SLIMRPC (Go + Python + .NET + Java + Node). Starts a pinned slim 2.x node container per matrix row.
+    # A2A over SLIMRPC (Go + Python + .NET + Java + Node). Starts a pinned slim 3.x node container per matrix row.
     needs: detect
     if: ${{ github.event_name == 'workflow_dispatch' || needs.detect.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Every row boots its own slim node container from the single released 2.x image
-        # (env.SLIM_IMAGE); all five SDKs consume slim-bindings 2.x and interop through it.
+        # Every row boots its own slim node container from the single released 3.x image
+        # (env.SLIM_IMAGE); all five SDKs consume slim-bindings 3.x and interop through it.
         include:
           - id: go-go
             display-name: Go→Go
@@ -101,7 +101,7 @@ jobs:
             display-name: Java→Java
             task: integrations:a2a-slimrpc:test:java-java
             artifact-name: a2a-slimrpc-test-result-java-java
-          # ---- Node rows (Node consumes slim-bindings 2.x; all node pairs interop for real).
+          # ---- Node rows (Node consumes slim-bindings 3.x; all node pairs interop for real).
           - id: node-node
             display-name: Node→Node
             task: integrations:a2a-slimrpc:test:node-node
@@ -146,9 +146,9 @@ jobs:
       packages: read
 
     env:
-      # Single released slim 2.x node for all pairs. Keep in sync with
+      # Single released slim 3.x node for all pairs. Keep in sync with
       # integrations/agntcy-a2a-slimrpc/Taskfile.yml (SLIM_IMAGE).
-      SLIM_IMAGE: "ghcr.io/agntcy/slim:2.1.1"
+      SLIM_IMAGE: "ghcr.io/agntcy/slim:3.4.1"
       SLIM_SERVER: "http://127.0.0.1:46357"
       SLIM_SHARED_SECRET: "my_shared_secret_for_testing_purposes_only"
 
@@ -190,7 +190,7 @@ jobs:
         with:
           python: true
           go: true
-          go-version: "1.25.2"
+          go-version: "1.26.0"
           dotnet: true
           dotnet-version: "8.0.x"
           java: true

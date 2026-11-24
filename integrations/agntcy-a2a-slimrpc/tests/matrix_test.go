@@ -178,7 +178,7 @@ var _ = ginkgo.Describe("A2A SLIMRPC interoperability", ginkgo.Ordered, ginkgo.L
 // cli probe against it with the given outbound text, and returns the probe's combined output.
 // Cleanup of the server process is registered on the calling spec via ginkgo.DeferCleanup.
 func runInteropProbe(srv, cli, scenario, text string) (string, error) {
-	// Interop gate (see pairRunnable): all five languages now run on slim 2.x against a single
+	// Interop gate (see pairRunnable): all five languages run on slim 3.x against a single
 	// released node, so every pair is runnable. Retained so a future incompatible axis can be
 	// re-gated here as skip-with-reason (not a hard failure) without touching the matrix loop.
 	if !pairRunnable(cli, srv) {
