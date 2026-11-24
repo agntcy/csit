@@ -78,9 +78,10 @@ var _ = ginkgo.Describe("Python+Go", ginkgo.Ordered, ginkgo.ContinueOnFailure, g
 			),
 		},
 	}
+	pythonServer := newInteropServerSpec(runtime, "python", "Python", "python", true, protocols...)
 	servers := []interopServerMatrixSpec{
 		newInteropServerSpec(runtime, "go", "Go", "go", true, protocols...),
-		newInteropServerSpec(runtime, "python", "Python", "python", true, protocols...),
+		pythonServer,
 	}
 
 	ginkgo.BeforeAll(func() {
@@ -107,4 +108,5 @@ var _ = ginkgo.Describe("Python+Go", ginkgo.Ordered, ginkgo.ContinueOnFailure, g
 		servers,
 		nil,
 	)
+	registerGoJSONRPCRecovery(pythonServer)
 })

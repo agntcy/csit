@@ -45,6 +45,41 @@ The .NET-backed slices currently require a local `dotnet` CLI for the .NET 8 SDK
 
 The Python/Go, Rust/Python, and Python/.NET slices require [uv](https://docs.astral.sh/uv/) and Python 3.11+. The suite runs `uv sync` in `fixtures/python`, which installs the Python SDK fixture environment from `pyproject.toml` and `uv.lock` (`a2a-sdk` 1.0.0 or later). Set `UV` to the `uv` binary if it is not on your `PATH`.
 
+## Transport disconnect recovery
+
+The Python/Go JSON-RPC leg also checks recovery of an existing multi-turn task.
+It uses the same Python fixture and Go SDK as the normal matrix, with a
+test-owned loopback proxy in front of the JSON-RPC endpoint:
+
+1. Send `multi-turn start` and record the task, context, and message IDs.
+2. Cut the proxy's client connections. A bounded `GetTask` must fail at that
+   boundary without reaching the Python fixture.
+3. Restore forwarding and use the **same client** to fetch the same
+   `INPUT_REQUIRED` task.
+4. Send a new continuation message with the original task/context IDs. Both
+   the response and a subsequent `GetTask` must report `COMPLETED` and retain
+   the two submitted message IDs, roles, mixed-content payloads, and metadata.
+
+The server and its in-memory task store stay alive. This is a transport-only
+fault, not a server-restart persistence test. It neither retries an ambiguous
+write nor requires exactly-once delivery, history ordering, or automatic retry.
+Fault injection affects only the proxy created for this spec; the other matrix
+cases use their normal fixture endpoints.
+
+The case carries `behavior-recovery` and `behavior-lifecycle` labels and is
+included in the existing Python/Go tasks. For a focused run without invoking
+the Taskfile's SDK-update prerequisite, run its native Go/Ginkgo entrypoint
+from `integrations/agntcy-a2a/tests/` with the fixture dependencies prepared:
+
+```sh
+go test . -count=1 -timeout=10m -ginkgo.v -ginkgo.fail-on-empty \
+  -ginkgo.label-filter='suite-python-go && jsonrpc && go-python && behavior-recovery'
+```
+
+`go test . -run '^TestDisconnectingProxy$' -count=1` checks the fault helper
+with real loopback HTTP connections only; it does **not** run cross-SDK A2A.
+No separate workflow or transport matrix is added for this scenario.
+
 ## Matrix
 
 Legend: ✅ covered by passing automated CSIT, ❌ not currently covered by this suite.
