@@ -91,9 +91,18 @@ public final class Main {
         processorThread.start();
 
         var executor = Executors.newCachedThreadPool();
-        var requestHandler = DefaultRequestHandler.create(
-                new CsitEchoExecutor(), taskStore, queueManager, pushConfigStore,
-                eventProcessor, executor, executor);
+        // The fixture is an anonymous echo server with no auth provider; since SDK 1.3.0
+        // task authorization is required by default, so opt out explicitly.
+        var requestHandler = DefaultRequestHandler.builder()
+                .agentExecutor(new CsitEchoExecutor())
+                .taskStore(taskStore)
+                .queueManager(queueManager)
+                .pushConfigStore(pushConfigStore)
+                .mainEventBusProcessor(eventProcessor)
+                .executor(executor)
+                .eventConsumerExecutor(executor)
+                .authorizationRequired(false)
+                .build();
         var handler = new SlimA2AHandler(requestHandler, card);
 
         Server rpcServer = SlimHelper.createServer(id[2], id[0], id[1], secret, endpoint);
