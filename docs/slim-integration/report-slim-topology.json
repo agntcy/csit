@@ -12,11 +12,11 @@
       "TotalSpecs": 5,
       "SpecsThatWillRun": 5
     },
-    "StartTime": "2026-11-23T12:30:01.185440939Z",
-    "EndTime": "2026-11-23T12:31:19.879046077Z",
-    "RunTime": 78693605138,
+    "StartTime": "2026-11-24T14:10:03.41476711Z",
+    "EndTime": "2026-11-24T14:11:22.251780093Z",
+    "RunTime": 78837012993,
     "SuiteConfig": {
-      "RandomSeed": 1795437001,
+      "RandomSeed": 1795529403,
       "RandomizeAllSpecs": false,
       "FocusStrings": [
         "Slim topology test"
@@ -88,14 +88,14 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "then all clusters and nodes are joined",
         "State": "passed",
-        "StartTime": "2026-11-23T12:30:01.185564005Z",
-        "EndTime": "2026-11-23T12:30:01.282623943Z",
-        "RunTime": 97059938,
+        "StartTime": "2026-11-24T14:10:03.414936837Z",
+        "EndTime": "2026-11-24T14:10:03.475080012Z",
+        "RunTime": 60143165,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
         "MaxMustPassRepeatedly": 0,
-        "CapturedGinkgoWriterOutput": "Using slimctl server http://127.0.0.1:50051\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller domain list\n3 domain(s)\n\n  DOMAIN     NODES                                                                                             \n  ---------------------------------------------------------------------------------------------------------------\n  cluster-a  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n                                                  \n  cluster-b  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl, cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg\n  cluster-c  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9, cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb\n\n",
+        "CapturedGinkgoWriterOutput": "Using slimctl server http://127.0.0.1:50051\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller domain list\n3 domain(s)\n\n  DOMAIN     NODES                                                                                             \n  ---------------------------------------------------------------------------------------------------------------\n  cluster-a  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd                                                  \n  cluster-b  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4, cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x\n  cluster-c  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4, cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x\n\n",
         "SpecEvents": [
           {
             "SpecEventType": "Node",
@@ -105,7 +105,7 @@
             },
             "TimelineLocation": {
               "Order": 1,
-              "Time": "2026-11-23T12:30:01.185592659Z"
+              "Time": "2026-11-24T14:10:03.414969388Z"
             },
             "Message": "Slim topology test",
             "NodeType": "BeforeAll"
@@ -119,10 +119,10 @@
             "TimelineLocation": {
               "Offset": 44,
               "Order": 3,
-              "Time": "2026-11-23T12:30:01.186831292Z"
+              "Time": "2026-11-24T14:10:03.416737604Z"
             },
             "Message": "Slim topology test",
-            "Duration": 1238633,
+            "Duration": 1768206,
             "NodeType": "BeforeAll"
           },
           {
@@ -134,7 +134,7 @@
             "TimelineLocation": {
               "Offset": 44,
               "Order": 4,
-              "Time": "2026-11-23T12:30:01.186835098Z"
+              "Time": "2026-11-24T14:10:03.416740198Z"
             },
             "Message": "then all clusters and nodes are joined",
             "NodeType": "It"
@@ -148,7 +148,7 @@
             "TimelineLocation": {
               "Offset": 44,
               "Order": 5,
-              "Time": "2026-11-23T12:30:01.186853185Z"
+              "Time": "2026-11-24T14:10:03.41675733Z"
             },
             "Message": "waiting for all 5 nodes to report Connected via slimctl"
           },
@@ -161,7 +161,7 @@
             "TimelineLocation": {
               "Offset": 1246,
               "Order": 6,
-              "Time": "2026-11-23T12:30:01.234644088Z"
+              "Time": "2026-11-24T14:10:03.425342019Z"
             },
             "Message": "checking all three domains are registered"
           },
@@ -174,10 +174,10 @@
             "TimelineLocation": {
               "Offset": 2000,
               "Order": 8,
-              "Time": "2026-11-23T12:30:01.282613076Z"
+              "Time": "2026-11-24T14:10:03.475069672Z"
             },
             "Message": "then all clusters and nodes are joined",
-            "Duration": 95777978,
+            "Duration": 58329473,
             "NodeType": "It"
           }
         ]
@@ -226,14 +226,14 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "then alice reaches bob and carol, but bob cannot reach carol",
         "State": "passed",
-        "StartTime": "2026-11-23T12:30:01.282705346Z",
-        "EndTime": "2026-11-23T12:31:00.219861744Z",
-        "RunTime": 58937156398,
+        "StartTime": "2026-11-24T14:10:03.475181671Z",
+        "EndTime": "2026-11-24T14:11:02.734250161Z",
+        "RunTime": 59259068500,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
         "MaxMustPassRepeatedly": 0,
-        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller segment add seg-b\nSegment 'seg-b' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller segment add seg-c\nSegment 'seg-c' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link add cluster-a cluster-b -s seg-b\nLink cluster-a↔cluster-b added in segment 'seg-b'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link add cluster-a cluster-c -s seg-c\nLink cluster-a↔cluster-c added in segment 'seg-c'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 1 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\nbob received: \u001b[1m\u001b[96mC319e31f-1de9-b5f7-ec6d-1d2e171b78e9         \u001b[0mreceived: hi-from-alice\ncarol received: \u001b[1m\u001b[96m137cbc08-2a98-082e-b952-70bee6f3a97e         \u001b[0mreceived: hi-from-alice\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n",
+        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller segment add seg-b\nSegment 'seg-b' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller segment add seg-c\nSegment 'seg-c' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link add cluster-a cluster-b -s seg-b\nLink cluster-a↔cluster-b added in segment 'seg-b'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link add cluster-a cluster-c -s seg-c\nLink cluster-a↔cluster-c added in segment 'seg-c'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 1 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\nbob received: \u001b[1m\u001b[96mF5c2396c-6624-18d6-f0fa-e1f8b039463b         \u001b[0mreceived: hi-from-alice\ncarol received: \u001b[1m\u001b[96m491d108c-a190-e4f9-3016-334ed9e6edda         \u001b[0mreceived: hi-from-alice\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n",
         "ReportEntries": [
           {
             "Visibility": null,
@@ -241,11 +241,11 @@
               "FileName": "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
               "LineNumber": 295
             },
-            "Time": "2026-11-23T12:31:00.219780681Z",
+            "Time": "2026-11-24T14:11:02.734176663Z",
             "TimelineLocation": {
               "Offset": 4066,
               "Order": 17,
-              "Time": "2026-11-23T12:31:00.219780681Z"
+              "Time": "2026-11-24T14:11:02.734176663Z"
             },
             "Name": "C2 Evidence",
             "Value": {
@@ -263,7 +263,7 @@
             },
             "TimelineLocation": {
               "Order": 9,
-              "Time": "2026-11-23T12:30:01.282708711Z"
+              "Time": "2026-11-24T14:10:03.475184908Z"
             },
             "Message": "then alice reaches bob and carol, but bob cannot reach carol",
             "NodeType": "It"
@@ -276,7 +276,7 @@
             },
             "TimelineLocation": {
               "Order": 10,
-              "Time": "2026-11-23T12:30:01.282743944Z"
+              "Time": "2026-11-24T14:10:03.475219482Z"
             },
             "Message": "creating isolated segments and links via slimctl"
           },
@@ -289,7 +289,7 @@
             "TimelineLocation": {
               "Offset": 928,
               "Order": 11,
-              "Time": "2026-11-23T12:30:01.312834944Z"
+              "Time": "2026-11-24T14:10:03.514777707Z"
             },
             "Message": "waiting for inter-cluster links to become APPLIED"
           },
@@ -302,7 +302,7 @@
             "TimelineLocation": {
               "Offset": 2820,
               "Order": 12,
-              "Time": "2026-11-23T12:30:06.330922368Z"
+              "Time": "2026-11-24T14:10:08.621273034Z"
             },
             "Message": "deploying bob/carol receivers, then alice senders and the bob-\u003ecarol probe"
           },
@@ -315,7 +315,7 @@
             "TimelineLocation": {
               "Offset": 2820,
               "Order": 13,
-              "Time": "2026-11-23T12:30:11.473293738Z"
+              "Time": "2026-11-24T14:10:13.802790602Z"
             },
             "Message": "asserting alice reaches bob"
           },
@@ -328,7 +328,7 @@
             "TimelineLocation": {
               "Offset": 2916,
               "Order": 14,
-              "Time": "2026-11-23T12:30:14.17976683Z"
+              "Time": "2026-11-24T14:10:13.811940308Z"
             },
             "Message": "asserting alice reaches carol"
           },
@@ -341,7 +341,7 @@
             "TimelineLocation": {
               "Offset": 3014,
               "Order": 15,
-              "Time": "2026-11-23T12:30:15.170741841Z"
+              "Time": "2026-11-24T14:10:17.684714714Z"
             },
             "Message": "asserting bob cannot reach carol (segment isolation)"
           },
@@ -354,7 +354,7 @@
             "TimelineLocation": {
               "Offset": 3014,
               "Order": 16,
-              "Time": "2026-11-23T12:31:00.170963219Z"
+              "Time": "2026-11-24T14:11:02.685197826Z"
             },
             "Message": "asserting link topology via slimctl"
           },
@@ -367,10 +367,10 @@
             "TimelineLocation": {
               "Offset": 4066,
               "Order": 19,
-              "Time": "2026-11-23T12:31:00.219849125Z"
+              "Time": "2026-11-24T14:11:02.734238368Z"
             },
             "Message": "then alice reaches bob and carol, but bob cannot reach carol",
-            "Duration": 58937140414,
+            "Duration": 59259053461,
             "NodeType": "It"
           }
         ]
@@ -419,14 +419,14 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "then bob can now reach carol and the link is applied",
         "State": "passed",
-        "StartTime": "2026-11-23T12:31:00.219920813Z",
-        "EndTime": "2026-11-23T12:31:05.343545767Z",
-        "RunTime": 5123624954,
+        "StartTime": "2026-11-24T14:11:02.734305394Z",
+        "EndTime": "2026-11-24T14:11:07.829542644Z",
+        "RunTime": 5095237240,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
         "MaxMustPassRepeatedly": 0,
-        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller segment add seg-bc\nSegment 'seg-bc' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link add cluster-b cluster-c -s seg-bc\nLink cluster-b↔cluster-c added in segment 'seg-bc'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  67d103cc-1dfe-494c-bcd3-b99917e318ce  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\ncarol received: \u001b[1m\u001b[96m137cbc08-2a98-082e-b952-70bee6f3a97e         \u001b[0mreceived: hi-from-bob\n",
+        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller segment add seg-bc\nSegment 'seg-bc' added\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link add cluster-b cluster-c -s seg-bc\nLink cluster-b↔cluster-c added in segment 'seg-bc'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 2 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  0304f3c0-fbdd-4307-a79c-91e824771199  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\ncarol received: \u001b[1m\u001b[96m491d108c-a190-e4f9-3016-334ed9e6edda         \u001b[0mreceived: hi-from-bob\n",
         "ReportEntries": [
           {
             "Visibility": null,
@@ -434,11 +434,11 @@
               "FileName": "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
               "LineNumber": 295
             },
-            "Time": "2026-11-23T12:31:05.343485486Z",
+            "Time": "2026-11-24T14:11:07.829489705Z",
             "TimelineLocation": {
               "Offset": 2880,
               "Order": 24,
-              "Time": "2026-11-23T12:31:05.343485486Z"
+              "Time": "2026-11-24T14:11:07.829489705Z"
             },
             "Name": "C2 Evidence",
             "Value": {
@@ -456,7 +456,7 @@
             },
             "TimelineLocation": {
               "Order": 20,
-              "Time": "2026-11-23T12:31:00.219924549Z"
+              "Time": "2026-11-24T14:11:02.734309993Z"
             },
             "Message": "then bob can now reach carol and the link is applied",
             "NodeType": "It"
@@ -469,7 +469,7 @@
             },
             "TimelineLocation": {
               "Order": 21,
-              "Time": "2026-11-23T12:31:00.219943397Z"
+              "Time": "2026-11-24T14:11:02.734325672Z"
             },
             "Message": "linking cluster-b and cluster-c via slimctl"
           },
@@ -482,7 +482,7 @@
             "TimelineLocation": {
               "Offset": 468,
               "Order": 22,
-              "Time": "2026-11-23T12:31:00.236951477Z"
+              "Time": "2026-11-24T14:11:02.754102962Z"
             },
             "Message": "waiting for the cluster-b\u003c-\u003ecluster-c link to become APPLIED"
           },
@@ -495,7 +495,7 @@
             "TimelineLocation": {
               "Offset": 2784,
               "Order": 23,
-              "Time": "2026-11-23T12:31:05.337832748Z"
+              "Time": "2026-11-24T14:11:07.817234186Z"
             },
             "Message": "asserting carol now receives bob's messages"
           },
@@ -508,10 +508,10 @@
             "TimelineLocation": {
               "Offset": 2880,
               "Order": 26,
-              "Time": "2026-11-23T12:31:05.343533458Z"
+              "Time": "2026-11-24T14:11:07.829531423Z"
             },
             "Message": "then bob can now reach carol and the link is applied",
-            "Duration": 5123608909,
+            "Duration": 5095221431,
             "NodeType": "It"
           }
         ]
@@ -560,14 +560,14 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "then the link is restored and bob can still reach carol",
         "State": "passed",
-        "StartTime": "2026-11-23T12:31:05.343612898Z",
-        "EndTime": "2026-11-23T12:31:11.59495786Z",
-        "RunTime": 6251344972,
+        "StartTime": "2026-11-24T14:11:07.829628003Z",
+        "EndTime": "2026-11-24T14:11:13.97980855Z",
+        "RunTime": 6150180547,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
         "MaxMustPassRepeatedly": 0,
-        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  67d103cc-1dfe-494c-bcd3-b99917e318ce  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\nrestarting cluster-b gateway node cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl (pod agntcy-cluster-b-slim-567d957757-ht4vl)\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  67d103cc-1dfe-494c-bcd3-b99917e318ce  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-b  Unknown    10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  67d103cc-1dfe-494c-bcd3-b99917e318ce  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller node list\n6 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-ht4vl  cluster-b  Unknown    10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-zdhbx  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n\ncarol received after restart: \u001b[1m\u001b[96m137cbc08-2a98-082e-b952-70bee6f3a97e         \u001b[0mreceived: hi-bob-restart\n",
+        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  0304f3c0-fbdd-4307-a79c-91e824771199  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\nrestarting cluster-b gateway node cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4 (pod agntcy-cluster-b-slim-567d957757-mzxr4)\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  5fb4cfba-2fdf-4e33-be30-86fd7569a0ad  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  0304f3c0-fbdd-4307-a79c-91e824771199  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-b  Unknown    10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  0304f3c0-fbdd-4307-a79c-91e824771199  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  b5735fb6-5679-496f-b5e5-57549ed5c24d  cluster-b/agntcy-cluster-b-slim-567d957757-dk69d  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  http://agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller node list\n6 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-mzxr4  cluster-b  Unknown    10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dk69d  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n\ncarol received after restart: \u001b[1m\u001b[96m491d108c-a190-e4f9-3016-334ed9e6edda         \u001b[0mreceived: hi-bob-restart\n",
         "ReportEntries": [
           {
             "Visibility": null,
@@ -575,11 +575,11 @@
               "FileName": "/home/runner/work/csit/csit/integrations/agntcy-slim/topology/tests/topology_test.go",
               "LineNumber": 295
             },
-            "Time": "2026-11-23T12:31:11.589262499Z",
+            "Time": "2026-11-24T14:11:13.973255846Z",
             "TimelineLocation": {
               "Offset": 7782,
               "Order": 32,
-              "Time": "2026-11-23T12:31:11.589262499Z"
+              "Time": "2026-11-24T14:11:13.973255846Z"
             },
             "Name": "C2 Evidence",
             "Value": {
@@ -597,7 +597,7 @@
             },
             "TimelineLocation": {
               "Order": 27,
-              "Time": "2026-11-23T12:31:05.343616334Z"
+              "Time": "2026-11-24T14:11:07.82963134Z"
             },
             "Message": "then the link is restored and bob can still reach carol",
             "NodeType": "It"
@@ -610,7 +610,7 @@
             },
             "TimelineLocation": {
               "Order": 28,
-              "Time": "2026-11-23T12:31:05.343634992Z"
+              "Time": "2026-11-24T14:11:07.829654513Z"
             },
             "Message": "identifying the Connected cluster-b node participating in the b\u003c-\u003ec link"
           },
@@ -623,7 +623,7 @@
             "TimelineLocation": {
               "Offset": 2594,
               "Order": 29,
-              "Time": "2026-11-23T12:31:05.438730327Z"
+              "Time": "2026-11-24T14:11:07.930911568Z"
             },
             "Message": "deleting the gateway pod and waiting for the deployment to recover"
           },
@@ -636,7 +636,7 @@
             "TimelineLocation": {
               "Offset": 2594,
               "Order": 30,
-              "Time": "2026-11-23T12:31:05.448099337Z"
+              "Time": "2026-11-24T14:11:07.939370296Z"
             },
             "Message": "asserting the control plane fails the b\u003c-\u003ec link over to a live cluster-b node"
           },
@@ -649,7 +649,7 @@
             "TimelineLocation": {
               "Offset": 7669,
               "Order": 31,
-              "Time": "2026-11-23T12:31:10.669539193Z"
+              "Time": "2026-11-24T14:11:13.074647434Z"
             },
             "Message": "proving post-recovery delivery with a fresh unique-message sender"
           },
@@ -662,10 +662,10 @@
             "TimelineLocation": {
               "Offset": 7782,
               "Order": 34,
-              "Time": "2026-11-23T12:31:11.589311553Z"
+              "Time": "2026-11-24T14:11:13.973335264Z"
             },
             "Message": "then the link is restored and bob can still reach carol",
-            "Duration": 6245695219,
+            "Duration": 6143703934,
             "NodeType": "It"
           },
           {
@@ -677,7 +677,7 @@
             "TimelineLocation": {
               "Offset": 7782,
               "Order": 35,
-              "Time": "2026-11-23T12:31:11.589326786Z"
+              "Time": "2026-11-24T14:11:13.97334906Z"
             },
             "Message": "when the gateway node handling the cluster-b\u003c-\u003ecluster-c link is restarted",
             "NodeType": "DeferCleanup (Each)"
@@ -691,10 +691,10 @@
             "TimelineLocation": {
               "Offset": 7782,
               "Order": 37,
-              "Time": "2026-11-23T12:31:11.594950509Z"
+              "Time": "2026-11-24T14:11:13.97979747Z"
             },
             "Message": "when the gateway node handling the cluster-b\u003c-\u003ecluster-c link is restarted",
-            "Duration": 5623723,
+            "Duration": 6448410,
             "NodeType": "DeferCleanup (Each)"
           }
         ]
@@ -743,14 +743,14 @@
         "LeafNodeSemVerConstraints": [],
         "LeafNodeText": "then the links remain intact",
         "State": "passed",
-        "StartTime": "2026-11-23T12:31:11.595052473Z",
-        "EndTime": "2026-11-23T12:31:19.878980838Z",
-        "RunTime": 8283928365,
+        "StartTime": "2026-11-24T14:11:13.97987808Z",
+        "EndTime": "2026-11-24T14:11:22.251499887Z",
+        "RunTime": 8271621806,
         "ParallelProcess": 1,
         "NumAttempts": 1,
         "MaxFlakeAttempts": 0,
         "MaxMustPassRepeatedly": 0,
-        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-2332816656.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  54af8968-8bf9-4f34-b83e-390e0aa2a1f0  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  ff83f604-350a-477d-9e87-bb0451fce3e6  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  67d103cc-1dfe-494c-bcd3-b99917e318ce  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1682732700.yaml --server http://127.0.0.1:50051 controller node list\nError: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, hyper::Error(Io, Custom { kind: BrokenPipe, error: \"stream closed because of a broken pipe\" }))\n\nCaused by:\n    0: transport error\n    1: connection error\n    2: stream closed because of a broken pipe\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-zdhbx  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 4 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  c11e5013-e513-4745-bf1b-f4aabef88965  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-b/agntcy-cluster-b-slim-567d957757-zdhbx  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  7533c5e3-ec14-4e03-becb-877c1dda1ec1  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  21dbf757-5280-4b02-b827-80bee0e8f90f  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  http://agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357  APPLIED\n  5d39c137-47cf-451c-b38e-fad309f12a78  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-l4lvb  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-mrwj9  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-vwkpg  cluster-b  Connected  10.244.0.9   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-5kz2n  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-zdhbx  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller link remove cluster-a cluster-b -s seg-b\nLink cluster-a↔cluster-b removed from segment 'seg-b'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller link remove cluster-a cluster-c -s seg-c\nLink cluster-a↔cluster-c removed from segment 'seg-c'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1006220692.yaml --server http://127.0.0.1:50051 controller link remove cluster-b cluster-c -s seg-bc\nLink cluster-b↔cluster-c removed from segment 'seg-bc'\n\n",
+        "CapturedGinkgoWriterOutput": "$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3953703703.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  984f0c0f-eb52-4d2c-8136-cdbe64e2eaed  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  0304f3c0-fbdd-4307-a79c-91e824771199  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  http://agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357  APPLIED\n  b5735fb6-5679-496f-b5e5-57549ed5c24d  cluster-b/agntcy-cluster-b-slim-567d957757-dk69d  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  http://agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-1860175585.yaml --server http://127.0.0.1:50051 controller node list\nError: code: 'Unknown error', message: \"transport error\", source: tonic::transport::Error(Transport, hyper::Error(Io, Custom { kind: BrokenPipe, error: \"stream closed because of a broken pipe\" }))\n\nCaused by:\n    0: transport error\n    1: connection error\n    2: stream closed because of a broken pipe\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-b/agntcy-cluster-b-slim-567d957757-dk69d  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller link list\nLinks: 3 (applied only)\n\n  LINK_ID                               SOURCE                                            DEST_NODE                                         DEST_ENDPOINT                                                   STATUS \n  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n  315bdf79-ba4f-44c7-a1e8-d5f8feffeb21  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n  3e47bb3b-a6e9-4440-ad96-e558aefa288c  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  http://agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357  APPLIED\n  ba8f2270-96df-4214-b2df-defeeb222d69  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  http://agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357  APPLIED\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller node list\n5 node(s) registered\n\n  NODE_ID                                           DOMAIN     STATUS     ENDPOINT     PUBLIC_ENDPOINT                                        \n  ----------------------------------------------------------------------------------------------------------------------------------------------\n  cluster-b/agntcy-cluster-b-slim-567d957757-dk69d  cluster-b  Connected  10.244.0.17  agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-a/agntcy-cluster-a-slim-566f745d7b-r54wd  cluster-a  Connected  10.244.0.7   agntcy-cluster-a-slim.cluster-a.svc.cluster.local:46357\n  cluster-b/agntcy-cluster-b-slim-567d957757-dhr7x  cluster-b  Connected  10.244.0.8   agntcy-cluster-b-slim.cluster-b.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-5695x  cluster-c  Connected  10.244.0.11  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n  cluster-c/agntcy-cluster-c-slim-6f7c9d67bd-4hcc4  cluster-c  Connected  10.244.0.10  agntcy-cluster-c-slim.cluster-c.svc.cluster.local:46357\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller link remove cluster-a cluster-b -s seg-b\nLink cluster-a↔cluster-b removed from segment 'seg-b'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller link remove cluster-a cluster-c -s seg-c\nLink cluster-a↔cluster-c removed from segment 'seg-c'\n\n$ /home/runner/work/csit/csit/integrations/agntcy-slim/topology/bin/slimctl --config /tmp/slimctl-topology-3023200586.yaml --server http://127.0.0.1:50051 controller link remove cluster-b cluster-c -s seg-bc\nLink cluster-b↔cluster-c removed from segment 'seg-bc'\n\n",
         "SpecEvents": [
           {
             "SpecEventType": "Node",
@@ -760,7 +760,7 @@
             },
             "TimelineLocation": {
               "Order": 38,
-              "Time": "2026-11-23T12:31:11.595055488Z"
+              "Time": "2026-11-24T14:11:13.979881176Z"
             },
             "Message": "then the links remain intact",
             "NodeType": "It"
@@ -773,7 +773,7 @@
             },
             "TimelineLocation": {
               "Order": 39,
-              "Time": "2026-11-23T12:31:11.595075678Z"
+              "Time": "2026-11-24T14:11:13.979901464Z"
             },
             "Message": "recording the applied link count before restart"
           },
@@ -786,7 +786,7 @@
             "TimelineLocation": {
               "Offset": 1264,
               "Order": 40,
-              "Time": "2026-11-23T12:31:11.642814282Z"
+              "Time": "2026-11-24T14:11:14.029010271Z"
             },
             "Message": "rollout-restarting the control plane and waiting for it to recover"
           },
@@ -799,7 +799,7 @@
             "TimelineLocation": {
               "Offset": 1264,
               "Order": 41,
-              "Time": "2026-11-23T12:31:14.655467535Z"
+              "Time": "2026-11-24T14:11:17.043055062Z"
             },
             "Message": "rediscovering the northbound endpoint after restart"
           },
@@ -812,7 +812,7 @@
             "TimelineLocation": {
               "Offset": 2945,
               "Order": 42,
-              "Time": "2026-11-23T12:31:19.713779186Z"
+              "Time": "2026-11-24T14:11:22.108373953Z"
             },
             "Message": "asserting all three inter-cluster links persist on reconnected nodes"
           },
@@ -823,12 +823,12 @@
               "LineNumber": 572
             },
             "TimelineLocation": {
-              "Offset": 5623,
+              "Offset": 5411,
               "Order": 44,
-              "Time": "2026-11-23T12:31:19.809733285Z"
+              "Time": "2026-11-24T14:11:22.165766515Z"
             },
             "Message": "then the links remain intact",
-            "Duration": 8214677797,
+            "Duration": 8185885329,
             "NodeType": "It"
           },
           {
@@ -838,9 +838,9 @@
               "LineNumber": 364
             },
             "TimelineLocation": {
-              "Offset": 5623,
+              "Offset": 5411,
               "Order": 45,
-              "Time": "2026-11-23T12:31:19.809745324Z"
+              "Time": "2026-11-24T14:11:22.165778958Z"
             },
             "Message": "Slim topology test",
             "NodeType": "AfterAll"
@@ -852,12 +852,12 @@
               "LineNumber": 364
             },
             "TimelineLocation": {
-              "Offset": 6417,
+              "Offset": 6205,
               "Order": 47,
-              "Time": "2026-11-23T12:31:19.878973807Z"
+              "Time": "2026-11-24T14:11:22.251494126Z"
             },
             "Message": "Slim topology test",
-            "Duration": 69228484,
+            "Duration": 85715167,
             "NodeType": "AfterAll"
           }
         ]
